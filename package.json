@@ -16,9 +16,14 @@
   "bugs": {
     "url": "https://github.com/fetchfox/foxtrot/issues"
   },
-  "homepage": "https://github.com/fetchfox/foxtrot#readme",
+  "homepage": "https://github.com/fetchfox/foxtrot",
   "devDependencies": {
     "chai": "^5.1.1",
     "mocha": "^10.7.3"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "node-fetch": "^3.3.2",
+    "url-polyfill": "^1.1.12"
   }
 }
