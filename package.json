@@ -25,9 +25,11 @@
     "mocha": "^10.7.3"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.2",
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
     "node-fetch": "^3.3.2",
+    "openai": "^4.58.1",
     "url-polyfill": "^1.1.12",
     "winston": "^3.14.2"
   }
