@@ -1,9 +1,10 @@
 import { logger } from '../log/logger.js';
-import { Fetcher } from '../../src/fetch/Fetcher.js';
+import { getFetcher } from './util.js';
 
-export const fetch = async (url, { filename }) => {
-  const ft = new Fetcher();
+export const fetch = async (url, options) => {
+  const ft = getFetcher(options.fetcher);
   const doc = await ft.fetch(url);
+  const { filename } = options;
   if (filename) {
     await doc.save(filename);
     console.log(`Saved to ${filename}`);

@@ -8,7 +8,7 @@ export const Document = class {
   constructor() {}
 
   toString() {
-    return JSON.stringify(this.dump(), null, 2);
+    return `[Document: ${this.resp?.url}]`;
   }
 
   dump() {
@@ -18,14 +18,16 @@ export const Document = class {
       body: this.body,
     };
     if (this.req) {
-      data.request = this.req;
+      data.req = this.req;
     }
     return data;
   }
 
   async save(filename) {
     logger.info(`Save document to ${filename}`);
-    return fs.writeFileSync(filename, this.toString());
+    return fs.writeFileSync(
+      filename,
+      JSON.stringify(this.dump(), null, 2))
   }
 
   async load(filename) {

@@ -1,17 +1,8 @@
 import { logger } from '../log/logger.js';
-import { OpenAI } from '../ai/OpenAI.js';
-import { Anthropic } from '../ai/Anthropic.js';
+import { getAi } from './util.js';
 
-export const ask = async (prompt, { provider, model, apiKey }) => {
-  let aiClass = {
-    openai: OpenAI,
-    anthropic: Anthropic,
-  }[provider];
-  if (!aiClass) {
-    console.error(`Unknown AI provider: ${provider}`);
-    return;
-  }
-  const ai = new aiClass(apiKey, model);
+export const ask = async (prompt, options) => {
+  const ai = getAi(options);
 
   let rate = 100;
   let prev = 0;

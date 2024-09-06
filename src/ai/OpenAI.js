@@ -1,5 +1,6 @@
-import { logger } from '../log/logger.js';
 import OpenAILib from 'openai';
+import { logger } from '../log/logger.js';
+import { parseAnswer } from './util.js';
 
 export const OpenAI = class {
   constructor(apiKey, model) {
@@ -40,8 +41,9 @@ export const OpenAI = class {
       }
     }
 
+    logger.info(`AI raw answer: ${answer}`);
     logger.info(`AI usage was: ${JSON.stringify(usage)}`);
 
-    return { answer, usage };
+    return { answer: parseAnswer(answer), usage };
   }
 }

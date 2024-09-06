@@ -38,6 +38,7 @@ export const Anthropic = class {
       }
     }
 
+    logger.info(`AI raw answer: ${answer}`);
     logger.info(`AI usage was: ${JSON.stringify(usage)}`);
 
     return { answer, usage };
