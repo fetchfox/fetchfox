@@ -1,11 +1,14 @@
 {
   "name": "foxtrot",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "AI based web scraping library",
   "main": "src/index.js",
   "type": "module",
+  "bin": {
+    "foxtrot": "./src/cli/index.js"
+  },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha test/**/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -23,7 +26,9 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0",
+    "commander": "^12.1.0",
     "node-fetch": "^3.3.2",
-    "url-polyfill": "^1.1.12"
+    "url-polyfill": "^1.1.12",
+    "winston": "^3.14.2"
   }
 }

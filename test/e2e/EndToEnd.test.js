@@ -1,10 +1,10 @@
 import { expect } from 'chai';
-import { FetchCrawler } from '../../src/crawl/FetchCrawler.js';
+import { Fetcher } from '../../src/fetch/Fetcher.js';
 
-describe('FetchCrawler', () => {
-  it('should get a document', async () => {
-    const crawler = new FetchCrawler();
-    const doc = await crawler.fetch('https://fetchfoxai.com');
+describe('EndToEnd', () => {
+  it('should fetch a page', async () => {
+    const ft = new Fetcher();
+    const doc = await ft.fetch('https://fetchfoxai.com');
 
     expect(doc.html).to.include('<title>');
     expect(doc.text).to.include('FetchFox');
