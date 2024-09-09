@@ -38,6 +38,7 @@ export const Document = class {
     if (!dest) {
       dest = this.generateFilename();
     }
+
     const stat = fs.statSync(dest);
     if (stat.isDirectory()) {
       dest = path.join(dest, this.generateFilename());
@@ -47,6 +48,8 @@ export const Document = class {
     fs.writeFileSync(
       dest,
       JSON.stringify(this.dump(), null, 2));
+
+    return dest;
   }
 
   async load(filename) {

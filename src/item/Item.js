@@ -35,11 +35,11 @@ export const Item = class {
         out = JSON.stringify(
           JSON
             .parse(fs.readFileSync(filename, 'utf-8'))
-            .concat([this.data]), null, 2);
+            .concat([data]), null, 2);
         break;
 
       case 'jsonl':
-        out = fs.readFileSync(filename, 'utf-8').trim() + '\n' + (JSON.stringify(this.data)) + '\n';
+        out = fs.readFileSync(filename, 'utf-8').trim() + '\n' + (JSON.stringify(data)) + '\n';
         break;
 
       default:
