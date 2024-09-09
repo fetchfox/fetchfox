@@ -78,8 +78,10 @@ export const Basic = class {
       let single = false;
       if (items.length == 1) {
         single = true;
-        for (const key of Object.keys(items.data[0])) {
-          if (!items[0].data[key]) single = false;
+        for (const key of Object.keys(items[0].data)) {
+          if (!items[0].data[key] || items[0].data[key] == '(not found)') {
+            single = false;
+          }
         }
       }
 
