@@ -22,7 +22,13 @@ export const extract = async (url, questions, options) => {
       for (const item of delta) {
         console.log(item.data);
         if (options.save) {
-          item.save(options.save, true, options.format);
+          item.save(
+            options.save,
+            {
+              append: true,
+              format: options.format,
+              saveSource: options.saveSource,
+            });
         }
       }
     },

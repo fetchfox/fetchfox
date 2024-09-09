@@ -74,8 +74,8 @@ cmd.command('extract')
   .option('-l --limit <limit>', 'Max number of items to extract')
   .option('-i --item <description>', 'Description of the item your are looking for')
   .option('-s --save <filename>', 'Save extracted items to a file')
+  .option('-S --save-source', 'Save source document')
   .option('-F --format <format>', 'Output format (json, jsonl)', 'json')
-  .option('-d --save-docs', 'Save source documents to this directory')
   .wrappedAction(extract);
 
 cmd.parse();

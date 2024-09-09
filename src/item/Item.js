@@ -1,4 +1,5 @@
-import fs from 'node:fs';
+import fs from 'fs';
+import path from 'path';
 
 import { logger } from '../log/logger.js';
 
@@ -12,7 +13,8 @@ export const Item = class {
     return `[Item: ${JSON.stringify(this.data)}]`;
   }
 
-  save(filename, append, format) {
+  save(filename, options) {
+    const { append, format, saveSource } = options || {};
     if (!format) format = 'json';
 
     if (!append || !fs.existsSync(filename)) {
@@ -23,23 +25,27 @@ export const Item = class {
       fs.writeFileSync(filename, empty);
     }
 
-    let data;
+    let out;
+    let data = JSON.parse(JSON.stringify(this.data));
+    if (saveSource) {
+      data.source = this.source.save(path.dirname(filename));
+    }
     switch (format) {
       case 'json':
-        data = JSON.stringify(
+        out = JSON.stringify(
           JSON
             .parse(fs.readFileSync(filename, 'utf-8'))
             .concat([this.data]), null, 2);
         break;
 
       case 'jsonl':
-        data = fs.readFileSync(filename, 'utf-8').trim() + '\n' + (JSON.stringify(this.data)) + '\n';
+        out = fs.readFileSync(filename, 'utf-8').trim() + '\n' + (JSON.stringify(this.data)) + '\n';
         break;
 
       default:
         throw 'Unhandled: ' + format;
     }
 
-    return fs.writeFileSync(filename, data);
+    return fs.writeFileSync(filename, out);
   }
 }

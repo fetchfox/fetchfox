@@ -1,6 +1,9 @@
+import path from 'path';
+import fs from 'fs';
+
+import { createHash } from 'crypto';
 import * as cheerio from 'cheerio';
 import { URL } from 'url';
-import fs from 'node:fs';
 
 import { logger } from '../log/logger.js';
 
@@ -23,10 +26,26 @@ export const Document = class {
     return data;
   }
 
-  async save(filename) {
-    logger.info(`Save document to ${filename}`);
-    return fs.writeFileSync(
-      filename,
+  generateFilename() {
+    const { hostname } = new URL(this.resp?.url);
+    const hash = createHash('sha256')
+      .update(JSON.stringify(this.dump()))
+      .digest('hex');
+    return `doc-${hostname}-${hash.substr(0, 10)}.json`;
+  }
+
+  save(dest) {
+    if (!dest) {
+      dest = this.generateFilename();
+    }
+    const stat = fs.statSync(dest);
+    if (stat.isDirectory()) {
+      dest = path.join(dest, this.generateFilename());
+    }
+    
+    logger.info(`Save document to ${dest}`);
+    fs.writeFileSync(
+      dest,
       JSON.stringify(this.dump(), null, 2));
   }
 
