@@ -3,9 +3,12 @@ import AnthropicLib from '@anthropic-ai/sdk';
 import { parseAnswer } from './util.js';
 
 export const Anthropic = class {
-  constructor(apiKey, model) {
-    this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY;
+  constructor(model, apiKey) {
     this.model = model || 'claude-3-5-sonnet-20240620';
+    this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY;
+
+    // TODO: Get actual model max tokens
+    this.maxTokens = 10000;
   }
 
   async ask(prompt, cb, options) {

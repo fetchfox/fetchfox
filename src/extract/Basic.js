@@ -2,15 +2,16 @@ import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
 import { basic } from './prompts.js';
 
-const textChunkSize =  50000;
-const htmlChunkSize = 120000;
-
 export const Basic = class {
   constructor(ai) {
     this.ai = ai;
   }
 
   async extract(doc, questions, cb, options) {
+    const maxTokens = this.ai.maxTokens;
+    const textChunkSize = maxTokens * 4 * 0.1;
+    const htmlChunkSize = maxTokens * 4 * 0.25;
+
     const { extraRules, description, limit } = options || {};
 
     logger.info(`Extracting from ${doc}: ${questions.join(', ')}`);
@@ -31,8 +32,8 @@ export const Basic = class {
       const context = {
         url: doc.url,
         questions,
-        text,
-        html,
+        text: textPart,
+        html: htmlPart,
         extraRules,
         description: description ? `You are looking for this type of item(s):\n\n${description}` : '',
       };

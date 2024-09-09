@@ -7,6 +7,7 @@ import { fetch } from './fetch.js';
 import { ask } from './ai.js';
 import { crawl } from './crawl.js';
 import { extract } from './extract.js';
+import { compare } from './compare.js';
 
 Command.prototype.fetcherOptions = function () {
   return this
@@ -77,5 +78,19 @@ cmd.command('extract')
   .option('-S --save-source', 'Save source document')
   .option('-F --format <format>', 'Output format (json, jsonl)', 'json')
   .wrappedAction(extract);
+
+cmd.command('compare')
+  .description('Compare extraction across models')
+  .argument('<url>', 'URL to extract')
+  .argument('<fields>', 'Fields of the item to extract, comma separated')
+  .verbosityOptions()
+  .fetcherOptions()
+  .option(
+    '-c --compare <ais>',
+    'AI models to compare, format provider:model',
+    (val, prev) => (prev || []).concat(val))
+  .option('-l --limit <limit>', 'Max number of items to extract')
+  .option('-i --item <description>', 'Description of the item your are looking for')
+  .wrappedAction(compare);
 
 cmd.parse();

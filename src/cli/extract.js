@@ -9,15 +9,12 @@ export const extract = async (url, questions, options) => {
   const ft = getFetcher(options.fetcher);
   const ex = new Basic(ai);
   const doc = await ft.fetch(url);
-  const result = Papa.parse(questions);
-  if (result.error) {
-    console.error(`Could not parse questions: ${result.error}`);
-  }
+  questions = (Papa.parse(questions)).data[0];
   const description = options.item;
   const { limit } = options;
   const { items } = await ex.extract(
     doc,
-    result.data[0],
+    questions,
     ({ delta, partial }) => {
       for (const item of delta) {
         console.log(item.data);

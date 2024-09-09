@@ -1,11 +1,25 @@
 import OpenAILib from 'openai';
+import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
 
-export const OpenAI = class {
-  constructor(apiKey, model) {
-    this.apiKey = apiKey || process.env.OPENAI_API_KEY;
+export const OpenAI = class extends BaseAI {
+  constructor(model, apiKey) {
+    super();
     this.model = model || 'gpt-4o-mini';
+    this.apiKey = apiKey || process.env.OPENAI_API_KEY;
+
+    if (this.model.indexOf('gpt-3.5') != -1) {
+      this.maxTokens = 16385;
+    } else if (this.model.indexOf('gpt-4o-mini') != -1) {
+      this.maxTokens = 128000;
+    } else if (this.model.indexOf('gpt-4o') != -1) {
+      this.maxTokens = 128000;
+    } else if (this.model.indexOf('gpt-4') != -1) {
+      this.maxTokens = 128000;
+    } else {
+      this.maxTokens = 10000;
+    }
   }
 
   async ask(prompt, cb, options) {
@@ -35,7 +49,7 @@ export const OpenAI = class {
 
       if (chunk.choices?.length) {
         const delta = chunk.choices[0].delta.content;
-        if (delta) {
+        if (delta) {3
           answer += delta;
           cb && cb({ partial: parseAnswer(answer), delta, usage });
         }

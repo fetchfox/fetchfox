@@ -10,7 +10,7 @@ export const Item = class {
   }
 
   toString() {
-    return `[Item: ${JSON.stringify(this.data)}]`;
+    return `[Item: ${JSON.stringify(this.data).substr(0, 40)}... from ${this.source}]`;
   }
 
   save(filename, options) {

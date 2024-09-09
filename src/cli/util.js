@@ -24,5 +24,5 @@ export const getAi = (which, apiKey) => {
     console.error(`Unknown AI provider: ${provider}`);
     return;
   }
-  return new aiClass(apiKey, model);
+  return new aiClass(model, apiKey);
 }
