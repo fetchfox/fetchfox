@@ -15,18 +15,16 @@ export const extract = async (url, questions, options) => {
   }
   const description = options.item;
   const { limit } = options;
-  const items = await ex.extract(
+  const { items } = await ex.extract(
     doc,
     result.data[0],
     ({ delta, partial }) => {
       for (const item of delta) {
-        console.log(item);
+        console.log(item.data);
+        if (options.save) {
+          item.save(options.save, true, options.format);
+        }
       }
     },
     { description, limit });
-
-  if (options.save) {
-    saveItems(options.save, items);
-    console.log('Saved results to', options.save);
-  }
 }

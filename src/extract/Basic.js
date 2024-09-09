@@ -1,4 +1,4 @@
-import { Base } from './Base.js';
+import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
 import { basic } from './prompts.js';
 
@@ -40,18 +40,24 @@ export const Basic = class {
       let prevLength = 1;  // set it to 1 to ignore itemCount row
       const prompt = basic.render(context);
 
+      // TODO: Remove duplicated code for partial / full result handling
       let result = [];
       const abort = () => limit && result.length >= limit;
       const { answer, didAbort } = await this.ai.ask(
         prompt,
         async ({ partial }) => {
           if (partial && partial.length > prevLength) {
-            const delta = partial.slice(prevLength);
-            result = existing.concat(partial.slice(1));
+            const delta = partial
+              .slice(prevLength)
+              .map(i => new Item(i, doc));
+
+            result = existing.concat(
+              partial.slice(1).map(i => new Item(i, doc)));
+
             prevLength = partial.length;
 
             for (const d of delta) {
-              logger.info(`Extraction delta: ${JSON.stringify(d)}`);
+              logger.info(`Extraction delta: ${d}`);
             }
 
             cb && cb({ delta, partial: result });
@@ -66,13 +72,14 @@ export const Basic = class {
       }
 
       const items = ensureArray(answer)
-        .filter(i => i.itemCount == undefined || Object.keys(i).length > 1);
+        .filter(i => i.itemCount == undefined || Object.keys(i).length > 1)
+        .map(i => new Item(i, doc));
 
       let single = false;
       if (items.length == 1) {
         single = true;
-        for (const key of Object.keys(items[0])) {
-          if (!items[0][key]) single = false;
+        for (const key of Object.keys(items.data[0])) {
+          if (!items[0].data[key]) single = false;
         }
       }
 
@@ -97,6 +104,6 @@ export const Basic = class {
       result = result.slice(0, limit);
     }
 
-    return result;
+    return { items: result };
   }
 }

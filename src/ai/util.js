@@ -27,6 +27,7 @@ export const parseAnswer = (text) => {
   }
 
   // We don't know what it is, return null
+  // console.warn('Could not parse:', text);
   return null;
 }
 

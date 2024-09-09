@@ -1,5 +1,6 @@
 import { logger } from '../log/logger.js';
 import AnthropicLib from '@anthropic-ai/sdk';
+import { parseAnswer } from './util.js';
 
 export const Anthropic = class {
   constructor(apiKey, model) {
@@ -8,19 +9,20 @@ export const Anthropic = class {
   }
 
   async ask(prompt, cb, options) {
-    const { systemPrompt } = options || {};
+    const { systemPrompt, abort } = options || {};
 
     const anthropic = new AnthropicLib({
       apiKey: this.apiKey,
     });
 
     const stream = await anthropic.messages.create({
-      max_tokens: 1024,
+      max_tokens: 200000,
       messages: [{ role: 'user', content: prompt }],
       model: this.model,
       stream: true,
     });
 
+    let didAbort = false;
     let answer = '';
     let usage = { input: 0, output: 0, total: 0 };
     for await (const chunk of stream) {
@@ -36,11 +38,21 @@ export const Anthropic = class {
         answer += delta.text;
         cb && cb({ partial: parseAnswer(answer), delta, usage });
       }
+
+      if (abort && abort()) {
+        logger.info(`Got abort signal`);
+        didAbort = true;
+        break;
+      }
     }
 
     logger.info(`AI raw answer: ${answer}`);
     logger.info(`AI usage was: ${JSON.stringify(usage)}`);
 
-    return { answer: parseAnswer(answer), usage };
+    return {
+      answer: parseAnswer(answer),
+      usage,
+      didAbort,
+    };
   }
 }
