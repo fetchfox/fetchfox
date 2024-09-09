@@ -2,6 +2,7 @@ import JSON5 from 'json5'
 
 export const parseAnswer = (text) => {
   if (!text) return;
+
   const clean = text
         .replace(/```jsonl?/, '')
         .replace('```', '')
@@ -26,18 +27,16 @@ export const parseAnswer = (text) => {
   }
 
   // We don't know what it is, return null
-  return text;
+  return null;
 }
 
 const parseJsonl = (str) => {
   const lines = str.split('\n');
-  // console.log('parseJsonl', lines);
   const result = [];
   for (const line of lines) {
     try {
       result.push(JSON5.parse(line));
     } catch(e) {
-      // console.warn('skipping invalid jsonl:', line);
     }
   }
   return result;

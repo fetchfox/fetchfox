@@ -40,7 +40,11 @@ export const Crawler = class {
         }
       }
       matches = dedupeLinks(matches.concat(cleanLinks(partial)));
-      if (cb) cb(partial, matches, i / chunked.length);
+      if (cb) cb({
+        delta: partial,
+        partial: matches,
+        progress: i / chunked.length,
+      });
     }
 
     logger.info(`Found ${matches.length} matches in ${links.length} links"`);

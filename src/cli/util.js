@@ -14,7 +14,8 @@ export const getFetcher = (name) => {
   return new fetcherClass();
 }
 
-export const getAi = ({ provider, model, apiKey }) => {
+export const getAi = (which, apiKey) => {
+  const [provider, model] = which.split(':');
   let aiClass = {
     openai: OpenAI,
     anthropic: Anthropic,

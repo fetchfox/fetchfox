@@ -27,7 +27,7 @@ export const Document = class {
     logger.info(`Save document to ${filename}`);
     return fs.writeFileSync(
       filename,
-      JSON.stringify(this.dump(), null, 2))
+      JSON.stringify(this.dump(), null, 2));
   }
 
   async load(filename) {

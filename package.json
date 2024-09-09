@@ -31,6 +31,7 @@
     "json5": "^2.2.3",
     "node-fetch": "^3.3.2",
     "openai": "^4.58.1",
+    "papaparse": "^5.4.1",
     "url-polyfill": "^1.1.12",
     "winston": "^3.14.2"
   }

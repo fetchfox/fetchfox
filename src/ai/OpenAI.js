@@ -9,7 +9,7 @@ export const OpenAI = class {
   }
 
   async ask(prompt, cb, options) {
-    const { systemPrompt } = options || {};
+    const { systemPrompt, abort } = options || {};
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,
@@ -23,6 +23,7 @@ export const OpenAI = class {
       stream_options: { include_usage: true },
     });
 
+    let didAbort = false;
     let answer = '';
     let usage = { input: 0, output: 0, total: 0 };
     for await (const chunk of stream) {
@@ -36,14 +37,24 @@ export const OpenAI = class {
         const delta = chunk.choices[0].delta.content;
         if (delta) {
           answer += delta;
-          cb && cb({ answer, delta, usage });
+          cb && cb({ partial: parseAnswer(answer), delta, usage });
         }
+      }
+
+      if (abort && abort()) {
+        logger.info(`Got abort signal`);
+        didAbort = true;
+        break;
       }
     }
 
     logger.info(`AI raw answer: ${answer}`);
     logger.info(`AI usage was: ${JSON.stringify(usage)}`);
 
-    return { answer: parseAnswer(answer), usage };
+    return {
+      answer: parseAnswer(answer),
+      usage,
+      didAbort,
+    };
   }
 }

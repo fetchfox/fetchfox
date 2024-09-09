@@ -34,13 +34,13 @@ export const Anthropic = class {
       const delta = chunk.delta;
       if (delta?.type == 'text_delta') {
         answer += delta.text;
-        cb && cb({ answer, delta: delta.text, usage });
+        cb && cb({ partial: parseAnswer(answer), delta, usage });
       }
     }
 
     logger.info(`AI raw answer: ${answer}`);
     logger.info(`AI usage was: ${JSON.stringify(usage)}`);
 
-    return { answer, usage };
+    return { answer: parseAnswer(answer), usage };
   }
 }

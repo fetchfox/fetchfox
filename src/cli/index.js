@@ -6,6 +6,7 @@ import { logger } from '../log/logger.js';
 import { fetch } from './fetch.js';
 import { ask } from './ai.js';
 import { crawl } from './crawl.js';
+import { extract } from './extract.js';
 
 Command.prototype.fetcherOptions = function () {
   return this
@@ -14,8 +15,7 @@ Command.prototype.fetcherOptions = function () {
 
 Command.prototype.aiOptions = function () {
   return this
-    .option('-p --provider <provider>', 'Which AI provider to use', 'openai')
-    .option('-m --model <model>', 'Which model to use', '')
+    .option('-a --ai <ai>', 'Which AI to use, syntax is provider:model', 'openai:gpt-4o-mini')
     .option('-k --api-key <api-key>', 'Provider API key', '');
 }
 
@@ -63,5 +63,18 @@ cmd.command('crawl')
   .fetcherOptions()
   .aiOptions()
   .wrappedAction(crawl);
+
+cmd.command('extract')
+  .description('Extract item from a given URL')
+  .argument('<url>', 'URL to extract')
+  .argument('<fields>', 'Fields of the item to extract, comma separated')
+  .verbosityOptions()
+  .fetcherOptions()
+  .aiOptions()
+  .option('-l --limit <limit>', 'Max number of items to extract')
+  .option('-i --item <description>', 'Description of the item your are looking for')
+  .option('-s --save <filename>', 'Save extracted items to a file')
+  .option('-d --include-docs', 'When saving, also save the source documents')
+  .wrappedAction(extract);
 
 cmd.parse();
