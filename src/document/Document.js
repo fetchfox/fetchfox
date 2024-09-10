@@ -16,9 +16,10 @@ export const Document = class {
 
   dump() {
     const data = {
+      url: this.url,
+      body: this.body,
       resp: this.resp,
       contentType: this.contentType,
-      body: this.body,
     };
     if (this.req) {
       data.req = this.req;
@@ -26,12 +27,29 @@ export const Document = class {
     return data;
   }
 
+  async load(filename) {
+    logger.info(`Read document from ${filename}`);
+
+    const resp = fs.readFileSync(filename, 'utf-8');
+    const data = JSON.parse(resp);
+
+    this.url = data.url;
+    this.body = data.body;
+    this.resp = data.resp;
+    this.contentType = data.contentType;
+    if (data.req) {
+      this.req = data.req;
+    }
+
+    this.parse();
+  }
+
   generateFilename() {
-    const { hostname } = new URL(this.resp?.url);
+    const { hostname, pathname } = new URL(this.resp?.url);
     const hash = createHash('sha256')
       .update(JSON.stringify(this.dump()))
       .digest('hex');
-    return `doc-${hostname}-${hash.substr(0, 10)}.json`;
+    return `doc-${hostname}${pathname.replaceAll(/[^A-Za-z0-9]+/g, '-')}-${hash.substr(0, 10)}.json`;
   }
 
   save(dest) {
@@ -50,10 +68,6 @@ export const Document = class {
       JSON.stringify(this.dump(), null, 2));
 
     return dest;
-  }
-
-  async load(filename) {
-    logger.info(`Read document from ${filename}`);
   }
 
   async read(resp, reqUrl, reqOptions) {

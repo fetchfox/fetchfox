@@ -1,14 +1,25 @@
+import fs from 'fs';
+
 import Papa from 'papaparse';
 import { logger } from '../log/logger.js';
 import { Basic } from '../extract/Basic.js';
+import { Document } from '../document/Document.js';
 import { saveItems } from '../extract/save.js';
 import { getAi, getFetcher } from './util.js';
 
 export const extract = async (url, questions, options) => {
   const ai = getAi(options.ai, options.apiKey);
-  const ft = getFetcher(options.fetcher);
   const ex = new Basic(ai);
-  const doc = await ft.fetch(url);
+
+  let doc;
+  const isFile = fs.existsSync(url);
+  if (isFile) {
+    doc = new Document();
+    await doc.load(url);
+  } else {
+    doc = await getFetcher(options.fetcher).fetch(url);
+  }
+  
   questions = (Papa.parse(questions)).data[0];
   const description = options.item;
   const { limit } = options;
@@ -24,7 +35,7 @@ export const extract = async (url, questions, options) => {
             {
               append: true,
               format: options.format,
-              saveSource: options.saveSource,
+              saveSource: !isFile && options.saveSource,
             });
         }
       }

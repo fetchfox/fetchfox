@@ -5,7 +5,10 @@ import { logger } from '../log/logger.js';
 
 export const Item = class {
   constructor(data, source) {
-    this.data = data;
+    this.data = {};
+    for (const k of Object.keys(data)) {
+      this.data[k] = '' + data[k];
+    }
     this.source = source;
   }
 

@@ -58,5 +58,6 @@ export const compare = async (url, questions, options) => {
     console.log('');
   }
 
-  console.log('inMajority', inMajority);
+  console.log('Times each model agreed with the consensus:');
+  console.log(inMajority);
 }

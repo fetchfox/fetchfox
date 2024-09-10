@@ -1,0 +1,18 @@
+[
+  {
+    "programming language used": "Python",
+    "number of stars as full number": "5380",
+    "number of watchers": "126",
+    "number of forks": "1043",
+    "current release version number": "v1.3.0",
+    "source": "test/data/extractions/doc-github.com-solutions-devsecops-64fd611222.json"
+  },
+  {
+    "programming language used": "C++",
+    "number of stars as full number": "6200",
+    "number of watchers": "35",
+    "number of forks": "687",
+    "current release version number": "0.10.4",
+    "source": "test/data/extractions/doc-github.com-Alexays-Waybar-722fa70dd6.json"
+  }
+]

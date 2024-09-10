@@ -1,0 +1,29 @@
+[
+  {
+    "programming language used": "JavaScript",
+    "number of stars as full number": "26600",
+    "number of watchers": "234",
+    "current release version number": "12.1.0",
+    "source": "test/data/extractions/doc-github.com-205bccde4e.json"
+  },
+  {
+    "programming language used": "JavaScript",
+    "number of stars as full number": 26600,
+    "number of watchers": 234,
+    "current release version number": "0.8.0",
+    "source": "test/data/extractions/doc-github.com-bb3a3d7fc8.json"
+  },
+  {
+    "programming language used": "JavaScript",
+    "number of stars as full number": "26600",
+    "number of watchers": "234",
+    "current release version number": "12.1.0"
+  },
+  {
+    "programming language used": "JavaScript",
+    "number of stars as full number": "26600",
+    "number of watchers": "234",
+    "number of forks": "1700",
+    "current release version number": "v12.1.0"
+  }
+]
