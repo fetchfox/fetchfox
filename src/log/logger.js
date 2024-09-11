@@ -12,5 +12,5 @@ export const logger = createLogger({
     errors({ stack: true }),
     logFormat,
   ),
-  transports: [new transports.Console({ level: 'warn' })],
+  transports: [new transports.Console({ level: process.env.FOXTROT_LOG_LEVEL || 'warn' })],
 });

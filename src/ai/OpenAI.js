@@ -4,8 +4,9 @@ import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
 
 export const OpenAI = class extends BaseAI {
-  constructor(model, apiKey) {
-    super();
+  constructor(model, { apiKey, cache }) {
+    super(model, { apiKey, cache });
+
     this.model = model || 'gpt-4o-mini';
     this.apiKey = apiKey || process.env.OPENAI_API_KEY;
 
@@ -19,6 +20,91 @@ export const OpenAI = class extends BaseAI {
       this.maxTokens = 128000;
     } else {
       this.maxTokens = 10000;
+    }
+  }
+
+  async *stream(prompt, options) {
+    const { systemPrompt, format, cacheHint } = Object.assign(
+      { format: 'text' }, options);
+
+    const cached = await this.getCache(prompt, { ...options, cacheHint });
+    console.log('Cache GAVE:', cached);
+
+    // if (!cached) throw 'e';
+
+    if (cached) {
+      if (format == 'jsonl') {
+        const partial = [];
+        for (const delta of cached.answer) {
+          partial.push(delta);
+          const result = { delta, partial, usage: cached.usage };
+          yield Promise.resolve(result);
+        }
+      } else {
+        yield Promise.resolve(cached);
+      }
+      return;
+    }
+
+    const openai = new OpenAILib({
+      apiKey: this.apiKey,
+      dangerouslyAllowBrowser: true,
+    });
+
+    const stream = await openai.chat.completions.create({
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
+      stream: true,
+      stream_options: { include_usage: true },
+    });
+
+    let usage = { input: 0, output: 0, total: 0 };
+    let answer = '';
+    let buffer = '';
+
+    for await (const chunk of stream) {
+      if (chunk.usage) {
+        usage.input = chunk.usage.prompt_tokens || 0; 
+        usage.output = chunk.usage.completion_tokens || 0;
+        usage.total = usage.input + usage.output;
+      }
+
+      if (chunk.choices?.length) {
+        const delta = chunk.choices[0].delta.content;
+        if (delta) {
+          answer += delta;
+
+          const cache = () => {
+            // TODO: properly handle stream cancellations
+            this.setCache(
+              prompt,
+              { ...options, cacheHint },
+              { answer: parseAnswer(answer, format), usage });
+          }
+
+          if (format == 'jsonl') {
+            buffer += delta;
+            const parsed = parseAnswer(buffer, format);
+            if (parsed.length) {
+              for (const result of parsed) {
+                cache();
+                yield Promise.resolve({
+                  delta: result,
+                  partial: parseAnswer(answer, format),
+                  usage });
+              }
+              buffer = '';
+            }
+          } else {
+            const parsed = parseAnswer(answer, format);
+            cache();
+            yield Promise.resolve({
+              delta: parsed,
+              partial: parseAnswer(answer, format),
+              usage });
+          }
+        }
+      }
     }
   }
 
@@ -49,7 +135,7 @@ export const OpenAI = class extends BaseAI {
 
       if (chunk.choices?.length) {
         const delta = chunk.choices[0].delta.content;
-        if (delta) {3
+        if (delta) {
           answer += delta;
           cb && cb({ partial: parseAnswer(answer), delta, usage });
         }

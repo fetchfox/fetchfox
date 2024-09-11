@@ -3,7 +3,7 @@ import { OpenAI } from '../ai/OpenAI.js';
 import { Anthropic } from '../ai/Anthropic.js';
 import { Fetcher } from '../fetch/Fetcher.js';
 
-export const getFetcher = (name) => {
+export const getFetcher = (name, options) => {
   let fetcherClass = {
     fetch: Fetcher
   }[name];
@@ -11,18 +11,5 @@ export const getFetcher = (name) => {
     console.error(`Unknown fetcher: ${name}`);
     return;
   }
-  return new fetcherClass();
-}
-
-export const getAi = (which, apiKey) => {
-  const [provider, model] = which.split(':');
-  let aiClass = {
-    openai: OpenAI,
-    anthropic: Anthropic,
-  }[provider];
-  if (!aiClass) {
-    console.error(`Unknown AI provider: ${provider}`);
-    return;
-  }
-  return new aiClass(model, apiKey);
+  return new fetcherClass(options);
 }

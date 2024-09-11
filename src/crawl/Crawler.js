@@ -1,20 +1,24 @@
+import crypto from 'crypto';
 import { logger } from '../log/logger.js';
 import { gather } from './prompts.js';
+import { DefaultFetcher } from '../fetch/index.js';
+import { getAi } from '../ai/index.js';
 
 export const Crawler = class {
-  constructor(fetcher, ai) {
-    this.fetcher = fetcher;
-    this.ai = ai;
+  constructor(ai, { fetcher, cache }) {
+    this.ai = getAi(ai, { cache });
+    this.fetcher = fetcher || new DefaultFetcher({ cache });
   }
 
-  async crawl(url, question, cb, options) {
-    const { fetchOptions } = options || {};
+  async *stream(url, question, options) {
+    const { fetchOptions, limit } = options || {};
+
     logger.info(`Crawling ${url} with for "${question}"`);
 
     const doc = await this.fetcher.fetch(url, fetchOptions);
 
     const links = shuffle(dedupeLinks(doc.links));
-    const limit = 6000;
+    const maxBytes = 6000;
     const slimmer = item => ({
       id: item.id,
       html: item.html.substr(0, 200),
@@ -22,43 +26,60 @@ export const Crawler = class {
       url: item.url,
     });
 
-    const chunked = chunkList(links.map(slimmer), limit);
+    const chunked = chunkList(links.map(slimmer), maxBytes);
 
     let matches = [];
+    let count = 0;
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
       const prompt = gather.render({
         question,
         links: JSON.stringify(chunk, null, 2),
       });
-      const { answer } = await this.ai.ask(prompt);
 
-      const partial = []
-      for (const m of answer) {
-        for (const link of doc.links) {
-          if (link.id == m.id) partial.push(link);
-        }
+      const seen = {};
+      const toLink = {};
+      for (const link of doc.links) {
+        toLink[link.id] = link;
       }
-      matches = dedupeLinks(matches.concat(cleanLinks(partial)));
-      if (cb) cb({
-        delta: partial,
-        partial: matches,
-        progress: i / chunked.length,
-      });
+
+      for await (const { delta } of this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit })) {
+        if (!toLink[delta.id]) continue;
+
+        const link = toLink[delta.id];
+        if (seen[link.url]) continue;
+
+        logger.info(`Found link ${link.url} in response to "${question}"`);
+
+        yield Promise.resolve({
+          link,
+          progress: { done: i, total: chunked.length },
+        });
+
+        count++
+        if (limit && count >= limit) return;
+      }
     }
+  }
 
-    logger.info(`Found ${matches.length} matches in ${links.length} links"`);
-
-    return matches;
+  async all(url, question, options, cb) {
+    const results = []
+    for await (const result of this.stream(url, question, options)) {
+      results.push(result);
+      cb && cb(result);
+    }
+    return results;
   }
 }
 
-const shuffle = (a) => {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+const shuffle = (l) => {
+  // Deterministic shuffle to keep prompts stable
+  const h = (v) => crypto
+    .createHash('sha256')
+    .update(JSON.stringify(v))
+    .digest('hex');
+  l.sort((a, b) => h(a).localeCompare(h(b)));
+  return l;
 }
 
 const chunkList = (list, maxBytes) => {

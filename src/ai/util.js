@@ -1,6 +1,6 @@
 import JSON5 from 'json5'
 
-export const parseAnswer = (text) => {
+export const parseAnswer = (text, format) => {
   if (!text) return;
 
   const clean = text
@@ -8,37 +8,28 @@ export const parseAnswer = (text) => {
         .replace('```', '')
         .replaceAll(/^`+|`+$/g, '');
 
-  // Try to parse it as JSON
-  try {
-    return JSON5.parse(clean);
-  } catch(e) {
-    // It was not JSON
-  }
+  if (format == 'jsonl') {
+    const lines = clean.split('\n');
+    const result = [];
+    for (const line of lines) {
+      try { result.push(JSON5.parse(line)) } catch(e) {}
+    }
+    return result;
 
-  // Try to parse it as JSONL
-  let data;
-  try {
-    data = parseJsonl(clean);
-  } catch (e) {
-    console.warn('Unable to parse partial response:', clean, e);
-  }
-  if (data && data.length > 0) {
-    return data;
-  }
+  } else if (format == 'json') {
+    try {
+      return JSON5.parse(clean);
+    } catch(e) {
+      return {};
+    }
 
-  // We don't know what it is, return null
-  // console.warn('Could not parse:', text);
-  return null;
+  } else if (format == 'text') {
+    return text;
+
+  } else {
+    return null;
+  }
 }
 
 const parseJsonl = (str) => {
-  const lines = str.split('\n');
-  const result = [];
-  for (const line of lines) {
-    try {
-      result.push(JSON5.parse(line));
-    } catch(e) {
-    }
-  }
-  return result;
 }

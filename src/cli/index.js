@@ -7,11 +7,10 @@ import { fetch } from './fetch.js';
 import { ask } from './ai.js';
 import { crawl } from './crawl.js';
 import { extract } from './extract.js';
-import { compare } from './compare.js';
 
 Command.prototype.fetcherOptions = function () {
   return this
-    .option('-f --fetcher', 'Which fetcher to use', 'fetch');
+    .option('-f --fetcher', 'Which fetcher to use', 'fetch')
 }
 
 Command.prototype.aiOptions = function () {
@@ -20,8 +19,9 @@ Command.prototype.aiOptions = function () {
     .option('-k --api-key <api-key>', 'Provider API key', '');
 }
 
-Command.prototype.verbosityOptions = function () {
+Command.prototype.globalOptions = function () {
   return this
+    .option('--cache <path>', 'Cache prompts and fetches in this directory')
     .option('-v --verbose', 'Verbose output');
 }
 
@@ -44,7 +44,7 @@ const cmd = new Command();
 cmd.command('fetch')
   .description('Fetch a URL')
   .argument('<url>', 'URL to fetch')
-  .verbosityOptions()
+  .globalOptions()
   .fetcherOptions()
   .option('-s --save <filename>', 'Save the document into a file')
   .wrappedAction(fetch);
@@ -52,7 +52,7 @@ cmd.command('fetch')
 cmd.command('ask')
   .description('Ask AI a question')
   .argument('<prompt>', 'Prompt to send to the AI')
-  .verbosityOptions()
+  .globalOptions()
   .aiOptions()
   .wrappedAction(ask);
 
@@ -60,7 +60,7 @@ cmd.command('crawl')
   .description('Crawl a URL for links related to a prompt')
   .argument('<url>', 'URL to crawl')
   .argument('<prompt>', 'Prompt for what kind of links to look for')
-  .verbosityOptions()
+  .globalOptions()
   .fetcherOptions()
   .aiOptions()
   .wrappedAction(crawl);
@@ -69,7 +69,7 @@ cmd.command('extract')
   .description('Extract item from a given URL')
   .argument('<url>', 'URL to extract')
   .argument('<fields>', 'Fields of the item to extract, comma separated')
-  .verbosityOptions()
+  .globalOptions()
   .fetcherOptions()
   .aiOptions()
   .option('-l --limit <limit>', 'Max number of items to extract')
@@ -78,19 +78,5 @@ cmd.command('extract')
   .option('-S --save-source', 'Save source document')
   .option('-F --format <format>', 'Output format (json, jsonl)', 'json')
   .wrappedAction(extract);
-
-cmd.command('compare')
-  .description('Compare extraction across models')
-  .argument('<url>', 'URL to extract')
-  .argument('<fields>', 'Fields of the item to extract, comma separated')
-  .verbosityOptions()
-  .fetcherOptions()
-  .option(
-    '-c --compare <ais>',
-    'AI models to compare, format provider:model',
-    (val, prev) => (prev || []).concat(val))
-  .option('-l --limit <limit>', 'Max number of items to extract')
-  .option('-i --item <description>', 'Description of the item your are looking for')
-  .wrappedAction(compare);
 
 cmd.parse();
