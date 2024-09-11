@@ -28,10 +28,6 @@ export const OpenAI = class extends BaseAI {
       { format: 'text' }, options);
 
     const cached = await this.getCache(prompt, { ...options, cacheHint });
-    console.log('Cache GAVE:', cached);
-
-    // if (!cached) throw 'e';
-
     if (cached) {
       if (format == 'jsonl') {
         const partial = [];

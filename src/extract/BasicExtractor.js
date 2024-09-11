@@ -24,6 +24,8 @@ export const BasicExtractor = class {
     const htmlChunkSize = maxTokens * 4 * 0.25;
 
     const { extraRules, description, limit } = options || {};
+    let { single } = options || {};
+    if (single) single = {};
 
     logger.info(`Extracting from ${doc}: ${questions.join(', ')}`);
 
@@ -74,15 +76,32 @@ export const BasicExtractor = class {
           continue;
         }
 
+        let r;
+        if (single) {
+          single = Object.assign({}, delta, single);
+          r = single;
+        } else {
+          // Assume its a new result
+          r = delta;
+        }
+
         const done = (
           limit && count >= limit ||
-          expectedCount == 1 && countMissing(delta) == 0);  // single complete item
+          // Single complete item cases:
+          expectedCount == 1 && countMissing(delta) == 0 ||
+          single && countMissing(single) == 0);
+
+
+        count++;
+        if (single && !done && more) {
+          continue;
+        }
+
         yield Promise.resolve({
-          item: new Item(delta, doc),
+          item: new Item(r, doc),
           done,
           more,
         });
-        count++;
       }
     }
 
@@ -96,10 +115,10 @@ export const BasicExtractor = class {
         more = result.more;
         done = result.done;
         if (done) break;
+        if (single) return;
       }
       if (done) break;
       if (!more) break;
-
       if (i + 1 == max) logger.warn(`Stopping extraction with some bytes left unprocessed for ${doc}`);
     }
   }

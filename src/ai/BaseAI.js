@@ -24,8 +24,10 @@ export const BaseAI = class {
     if (!this.cache) return;
 
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
-    logger.info(`Get prompt cache for ${key} for prompt "${prompt.substr(0, 32)}..."`);
-    return await this.cache.get(key);
+    const result = await this.cache.get(key);
+    const outcome = result ? '(hit)' : '(miss)';
+    logger.info(`Get prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
+    return result;
   }
 
   async setCache(prompt, { systemPrompt, format, cacheHint }, val) {

@@ -4,16 +4,21 @@ import path from 'path';
 import { logger } from '../log/logger.js';
 
 export const Item = class {
+  #source;
+
   constructor(data, source) {
-    this.data = {};
     for (const k of Object.keys(data)) {
-      this.data[k] = '' + data[k];
+      this[k] = '' + data[k];
     }
-    this.source = source;
+    this.#source = source;
   }
 
   toString() {
-    return `[Item: ${JSON.stringify(this.data).substr(0, 40)}... from ${this.source}]`;
+    return `[Item: ${JSON.stringify(this).substr(0, 40)}... from ${this.#source}]`;
+  }
+
+  source() {
+    return this.#source;
   }
 
   save(filename, options) {
@@ -29,9 +34,9 @@ export const Item = class {
     }
 
     let out;
-    let data = JSON.parse(JSON.stringify(this.data));
+    let data = JSON.parse(JSON.stringify(this));
     if (saveSource) {
-      data.source = this.source.save(path.dirname(filename));
+      data.source = this.#source.save(path.dirname(filename));
     }
     switch (format) {
       case 'json':
