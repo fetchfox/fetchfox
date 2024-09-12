@@ -22,6 +22,7 @@ export const OpenAI = class extends BaseAI {
       this.maxTokens = 10000;
     }
   }
+
   parseChunk(chunk, ctx) {
     if (chunk.usage) {
       const [input, output] = [
@@ -83,24 +84,15 @@ export const OpenAI = class extends BaseAI {
     }
   }
 
-  async ask(prompt, options, cb) {
+  async ask(prompt, options) {
     const { format, cacheHint } = Object.assign(
       { format: 'text' },
       options);
 
-    // const cached = await this.getCache(prompt, { ...options, cacheHint });
-    // if (cached) {
-    //   if (format == 'jsonl') {
-    //     const partial = [];
-    //     for (const delta of cached.answer) {
-    //       partial.push(delta);
-    //       const result = { delta, partial, usage: cached.usage };
-    //       return result;
-    //     }
-    //   } else {
-    //     return cached;
-    //   }
-    // }
+    const cached = await this.getCache(prompt, options);
+    if (cached) {
+      return cached;
+    }
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,
@@ -118,25 +110,14 @@ export const OpenAI = class extends BaseAI {
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
-    return this.parseChunk(chunk, ctx);
+
+    const result = this.parseChunk(chunk, ctx);
+    this.setCache(prompt, options, result);
+    return result;
   }
 
   async *stream(prompt, options) {
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
-
-    // const cached = await this.getCache(prompt, { ...options, cacheHint });
-    // if (cached) {
-    //   if (format == 'jsonl') {
-    //     const partial = [];
-    //     for (const delta of cached.answer) {
-    //       partial.push(delta);
-    //       const result = { delta, partial, usage: cached.usage };
-    //       return result;
-    //     }
-    //   } else {
-    //     return cached;
-    //   }
-    // }
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,

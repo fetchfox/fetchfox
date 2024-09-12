@@ -77,28 +77,8 @@ export const BasicExtractor = class {
       let count = 0;
       let expectedCount;
 
-      let gen;
-      if (stream) {
-        gen = ai.stream(prompt, { format: 'jsonl' });
-      } else {
-        gen = (async function *() {
-          const result = await ai.ask(
-            prompt,
-            { format: 'jsonl' });
-
-          for (let r of result.delta) {
-            yield Promise.resolve({
-              delta: r,
-              partial: result.partial,
-              usage: result.usage,
-            });
-          }
-        })();
-      }
-
-      for await (const x of gen) {
-        const { delta, usage } = x;
-
+      let gen = ai.gen(prompt, { format: 'jsonl', stream });
+      for await (const { delta, usage } of gen) {
         if (delta.itemCount) {
           expectedCount = delta.itemCount;
           continue;

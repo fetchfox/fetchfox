@@ -10,8 +10,8 @@ export const Crawler = class {
     this.fetcher = fetcher || new DefaultFetcher({ cache });
   }
 
-  async *stream(url, question, options) {
-    const { fetchOptions, limit } = options || {};
+  async *run(url, question, options) {
+    const { fetchOptions, limit, stream } = options || {};
 
     logger.info(`Crawling ${url} with for "${question}"`);
 
@@ -44,14 +44,8 @@ export const Crawler = class {
         toLink[link.id] = link;
       }
 
-      const stream = this.ai.stream(
-        prompt,
-        {
-          format: 'jsonl',
-          cacheHint: limit,
-        });
-
-      for await (const { delta, usage } of stream) {
+      let gen = this.ai.gen(prompt, { format: 'jsonl', cacheHint: limit, stream });
+      for await (const { delta, usage } of gen) {
         if (!toLink[delta.id]) continue;
 
         const link = toLink[delta.id];
@@ -75,13 +69,27 @@ export const Crawler = class {
     }
   }
 
-  async all(url, question, options, cb) {
-    const results = []
-    for await (const result of this.stream2(url, question, options)) {
-      results.push(result);
-      cb && cb(result);
+  async all(url, question, options) {
+    options = {...options, stream: false };
+    let result = [];
+    for await (const r of this.run(url, question, options)) {
+      result.push(r);
     }
-    return results;
+    return result;
+  }
+
+  async one(url, question, options) {
+    options = {...options, stream: true };
+    for await (const r of this.run(url, question, options)) {
+      return r;
+    }
+  }
+
+  async *stream(url, question, options) {
+    options = {...options, stream: true };
+    for await (const r of this.run(url, question, options)) {
+      yield Promise.resolve(r);
+    }
   }
 }
 

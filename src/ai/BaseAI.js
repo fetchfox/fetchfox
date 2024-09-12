@@ -44,4 +44,25 @@ export const BaseAI = class {
       this.usage[key] += usage[key];
     }
   }
+
+  gen(prompt, options) {
+    if (options.stream) {
+      return this.stream(prompt, { format: 'jsonl' });
+    } else {
+      const that = this;
+      return (async function *() {
+        const result = await that.ask(
+          prompt,
+          { format: 'jsonl' });
+
+        for (let r of result.delta) {
+          yield Promise.resolve({
+            delta: r,
+            partial: result.partial,
+            usage: result.usage,
+          });
+        }
+      })();
+    }
+  }
 }
