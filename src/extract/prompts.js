@@ -16,6 +16,7 @@ Follow these important rules:
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys.
 - Maximum 20 items
 
+
 {{extraRules}}
 
 Example of a valid response with multiple items:
@@ -28,6 +29,9 @@ Example of a valid response with a single item:
 {"What is the article's title?": "New Find at the Great Wall of China", "What is the article's date in YYYY-MM-DD format?": "2024-02-04"}
 
 Below is the user prompts. Prompt directive lines are preceded by >>>>
+
+>>>> Limit to this many item(s):
+{{ limit }}
 
 >>>> {{description}}
 

@@ -1,8 +1,9 @@
 import { OpenAI } from './OpenAI.js';
 import { Anthropic } from './Anthropic.js';
 
-export const getAi = (which, { apiKey, cache }) => {
-  if (typeof which != 'string' && which.stream && which.model) {
+export const getAi = (which, options) => {
+  const { apiKey, cache } = options || {};
+  if (typeof which != 'string') {
     return which;
   }
 

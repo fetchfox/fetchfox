@@ -21,6 +21,8 @@ Example of valid output:
 { "id": 18 }
 { "id": 45 }
 
+Return at MOST to this many links(s). Do not exceed this limit.: {{limit}}
+
 The user is looking for: {{question}}
 
 The list to find this is below:

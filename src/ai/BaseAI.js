@@ -4,6 +4,7 @@ import { logger } from '../log/logger.js';
 export const BaseAI = class {
   constructor(model, { apiKey, cache }) {
     if (cache) this.cache = cache;
+    this.usage = { input: 0, output: 0, total: 0 };
   }
 
   toString() {
@@ -35,6 +36,12 @@ export const BaseAI = class {
 
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
     logger.info(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${JSON.stringify(val).substr(0, 32)}..."`);
-    return this.cache.set(key, val, 24 * 3600);
+    return this.cache.set(key, val, 'prompt');
+  }
+
+  addUsage(usage) {
+    for (const key in this.usage) {
+      this.usage[key] += usage[key];
+    }
   }
 }

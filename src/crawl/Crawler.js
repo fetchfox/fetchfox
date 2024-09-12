@@ -34,6 +34,7 @@ export const Crawler = class {
       const chunk = chunked[i];
       const prompt = gather.render({
         question,
+        limit: limit || '(No limit)',
         links: JSON.stringify(chunk, null, 2),
       });
 
@@ -43,7 +44,14 @@ export const Crawler = class {
         toLink[link.id] = link;
       }
 
-      for await (const { delta } of this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit })) {
+      const stream = this.ai.stream(
+        prompt,
+        {
+          format: 'jsonl',
+          cacheHint: limit,
+        });
+
+      for await (const { delta, usage } of stream) {
         if (!toLink[delta.id]) continue;
 
         const link = toLink[delta.id];
@@ -51,20 +59,25 @@ export const Crawler = class {
 
         logger.info(`Found link ${link.url} in response to "${question}"`);
 
-        yield Promise.resolve({
-          link,
-          progress: { done: i, total: chunked.length },
-        });
+        // Check limit in case AI ignored it but keep stream open to get usage
+        if (count < limit) {
+          yield Promise.resolve({
+            link,
+            usage,
+            progress: { done: i, total: chunked.length },
+          });
+        }
 
-        count++
-        if (limit && count >= limit) return;
+        count++;
       }
+
+      if (limit && count >= limit) return;
     }
   }
 
   async all(url, question, options, cb) {
     const results = []
-    for await (const result of this.stream(url, question, options)) {
+    for await (const result of this.stream2(url, question, options)) {
       results.push(result);
       cb && cb(result);
     }

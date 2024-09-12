@@ -10,7 +10,9 @@ export const BasicExtractor = class {
     this.fetcher = fetcher || new DefaultFetcher({ cache });
   }
 
-  async *stream(target, questions, options) {
+  async *run(target, questions, options) {
+    const { stream } = options || {};
+
     let doc;
     if (typeof target == 'string') {
       doc = await this.fetcher.fetch(target);
@@ -49,7 +51,11 @@ export const BasicExtractor = class {
         text: textPart,
         html: htmlPart,
         extraRules,
-        description: description ? `You are looking for this type of item(s):\n\n${description}` : '',
+        limit: limit || 'No limit',
+        description: (
+          description
+          ? `You are looking for this type of item(s):\n\n${description}`
+          : ''),
       };
 
       const prompt = basic.render(context);
@@ -70,7 +76,29 @@ export const BasicExtractor = class {
 
       let count = 0;
       let expectedCount;
-      for await (const { delta } of ai.stream(prompt, { format: 'jsonl' })) {
+
+      let gen;
+      if (stream) {
+        gen = ai.stream(prompt, { format: 'jsonl' });
+      } else {
+        gen = (async function *() {
+          const result = await ai.ask(
+            prompt,
+            { format: 'jsonl' });
+
+          for (let r of result.delta) {
+            yield Promise.resolve({
+              delta: r,
+              partial: result.partial,
+              usage: result.usage,
+            });
+          }
+        })();
+      }
+
+      for await (const x of gen) {
+        const { delta, usage } = x;
+
         if (delta.itemCount) {
           expectedCount = delta.itemCount;
           continue;
@@ -102,6 +130,8 @@ export const BasicExtractor = class {
           done,
           more,
         });
+
+        return;
       }
     }
 
@@ -114,21 +144,36 @@ export const BasicExtractor = class {
         yield Promise.resolve(result.item);
         more = result.more;
         done = result.done;
-        if (done) break;
-        if (single) return;
+        // if (done) break;
+        // if (single) return;
       }
+
       if (done) break;
       if (!more) break;
       if (i + 1 == max) logger.warn(`Stopping extraction with some bytes left unprocessed for ${doc}`);
     }
   }
 
-  async all(doc, questions, options, cb) {
-    const results = []
-    for await (const result of this.stream(doc, questions, options)) {
-      results.push(result);
-      cb && cb(result);
+  async all(target, questions, options) {
+    options = {...options, stream: false };
+    let result = [];
+    for await (const r of this.run(target, questions, options)) {
+      result.push(r);
     }
-    return results;
+    return result;
+  }
+
+  async one(target, questions, options) {
+    options = {...options, stream: true };
+    for await (const r of this.run(target, questions, options)) {
+      return r;
+    }
+  }
+
+  async *stream(target, questions, options) {
+    options = {...options, stream: true };
+    for await (const r of this.run(target, questions, options)) {
+      yield Promise.resolve(r);
+    }
   }
 }

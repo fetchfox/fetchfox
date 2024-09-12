@@ -2,13 +2,16 @@ import fs from 'fs';
 import path from 'path';
 
 export const DiskCache = class {
-  constructor(dirname) {
+  constructor(dirname, options) {
+    const { ttls } = options || {};
     this.dirname = dirname;
+    this.ttls = ttls || {};
     fs.promises.mkdir(dirname, { recursive: true });
   }
 
-  async set(key, val, ttl) {
+  async set(key, val, label) {
     const filepath = path.join(this.dirname, key);
+    const ttl = this.ttls[label] || 3600;
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
     return await fs.promises.writeFile(filepath, JSON.stringify(data), 'utf8');
   }

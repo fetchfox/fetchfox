@@ -30,7 +30,7 @@ export const Fetcher = class {
 
     if (this.cache) {
       logger.info(`Caching ${doc} with key ${key}`);
-      this.cache.set(key, doc.dump(), 3600);
+      this.cache.set(key, doc.dump(), 'fetch');
     }
 
     return doc;

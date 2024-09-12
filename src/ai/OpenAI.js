@@ -22,135 +22,154 @@ export const OpenAI = class extends BaseAI {
       this.maxTokens = 10000;
     }
   }
+  parseChunk(chunk, ctx) {
+    if (chunk.usage) {
+      const [input, output] = [
+        chunk.usage.prompt_tokens || 0,
+        chunk.usage.completion_tokens || 0];
 
-  async *stream(prompt, options) {
-    const { systemPrompt, format, cacheHint } = Object.assign(
-      { format: 'text' }, options);
+      this.addUsage({
+        input: input - ctx.usage.input,
+        output: output - ctx.usage.output,
+        total: input + output - ctx.usage.total });
 
-    const cached = await this.getCache(prompt, { ...options, cacheHint });
-    if (cached) {
-      if (format == 'jsonl') {
-        const partial = [];
-        for (const delta of cached.answer) {
-          partial.push(delta);
-          const result = { delta, partial, usage: cached.usage };
-          yield Promise.resolve(result);
+      ctx.usage.input = input;
+      ctx.usage.output = output;
+      ctx.usage.total = input + output;
+    }
+
+    let delta;
+    if (chunk.choices?.length) {
+      const first = chunk.choices[0];
+      if (first.message) {
+        delta = first.message.content;
+      } else if (first.delta) {
+        delta = first.delta.content;
+      }
+    }
+
+    if (delta) {
+      ctx.answer += delta;
+
+      const cache = () => {
+        this.setCache(
+          ctx.prompt,
+          { format: ctx.format, cacheHint: ctx.cacheHint },
+          { answer: parseAnswer(ctx.answer, ctx.format),
+            usage: ctx.usage });
+      }
+
+      if (ctx.format == 'jsonl') {
+        ctx.buffer += delta;
+        const parsed = parseAnswer(ctx.buffer, ctx.format);
+        if (parsed.length) {
+          ctx.buffer = '';
+          cache();
+          return {
+            delta: parsed,
+            partial: parseAnswer(ctx.answer, ctx.format),
+            usage: ctx.usage,
+          };
         }
       } else {
-        yield Promise.resolve(cached);
+        const parsed = parseAnswer(ctx.answer, ctx.format);
+        cache();
+        return {
+          delta: parsed,
+          partial: parseAnswer(ctx.answer, ctx.format),
+          usage: ctx.usage,
+        };
       }
-      return;
     }
+  }
+
+  async ask(prompt, options, cb) {
+    const { format, cacheHint } = Object.assign(
+      { format: 'text' },
+      options);
+
+    // const cached = await this.getCache(prompt, { ...options, cacheHint });
+    // if (cached) {
+    //   if (format == 'jsonl') {
+    //     const partial = [];
+    //     for (const delta of cached.answer) {
+    //       partial.push(delta);
+    //       const result = { delta, partial, usage: cached.usage };
+    //       return result;
+    //     }
+    //   } else {
+    //     return cached;
+    //   }
+    // }
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,
       dangerouslyAllowBrowser: true,
-    });
-
-    const stream = await openai.chat.completions.create({
-      model: this.model,
-      messages: [{ role: 'user', content: prompt }],
-      stream: true,
-      stream_options: { include_usage: true },
     });
 
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
 
-    for await (const chunk of stream) {
-      if (chunk.usage) {
-        usage.input = chunk.usage.prompt_tokens || 0; 
-        usage.output = chunk.usage.completion_tokens || 0;
-        usage.total = usage.input + usage.output;
-      }
+    const completion = await openai.chat.completions.create({
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-      if (chunk.choices?.length) {
-        const delta = chunk.choices[0].delta.content;
-        if (delta) {
-          answer += delta;
-
-          const cache = () => {
-            // TODO: properly handle stream cancellations
-            this.setCache(
-              prompt,
-              { ...options, cacheHint },
-              { answer: parseAnswer(answer, format), usage });
-          }
-
-          if (format == 'jsonl') {
-            buffer += delta;
-            const parsed = parseAnswer(buffer, format);
-            if (parsed.length) {
-              for (const result of parsed) {
-                cache();
-                yield Promise.resolve({
-                  delta: result,
-                  partial: parseAnswer(answer, format),
-                  usage });
-              }
-              buffer = '';
-            }
-          } else {
-            const parsed = parseAnswer(answer, format);
-            cache();
-            yield Promise.resolve({
-              delta: parsed,
-              partial: parseAnswer(answer, format),
-              usage });
-          }
-        }
-      }
-    }
+    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
+    const chunk = completion;
+    return this.parseChunk(chunk, ctx);
   }
 
-  async ask(prompt, cb, options) {
-    const { systemPrompt, abort } = options || {};
+  async *stream(prompt, options) {
+    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
+
+    // const cached = await this.getCache(prompt, { ...options, cacheHint });
+    // if (cached) {
+    //   if (format == 'jsonl') {
+    //     const partial = [];
+    //     for (const delta of cached.answer) {
+    //       partial.push(delta);
+    //       const result = { delta, partial, usage: cached.usage };
+    //       return result;
+    //     }
+    //   } else {
+    //     return cached;
+    //   }
+    // }
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,
       dangerouslyAllowBrowser: true,
     });
 
-    const stream = await openai.chat.completions.create({
+    let usage = { input: 0, output: 0, total: 0 };
+    let answer = '';
+    let buffer = '';
+
+    const completion = await openai.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
       stream_options: { include_usage: true },
     });
 
-    let didAbort = false;
-    let answer = '';
-    let usage = { input: 0, output: 0, total: 0 };
-    for await (const chunk of stream) {
-      if (chunk.usage) {
-        usage.input = chunk.usage.prompt_tokens || 0; 
-        usage.output = chunk.usage.completion_tokens || 0;
-        usage.total = usage.input + usage.output;
-      }
+    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
+    for await (const chunk of completion) {
 
-      if (chunk.choices?.length) {
-        const delta = chunk.choices[0].delta.content;
-        if (delta) {
-          answer += delta;
-          cb && cb({ partial: parseAnswer(answer), delta, usage });
+      const parsed = this.parseChunk(chunk, ctx);
+      if (!parsed) continue;
+
+      if (format == 'jsonl') {
+        for (const d of parsed.delta) {
+          yield Promise.resolve({
+            delta: d,
+            partial: parsed.partial,
+            usage: parsed.usage });
         }
-      }
-
-      if (abort && abort()) {
-        logger.info(`Got abort signal`);
-        didAbort = true;
-        break;
+      } else {
+        yield Promise.resolve(parsed);
       }
     }
-
-    logger.info(`AI raw answer: ${answer}`);
-    logger.info(`AI usage was: ${JSON.stringify(usage)}`);
-
-    return {
-      answer: parseAnswer(answer),
-      usage,
-      didAbort,
-    };
   }
 }
