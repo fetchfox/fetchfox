@@ -118,6 +118,7 @@ export const Document = class {
 
     const $ = cheerio.load(this.html);
     $('style').remove();
+    $('script').remove();
 
     const getText = (root) => {
       return $(root)

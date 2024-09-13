@@ -7,7 +7,7 @@ import { Document } from '../document/Document.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { saveItems } from '../extract/save.js';
 import { getAi } from '../ai/index.js';
-import { getFetcher } from './util.js';
+import { getFetcher } from '../fetch/index.js';
 
 export const extract = async (url, questions, options) => {
   const cache = options.cache ? new DiskCache(options.cache) : null;

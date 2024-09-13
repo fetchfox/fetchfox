@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import { logger } from '../log/logger.js';
 
 export const BaseAI = class {
-  constructor(model, { apiKey, cache }) {
+  constructor(model, options) {
+    const { cache } = options || {};
     if (cache) this.cache = cache;
     this.usage = { input: 0, output: 0, total: 0 };
   }
@@ -27,7 +28,7 @@ export const BaseAI = class {
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
-    logger.info(`Get prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
+    logger.info(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
     return result;
   }
 

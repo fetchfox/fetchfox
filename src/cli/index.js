@@ -10,7 +10,7 @@ import { extract } from './extract.js';
 
 Command.prototype.fetcherOptions = function () {
   return this
-    .option('-f --fetcher', 'Which fetcher to use', 'fetch')
+    .option('-f --fetcher <fetcher>', 'Which fetcher to use', 'fetch');
 }
 
 Command.prototype.aiOptions = function () {

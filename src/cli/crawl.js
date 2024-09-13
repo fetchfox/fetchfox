@@ -1,7 +1,7 @@
 import { logger } from '../log/logger.js';
 import { Crawler } from '../crawl/Crawler.js';
 import { getAi } from '../ai/index.js';
-import { getFetcher } from './util.js';
+import { getFetcher } from '../fetch/index.js';
 
 export const crawl = async (url, prompt, options) => {
   const ai = getAi(options.ai, options.apiKey);
