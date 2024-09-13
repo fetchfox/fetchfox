@@ -1,5 +1,6 @@
 import { OpenAI } from './OpenAI.js';
 import { Anthropic } from './Anthropic.js';
+import { Ollama } from './Ollama.js';
 
 export const getAi = (which, options) => {
   const { apiKey, cache } = options || {};
@@ -7,10 +8,12 @@ export const getAi = (which, options) => {
     return which;
   }
 
-  const [provider, model] = which.split(':');
+  let [provider, model, extra] = which.split(':');
+  if (extra) model += ':' + extra;
   let aiClass = {
     openai: OpenAI,
     anthropic: Anthropic,
+    ollama: Ollama,
   }[provider];
   if (!aiClass) {
     console.error(`Unknown AI provider: ${provider}`);

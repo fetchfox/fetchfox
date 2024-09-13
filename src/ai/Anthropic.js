@@ -12,7 +12,7 @@ export const Anthropic = class extends BaseAI {
     this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY;
 
     // TODO: Get actual model max tokens
-    this.maxTokens = 8192;
+    this.maxTokens = 200000;
   }
 
   normalizeChunk(chunk) {
@@ -69,10 +69,9 @@ export const Anthropic = class extends BaseAI {
     let buffer = '';
 
     const completion = await anthropic.messages.create({
-      max_tokens: this.maxTokens,
+      max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
       model: this.model,
-      // stream: true,
     });
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
@@ -89,10 +88,6 @@ export const Anthropic = class extends BaseAI {
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
 
     const anthropic = new AnthropicLib({ apiKey: this.apiKey });
-    // const openai = new OpenAILib({
-    //   apiKey: this.apiKey,
-    //   dangerouslyAllowBrowser: true,
-    // });
 
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';

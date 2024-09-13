@@ -99,7 +99,6 @@ export const BasicExtractor = class {
           expectedCount == 1 && countMissing(delta) == 0 ||
           single && countMissing(single) == 0);
 
-
         count++;
         if (single && !done && more) {
           continue;
@@ -118,7 +117,8 @@ export const BasicExtractor = class {
     let done;
     let more;
     const max = 3;
-    for (let i = 0; i < max; i++) {
+    let i;
+    for (i = 0; i < max; i++) {
       logger.info(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
       for await (const result of inner(i)) {
         yield Promise.resolve(result.item);
@@ -132,6 +132,8 @@ export const BasicExtractor = class {
       if (!more) break;
       if (i + 1 == max) logger.warn(`Stopping extraction with some bytes left unprocessed for ${doc}`);
     }
+
+    if (i < max) logger.info(`Stopped extraction before reading all bytes, but probably got all info`);
   }
 
   async all(target, questions, options) {
@@ -144,10 +146,9 @@ export const BasicExtractor = class {
   }
 
   async one(target, questions, options) {
-    options = {...options, stream: true };
-    for await (const r of this.run(target, questions, options)) {
-      return r;
-    }
+    options = {...options, stream: false };
+    const all = await this.all(target, questions, options);
+    return all?.length ? all[0] : null;
   }
 
   async *stream(target, questions, options) {

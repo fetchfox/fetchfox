@@ -18,6 +18,9 @@ export const Document = class {
     const data = {
       url: this.url,
       body: this.body,
+      html: this.html,
+      text: this.text,
+      links: this.links,
       resp: this.resp,
       contentType: this.contentType,
     };
@@ -27,24 +30,23 @@ export const Document = class {
     return data;
   }
 
-  load(filename) {
-    logger.info(`Read document from ${filename}`);
-
-    const resp = fs.readFileSync(filename, 'utf-8');
-    const data = JSON.parse(resp);
-    this.loadData(data);
-  }
-
   loadData(data) {
     this.url = data.url;
     this.body = data.body;
+    this.html = data.html;
+    this.text = data.text;
+    this.links = data.links || [];
     this.resp = data.resp;
     this.contentType = data.contentType;
     if (data.req) {
       this.req = data.req;
     }
+  }
 
-    this.parse();
+  load(filename) {
+    const resp = fs.readFileSync(filename, 'utf-8');
+    const data = JSON.parse(resp);
+    this.loadData(data);
   }
 
   generateFilename() {
@@ -114,6 +116,7 @@ export const Document = class {
   }
 
   parseTextFromHtml() {
+    // TODO: This function is slow, find an alternate library
     this.requireHtml();
 
     const $ = cheerio.load(this.html);

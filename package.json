@@ -30,6 +30,7 @@
     "commander": "^12.1.0",
     "json5": "^2.2.3",
     "node-fetch": "^3.3.2",
+    "ollama": "^0.5.9",
     "openai": "^4.58.1",
     "papaparse": "^5.4.1",
     "puppeteer": "^23.3.0",

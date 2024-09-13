@@ -5,15 +5,18 @@ import { Document } from '../document/Document.js';
 import { BaseFetcher } from './BaseFetcher.js';
 
 export const Fetcher = class extends BaseFetcher {
-  constructor({ cache }) {
+  constructor(options) {
     super(options);
   }
 
   async fetch(url, options) {
     logger.info(`Fetch ${url} with options ${options || '(none)'}`);
 
-    const cached = this.getCache(url, options);
-    if (cached) return cached;
+    const cached = await this.getCache(url, options);
+    if (cached) {
+      logger.info(`Returning cached ${cached}`);
+      return cached;
+    }
 
     const doc = new Document();
 

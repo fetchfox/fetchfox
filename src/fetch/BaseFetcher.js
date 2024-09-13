@@ -22,11 +22,12 @@ export const BaseFetcher = class {
     const key = this.cacheKey(url, options);
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
-    logger.info(`Fetch cache ${outcome} for ${url}`);
+    logger.info(`Fetch cache ${outcome} for ${url} ${result}`);
 
     if (result) {
       const doc = new Document();
       doc.loadData(result);
+      logger.info(`Fetch cache loaded ${doc}`);
       return doc;
     } else {
       return null;

@@ -7,8 +7,8 @@ import { BaseFetcher } from './BaseFetcher.js';
 export const PuppeteerFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
-    const { browserOptions } = options || {};
-    if (browserOptions) this.browserOptions = browserOptions;
+    const { brower } = options || {};
+    if (browser) this.browserOptions = browser;
   }
 
   async fetch(url, options) {

@@ -49,6 +49,8 @@ export const BaseAI = class {
   }
 
   gen(prompt, options) {
+    logger.info(`AI generator for ${options.stream ? 'streaming' : 'blocking'} prompt "${prompt.substr(0, 32)}..."`);
+
     if (options.stream) {
       return this.stream(prompt, { format: 'jsonl' });
     } else {
