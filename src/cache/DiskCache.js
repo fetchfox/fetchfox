@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { logger } from '../log/logger.js';
 
 export const DiskCache = class {
   constructor(dirname, options) {
@@ -18,20 +19,29 @@ export const DiskCache = class {
 
   async get(key) {
     const filepath = path.join(this.dirname, key);
+    let file;
     try {
-      const file = await fs.promises.readFile(filepath, 'utf8');
-      const data = JSON.parse(file);
-
-      if (Date.now() > data.expiresAt || data.val === undefined) {
-        await this.del(key);
-        return null;
-      }
-
-      return data.val;
+      file = await fs.promises.readFile(filepath, 'utf8');
     } catch (e) {
       if (e.code == 'ENOENT') return null;
       throw e;
     }
+
+    let data;
+    try {
+      data = JSON.parse(file);
+    } catch(e) {
+      logger.error('Failed to parse JSON for cache file:', e);
+      this.del(key);
+      return null;
+    }
+
+    if (Date.now() > data.expiresAt || data.val === undefined) {
+      this.del(key);
+      return null;
+    }
+
+    return data.val;
   }
 
   async del(key) {

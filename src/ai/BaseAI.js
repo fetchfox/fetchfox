@@ -35,7 +35,8 @@ export const BaseAI = class {
     if (!this.cache) return;
 
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
-    logger.info(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${JSON.stringify(val).substr(0, 32)}..."`);
+
+    logger.info(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'prompt');
   }
 
@@ -51,9 +52,8 @@ export const BaseAI = class {
     } else {
       const that = this;
       return (async function *() {
-        const result = await that.ask(
-          prompt,
-          { format: 'jsonl' });
+        const result = await that.ask(prompt, { format: 'jsonl' });
+        if (!result?.delta) return;
 
         for (let r of result.delta) {
           yield Promise.resolve({

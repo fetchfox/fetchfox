@@ -124,8 +124,8 @@ export const BasicExtractor = class {
         yield Promise.resolve(result.item);
         more = result.more;
         done = result.done;
-        // if (done) break;
-        // if (single) return;
+        if (done) break;
+        if (single) return;
       }
 
       if (done) break;

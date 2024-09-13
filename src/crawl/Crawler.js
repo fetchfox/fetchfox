@@ -53,16 +53,13 @@ export const Crawler = class {
 
         logger.info(`Found link ${link.url} in response to "${question}"`);
 
-        // Check limit in case AI ignored it but keep stream open to get usage
-        if (count < limit) {
-          yield Promise.resolve({
-            link,
-            usage,
-            progress: { done: i, total: chunked.length },
-          });
-        }
+        if (count++ >= limit) break;
 
-        count++;
+        yield Promise.resolve({
+          link,
+          usage,
+          progress: { done: i, total: chunked.length },
+        });
       }
 
       if (limit && count >= limit) return;

@@ -16,8 +16,10 @@ export const OpenAI = class extends BaseAI {
       this.maxTokens = 128000;
     } else if (this.model.indexOf('gpt-4o') != -1) {
       this.maxTokens = 128000;
-    } else if (this.model.indexOf('gpt-4') != -1) {
+    } else if (this.model.indexOf('gpt-4-turbo') != -1) {
       this.maxTokens = 128000;
+    } else if (this.model.indexOf('gpt-4') != -1) {
+      this.maxTokens = 8192;
     } else {
       this.maxTokens = 10000;
     }
