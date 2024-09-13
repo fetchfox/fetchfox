@@ -1,4 +1,4 @@
-import JSON5 from 'json5'
+import JSON5 from 'json5';
 
 export const parseAnswer = (text, format) => {
   if (!text) return;

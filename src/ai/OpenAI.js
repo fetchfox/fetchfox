@@ -4,8 +4,9 @@ import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
 
 export const OpenAI = class extends BaseAI {
-  constructor(model, { apiKey, cache }) {
-    super(model, { apiKey, cache });
+  constructor(model, options) {
+    const { apiKey, cache } = options || {};
+    super(model, options);
 
     this.model = model || 'gpt-4o-mini';
     this.apiKey = apiKey || process.env.OPENAI_API_KEY;
@@ -25,71 +26,34 @@ export const OpenAI = class extends BaseAI {
     }
   }
 
-  parseChunk(chunk, ctx) {
-    if (chunk.usage) {
-      const [input, output] = [
-        chunk.usage.prompt_tokens || 0,
-        chunk.usage.completion_tokens || 0];
+  normalizeChunk(chunk) {
+    const { id, model } = chunk;
 
-      this.addUsage({
-        input: input - ctx.usage.input,
-        output: output - ctx.usage.output,
-        total: input + output - ctx.usage.total });
-
-      ctx.usage.input = input;
-      ctx.usage.output = output;
-      ctx.usage.total = input + output;
-    }
-
-    let delta;
+    let message;
     if (chunk.choices?.length) {
       const first = chunk.choices[0];
       if (first.message) {
-        delta = first.message.content;
+        message = first.message.content;
       } else if (first.delta) {
-        delta = first.delta.content;
+        message = first.delta.content;
       }
     }
 
-    if (delta) {
-      ctx.answer += delta;
-
-      const cache = () => {
-        this.setCache(
-          ctx.prompt,
-          { format: ctx.format, cacheHint: ctx.cacheHint },
-          { answer: parseAnswer(ctx.answer, ctx.format),
-            usage: ctx.usage });
-      }
-
-      if (ctx.format == 'jsonl') {
-        ctx.buffer += delta;
-        const parsed = parseAnswer(ctx.buffer, ctx.format);
-        if (parsed.length) {
-          ctx.buffer = '';
-          cache();
-          return {
-            delta: parsed,
-            partial: parseAnswer(ctx.answer, ctx.format),
-            usage: ctx.usage,
-          };
-        }
-      } else {
-        const parsed = parseAnswer(ctx.answer, ctx.format);
-        cache();
-        return {
-          delta: parsed,
-          partial: parseAnswer(ctx.answer, ctx.format),
-          usage: ctx.usage,
-        };
-      }
+    let usage;
+    if (chunk.usage) {
+      usage = {
+        input: chunk.usage.prompt_tokens,
+        output: chunk.usage.completion_tokens,
+        total: chunk.usage.prompt_tokens + chunk.usage.completion_tokens,
+      };
     }
+
+    return { id, model, message, usage };
   }
 
   async ask(prompt, options) {
-    const { format, cacheHint } = Object.assign(
-      { format: 'text' },
-      options);
+    options = Object.assign({ format: 'text' }, options);
+    const { format, cacheHint } = options;
 
     const cached = await this.getCache(prompt, options);
     if (cached) {
@@ -113,7 +77,7 @@ export const OpenAI = class extends BaseAI {
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
 
-    const result = this.parseChunk(chunk, ctx);
+    const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
     this.setCache(prompt, options, result);
     return result;
   }
@@ -139,8 +103,9 @@ export const OpenAI = class extends BaseAI {
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     for await (const chunk of completion) {
-
-      const parsed = this.parseChunk(chunk, ctx);
+      const parsed = this.parseChunk(
+        this.normalizeChunk(chunk),
+        ctx);
       if (!parsed) continue;
 
       if (format == 'jsonl') {

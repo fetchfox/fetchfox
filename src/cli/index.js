@@ -54,6 +54,7 @@ cmd.command('ask')
   .argument('<prompt>', 'Prompt to send to the AI')
   .globalOptions()
   .aiOptions()
+  .option('-s --stream', 'Stream output')
   .wrappedAction(ask);
 
 cmd.command('crawl')

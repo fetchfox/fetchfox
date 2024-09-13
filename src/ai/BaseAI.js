@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { logger } from '../log/logger.js';
+import { parseAnswer } from './util.js';
 
 export const BaseAI = class {
   constructor(model, options) {
@@ -64,6 +65,58 @@ export const BaseAI = class {
           });
         }
       })();
+    }
+  }
+
+  parseChunk(chunk, ctx) {
+    if (chunk.usage) {
+      const { input, output, total } = chunk.usage;
+
+      this.addUsage({
+        input: input - ctx.usage.input,
+        output: output - ctx.usage.output,
+        total: total - ctx.usage.total });
+
+      ctx.usage.input = input;
+      ctx.usage.output = output;
+      ctx.usage.total = input + output;
+    }
+
+    let delta = chunk.message;
+
+    if (delta) {
+      ctx.answer += delta;
+      ctx.buffer += delta;
+
+      const cache = () => {
+        this.setCache(
+          ctx.prompt,
+          { format: ctx.format, cacheHint: ctx.cacheHint },
+          { answer: parseAnswer(ctx.answer, ctx.format),
+            usage: ctx.usage });
+      }
+
+      if (ctx.format == 'jsonl') {
+        const parsed = parseAnswer(ctx.buffer, ctx.format);
+        if (parsed.length) {
+          ctx.buffer = '';
+          cache();
+          return {
+            delta: parsed,
+            partial: parseAnswer(ctx.answer, ctx.format),
+            usage: ctx.usage,
+          };
+        }
+      } else {
+        const parsed = parseAnswer('' + ctx.buffer, ctx.format);
+        ctx.buffer = '';
+        cache();
+        return {
+          delta: parsed,
+          partial: parseAnswer(ctx.answer, ctx.format),
+          usage: ctx.usage,
+        };
+      }
     }
   }
 }
