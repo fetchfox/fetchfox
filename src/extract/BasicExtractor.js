@@ -3,27 +3,17 @@ import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
 import { getAi } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
+import { BaseExtractor } from './BaseExtractor.js';
 
-export const BasicExtractor = class {
-  constructor(ai, { fetcher, cache }) {
-    this.ai = getAi(ai, { cache });
-    this.fetcher = fetcher || new DefaultFetcher({ cache });
+export const BasicExtractor = class extends BaseExtractor {
+  constructor(ai, options) {
+    super(ai, options);
   }
 
   async *run(target, questions, options) {
     const { stream } = options || {};
 
-    let doc;
-    if (typeof target == 'string') {
-      doc = await this.fetcher.fetch(target);
-    } else {
-      doc = target;
-    }
-
-    const maxTokens = this.ai.maxTokens;
-
-    const textChunkSize = maxTokens * 4 * 0.1;
-    const htmlChunkSize = maxTokens * 4 * 0.25;
+    const doc = await this.getDoc(target);
 
     const { extraRules, description, limit } = options || {};
     let { single } = options || {};
@@ -31,25 +21,16 @@ export const BasicExtractor = class {
 
     logger.info(`Extracting from ${doc}: ${questions.join(', ')}`);
 
-    const text = doc.text || '';
-    const html = doc.html || '';
-
     // Executes scrape on a chunk of the text + HTML
-    const ai = this.ai;
-    const inner = async function* (offset) {
-      const textPart = text.slice(
-        offset * textChunkSize,
-        (offset + 1) * textChunkSize);
-
-      const htmlPart = html.slice(
-        offset * htmlChunkSize,
-        (offset + 1) * htmlChunkSize);
+    const that = this;
+    const inner = async function* (chunk) {
+      const { more, text, html } = chunk;
 
       const context = {
         url: doc.url,
         questions,
-        text: textPart,
-        html: htmlPart,
+        text,
+        html,
         extraRules,
         limit: limit || 'No limit',
         description: (
@@ -57,27 +38,12 @@ export const BasicExtractor = class {
           ? `You are looking for this type of item(s):\n\n${description}`
           : ''),
       };
-
       const prompt = basic.render(context);
-
-      const more = (
-        text.length > (offset + 1) * textChunkSize ||
-        html.length > (offset + 1) * htmlChunkSize);
-
-      const countMissing = (data) => {
-        let c = 0;
-        for (const q of questions) {
-          if (!data[q] || data[q] == '(not found)') {
-            c++
-          }
-        }
-        return c;
-      }
 
       let count = 0;
       let expectedCount;
 
-      let gen = ai.gen(prompt, { format: 'jsonl', stream });
+      let gen = that.ai.gen(prompt, { format: 'jsonl', stream });
       for await (const { delta, usage } of gen) {
         if (delta.itemCount) {
           expectedCount = delta.itemCount;
@@ -96,8 +62,8 @@ export const BasicExtractor = class {
         const done = (
           limit && count >= limit ||
           // Single complete item cases:
-          expectedCount == 1 && countMissing(delta) == 0 ||
-          single && countMissing(single) == 0);
+          expectedCount == 1 && that.countMissing(delta, questions) == 0 ||
+          single && that.countMissing(single, questions) == 0);
 
         count++;
         if (single && !done && more) {
@@ -118,9 +84,10 @@ export const BasicExtractor = class {
     let more;
     const max = 3;
     let i;
-    for (i = 0; i < max; i++) {
+    const chunks = this.chunks(doc);
+    for (i = 0; i < max && i < chunks.length; i++) {
       logger.info(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
-      for await (const result of inner(i)) {
+      for await (const result of inner(chunks[i])) {
         yield Promise.resolve(result.item);
         more = result.more;
         done = result.done;

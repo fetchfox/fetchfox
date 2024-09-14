@@ -27,7 +27,10 @@ export const extract = async (url, questions, options) => {
   const description = options.item;
   const { limit } = options;
 
-  for await (const result of ex.stream(doc, questions)) {
-    console.log(result.data);
-  }  
+  const answer = await ex.all(doc, questions);
+  console.log(answer);
+
+  // for await (const result of ex.stream()) {
+  //   console.log(result);
+  // }  
 }
