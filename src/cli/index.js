@@ -13,6 +13,11 @@ Command.prototype.fetcherOptions = function () {
     .option('-f --fetcher <fetcher>', 'Which fetcher to use', 'fetch');
 }
 
+Command.prototype.extractorOptions = function () {
+  return this
+    .option('-e --extractor <extractor>', 'Which extractor to use', 'basic');
+}
+
 Command.prototype.aiOptions = function () {
   return this
     .option('-a --ai <ai>', 'Which AI to use, syntax is provider:model', 'openai:gpt-4o-mini')
@@ -72,6 +77,7 @@ cmd.command('extract')
   .argument('<fields>', 'Fields of the item to extract, comma separated')
   .globalOptions()
   .fetcherOptions()
+  .extractorOptions()
   .aiOptions()
   .option('-l --limit <limit>', 'Max number of items to extract')
   .option('-i --item <description>', 'Description of the item your are looking for')

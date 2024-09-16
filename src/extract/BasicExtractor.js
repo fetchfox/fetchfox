@@ -1,13 +1,13 @@
-import { basic } from './prompts.js';
 import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
 import { getAi } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
+import { basic } from './prompts.js';
 
 export const BasicExtractor = class extends BaseExtractor {
-  constructor(ai, options) {
-    super(ai, options);
+  constructor(options) {
+    super(options);
   }
 
   async *run(target, questions, options) {
@@ -101,27 +101,5 @@ export const BasicExtractor = class extends BaseExtractor {
     }
 
     if (i < max) logger.info(`Stopped extraction before reading all bytes, but probably got all info`);
-  }
-
-  async all(target, questions, options) {
-    options = {...options, stream: false };
-    let result = [];
-    for await (const r of this.run(target, questions, options)) {
-      result.push(r);
-    }
-    return result;
-  }
-
-  async one(target, questions, options) {
-    options = {...options, stream: false };
-    const all = await this.all(target, questions, options);
-    return all?.length ? all[0] : null;
-  }
-
-  async *stream(target, questions, options) {
-    options = {...options, stream: true };
-    for await (const r of this.run(target, questions, options)) {
-      yield Promise.resolve(r);
-    }
   }
 }

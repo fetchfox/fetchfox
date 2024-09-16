@@ -13,5 +13,6 @@ import { Ollama } from './ai/Ollama.js';
 
 export { DiskCache } from './cache/DiskCache.js';
 
-export { getAi } from './ai/index.js';
 export { getFetcher } from './fetch/index.js';
+export { getAi } from './ai/index.js';
+export { getExtractor } from './extract/index.js';

@@ -13,7 +13,6 @@ export const Mistral = class extends BaseAI {
 
     // TODO: Get max tokens for each model
     this.maxTokens = 128000;
-    //this.maxTokens = 12800;
   }
 
   normalizeChunk(chunk) {
@@ -50,11 +49,6 @@ export const Mistral = class extends BaseAI {
       return cached;
     }
 
-    // const openai = new OpenAILib({
-    //   apiKey: this.apiKey,
-    //   dangerouslyAllowBrowser: true,
-    // });
-
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
@@ -68,9 +62,6 @@ export const Mistral = class extends BaseAI {
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
 
-    console.log('mistral chunk', chunk);
-    console.log('mistral message', chunk?.choices && chunk.choices[0].message);
-
     const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
     this.setCache(prompt, options, result);
     return result;
@@ -79,23 +70,11 @@ export const Mistral = class extends BaseAI {
   async *stream(prompt, options) {
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
 
-    // const openai = new OpenAILib({
-    //   apiKey: this.apiKey,
-    //   dangerouslyAllowBrowser: true,
-    // });
-
     const client = new MistralLib({ apiKey: this.apiKey });
 
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
-
-    // const completion = await openai.chat.completions.create({
-    //   model: this.model,
-    //   messages: [{ role: 'user', content: prompt }],
-    //   stream: true,
-    //   stream_options: { include_usage: true },
-    // });
 
     const completion = await client.chat.complete({
       model: this.model,

@@ -4,7 +4,6 @@ import { Ollama } from './Ollama.js';
 import { Mistral } from './Mistral.js';
 
 export const getAi = (which, options) => {
-  const { apiKey, cache } = options || {};
   if (typeof which != 'string') {
     return which;
   }
@@ -21,5 +20,5 @@ export const getAi = (which, options) => {
     console.error(`Unknown AI provider: ${provider}`);
     return;
   }
-  return new aiClass(model, { apiKey, cache });
+  return new aiClass(model, options);
 }

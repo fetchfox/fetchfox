@@ -4,8 +4,15 @@ import { parseAnswer } from './util.js';
 
 export const BaseAI = class {
   constructor(model, options) {
-    const { cache } = options || {};
+    const { cache, maxTokens, maxRetries, retryMsec } = Object.assign(
+      {},
+      { maxRetries: 10, retryMsec: 5000 },
+      options);
     if (cache) this.cache = cache;
+    this.maxTokens = maxTokens;
+    console.log('BaseAI got max tokens:', this.maxTokens);
+    this.maxRetries = maxRetries;
+    this.retryMsec = retryMsec;
     this.usage = { input: 0, output: 0, total: 0 };
   }
 
@@ -56,16 +63,23 @@ export const BaseAI = class {
     } else {
       const that = this;
       return (async function *() {
-        const result = await that.ask(prompt, { format: 'jsonl' });
-        if (!result?.delta) return;
+        const retriesLeft = that.maxRetries;
 
-        for (let r of result.delta) {
-          yield Promise.resolve({
-            delta: r,
-            partial: result.partial,
-            usage: result.usage,
-          });
+        try {
+          const result = await that.ask(prompt, { format: 'jsonl' });
+          if (!result?.delta) return;
+          for (let r of result.delta) {
+            yield Promise.resolve({
+              delta: r,
+              partial: result.partial,
+              usage: result.usage,
+            });
+          }
+        } catch(e) {
+          console.log('CAUGHT!', e);
+          throw e;
         }
+        
       })();
     }
   }

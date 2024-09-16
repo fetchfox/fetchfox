@@ -2,10 +2,14 @@ import { getAi } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 
 export const BaseExtractor = class {
-  constructor(ai, options) {
-    const { fetcher, cache } = options || {};
+  constructor(options) {
+    const { ai, fetcher, cache } = options || {};
     this.ai = getAi(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
+  }
+
+  toString() {
+    return `[${this.constructor.name}]`;
   }
 
   async getDoc(target) {
@@ -52,13 +56,39 @@ export const BaseExtractor = class {
     return result;
   }
 
+  isMissing(data, question) {
+    return !data[question] || data[question] == '(not found)';
+  }
+
   countMissing(data, questions) {
     let c = 0;
     for (const q of questions) {
-      if (!data[q] || data[q] == '(not found)') {
+      if (this.isMissing(data, q)) {
         c++
       }
     }
     return c;
+  }
+
+  async all(target, questions, options) {
+    options = {...options, stream: false };
+    let result = [];
+    for await (const r of this.run(target, questions, options)) {
+      result.push(r);
+    }
+    return result;
+  }
+
+  async one(target, questions, options) {
+    options = {...options, stream: false };
+    const all = await this.all(target, questions, options);
+    return all?.length ? all[0] : null;
+  }
+
+  async *stream(target, questions, options) {
+    options = {...options, stream: true };
+    for await (const r of this.run(target, questions, options)) {
+      yield Promise.resolve(r);
+    }
   }
 }

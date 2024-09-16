@@ -1,18 +1,27 @@
 import AnthropicLib from '@anthropic-ai/sdk';
 import { logger } from '../log/logger.js';
 import { BaseAI } from './BaseAI.js';
-import { parseAnswer } from './util.js';
+import { parseAnswer, sleep } from './util.js';
 
 export const Anthropic = class extends BaseAI {
   constructor(model, options) {
     const { apiKey, cache } = options || {};
-    super(model, options);
+    super(model, Object.assign(
+      {},
+      { maxRetries: 10, retryMsec: 20000 },
+      options));
 
     this.model = model || 'claude-3-5-sonnet-20240620';
     this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY;
 
-    // TODO: Get actual model max tokens
-    this.maxTokens = 200000;
+    if (this.model.indexOf('haiku') != -1) {
+      this.maxTokensOut = 4096;
+    } else {
+      this.maxTokensOut = 8192;
+    }
+
+    // This is lower than model max, but it is within their per-minute rate limit
+    this.maxTokens = 80000;
   }
 
   normalizeChunk(chunk) {
@@ -62,17 +71,36 @@ export const Anthropic = class extends BaseAI {
       return cached;
     }
 
-    const anthropic = new AnthropicLib({ apiKey: this.apiKey });
-
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
 
-    const completion = await anthropic.messages.create({
-      max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
-      model: this.model,
-    });
+    let completion;
+    let retriesLeft = this.maxRetries;
+
+    // TODO: pull out more abstractions info BaseAI, including the try/catch block here
+    while (true) {
+      try {
+        const anthropic = new AnthropicLib({ apiKey: this.apiKey });
+        completion = await anthropic.messages.create({
+          max_tokens: this.maxTokensOut,
+          messages: [{ role: 'user', content: prompt }],
+          model: this.model,
+        });
+
+      } catch(e) {
+        if (e.status != 429) throw e;
+
+        console.log(e);
+
+        retriesLeft--;
+        if (retriesLeft <= 0) throw e;
+
+        logger.error(`Rate limit error: ${e}`);
+        logger.info(`Caught rate limit, sleep for ${this.retryMsec} and try again. ${retriesLeft} tries left`);
+        await sleep(this.retryMsec);
+      }
+    }
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;

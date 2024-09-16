@@ -56,9 +56,7 @@ export const OpenAI = class extends BaseAI {
     const { format, cacheHint } = options;
 
     const cached = await this.getCache(prompt, options);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,

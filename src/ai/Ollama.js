@@ -1,21 +1,28 @@
 import { Ollama as OllamaLib } from 'ollama'
-// import ollama from 'ollama'
 import { logger } from '../log/logger.js';
 import { BaseAI } from './BaseAI.js';
 import { parseAnswer } from './util.js';
 
-// { host: 'http://127.0.0.1:11434' }
-const ollamaOptions = { host: 'https://compatible-corey-fetchfox-d0367ae7.koyeb.app' };
-
 export const Ollama = class extends BaseAI {
   constructor(model, options) {
-    const { apiKey, cache } = options || {};
     super(model, options);
+    const { host } = options || {};
 
     this.model = model || 'llama3.1';
+    this.host = host || process.env.OLLAMA_HOST;
 
-    // TODO: Get actual model max tokens
-    this.maxTokens = 5000;
+    console.log('using max tokens:', this.maxTokens);
+
+    if (!this.maxTokens) {
+      if (this.model.indexOf('llama3.1') != -1) {
+        this.maxTokens = 128000;
+      } else if (this.model.indexOf('codellama') != -1) {
+        this.maxTokens = 128000;
+      } else {
+        // TODO: Find more context windows
+        this.maxTokens = 10000;
+      }
+    }
   }
 
   normalizeChunk(chunk) {
@@ -45,23 +52,25 @@ export const Ollama = class extends BaseAI {
       return cached;
     }
 
-    // const ollama = new OllamaLib({ host: 'http://127.0.0.1:11434' });
-    const ollama = new OllamaLib(ollamaOptions);
-    // console.log(prompt);
+    const ollama = new OllamaLib({ host: this.host });
 
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
 
-    const completion = await ollama.chat({
-      model: this.model,
-      messages: [{ role: 'user', content: prompt }],
-    });
+    let completion;
+    try {
+      completion = await ollama.chat({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+      });
+    } catch(e) {
+      if (e.status_code == 524) return;
+      throw e;
+    }
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
-
-    // console.log('ollama chunk', chunk);
 
     const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
 
@@ -77,20 +86,13 @@ export const Ollama = class extends BaseAI {
     let answer = '';
     let buffer = '';
 
-    const ollama = new OllamaLib(ollamaOptions);
+    const ollama = new OllamaLib({ host: this.host });
 
     const completion = await ollama.chat({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
     });
-
-    // const completion = await anthropic.messages.create({
-    //   max_tokens: this.maxTokens,
-    //   messages: [{ role: 'user', content: prompt }],
-    //   model: this.model,
-    //   stream: true,
-    // });
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     for await (const chunk of completion) {

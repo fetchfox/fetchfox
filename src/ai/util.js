@@ -1,5 +1,7 @@
 import JSON5 from 'json5';
 
+export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const parseAnswer = (text, format) => {
   if (!text) return;
 

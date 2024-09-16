@@ -2,17 +2,17 @@ import fs from 'fs';
 
 import Papa from 'papaparse';
 import { logger } from '../log/logger.js';
-import { BasicExtractor } from '../extract/BasicExtractor.js';
 import { Document } from '../document/Document.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { saveItems } from '../extract/save.js';
 import { getAi } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
+import { getExtractor } from '../extract/index.js';
 
 export const extract = async (url, questions, options) => {
   const cache = options.cache ? new DiskCache(options.cache) : null;
-  const ai = getAi(options.ai, options.apiKey, { cache });
-  const ex = new BasicExtractor(ai);
+  const ai = getAi(options.ai, { apiKey: options.apiKey, cache });
+  const ex = getExtractor(options.extractor, { ai, cache });
 
   let doc;
   const isFile = fs.existsSync(url);
@@ -27,10 +27,12 @@ export const extract = async (url, questions, options) => {
   const description = options.item;
   const { limit } = options;
 
-  const answer = await ex.all(doc, questions);
-  console.log(answer);
-
-  // for await (const result of ex.stream()) {
-  //   console.log(result);
-  // }  
+  if (options.stream) {
+    for await (const result of ex.stream()) {
+      console.log(result);
+    }  
+  } else {
+    const answer = await ex.all(doc, questions);
+    console.log(answer);
+  }
 }
