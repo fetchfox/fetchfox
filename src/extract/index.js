@@ -1,13 +1,13 @@
 import { BasicExtractor } from './BasicExtractor.js';
 import { IterativePromptExtractor } from './IterativePromptExtractor.js';
 import { CodeGenExtractor } from './CodeGenExtractor.js';
+import { MinimizingExtractor } from './MinimizingExtractor.js';
 
-export { IterativePromptExtractor as DefaultExtractor };
+export const DefaultExtractor = IterativePromptExtractor;
 
 export const getExtractor = (which, options) => {
-  if (typeof which != 'string') {
-    return which;
-  }
+  if (!which) return new DefaultExtractor(options);
+  if (typeof which != 'string') return which;
 
   let extractorClass = {
     b: BasicExtractor,
@@ -18,6 +18,10 @@ export const getExtractor = (which, options) => {
 
     cg: CodeGenExtractor,
     'code-gen': CodeGenExtractor,
+
+    m: MinimizingExtractor,
+    min: MinimizingExtractor,
+    minimizing: MinimizingExtractor,
   }[which];
   if (!extractorClass) {
     console.error(`Unknown extractor type: ${which}`);

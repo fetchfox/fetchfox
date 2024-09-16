@@ -50,4 +50,3 @@ export const IterativePromptExtractor = class extends BaseExtractor {
     yield Promise.resolve(new Item(data, doc));
   }
 }
-

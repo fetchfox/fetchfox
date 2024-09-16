@@ -1,16 +1,13 @@
 import { logger } from '../log/logger.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { getExtractor, DefaultExtractor } from './index.js';
+import { getExtractor } from './index.js';
 import { codeGen } from './prompts.js';
 
 export const CodeGenExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
-    this.helper = (
-      getExtractor(options.helper, options) ||
-      new DefaultExtractor(options));
-    
+    this.helper = getExtractor(options.helper, options);
   }
 
   async *run(target, questions, options) {
