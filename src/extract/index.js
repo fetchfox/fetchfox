@@ -27,5 +27,6 @@ export const getExtractor = (which, options) => {
     console.error(`Unknown extractor type: ${which}`);
     return;
   }
+
   return new extractorClass(options);
 }
