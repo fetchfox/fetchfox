@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { logger } from '../log/logger.js';
-import { parseAnswer } from './util.js';
+import { parseAnswer, getModelData } from './util.js';
 
 export const BaseAI = class {
   constructor(model, options) {
@@ -9,11 +9,21 @@ export const BaseAI = class {
       { maxRetries: 10, retryMsec: 5000 },
       options);
     if (cache) this.cache = cache;
-    this.maxTokens = maxTokens;
-    console.log('BaseAI got max tokens:', this.maxTokens);
     this.maxRetries = maxRetries;
     this.retryMsec = retryMsec;
     this.usage = { input: 0, output: 0, total: 0 };
+    this.cost = { input: 0, output: 0, total: 0 };
+    this.elapsed = { sec: 0, msec: 0 };
+
+    const provider = this.constructor.name.toLowerCase();
+    const data = getModelData(provider, model);
+    if (data) {
+      this.modelData = data;
+      this.maxTokens = data.max_input_tokens;
+    } else {
+      logger.warn(`Couldn't find model data for ${provider} ${model}`);
+      this.maxTokens = 10000;
+    }
   }
 
   toString() {
@@ -53,6 +63,41 @@ export const BaseAI = class {
     for (const key in this.usage) {
       this.usage[key] += usage[key];
     }
+
+    if (this.modelData) {
+      this.cost.input = this.usage.input * this.modelData.input_cost_per_token;
+      this.cost.output = this.usage.output * this.modelData.output_cost_per_token;
+      this.cost.total = this.cost.input + this.cost.output;
+    }
+  }
+
+  async ask(prompt, options) {
+    const cached = await this.getCache(prompt, options);
+    if (cached) {
+      this.addUsage(cached.usage);
+      this.elapsed.msec += cached.elapsed.msec;
+      this.elapsed.sec += cached.elapsed.sec;
+      return cached;
+    }
+
+    const start = (new Date()).getTime();
+    const result = await this.askInner(prompt, options);
+
+    const msec = (new Date()).getTime() - start;
+    this.elapsed.msec += msec;
+    this.elapsed.sec += msec / 1000;
+
+    this.setCache(
+      prompt,
+      options,
+      {
+        delta: result.delta,
+        partial: result.partial,
+        usage: result.usage,
+        elapsed: { msec, sec: msec / 1000 },
+      });
+
+    return result;
   }
 
   gen(prompt, options) {
@@ -63,11 +108,12 @@ export const BaseAI = class {
     } else {
       const that = this;
       return (async function *() {
-        const retriesLeft = that.maxRetries;
-
         try {
           const result = await that.ask(prompt, { format: 'jsonl' });
-          if (!result?.delta) return;
+
+          if (!result?.delta) {
+            return;
+          }
           for (let r of result.delta) {
             yield Promise.resolve({
               delta: r,
@@ -76,10 +122,8 @@ export const BaseAI = class {
             });
           }
         } catch(e) {
-          console.log('CAUGHT!', e);
           throw e;
         }
-        
       })();
     }
   }

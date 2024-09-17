@@ -6,24 +6,10 @@ import { parseAnswer } from './util.js';
 export const OpenAI = class extends BaseAI {
   constructor(model, options) {
     const { apiKey, cache } = options || {};
+    model ||= 'gpt-4o-mini'
     super(model, options);
-
-    this.model = model || 'gpt-4o-mini';
+    this.model = model;
     this.apiKey = apiKey || process.env.OPENAI_API_KEY;
-
-    if (this.model.indexOf('gpt-3.5') != -1) {
-      this.maxTokens = 16385;
-    } else if (this.model.indexOf('gpt-4o-mini') != -1) {
-      this.maxTokens = 128000;
-    } else if (this.model.indexOf('gpt-4o') != -1) {
-      this.maxTokens = 128000;
-    } else if (this.model.indexOf('gpt-4-turbo') != -1) {
-      this.maxTokens = 128000;
-    } else if (this.model.indexOf('gpt-4') != -1) {
-      this.maxTokens = 8192;
-    } else {
-      this.maxTokens = 10000;
-    }
   }
 
   normalizeChunk(chunk) {
@@ -51,12 +37,7 @@ export const OpenAI = class extends BaseAI {
     return { id, model, message, usage };
   }
 
-  async ask(prompt, options) {
-    options = Object.assign({ format: 'text' }, options);
-    const { format, cacheHint } = options;
-
-    const cached = await this.getCache(prompt, options);
-    if (cached) return cached;
+  async askInner(prompt, options) {
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,
@@ -75,9 +56,7 @@ export const OpenAI = class extends BaseAI {
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
 
-    const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
-    this.setCache(prompt, options, result);
-    return result;
+    return this.parseChunk(this.normalizeChunk(chunk), ctx);
   }
 
   async *stream(prompt, options) {

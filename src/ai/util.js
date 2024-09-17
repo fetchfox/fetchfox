@@ -1,6 +1,18 @@
 import JSON5 from 'json5';
+import modelData from '../data/models.json' assert { type: 'json' };
 
 export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const getModelData = (provider, model) => {
+
+  console.log('getModelData', provider, model);
+
+  const data = modelData[model];
+  if (data?.litellm_provider != provider) {
+    return null;
+  }
+  return data;
+}
 
 export const parseAnswer = (text, format) => {
   if (!text) return;
@@ -31,7 +43,4 @@ export const parseAnswer = (text, format) => {
   } else {
     return null;
   }
-}
-
-const parseJsonl = (str) => {
 }

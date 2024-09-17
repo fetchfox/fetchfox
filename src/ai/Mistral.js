@@ -40,7 +40,7 @@ export const Mistral = class extends BaseAI {
     return { id, model, message, usage };
   }
 
-  async ask(prompt, options) {
+  async askInner(prompt, options) {
     options = Object.assign({ format: 'text' }, options);
     const { format, cacheHint } = options;
 

@@ -9,6 +9,7 @@ export const MinimizingExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.extractor = getExtractor(options.extractor, options);
+    this.ai = this.extractor.ai;
     this.minimizer = getMinimizer(options.minimizer, options);
   }
 

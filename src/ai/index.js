@@ -3,10 +3,11 @@ import { Anthropic } from './Anthropic.js';
 import { Ollama } from './Ollama.js';
 import { Mistral } from './Mistral.js';
 
+export const DefaultAI = OpenAI;
+
 export const getAi = (which, options) => {
-  if (typeof which != 'string') {
-    return which;
-  }
+  if (!which) return new DefaultAI(null, options);
+  if (typeof which != 'string') return which;
 
   let [provider, model, extra] = which.split(':');
   if (extra) model += ':' + extra;

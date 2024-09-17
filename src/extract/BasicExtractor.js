@@ -35,8 +35,8 @@ export const BasicExtractor = class extends BaseExtractor {
         limit: limit || 'No limit',
         description: (
           description
-          ? `You are looking for this type of item(s):\n\n${description}`
-          : ''),
+        ? `You are looking for this type of item(s):\n\n${description}`
+        : ''),
       };
       const prompt = basic.render(context);
 

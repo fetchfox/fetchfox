@@ -43,7 +43,7 @@ export const Ollama = class extends BaseAI {
     return { model, message, usage };
   }
 
-  async ask(prompt, options) {
+  async askInner(prompt, options) {
     options = Object.assign({ format: 'text' }, options);
     const { format, cacheHint } = options;
 
