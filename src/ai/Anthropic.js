@@ -6,19 +6,16 @@ import { parseAnswer, sleep } from './util.js';
 export const Anthropic = class extends BaseAI {
   constructor(model, options) {
     const { apiKey, cache } = options || {};
+    model = model || 'claude-3-haiku-20240307';
     super(model, Object.assign(
       {},
-      { maxRetries: 10, retryMsec: 20000 },
+      { maxRetries: 10, retryMsec: 10000 },
       options));
 
-    this.model = model || 'claude-3-5-sonnet-20240620';
     this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY;
 
-    if (this.model.indexOf('haiku') != -1) {
-      this.maxTokensOut = 4096;
-    } else {
-      this.maxTokensOut = 8192;
-    }
+    // Shouldn't need more than this, and Anthropic has a problem with stop tokens
+    this.maxTokensOut = 2000;
 
     // This is lower than model max, but it is within their per-minute rate limit
     this.maxTokens = 80000;
@@ -63,20 +60,17 @@ export const Anthropic = class extends BaseAI {
   }
 
   async askInner(prompt, options) {
-    options = Object.assign({ format: 'text' }, options);
-    const { format, cacheHint } = options;
+    const { format, cacheHint } = options || { format: 'text' };
 
     const cached = await this.getCache(prompt, options);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
 
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
 
     let completion;
-    let retriesLeft = this.maxRetries;
+    let retries = this.maxRetries;
 
     // TODO: pull out more abstractions info BaseAI, including the try/catch block here
     while (true) {
@@ -89,25 +83,22 @@ export const Anthropic = class extends BaseAI {
         });
 
       } catch(e) {
-        if (e.status != 429) throw e;
+        retries--;
+        if (retries <= 0) throw e;
 
-        console.log(e);
-
-        retriesLeft--;
-        if (retriesLeft <= 0) throw e;
-
-        logger.error(`Rate limit error: ${e}`);
-        logger.info(`Caught rate limit, sleep for ${this.retryMsec} and try again. ${retriesLeft} tries left`);
+        logger.error(`Anthropic error: ${e}`);
+        logger.info(`Caught Anthropic error, sleep for ${this.retryMsec} and try again. ${retries} tries left`);
         await sleep(this.retryMsec);
+        continue;
       }
+
+      break;
     }
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
 
     const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
-
-    this.setCache(prompt, options, result);
 
     return result;
   }

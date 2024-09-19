@@ -30,11 +30,13 @@
     "@mistralai/mistralai": "^1.0.4",
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
+    "groq-sdk": "^0.7.0",
     "json5": "^2.2.3",
     "node-fetch": "^3.3.2",
     "ollama": "^0.5.9",
     "openai": "^4.58.1",
     "papaparse": "^5.4.1",
+    "pretty": "^2.0.0",
     "puppeteer": "^23.3.0",
     "url-polyfill": "^1.1.12",
     "winston": "^3.14.2"

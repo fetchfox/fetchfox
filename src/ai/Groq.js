@@ -1,22 +1,20 @@
-import { Mistral as MistralLib } from '@mistralai/mistralai';
-import { BaseAI } from './BaseAI.js';
+import { Groq as GroqLib } from 'groq-sdk';
 import { logger } from '../log/logger.js';
+import { BaseAI } from './BaseAI.js';
 import { parseAnswer } from './util.js';
 
-export const Mistral = class extends BaseAI {
+export const Groq = class extends BaseAI {
+  envVariable = 'GROQ_API_KEY';
+
   constructor(model, options) {
-    const { apiKey, cache } = options || {};
+    model = model || 'llama3-8b-8192';
     super(model, options);
-
-    this.model = model || 'mistral-large-latest';
-    this.apiKey = apiKey || process.env.MISTRAL_API_KEY;
-
-    // TODO: Get max tokens for each model
-    this.maxTokens = 128000;
+    const { apiKey } = options || {};
+    this.apiKey = apiKey || process.env.GROQ_API_KEY;
   }
 
   normalizeChunk(chunk) {
-    const { id, model } = chunk;
+    const { model } = chunk;
 
     let message;
     if (chunk.choices?.length) {
@@ -28,6 +26,7 @@ export const Mistral = class extends BaseAI {
       }
     }
 
+
     let usage;
     if (chunk.usage) {
       usage = {
@@ -37,7 +36,7 @@ export const Mistral = class extends BaseAI {
       };
     }
 
-    return { id, model, message, usage };
+    return { model, message, usage };
   }
 
   async askInner(prompt, options) {
@@ -49,12 +48,14 @@ export const Mistral = class extends BaseAI {
       return cached;
     }
 
+    // const ollama = new OllamaLib({ host: this.host });
+    const groq = new GroqLib({ apiKey: this.apiKey });
+
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
 
-    const client = new MistralLib({ apiKey: this.apiKey });
-    const completion = await client.chat.complete({
+    const completion = await groq.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -70,13 +71,14 @@ export const Mistral = class extends BaseAI {
   async *stream(prompt, options) {
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
 
-    const client = new MistralLib({ apiKey: this.apiKey });
-
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
 
-    const completion = await client.chat.complete({
+    // const ollama = new OllamaLib({ host: this.host });
+    const groq = new GroqLib({ apiKey: this.apiKey });
+
+    const completion = await groq.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,

@@ -1,16 +1,20 @@
-import { extract } from '@extractus/article-extractor';
-
 import { logger } from '../log/logger.js';
 import { getAi } from '../ai/index.js';
 import { Document } from '../document/Document.js';
 import { minimize } from './prompts.js';
+import { BaseMinimizer } from './BaseMinimizer.js';
 
-export const AiMinimizer = class {
-  constructor(ai, options) {
-    this.ai = getAi(ai, options);
+export const AiMinimizer = class extends BaseMinimizer {
+  constructor(options) {
+    super(options);
+    this.ai = getAi(options.ai, options);
   }
 
   async min(doc, questions) {
+    const options = { removeTags: this.removeTags }
+    const cached = await this.getCache(doc, options);
+    if (cached) return cached;
+
     const start = (new Date()).getTime() / 1000;
     const before = JSON.stringify([doc.html]).length;
     logger.info(`Minimizing ${doc} with ${this.ai}`);
@@ -20,6 +24,7 @@ export const AiMinimizer = class {
       questions,
     });
     const result = await this.ai.ask(prompt);
+
     const out = result.delta;
     const min = new Document();
     min.loadData(Object.assign(
@@ -36,6 +41,8 @@ export const AiMinimizer = class {
     const after = JSON.stringify([min.html]).length;
     logger.info(`Minimizing took ${took.toFixed(2)} seconds`);
     logger.info(`Minimized doc from ${before} bytes -> ${after} bytes`);
+
+    this.setCache(doc, options, min);
 
     return min;
   }

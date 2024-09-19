@@ -10,6 +10,8 @@ export { BasicExtractor } from './extract/BasicExtractor.js';
 import { OpenAI } from './ai/OpenAI.js';
 import { Anthropic } from './ai/Anthropic.js';
 import { Ollama } from './ai/Ollama.js';
+import { Mistral } from './ai/Mistral.js';
+import { Groq } from './ai/Groq.js';
 
 export { DiskCache } from './cache/DiskCache.js';
 

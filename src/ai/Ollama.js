@@ -11,8 +11,6 @@ export const Ollama = class extends BaseAI {
     this.model = model || 'llama3.1';
     this.host = host || process.env.OLLAMA_HOST;
 
-    console.log('using max tokens:', this.maxTokens);
-
     if (!this.maxTokens) {
       if (this.model.indexOf('llama3.1') != -1) {
         this.maxTokens = 128000;
@@ -72,11 +70,7 @@ export const Ollama = class extends BaseAI {
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
 
-    const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
-
-    this.setCache(prompt, options, result);
-
-    return result;
+    return this.parseChunk(this.normalizeChunk(chunk), ctx);
   }
 
   async *stream(prompt, options) {

@@ -1,11 +1,13 @@
-import { extract } from '@extractus/article-extractor';
+import * as cheerio from 'cheerio';
+import pretty from 'pretty';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { BaseMinimizer } from './BaseMinimizer.js';
 
-export const ExtractusMinimizer = class extends BaseMinimizer {
+export const SimpleMinimizer = class extends BaseMinimizer {
   constructor(options) {
     super(options);
+    this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg'];
   }
 
   async min(doc) {
@@ -15,20 +17,24 @@ export const ExtractusMinimizer = class extends BaseMinimizer {
 
     const start = (new Date()).getTime() / 1000;
     const before = JSON.stringify([doc.html, doc.text]).length;
-    logger.info(`Minimizing ${doc} with extractus`);
+    logger.info(`Minimizing ${doc} with simple heuristics`);
 
-    const article = await extract(doc.html);
-    const out = JSON.stringify(article, null, 2);
+    let initial = doc.html
+      .replaceAll(/[ \t\n]+/g, ' ');  // remove whitespace
+
+    const $ = cheerio.load(initial);
+    for (const tag of this.removeTags) {
+      $(tag).replaceWith(`[[${tag} removed]]`);
+    }
+    const data = doc.dump();
+    const html = $.html();
+    data.body = html;
+    data.html = html;
+
     const min = new Document();
-    min.loadData(Object.assign(
-      {},
-      doc.dump(),
-      {
-        body: out,
-        html: out,
-        text: null,
-      })
-    );
+    min.loadData(data);
+
+    min.parse();
 
     const after = JSON.stringify([min.html, min.text]).length;
     const took = (new Date()).getTime() / 1000 - start;

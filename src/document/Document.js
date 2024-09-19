@@ -1,10 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-
 import { createHash } from 'crypto';
 import * as cheerio from 'cheerio';
 import { URL } from 'url';
-
 import { logger } from '../log/logger.js';
 
 export const Document = class {
@@ -120,15 +118,22 @@ export const Document = class {
     this.requireHtml();
 
     const $ = cheerio.load(this.html);
-    $('style').remove();
-    $('script').remove();
+    for (const tag in ['style', 'script', 'svg']) {
+      $(tag).replaceWith(`[[${tag} removed]]`);
+    }
 
     const getText = (root) => {
       return $(root)
         .contents()
         .map((i, el) => {
           if (el.type === 'text') {
-            return $(el).text().trim();
+            // If there is no text in a node, cheerio sometimes includes HTML as
+            // text. I'm not sure why, but to solve this, do a second pass by
+            // wrapping the first result in <span>. This eliminates the problem.
+            // TODO: Investigave and see if there is a better solution
+            const text1 = $(el).text().trim();
+            const text2 = $(`<span>${text1}</span>`).text().trim();
+            return text2;
           } else if (el.type === 'tag') {
             return getText(el);
           }
@@ -148,9 +153,18 @@ export const Document = class {
     let id = 1;
     const $ = cheerio.load(this.html);
     for (const a of $('a')) {
-      const url = new URL($(a).attr('href'), this.url);
       const html = $(a).prop('outerHTML');
       const text = $(a).prop('innerText');
+      const href = $(a).attr('href');
+
+      let url;
+      try {
+        url = new URL(href, this.url);
+      } catch (e) {
+        logger.warn(`Skipping invalid link: ${html}`);
+        continue;
+      }
+
       links.push({
         id: id++,
         url: '' + new URL($(a).attr('href'), this.url),

@@ -26,9 +26,14 @@ export const BasicExtractor = class extends BaseExtractor {
     const inner = async function* (chunk) {
       const { more, text, html } = chunk;
 
+      const questionsDict = {};
+      for (const q of questions) {
+        questionsDict[q] = '';
+      }
+
       const context = {
         url: doc.url,
-        questions,
+        questions: JSON.stringify(questionsDict, null, 2),
         text,
         html,
         extraRules,

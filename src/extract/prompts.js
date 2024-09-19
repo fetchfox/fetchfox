@@ -12,10 +12,9 @@ The remaining JSON objects you returns will be items. There will be one item per
 
 Follow these important rules:
 - Please make sure the response is valid JSONL. Only ONE JSON object per line. Remove any \n characters in questions and answers.
-- Use the SAME keys for each item as you find in the questions dictionary.
-- Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys.
+- Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
+- Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
 - Maximum 20 items
-
 
 {{extraRules}}
 
@@ -28,15 +27,14 @@ Example of a valid response with a single item:
 {"itemCount": 1}
 {"What is the article's title?": "New Find at the Great Wall of China", "What is the article's date in YYYY-MM-DD format?": "2024-02-04"}
 
-Below is the user prompts. Prompt directive lines are preceded by >>>>
+Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
 >>>> Limit to this many item(s):
 {{limit}}
 
 >>>> {{description}}
 
->>>> Below are the questions for each item(s):
-
+>>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS:
 {{questions}}
 
 >>>> The URL of the website:

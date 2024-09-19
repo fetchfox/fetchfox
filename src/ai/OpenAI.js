@@ -38,6 +38,7 @@ export const OpenAI = class extends BaseAI {
   }
 
   async askInner(prompt, options) {
+    const { format, cacheHint } = options || { format: 'text' };
 
     const openai = new OpenAILib({
       apiKey: this.apiKey,
