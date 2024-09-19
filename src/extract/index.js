@@ -1,6 +1,5 @@
 import { BasicExtractor } from './BasicExtractor.js';
 import { IterativePromptExtractor } from './IterativePromptExtractor.js';
-import { CodeGenExtractor } from './CodeGenExtractor.js';
 import { MinimizingExtractor } from './MinimizingExtractor.js';
 
 export const DefaultExtractor = IterativePromptExtractor;
@@ -15,9 +14,6 @@ export const getExtractor = (which, options) => {
 
     ip: IterativePromptExtractor,
     'iterative-prompt': IterativePromptExtractor,
-
-    cg: CodeGenExtractor,
-    'code-gen': CodeGenExtractor,
 
     m: MinimizingExtractor,
     min: MinimizingExtractor,
