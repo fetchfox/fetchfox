@@ -1,7 +1,7 @@
 import { logger } from '../log/logger.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { single } from './prompts.js';
+import { iterative } from './prompts.js';
 
 export const IterativePromptExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -23,7 +23,7 @@ export const IterativePromptExtractor = class extends BaseExtractor {
         html,
       };
 
-      const prompt = single.render(context);
+      const prompt = iterative.render(context);
       const answer = await this.ai.ask(prompt, { format: 'text' });
 
       return answer?.delta || '(not found)';

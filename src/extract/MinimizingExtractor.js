@@ -3,7 +3,6 @@ import { Item } from '../item/Item.js';
 import { getMinimizer } from '../min/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { getExtractor } from './index.js';
-import { single } from './prompts.js';
 
 export const MinimizingExtractor = class extends BaseExtractor {
   constructor(options) {

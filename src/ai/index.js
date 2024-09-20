@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import { OpenAI } from './OpenAI.js';
 import { Anthropic } from './Anthropic.js';
 import { Ollama } from './Ollama.js';
@@ -20,7 +21,7 @@ export const getAi = (which, options) => {
     groq: Groq,
   }[provider];
   if (!aiClass) {
-    console.error(`Unknown AI provider: ${provider}`);
+    logger.error(`Unknown AI provider: ${provider}`);
     return;
   }
   return new aiClass(model, options);

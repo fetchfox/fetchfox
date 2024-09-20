@@ -4,7 +4,7 @@ import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { BaseMinimizer } from './BaseMinimizer.js';
 
-export const SimpleMinimizer = class extends BaseMinimizer {
+export const TagRemovingMinimizer = class extends BaseMinimizer {
   constructor(options) {
     super(options);
     this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg'];
@@ -17,7 +17,7 @@ export const SimpleMinimizer = class extends BaseMinimizer {
 
     const start = (new Date()).getTime() / 1000;
     const before = JSON.stringify([doc.html, doc.text]).length;
-    logger.info(`Minimizing ${doc} with simple heuristics`);
+    logger.info(`Minimizing ${doc} with tag removing heuristics`);
 
     let initial = doc.html
       .replaceAll(/[ \t\n]+/g, ' ');  // remove whitespace

@@ -5,7 +5,9 @@ export { Crawler } from './crawl/Crawler.js';
 export { Fetcher } from './fetch/Fetcher.js';
 export { PuppeteerFetcher } from './fetch/PuppeteerFetcher.js';
 
-export { BasicExtractor } from './extract/BasicExtractor.js';
+export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
+export { IterativePromptExtractor } from './extract/IterativePromptExtractor.js';
+export { MinimizingExtractor } from './extract/MinimizingExtractor.js';
 
 import { OpenAI } from './ai/OpenAI.js';
 import { Anthropic } from './ai/Anthropic.js';

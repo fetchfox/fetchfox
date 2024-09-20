@@ -3,9 +3,9 @@ import { logger } from '../log/logger.js';
 import { getAi } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { basic } from './prompts.js';
+import { scrapeOnce } from './prompts.js';
 
-export const BasicExtractor = class extends BaseExtractor {
+export const SinglePromptExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
   }
@@ -43,7 +43,7 @@ export const BasicExtractor = class extends BaseExtractor {
         ? `You are looking for this type of item(s):\n\n${description}`
         : ''),
       };
-      const prompt = basic.render(context);
+      const prompt = scrapeOnce.render(context);
 
       let count = 0;
       let expectedCount;

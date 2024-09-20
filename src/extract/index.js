@@ -1,4 +1,5 @@
-import { BasicExtractor } from './BasicExtractor.js';
+import { logger } from '../log/logger.js';
+import { SinglePromptExtractor } from './SinglePromptExtractor.js';
 import { IterativePromptExtractor } from './IterativePromptExtractor.js';
 import { MinimizingExtractor } from './MinimizingExtractor.js';
 
@@ -9,8 +10,8 @@ export const getExtractor = (which, options) => {
   if (typeof which != 'string') return which;
 
   let extractorClass = {
-    b: BasicExtractor,
-    basic: BasicExtractor,
+    sp: SinglePromptExtractor,
+    'single-prompt': SinglePromptExtractor,
 
     ip: IterativePromptExtractor,
     'iterative-prompt': IterativePromptExtractor,
@@ -20,7 +21,7 @@ export const getExtractor = (which, options) => {
     minimizing: MinimizingExtractor,
   }[which];
   if (!extractorClass) {
-    console.error(`Unknown extractor type: ${which}`);
+    logger.error(`Unknown extractor type: ${which}`);
     return;
   }
 

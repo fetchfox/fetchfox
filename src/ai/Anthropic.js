@@ -62,9 +62,6 @@ export const Anthropic = class extends BaseAI {
   async askInner(prompt, options) {
     const { format, cacheHint } = options || { format: 'text' };
 
-    const cached = await this.getCache(prompt, options);
-    if (cached) return cached;
-
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';

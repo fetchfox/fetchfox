@@ -1,16 +1,21 @@
-import { SimpleMinimizer } from './SimpleMinimizer.js';
+import { logger } from '../log/logger.js';
+import { TextOnlyMinimizer } from './TextOnlyMinimizer.js';
+import { TagRemovingMinimizer } from './TagRemovingMinimizer.js';
 import { ExtractusMinimizer } from './ExtractusMinimizer.js';
 import { AiMinimizer } from './AiMinimizer.js';
 
-export const DefaultMinimizer = SimpleMinimizer;
+export const DefaultMinimizer = TagRemovingMinimizer;
 
 export const getMinimizer = (which, options) => {
   if (!which) return new DefaultMinimizer(options);
   if (typeof which != 'string') return which;
 
   let minimizerClass = {
-    s: SimpleMinimizer,
-    simple: SimpleMinimizer,
+    tr: TagRemovingMinimizer,
+    'tag-removing': TagRemovingMinimizer,
+
+    to: TextOnlyMinimizer,
+    'text-only': TextOnlyMinimizer,
 
     e: ExtractusMinimizer,
     extractus: ExtractusMinimizer,
@@ -18,7 +23,7 @@ export const getMinimizer = (which, options) => {
     ai: AiMinimizer,
   }[which];
   if (!minimizerClass) {
-    console.error(`Unknown minimizer type: ${which}`);
+    logger.error(`Unknown minimizer type: ${which}`);
     return;
   }
   return new minimizerClass(options);

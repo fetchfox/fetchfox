@@ -10,7 +10,7 @@ export const getFetcher = (name, options) => {
     puppeteer: PuppeteerFetcher,
   }[name];
   if (!fetcherClass) {
-    console.error(`Unknown fetcher: ${name}`);
+    logger.error(`Unknown fetcher: ${name}`);
     return;
   }
   return new fetcherClass(options);
