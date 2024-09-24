@@ -47,6 +47,27 @@ for await (const link of crawler.stream(url, 'comment links')) {
 }
 ```
 
-Or use the command line tool:
+# CLI
+
+Or use the command line tool. Install it:
+
+```bash
+npm install -g foxtrot-ai
+```
+
+And then run the `extract` command:
+
+```bash
+foxtrot extract https://www.npmjs.com/package/@tinyhttp/cookie \
+  'what is the package name?,what is the version number?,who is the main author?'
+```
+
+Or use `npx` instead:
+
+```bash
+npx foxtrot-ai extract https://www.npmjs.com/package/@tinyhttp/cookie \
+  'what is the package name?,what is the version number?,who is the main author?'
+```
+
 
 ![cli](https://github.com/user-attachments/assets/50e07613-7d31-4405-9c11-fe70febee0f7)
