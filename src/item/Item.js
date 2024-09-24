@@ -8,9 +8,21 @@ export const Item = class {
 
   constructor(data, source) {
     for (const k of Object.keys(data)) {
-      this[k] = '' + data[k];
+      this[k] = this.clean(data[k]);
     }
     this.#source = source;
+  }
+
+  clean(val) {
+    val = '' + val;
+    val = val.trim();
+    if (/^[0-9,]+$/.test(val)) {
+      val = val.replace(/,/g, '');
+    }
+    if (val == 'not found') {
+      val = '(not found)';
+    }
+    return val;
   }
 
   toString() {

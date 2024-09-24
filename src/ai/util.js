@@ -5,15 +5,10 @@ export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const getModelData = (provider, model) => {
   let modelStr = model;
-  if (provider == 'groq') {
+  if (['groq', 'mistral'].includes(provider)) {
     modelStr = provider + '/' + model;
   }
-
-  const data = modelData[modelStr];
-  if (data?.litellm_provider != provider) {
-    return null;
-  }
-  return data;
+  return modelData[modelStr];
 }
 
 const normalizeText = (text) => {

@@ -115,7 +115,7 @@ export const BaseAI = class {
 
     if (!result) {
       logger.warn(`Got no response for prompt ${prompt.substr(0, 100)}: ${result}`);
-      return;
+      result = {};  // Cache it as empty dict
     }
 
     const after = {
