@@ -94,7 +94,6 @@ export const Anthropic = class extends BaseAI {
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
-
     const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
 
     return result;

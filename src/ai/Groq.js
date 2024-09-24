@@ -48,7 +48,6 @@ export const Groq = class extends BaseAI {
       return cached;
     }
 
-    // const ollama = new OllamaLib({ host: this.host });
     const groq = new GroqLib({ apiKey: this.apiKey });
 
     let usage = { input: 0, output: 0, total: 0 };
@@ -75,7 +74,6 @@ export const Groq = class extends BaseAI {
     let answer = '';
     let buffer = '';
 
-    // const ollama = new OllamaLib({ host: this.host });
     const groq = new GroqLib({ apiKey: this.apiKey });
 
     const completion = await groq.chat.completions.create({

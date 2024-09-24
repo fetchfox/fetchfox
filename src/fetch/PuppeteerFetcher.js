@@ -7,8 +7,7 @@ import { BaseFetcher } from './BaseFetcher.js';
 export const PuppeteerFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
-    const { brower } = options || {};
-    if (browser) this.browserOptions = browser;
+    if (options.browser) this.browserOptions = options.browser;
   }
 
   async fetch(url, options) {
@@ -16,6 +15,7 @@ export const PuppeteerFetcher = class extends BaseFetcher {
 
     const cached = await this.getCache(url, options);
     if (cached) {
+      logger.info(`Returning cached ${cached}`);
       return cached;
     }
 
@@ -36,10 +36,12 @@ export const PuppeteerFetcher = class extends BaseFetcher {
 
     const doc = new Document();
     doc.loadData({
+      resp: { headers: { 'content-type': 'text/html' } },
       url,
       body: html,
       resp,
     });
+    doc.parse();
 
     await browser.close();
 
@@ -81,7 +83,7 @@ const getTextAndHtml = async () => {
 
     // Remove LinkedIn junk
     // TODO: more resilient solution
-    if (url.indexOf('https://www.linkedin.com') != -1) {
+    if (document.location.href.indexOf('https://www.linkedin.com') != -1) {
       removeTags.push('code');
     }
 

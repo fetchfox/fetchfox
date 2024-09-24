@@ -46,9 +46,7 @@ export const Ollama = class extends BaseAI {
     const { format, cacheHint } = options;
 
     const cached = await this.getCache(prompt, options);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
 
     const ollama = new OllamaLib({ host: this.host });
 

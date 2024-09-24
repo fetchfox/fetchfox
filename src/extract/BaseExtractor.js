@@ -24,10 +24,15 @@ export const BaseExtractor = class {
   chunks(doc) {
     const maxTokens = this.ai.maxTokens;
 
-    const textChunkSize = maxTokens * 4 * 0.1;
-    const htmlChunkSize = maxTokens * 4 * 0.25;
+    let textChunkSize = maxTokens * 4 * 0.1;
+    let htmlChunkSize = maxTokens * 4 * 0.25;
     const text = doc.text || '';
     const html = doc.html || '';
+
+    if (html.length <= 100) {
+      textChunkSize += htmlChunkSize;
+      htmlChunkSize = 0;
+    }
 
     const result = [];
 
