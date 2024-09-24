@@ -15,7 +15,7 @@ Command.prototype.fetcherOptions = function () {
 
 Command.prototype.extractorOptions = function () {
   return this
-    .option('-e --extractor <extractor>', 'Which extractor to use', 'basic');
+    .option('-e --extractor <extractor>', 'Which extractor to use', 'single-prompt');
 }
 
 Command.prototype.aiOptions = function () {
