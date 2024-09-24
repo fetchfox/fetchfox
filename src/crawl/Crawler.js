@@ -5,7 +5,8 @@ import { DefaultFetcher } from '../fetch/index.js';
 import { getAi } from '../ai/index.js';
 
 export const Crawler = class {
-  constructor(ai, { fetcher, cache }) {
+  constructor(ai, options) {
+    const { fetcher, cache } = options || {};
     this.ai = getAi(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
   }
