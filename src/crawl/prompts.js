@@ -12,9 +12,6 @@ Follow these important rules:
 - Generally avoid links with no link text.
 - Find all the matches, and err on the side of overmatching, especially if the user prompt is short
 
-Follow these site specific rules:
-- For amazon.com, product links have the product name in the link text. For amazon.com, ONLY include proudcts where the link text has the product name.
-
 Example of valid output:
 
 { "id": 3 }

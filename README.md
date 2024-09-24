@@ -25,22 +25,24 @@ npm i foxtrot-ai
 Use the npm package in Javascript:
 
 ```javascript
-import {
-  Crawler,
-  getAi,
-  BasicExtractor,
-} from 'foxtrot-ai';
+import { Crawler, SinglePromptExtractor } from 'foxtrot-ai';
 
-const ai = getAi('openai:gpt-4o-mini');
-const crawler = new Crawler(ai);
-const extractor = new BasicExtractor(ai)
+const ai = 'openai:gpt-4o-mini';
+const crawler = new Crawler({ ai });
+const extractor = new SinglePromptExtractor({ ai });
 
 const url = 'https://news.ycombinator.com';
-for await (const { link } of crawler.stream(url, 'comment links')) {
-  const questions = [
-    'what is the author of this comment?',
-    'summarize the comment in 5 words'];
-  for await (const { item } of extractor.stream(link.url, questions)) {
+const questions = [
+  'what is the article title?',
+  'how many points does this submission have? only number',
+  'how many comments does this submission have? only number',
+  'when was this article submitted? convert to YYYY-MM-DD HH:mm{am/pm} format',
+];
+
+for await (const link of crawler.stream(url, 'comment links')) {
+  console.log('Extract from:', link.url);
+  for await (const item of extractor.stream(link.url, questions)) {
+    console.log(item);
   }
 }
 ```

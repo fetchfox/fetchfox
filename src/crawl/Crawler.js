@@ -5,8 +5,8 @@ import { DefaultFetcher } from '../fetch/index.js';
 import { getAi } from '../ai/index.js';
 
 export const Crawler = class {
-  constructor(ai, options) {
-    const { fetcher, cache } = options || {};
+  constructor(options) {
+    const { ai, fetcher, cache } = options || {};
     this.ai = getAi(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
   }
@@ -18,8 +18,8 @@ export const Crawler = class {
 
     const doc = await this.fetcher.fetch(url, fetchOptions);
 
-    const links = shuffle(dedupeLinks(doc.links));
-    const maxBytes = 6000;
+    const links = shuffle(doc.links);
+    const maxBytes = this.ai.maxTokens / 2;
     const slimmer = item => ({
       id: item.id,
       html: item.html.substr(0, 200),
@@ -33,7 +33,6 @@ export const Crawler = class {
     let count = 0;
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
-
       const prompt = gather.render({
         question,
         limit: limit || '(No limit)',
@@ -58,7 +57,7 @@ export const Crawler = class {
         if (count++ >= limit) break;
 
         yield Promise.resolve({
-          link,
+          ...link,
           usage,
           progress: { done: i, total: chunked.length },
         });
