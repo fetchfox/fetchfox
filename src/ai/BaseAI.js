@@ -58,7 +58,7 @@ export const BaseAI = class {
 
     const { systemPrompt, format, cacheHint } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
-    logger.info(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
+    logger.verbose(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'prompt');
   }
 
@@ -96,8 +96,11 @@ export const BaseAI = class {
       try {
         result = await this.askInner(prompt, options);
       } catch(e) {
-        if (!e.status) throw e;
+        logger.error(`Caught ${this} error: ${e}`);
 
+        if (!e.status) {
+          throw e;
+        }
         if (--retries <= 0) {
           throw e;
         }

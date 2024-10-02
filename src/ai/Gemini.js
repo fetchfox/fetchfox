@@ -10,6 +10,12 @@ export const Gemini = class extends BaseAI {
     super(model, options);
     const { apiKey } = options || {};
     this.apiKey = apiKey || process.env.GEMINI_API_KEY;
+
+    if (this.model.indexOf('flash') != -1) {
+      // Cap tokens at 128k to receive lower pricing tier
+      // https://ai.google.dev/pricing
+      this.maxTokens = 128000;
+    }
   }
 
   normalizeChunk(chunk) {
@@ -50,6 +56,7 @@ export const Gemini = class extends BaseAI {
     let buffer = '';
 
     const completion = await model.generateContent([ prompt ]);
+
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
     const result = this.parseChunk(this.normalizeChunk(chunk), ctx);

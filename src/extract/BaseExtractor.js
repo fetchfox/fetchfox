@@ -3,9 +3,10 @@ import { DefaultFetcher } from '../fetch/index.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, cache } = options || {};
+    const { ai, fetcher, cache, hardCapTokens } = options || {};
     this.ai = getAi(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
+    this.hardCapTokens = hardCapTokens || 128000;
   }
 
   toString() {
@@ -22,7 +23,7 @@ export const BaseExtractor = class {
   }
 
   chunks(doc) {
-    const maxTokens = this.ai.maxTokens;
+    const maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
 
     let textChunkSize = maxTokens * 4 * 0.1;
     let htmlChunkSize = maxTokens * 4 * 0.25;

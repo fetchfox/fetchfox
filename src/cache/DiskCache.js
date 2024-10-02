@@ -36,7 +36,7 @@ export const DiskCache = class {
       return null;
     }
 
-    if (Date.now() > data.expiresAt || data.val === undefined) {
+    if (Date.now() > data.expiresAt || data.val == undefined) {
       this.del(key);
       return null;
     }

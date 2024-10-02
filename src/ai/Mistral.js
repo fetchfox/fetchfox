@@ -10,9 +10,6 @@ export const Mistral = class extends BaseAI {
 
     this.model = model || 'mistral-large-latest';
     this.apiKey = apiKey || process.env.MISTRAL_API_KEY;
-
-    // TODO: Get max tokens for each model
-    this.maxTokens = 128000;
   }
 
   normalizeChunk(chunk) {
@@ -31,9 +28,9 @@ export const Mistral = class extends BaseAI {
     let usage;
     if (chunk.usage) {
       usage = {
-        input: chunk.usage.prompt_tokens,
-        output: chunk.usage.completion_tokens,
-        total: chunk.usage.prompt_tokens + chunk.usage.completion_tokens,
+        input: chunk.usage.promptTokens,
+        output: chunk.usage.completionTokens,
+        total: chunk.usage.promptTokens + chunk.usage.completionTokens,
       };
     }
 

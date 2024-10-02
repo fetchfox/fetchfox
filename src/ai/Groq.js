@@ -54,10 +54,12 @@ export const Groq = class extends BaseAI {
     let answer = '';
     let buffer = '';
 
+    // console.log('ask groq');
     const completion = await groq.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
     });
+    // console.log('groq says', JSON.stringify(completion));
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
