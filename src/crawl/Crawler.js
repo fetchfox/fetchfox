@@ -2,19 +2,19 @@ import crypto from 'crypto';
 import { logger } from '../log/logger.js';
 import { gather } from './prompts.js';
 import { DefaultFetcher } from '../fetch/index.js';
-import { getAi } from '../ai/index.js';
+import { getAI } from '../ai/index.js';
 
 export const Crawler = class {
   constructor(options) {
     const { ai, fetcher, cache } = options || {};
-    this.ai = getAi(ai, { cache });
+    this.ai = getAI(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
   }
 
-  async *run(url, question, options) {
+  async *run(url, query, options) {
     const { fetchOptions, limit, stream } = options || {};
 
-    logger.info(`Crawling ${url} with for "${question}"`);
+    logger.info(`Crawling ${url} with for "${query}"`);
 
     const doc = await this.fetcher.fetch(url, fetchOptions);
 
@@ -34,7 +34,7 @@ export const Crawler = class {
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
       const prompt = gather.render({
-        question,
+        query,
         limit: limit || '(No limit)',
         links: JSON.stringify(chunk, null, 2),
       });
@@ -45,14 +45,29 @@ export const Crawler = class {
         toLink[link.id] = link;
       }
 
-      let gen = this.ai.gen(prompt, { format: 'jsonl', cacheHint: limit, stream });
-      for await (const { delta, usage } of gen) {
-        if (!toLink[delta.id]) continue;
+      // let gen = this.ai.gen(prompt, { format: 'jsonl', cacheHint: limit, stream });
+      // for await (const { delta, usage } of gen) {
+      const stream = this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit });
+
+      console.log('got stream', stream);
+
+      for await (const { delta, usage } of stream) {
+        console.log('got delta', delta);
+        if (!toLink[delta.id]) {
+          console.warn(`Could not find link with id ${delta.id}`);
+          // console.log('toLink', toLink);
+          throw 'abc';
+          continue;
+        }
 
         const link = toLink[delta.id];
         if (seen[link.url]) continue;
 
-        logger.info(`Found link ${link.url} in response to "${question}"`);
+        console.log('got link', link);
+
+        // delete link.id;
+
+        logger.info(`Found link ${link.url} in response to "${query}"`);
 
         if (count++ >= limit) break;
 
@@ -67,25 +82,25 @@ export const Crawler = class {
     }
   }
 
-  async all(url, question, options) {
+  async all(url, query, options) {
     options = {...options, stream: false };
     let result = [];
-    for await (const r of this.run(url, question, options)) {
+    for await (const r of this.run(url, query, options)) {
       result.push(r);
     }
     return result;
   }
 
-  async one(url, question, options) {
+  async one(url, query, options) {
     options = {...options, stream: true };
-    for await (const r of this.run(url, question, options)) {
+    for await (const r of this.run(url, query, options)) {
       return r;
     }
   }
 
-  async *stream(url, question, options) {
+  async *stream(url, query, options) {
     options = {...options, stream: true };
-    for await (const r of this.run(url, question, options)) {
+    for await (const r of this.run(url, query, options)) {
       yield Promise.resolve(r);
     }
   }

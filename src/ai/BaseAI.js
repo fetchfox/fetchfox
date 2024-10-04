@@ -73,6 +73,41 @@ export const BaseAI = class {
     }
   }
 
+  async *stream(prompt, options) {
+    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
+    let usage = { input: 0, output: 0, total: 0 };
+    let answer = '';
+    let buffer = '';
+
+    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
+    for await (const chunk of this.inner(prompt, options)) {
+      console.log('stream got:', chunk.choices);
+      const parsed = this.parseChunk(
+        this.normalizeChunk(chunk),
+        ctx);
+
+      console.log('buffer:', ctx.buffer);
+
+      if (!parsed) continue;
+
+      console.log('format:', format);
+      console.log('parsed:', parsed);
+
+      if (format == 'jsonl') {
+        console.log('return jsonl');
+        for (const d of parsed.delta) {
+          yield Promise.resolve({
+            delta: d,
+            partial: parsed.partial,
+            usage: parsed.usage });
+        }
+      } else {
+        console.log('return else');
+        yield Promise.resolve(parsed);
+      }
+    }
+  }
+
   async ask(prompt, options) {
     const cached = await this.getCache(prompt, options);
 
@@ -94,7 +129,10 @@ export const BaseAI = class {
     const retryMsec= 5000;
     while (true) {
       try {
-        result = await this.askInner(prompt, options);
+        for await (const chunk of this.stream(prompt, options)) {
+          result = chunk;
+        }
+
       } catch(e) {
         logger.error(`Caught ${this} error: ${e}`);
 
@@ -107,6 +145,7 @@ export const BaseAI = class {
 
         logger.info(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
         await sleep(retryMsec);
+
       }
 
       break;
@@ -151,35 +190,35 @@ export const BaseAI = class {
     return result;
   }
 
-  gen(prompt, options) {
-    logger.info(`AI generator for ${options.stream ? 'streaming' : 'blocking'} prompt "${prompt.substr(0, 32)}..."`);
+  // gen(prompt, options) {
+  //   logger.info(`AI generator for ${options.stream ? 'streaming' : 'blocking'} prompt "${prompt.substr(0, 32)}..."`);
 
-    if (options.stream) {
-      return this.stream(prompt, { format: 'jsonl' });
-    } else {
-      const that = this;
-      return (async function *() {
-        try {
-          const result = await that.ask(prompt, { format: 'jsonl' });
+  //   if (options.stream) {
+  //     return this.stream(prompt, { format: 'jsonl' });
+  //   } else {
+  //     const that = this;
+  //     return (async function *() {
+  //       try {
+  //         const result = await that.ask(prompt, { format: 'jsonl' });
 
-          if (!result?.delta) {
-            return;
-          }
-          for (let r of result.delta) {
-            yield Promise.resolve({
-              delta: r,
-              partial: result.partial,
-              usage: result.usage,
-              cost: result.cost,
-              elapsed: result.elapsed,
-            });
-          }
-        } catch(e) {
-          throw e;
-        }
-      })();
-    }
-  }
+  //         if (!result?.delta) {
+  //           return;
+  //         }
+  //         for (let r of result.delta) {
+  //           yield Promise.resolve({
+  //             delta: r,
+  //             partial: result.partial,
+  //             usage: result.usage,
+  //             cost: result.cost,
+  //             elapsed: result.elapsed,
+  //           });
+  //         }
+  //       } catch(e) {
+  //         throw e;
+  //       }
+  //     })();
+  //   }
+  // }
 
   parseChunk(chunk, ctx) {
     if (chunk.usage) {

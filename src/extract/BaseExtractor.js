@@ -1,10 +1,10 @@
-import { getAi } from '../ai/index.js';
+import { getAI } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 
 export const BaseExtractor = class {
   constructor(options) {
     const { ai, fetcher, cache, hardCapTokens } = options || {};
-    this.ai = getAi(ai, { cache });
+    this.ai = getAI(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
     this.hardCapTokens = hardCapTokens || 128000;
   }

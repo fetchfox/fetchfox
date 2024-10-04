@@ -1,6 +1,5 @@
 import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
-import { getAi } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { scrapeOnce } from './prompts.js';

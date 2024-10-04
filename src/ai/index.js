@@ -8,7 +8,7 @@ import { Gemini } from './Gemini.js';
 
 export const DefaultAI = OpenAI;
 
-export const getAi = (which, options) => {
+export const getAI = (which, options) => {
   if (!which) return new DefaultAI(null, options);
   if (typeof which != 'string') return which;
 

@@ -1,17 +1,16 @@
 import fs from 'fs';
-
 import Papa from 'papaparse';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { saveItems } from '../extract/save.js';
-import { getAi } from '../ai/index.js';
+import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
 import { getExtractor } from '../extract/index.js';
 
 export const extract = async (url, questions, options) => {
   const cache = options.cache ? new DiskCache(options.cache) : null;
-  const ai = getAi(options.ai, { apiKey: options.apiKey, cache });
+  const ai = getAI(options.ai, { apiKey: options.apiKey, cache });
   const ex = getExtractor(options.extractor, { ai, cache });
 
   let doc;
