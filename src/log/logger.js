@@ -5,8 +5,6 @@ const logFormat = printf(({ level, message, label, timestamp }) => {
   return `${timestamp} [${label}] ${level}: ${message}`;
 });
 
-console.log('creating logger');
-
 export const logger = createLogger({
   format: combine(
     label({ label: 'foxtrot' }),

@@ -45,27 +45,16 @@ export const Crawler = class {
         toLink[link.id] = link;
       }
 
-      // let gen = this.ai.gen(prompt, { format: 'jsonl', cacheHint: limit, stream });
-      // for await (const { delta, usage } of gen) {
       const stream = this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit });
-
-      console.log('got stream', stream);
-
       for await (const { delta, usage } of stream) {
-        console.log('got delta', delta);
         if (!toLink[delta.id]) {
           console.warn(`Could not find link with id ${delta.id}`);
-          // console.log('toLink', toLink);
-          throw 'abc';
           continue;
         }
 
         const link = toLink[delta.id];
         if (seen[link.url]) continue;
-
-        console.log('got link', link);
-
-        // delete link.id;
+        delete link.id;
 
         logger.info(`Found link ${link.url} in response to "${query}"`);
 

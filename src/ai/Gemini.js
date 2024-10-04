@@ -39,32 +39,15 @@ export const Gemini = class extends BaseAI {
     return { model: this.model, message, usage };
   }
 
-  async askInner(prompt, options) {
+  async *inner(prompt, options) {
+    // TODO: Implement Gemini streaming
+
     options = Object.assign({ format: 'text' }, options);
-    const { format, cacheHint } = options;
-
-    const cached = await this.getCache(prompt, options);
-    if (cached) {
-      return cached;
-    }
-
     const gemini = new GoogleGenerativeAI(this.apiKey);
     const model = gemini.getGenerativeModel({ model: this.model });
-
-    let usage = { input: 0, output: 0, total: 0 };
-    let answer = '';
-    let buffer = '';
-
     const completion = await model.generateContent([ prompt ]);
-
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     const chunk = completion;
-    const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
-
-    return result;
-  }
-
-  async *stream(prompt, options) {
-    throw 'Streaming unavailable for Gemini';
+    return yield Promise.resolve(chunk);
   }
 }

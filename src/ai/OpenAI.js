@@ -39,7 +39,6 @@ export const OpenAI = class extends BaseAI {
 
   async *inner(prompt, options) {
     const openai = new OpenAILib({ apiKey: this.apiKey });
-
     const completion = await openai.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],

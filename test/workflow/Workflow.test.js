@@ -33,10 +33,8 @@ describe('Workflow', function() {
     const flow = new Workflow(steps);
     const cursor = await flow.run();
 
-    console.log('cursor at the end:', cursor);
-
     for (const item of cursor.head) {
-      console.log('head item: ', item);
+      console.log('Item:', item);
     }
   });
 });

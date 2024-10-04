@@ -81,20 +81,13 @@ export const BaseAI = class {
 
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     for await (const chunk of this.inner(prompt, options)) {
-      console.log('stream got:', chunk.choices);
       const parsed = this.parseChunk(
         this.normalizeChunk(chunk),
         ctx);
 
-      console.log('buffer:', ctx.buffer);
-
       if (!parsed) continue;
 
-      console.log('format:', format);
-      console.log('parsed:', parsed);
-
       if (format == 'jsonl') {
-        console.log('return jsonl');
         for (const d of parsed.delta) {
           yield Promise.resolve({
             delta: d,
@@ -102,7 +95,6 @@ export const BaseAI = class {
             usage: parsed.usage });
         }
       } else {
-        console.log('return else');
         yield Promise.resolve(parsed);
       }
     }

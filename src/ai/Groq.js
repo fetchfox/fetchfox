@@ -26,7 +26,6 @@ export const Groq = class extends BaseAI {
       }
     }
 
-
     let usage;
     if (chunk.usage) {
       usage = {
@@ -39,68 +38,16 @@ export const Groq = class extends BaseAI {
     return { model, message, usage };
   }
 
-  async askInner(prompt, options) {
-    options = Object.assign({ format: 'text' }, options);
-    const { format, cacheHint } = options;
-
-    const cached = await this.getCache(prompt, options);
-    if (cached) {
-      return cached;
-    }
-
+  async *inner(prompt, options) {
     const groq = new GroqLib({ apiKey: this.apiKey });
-
-    let usage = { input: 0, output: 0, total: 0 };
-    let answer = '';
-    let buffer = '';
-
-    // console.log('ask groq');
-    const completion = await groq.chat.completions.create({
-      model: this.model,
-      messages: [{ role: 'user', content: prompt }],
-    });
-    // console.log('groq says', JSON.stringify(completion));
-
-    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
-    const chunk = completion;
-
-    const result = this.parseChunk(this.normalizeChunk(chunk), ctx);
-
-    return result;
-  }
-
-  async *stream(prompt, options) {
-    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
-
-    let usage = { input: 0, output: 0, total: 0 };
-    let answer = '';
-    let buffer = '';
-
-    const groq = new GroqLib({ apiKey: this.apiKey });
-
     const completion = await groq.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
     });
 
-    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     for await (const chunk of completion) {
-      const parsed = this.parseChunk(
-        this.normalizeChunk(chunk),
-        ctx);
-      if (!parsed) continue;
-
-      if (format == 'jsonl') {
-        for (const d of parsed.delta) {
-          yield Promise.resolve({
-            delta: d,
-            partial: parsed.partial,
-            usage: parsed.usage });
-        }
-      } else {
-        yield Promise.resolve(parsed);
-      }
+      yield Promise.resolve(chunk);
     }
   }
 }
