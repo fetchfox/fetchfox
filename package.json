@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "bin": {
-    "foxtrot": "./src/cli/index.js"
+    "fetchfox": "./src/cli/index.js"
   },
   "scripts": {
     "test": "mocha test/**/*.test.js"
