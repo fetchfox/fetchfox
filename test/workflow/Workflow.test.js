@@ -17,7 +17,7 @@ describe('Workflow', function() {
   this.timeout(0);
 
   it('should run a workflow', async () => {
-    const cache = new DiskCache('/tmp/ft_workflow_test');
+    const cache = new DiskCache('/tmp/ft_workflow_test_5');
     // const cache = null;
 
     const ai = getAI('openai:gpt-4o-mini', { cache });
@@ -26,7 +26,7 @@ describe('Workflow', function() {
 
     const steps = [
       new ConstStep({ items: [{ url: 'https://news.ycombinator.com/news' }]}),
-      new CrawlStep({ crawler, query: 'Links to comment pages on format: https://news.ycombinator.com/item?id=...' }),
+      new CrawlStep({ crawler, query: 'Links to comment pages. The url MUST match this format: https://news.ycombinator.com/item?id=...' }),
       // new FetchStep({ fetcher }),
     ];
 

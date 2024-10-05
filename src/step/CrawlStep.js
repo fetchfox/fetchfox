@@ -10,7 +10,7 @@ export const CrawlStep = class extends BaseStep {
 
   async *run(cursor) {
     for (const item of cursor.head) {
-      logger.info(`Crawl ${item} for ${this.query}`);
+      logger.info(`Crawl ${JSON.stringify(item)} for ${this.query}`);
       const stream = this.crawler.run(item.url, this.query);
       for await (const link of stream) {
         logger.info(`Found link ${link.url}`);

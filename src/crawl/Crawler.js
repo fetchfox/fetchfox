@@ -35,7 +35,6 @@ export const Crawler = class {
       const chunk = chunked[i];
       const prompt = gather.render({
         query,
-        limit: limit || '(No limit)',
         links: JSON.stringify(chunk, null, 2),
       });
 

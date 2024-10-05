@@ -75,28 +75,60 @@ export const BaseAI = class {
 
   async *stream(prompt, options) {
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
+    const cached = await this.getCache(prompt, options);
+    if (cached) {
+      if (format == 'jsonl') {
+        for (const r of cached) {
+          yield Promise.resolve(r);
+        }
+      } else {
+        yield Promise.resolve(cached);
+      }
+      return;
+    }
+
     let usage = { input: 0, output: 0, total: 0 };
     let answer = '';
     let buffer = '';
-
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
-    for await (const chunk of this.inner(prompt, options)) {
-      const parsed = this.parseChunk(
-        this.normalizeChunk(chunk),
-        ctx);
 
-      if (!parsed) continue;
+    let err;
+    let result;
+    try {
+      for await (const chunk of this.inner(prompt, options)) {
+        const parsed = this.parseChunk(
+          this.normalizeChunk(chunk),
+          ctx);
 
-      if (format == 'jsonl') {
-        for (const d of parsed.delta) {
-          yield Promise.resolve({
-            delta: d,
-            partial: parsed.partial,
-            usage: parsed.usage });
+        if (!parsed) continue;
+
+        if (format == 'jsonl') {
+          if (!result) {
+            result = [];
+          }
+
+          for (const d of parsed.delta) {
+            const r = {
+              delta: d,
+              partial: parsed.partial,
+              usage: parsed.usage,
+            };
+            result.push(r);
+            yield Promise.resolve(r);
+          }
+        } else {
+          result = parsed;
+          yield Promise.resolve(parsed);
         }
-      } else {
-        yield Promise.resolve(parsed);
       }
+    } catch (e) {
+      err = e;
+    } finally {
+      if (err) {
+        logger.warn(`Error during AI stream, not caching: ${err}`);
+        return;
+      }
+      this.setCache(prompt, options, result);
     }
   }
 
