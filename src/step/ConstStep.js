@@ -3,7 +3,7 @@ import { BaseStep } from './BaseStep.js';
 
 export const ConstStep = class extends BaseStep {
   constructor(args) {
-    super();
+    super(args);
 
     if (typeof args == 'string') {
       if (args.match(/^https?:\/\//)) {
@@ -15,6 +15,14 @@ export const ConstStep = class extends BaseStep {
       const { items } = args;
       this.items = items;
     }
+  }
+
+  name() {
+    return 'const';
+  }
+
+  args() {
+    return { items: this.items };
   }
 
   async *run(cursor) {

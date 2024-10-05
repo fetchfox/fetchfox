@@ -31,6 +31,7 @@
     "@mistralai/mistralai": "^1.0.4",
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
+    "csv-stringify": "^6.5.1",
     "groq-sdk": "^0.7.0",
     "json5": "^2.2.3",
     "node-fetch": "^3.3.2",

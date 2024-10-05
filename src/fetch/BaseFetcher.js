@@ -4,8 +4,7 @@ import { Document } from '../document/Document.js';
 
 export const BaseFetcher = class {
   constructor(options) {
-    const { cache } = options || {};
-    if (cache) this.cache = cache;
+    this.cache = options?.cache;
   }
 
   cacheKey(url, options) {

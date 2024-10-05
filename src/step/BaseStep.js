@@ -1,15 +1,31 @@
 export const BaseStep = class {
+  constructor(args) {
+    this.limit = args?.limit;
+  }
 
   toString() {
     return `[${this.constructor.name}]`;
   }
 
-  async full(cursor, args) {
-    let result = [];
-    for await (const r of this.run(cursor, args)) {
-      result.push(r);
+  async *stream(cursor) {
+    cursor.head = [];
+    try {
+      for await (const r of this.run(cursor)) {
+        cursor.head.push(r);
+        yield Promise.resolve(r);
+        if (this.limit && cursor.head.length >= this.limit) break;
+      }
+    } finally {
+      cursor.last = cursor.head;
     }
-    cursor.head = result;
+  }
+
+  async all(cursor) {
+    cursor.head = [];
+    for await (const r of this.run(cursor)) {
+      cursor.head.push(r);
+    }
+    cursor.last = cursor.head;
     return result;
   }
 }

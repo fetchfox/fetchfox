@@ -19,7 +19,7 @@ describe('Workflow', function() {
   this.timeout(0);
 
   it('should run a workflow', async () => {
-    const cache = new DiskCache('/tmp/ft_workflow_test_6');
+    const cache = new DiskCache('/tmp/ft_workflow_test_6', { ttls: 10 * 24 * 3600 });
     // const cache = null;
 
     const ai = getAI('openai:gpt-4o-mini', { cache });
@@ -37,26 +37,25 @@ describe('Workflow', function() {
       'How many comments does the article have? Format: number',
     ];
 
-    // TODO: make constrctors on steps smarter for easy syntax
     const steps = [
-      // new ConstStep({ items: [{ url }]}),
       new ConstStep(url),
-
       new CrawlStep({ crawler, query }),
-      // new CrawlStep(query),
-
       new FetchStep({ fetcher }),
-      // new FetchStep(),
-
-      // new ExtractStep({ questions, extractor }),
-      new ExtractStep(questions),
+      new ExtractStep({ questions, extractor }),
     ];
 
     const flow = new Workflow(steps);
-    const cursor = await flow.run();
 
-    for (const item of cursor.head) {
-      console.log('Cursor:', ''+item);
+    // Run blocking
+    // const { cursor } = await flow.run();
+    // for (const item of cursor.head) {
+    //   console.log('Cursor:', ''+item);
+    // }
+
+    // Run streaming
+    const stream = flow.stream();
+    for await (const { cursor, delta, index } of stream) {
+      console.log(`Step ${index} delta: ${delta}`);
     }
   });
 });

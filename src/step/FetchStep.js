@@ -4,17 +4,21 @@ import { BaseStep } from './BaseStep.js';
 
 export const FetchStep = class extends BaseStep {
   constructor(args) {
-    super();
-    const { fetcher } = args || {};
-    if (!fetcher) {
-      this.fetcher = getFetcher();
+    super(args);
+
+    if (typeof args?.fetch == 'function') {
+      this.fetcher = args;
+    } else if (typeof args == 'string') {
+      this.fetcher = getFetcher(args);
+    } else if (args.fetcher) {
+      this.fetcher = args.fetcher;
     } else {
-      this.fetcher = fetcher;
+      this.fetcher = getFetcher();
     }
   }
 
   async *run(cursor) {
-    for (const item of cursor.head) {
+    for (const item of cursor.last) {
       if (!item.url) {
         logger.warn(`Skipping item without URL: ${item}`);
         continue;

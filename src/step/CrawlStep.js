@@ -4,20 +4,34 @@ import { BaseStep } from './BaseStep.js';
 
 export const CrawlStep = class extends BaseStep {
   constructor(args) {
-    super();
+    super(args);
 
+    let query;
+    let crawler;
     if (typeof args == 'string') {
-      this.crawler = getCrawler();
       this.query = args;
     } else {
-      const { crawler, query } = args;
-      this.crawler = crawler;
-      this.query = query;
+      crawler = args.crawler;
+      query = args.query;
     }
+
+    if (!crawler) this.crawler = getCrawler();
+    if (!query) throw new Error('no query');
+
+    this.crawler = crawler;
+    this.query= query;
+  }
+
+  name() {
+    return 'crawl';
+  }
+
+  args() {
+    return { query: this.query };
   }
 
   async *run(cursor) {
-    for (const item of cursor.head) {
+    for (const item of cursor.last) {
       logger.info(`Crawl ${JSON.stringify(item)} for ${this.query}`);
       const stream = this.crawler.run(item.url, this.query);
       for await (const link of stream) {

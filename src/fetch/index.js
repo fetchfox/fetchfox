@@ -5,7 +5,7 @@ import { PuppeteerFetcher } from '../fetch/PuppeteerFetcher.js';
 export const DefaultFetcher = Fetcher;
 
 export const getFetcher = (which, options) => {
-  if (!which) return new DefaultFetcher();
+  if (!which) return new DefaultFetcher(options);
   let fetcherClass = {
     fetch: Fetcher,
     puppeteer: PuppeteerFetcher,
