@@ -1,6 +1,6 @@
 <div align="center">
   <h1>FetchFox</h1>
-  <div><img width="400" alt="FoxTrot is an AI powered scraping library" src="https://github.com/user-attachments/assets/44c3731f-b919-4b82-89ae-c64cfd302f0f"></div>
+  <div><img width="400" alt="FetchFox is an AI powered scraping library" src="https://github.com/user-attachments/assets/44c3731f-b919-4b82-89ae-c64cfd302f0f"></div>
   
 <p>FetchFox is an AI powered scraping, automation, and data extraction library.</p>
   
@@ -9,7 +9,7 @@
 
 <div align="center">
   
-<a href="https://twitter.com/FetchFoxAI"><img src="https://img.shields.io/twitter/follow/FetchFoxAI?style=social"></a> [![GitHub stars](https://img.shields.io/github/stars/fetchfox/fetchfox.svg?style=social&label=Star)](https://github.com/fetchfox/fetchfox) <a href="https://badge.fury.io/js/foxtrot-ai"><img src="https://badge.fury.io/js/foxtrot-ai.svg" alt="npm version" height="18"></a> <a href="https://discord.gg/mM54bwdu59"><img src="https://img.shields.io/discord/1180618526436888586?label=discord&logo=discord&logoColor=white&style=flat"></a>
+<a href="https://twitter.com/FetchFoxAI"><img src="https://img.shields.io/twitter/follow/FetchFoxAI?style=social"></a> [![GitHub stars](https://img.shields.io/github/stars/fetchfox/fetchfox.svg?style=social&label=Star)](https://github.com/fetchfox/fetchfox) <a href="https://badge.fury.io/js/fetchfox"><img src="https://badge.fury.io/js/fetchfox.svg" alt="npm version" height="18"></a> <a href="https://discord.gg/mM54bwdu59"><img src="https://img.shields.io/discord/1180618526436888586?label=discord&logo=discord&logoColor=white&style=flat"></a>
 
 </div>
 
