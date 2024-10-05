@@ -1,6 +1,6 @@
 {
   "name": "fetchfox",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "AI based web scraping library",
   "main": "src/index.js",
   "type": "module",
@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fetchfox/foxtrot.git"
+    "url": "git+https://github.com/fetchfox/fetchfox.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/fetchfox/foxtrot/issues"
+    "url": "https://github.com/fetchfox/fetchfox/issues"
   },
-  "homepage": "https://github.com/fetchfox/foxtrot",
+  "homepage": "https://github.com/fetchfox/fetchfox",
   "devDependencies": {
     "chai": "^5.1.1",
     "mocha": "^10.7.3"
