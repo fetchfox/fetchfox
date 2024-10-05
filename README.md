@@ -25,7 +25,7 @@ npm i fetchfox
 Use the npm package in Javascript:
 
 ```javascript
-import { Crawler, SinglePromptExtractor } from 'fetchfox;
+import { Crawler, SinglePromptExtractor } from 'fetchfox';
 
 const ai = 'openai:gpt-4o-mini';
 const crawler = new Crawler({ ai });
