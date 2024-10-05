@@ -1,11 +1,19 @@
 import { logger } from '../log/logger.js';
+import { getCrawler } from '../index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const CrawlStep = class extends BaseStep {
-  constructor({ crawler, query }) {
+  constructor(args) {
     super();
-    this.crawler = crawler;
-    this.query = query;
+
+    if (typeof args == 'string') {
+      this.crawler = getCrawler();
+      this.query = args;
+    } else {
+      const { crawler, query } = args;
+      this.crawler = crawler;
+      this.query = query;
+    }
   }
 
   async *run(cursor) {

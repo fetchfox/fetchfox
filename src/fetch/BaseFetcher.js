@@ -39,6 +39,6 @@ export const BaseFetcher = class {
 
     const key = this.cacheKey(url, options);
     logger.info(`Set fetch cache for ${url} to "${('' + val).substr(0, 32)}..."`);
-    return this.cache.set(key, val, 'fetch');g
+    return this.cache.set(key, val, 'fetch');
   }
 }

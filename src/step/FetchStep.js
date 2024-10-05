@@ -1,10 +1,16 @@
 import { logger } from '../log/logger.js';
+import { getFetcher } from '../index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const FetchStep = class extends BaseStep {
-  constructor({ fetcher }) {
+  constructor(args) {
     super();
-    this.fetcher = fetcher;
+    const { fetcher } = args || {};
+    if (!fetcher) {
+      this.fetcher = getFetcher();
+    } else {
+      this.fetcher = fetcher;
+    }
   }
 
   async *run(cursor) {

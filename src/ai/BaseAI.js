@@ -133,14 +133,13 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
-    const cached = await this.getCache(prompt, options);
-
-    if (cached) {
-      this.addUsage(cached.usage);
-      this.elapsed.msec += cached.elapsed?.msec || 0;
-      this.elapsed.sec += cached.elapsed?.sec || 0;
-      return cached;
-    }
+    // const cached = await this.getCache(prompt, options);
+    // if (cached) {
+    //   this.addUsage(cached.usage);
+    //   this.elapsed.msec += cached.elapsed?.msec || 0;
+    //   this.elapsed.sec += cached.elapsed?.sec || 0;
+    //   return cached;
+    // }
 
     const before = {
       usage: Object.assign({}, this.usage),
@@ -200,16 +199,16 @@ export const BaseAI = class {
       total: after.cost.total - before.cost.total,
     };
 
-    this.setCache(
-      prompt,
-      options,
-      {
-        delta: result.delta,
-        partial: result.partial,
-        cost: result.cost,
-        usage: result.usage,
-        elapsed: { msec, sec: msec / 1000 },
-      });
+    // this.setCache(
+    //   prompt,
+    //   options,
+    //   {
+    //     delta: result.delta,
+    //     partial: result.partial,
+    //     cost: result.cost,
+    //     usage: result.usage,
+    //     elapsed: { msec, sec: msec / 1000 },
+    //   });
 
     return result;
   }
@@ -264,17 +263,8 @@ export const BaseAI = class {
     ctx.answer += delta;
     ctx.buffer += delta;
 
-    const cache = () => {
-      this.setCache(
-        ctx.prompt,
-        { format: ctx.format, cacheHint: ctx.cacheHint },
-        { answer: parseAnswer(ctx.answer, ctx.format),
-          usage: ctx.usage });
-    }
-
     if (ctx.format == 'jsonl') {
       const parsed = parseAnswer(ctx.buffer, ctx.format);
-      cache();
       if (parsed.length) {
         ctx.buffer = '';
         return {
@@ -286,7 +276,6 @@ export const BaseAI = class {
     } else {
       const parsed = parseAnswer('' + ctx.buffer, ctx.format);
       ctx.buffer = '';
-      cache();
       return {
         delta: parsed,
         partial: parseAnswer(ctx.answer, ctx.format),

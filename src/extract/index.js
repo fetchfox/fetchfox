@@ -3,7 +3,7 @@ import { SinglePromptExtractor } from './SinglePromptExtractor.js';
 import { IterativePromptExtractor } from './IterativePromptExtractor.js';
 import { MinimizingExtractor } from './MinimizingExtractor.js';
 
-export const DefaultExtractor = IterativePromptExtractor;
+export const DefaultExtractor = SinglePromptExtractor;
 
 export const getExtractor = (which, options) => {
   if (!which) return new DefaultExtractor(options);

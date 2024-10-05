@@ -2,9 +2,19 @@ import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 
 export const ConstStep = class extends BaseStep {
-  constructor({ items }) {
+  constructor(args) {
     super();
-    this.items = items;
+
+    if (typeof args == 'string') {
+      if (args.match(/^https?:\/\//)) {
+        this.items = [{ url: args }];
+      } else {
+        this.items = [{ data: args }];
+      }
+    } else {
+      const { items } = args;
+      this.items = items;
+    }
   }
 
   async *run(cursor) {

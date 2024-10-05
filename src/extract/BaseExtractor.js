@@ -14,12 +14,22 @@ export const BaseExtractor = class {
   }
 
   async getDoc(target) {
-    if (typeof target == 'string') {
-      return await this.fetcher.fetch(target);
-    } else {
-      // Assume it is a doc
+    if (target.constructor.name == 'Document') {
       return target;
     }
+
+    let url;
+    if (typeof target == 'string') {
+      url = target;
+    } else if (target.url) {
+      url = target.url;
+    }
+
+    if (!url) {
+      throw new Error(`Cannot extract from: ${target}`);
+    }
+
+    return await this.fetcher.fetch(url);
   }
 
   chunks(doc) {
