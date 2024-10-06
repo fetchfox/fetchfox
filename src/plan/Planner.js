@@ -13,7 +13,15 @@ export const Planner = class {
     this.extractor = options?.extractor || getExtractor(null, { cache });
   }
 
-  async plan(stepStrs) {
+  async plan(...args) {
+    if (args.length == 1) {
+      return this.planString(args[0]);
+    } else {
+      return this.planArray(args);
+    }
+  }
+
+  async planArray(stepStrs) {
     const stepsJson = [];
     for (const str of stepStrs) {
       const stepLibrary = descriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
@@ -31,7 +39,7 @@ export const Planner = class {
     return stepsJson.map(x => this.fromJson(x));
   }
 
-  async planCombined(allSteps) {
+  async planString(allSteps) {
     const stepLibrary = descriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,

@@ -35,3 +35,5 @@ export { getExporter } from './export/index.js';
 export { getExtractor } from './extract/index.js';
 export { getFetcher } from './fetch/index.js';
 export { getMinimizer } from './min/index.js';
+
+export { fox } from './fox/index.js';

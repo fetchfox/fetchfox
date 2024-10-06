@@ -37,6 +37,8 @@ export const DiskExporter = class extends BaseExporter {
       default:
         throw new Error(`Unsupported format: ${this.format}`);
     }
+
+    return this.filename;
   }
 
   async close() {

@@ -16,6 +16,7 @@ export const BaseStep = class {
         if (this.limit && cursor.head.length >= this.limit) break;
       }
     } finally {
+      this.finish && this.finish();
       cursor.last = cursor.head;
     }
   }

@@ -10,13 +10,16 @@ export const ExportStep = class extends BaseStep {
   }
 
   async *run(cursor) {
-    const exporter = new DiskExporter({ format: this.format });
-
-    exporter.open(this.filename);
+    this.exporter = new DiskExporter({ format: this.format });
+    this.exporter.open(this.filename);
     for (const item of cursor.last) {
-      const exportedTo = exporter.write(item);
+      const exportedTo = await this.exporter.write(item);
       yield Promise.resolve({ exportedTo, ...item });
     }
-    exporter.close();
+  }
+
+  finish() {
+    this.exporter.close();
+    this.exporter = null;
   }
 }
