@@ -22,14 +22,18 @@ export const ExtractStep = class extends BaseStep {
 
     this.extractor = extractor;
     this.questions = questions;
+
+    this.single = args?.single;
   }
 
   async *run(cursor) {
     logger.info(`Extract for ${this.questions.join(', ')}`);
+
     for (const target of cursor.last) {
       logger.info(`Extract from ${target}`);
-      for await (const item of this.extractor.stream(target, this.questions)) {
+      for await (const item of this.extractor.stream(target, this.questions, options)) {
         yield Promise.resolve(item);
+        if (this.single) break;
       }
     }
   }
