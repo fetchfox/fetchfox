@@ -31,7 +31,7 @@ export const ExtractStep = class extends BaseStep {
 
     for (const target of cursor.last) {
       logger.info(`Extract from ${target}`);
-      for await (const item of this.extractor.stream(target, this.questions, options)) {
+      for await (const item of this.extractor.stream(target, this.questions)) {
         yield Promise.resolve(item);
         if (this.single) break;
       }
