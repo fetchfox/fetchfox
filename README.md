@@ -1,7 +1,8 @@
 <div align="center">
   <h1>FetchFox</h1>
-  <div><img width="400" alt="FetchFox is an AI powered scraping library" src="https://github.com/user-attachments/assets/44c3731f-b919-4b82-89ae-c64cfd302f0f"></div>
-  
+  <div>
+    <img width="506" alt="Screenshot 2024-10-05 at 4 58 07 PM" src="https://github.com/user-attachments/assets/4451129b-089e-43f3-bef8-3001a13ac4c8">
+  </div>
 <p>FetchFox is an AI powered scraping, automation, and data extraction library.</p>
   
 <p>It can scrape data from any webpage using just plain English. It is made by the developers of the <a href="https://fetchfoxai.com">FetchFox Chrome Extension</a>.</p>
