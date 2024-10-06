@@ -3,6 +3,7 @@ import { logger } from '../log/logger.js';
 import { gather } from './prompts.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { getAI } from '../ai/index.js';
+import { validate } from './util.js';
 
 export const Crawler = class {
   constructor(options) {
@@ -19,6 +20,7 @@ export const Crawler = class {
     const doc = await this.fetcher.fetch(url, fetchOptions);
 
     const links = shuffle(doc.links);
+    // const links = doc.links;
     const maxBytes = this.ai.maxTokens / 2;
     const slimmer = item => ({
       id: item.id,
@@ -35,7 +37,10 @@ export const Crawler = class {
       const chunk = chunked[i];
       const prompt = gather.render({
         query,
-        links: JSON.stringify(chunk, null, 2),
+        links: JSON.stringify(
+          chunk.filter(l => validate(l.url)),
+          null,
+          2),
       });
 
       const seen = {};

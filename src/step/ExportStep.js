@@ -16,7 +16,7 @@ export const ExportStep = class extends BaseStep {
     for (const item of cursor.last) {
       const exportedTo = exporter.write(item);
       yield Promise.resolve({ exportedTo, ...item });
-    }    
+    }
     exporter.close();
   }
 }

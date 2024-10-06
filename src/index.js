@@ -21,6 +21,8 @@ export { DiskCache } from './cache/DiskCache.js';
 
 export { Workflow } from './workflow/Workflow.js';
 
+export { Planner } from './plan/Planner.js';
+
 export { ConstStep } from './step/ConstStep.js';
 export { CrawlStep } from './step/CrawlStep.js';
 export { ExportStep } from './step/ExportStep.js';

@@ -13,6 +13,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const { stream } = options || {};
 
     const doc = await this.getDoc(target);
+    if (!doc) return;
 
     const { extraRules, description, limit } = options || {};
     let { single } = options || {};
