@@ -1,7 +1,7 @@
 <div align="center">
   <h1>FetchFox</h1>
   <div><img width="400" alt="FetchFox is an AI powered scraping library" src="https://github.com/user-attachments/assets/44c3731f-b919-4b82-89ae-c64cfd302f0f"></div>
-  
+
 <p>FetchFox is an AI powered scraping, automation, and data extraction library.</p>
   
 <p>It can scrape data from any webpage using just plain English. It is made by the developers of the <a href="https://fetchfoxai.com">FetchFox Chrome Extension</a>.</p>
@@ -23,6 +23,29 @@ npm i fetchfox
 # Example
 
 Use the npm package in Javascript:
+
+Easiest is to use a single prompt.
+
+```javascript
+import { fox } from 'fetchfox';
+
+await fox.run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out3.jsonl`);
+```
+
+For more control, you can specify one prompt per step.
+
+```javascript
+import { fox } from 'fetchfox';
+
+await fox.run(
+  'https://news.ycombinator.com/news',
+  'find links to comments',
+  'find the usernames of the commenters',
+  'get their bio',
+  'export to out2.jsonl');
+```
+
+The library is modular, and you can use the component individually.
 
 ```javascript
 import { Crawler, SinglePromptExtractor } from 'fetchfox';
