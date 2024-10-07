@@ -1,6 +1,5 @@
 import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
-import { getAi } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { scrapeOnce } from './prompts.js';
@@ -14,6 +13,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const { stream } = options || {};
 
     const doc = await this.getDoc(target);
+    if (!doc) return;
 
     const { extraRules, description, limit } = options || {};
     let { single } = options || {};
@@ -48,7 +48,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       let count = 0;
       let expectedCount;
 
-      let gen = that.ai.gen(prompt, { format: 'jsonl', stream });
+      let gen = that.ai.stream(prompt, { format: 'jsonl', stream });
       for await (const { delta, usage } of gen) {
         if (delta.itemCount) {
           expectedCount = delta.itemCount;

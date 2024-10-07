@@ -1,8 +1,8 @@
 import { logger } from '../log/logger.js';
-import { getAi } from '../ai/index.js';
+import { getAI } from '../ai/index.js';
 
 export const ask = async (prompt, options) => {
-  const ai = getAi(options.ai);
+  const ai = getAI(options.ai);
 
   if (options.stream) {
     for await (const result of ai.stream(prompt)) {

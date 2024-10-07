@@ -37,41 +37,8 @@ export const OpenAI = class extends BaseAI {
     return { id, model, message, usage };
   }
 
-  async askInner(prompt, options) {
-    const { format, cacheHint } = options || { format: 'text' };
-
-    const openai = new OpenAILib({
-      apiKey: this.apiKey,
-      dangerouslyAllowBrowser: true,
-    });
-
-    let usage = { input: 0, output: 0, total: 0 };
-    let answer = '';
-    let buffer = '';
-
-    const completion = await openai.chat.completions.create({
-      model: this.model,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
-    const chunk = completion;
-
-    return this.parseChunk(this.normalizeChunk(chunk), ctx);
-  }
-
-  async *stream(prompt, options) {
-    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
-
-    const openai = new OpenAILib({
-      apiKey: this.apiKey,
-      dangerouslyAllowBrowser: true,
-    });
-
-    let usage = { input: 0, output: 0, total: 0 };
-    let answer = '';
-    let buffer = '';
-
+  async *inner(prompt, options) {
+    const openai = new OpenAILib({ apiKey: this.apiKey });
     const completion = await openai.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
@@ -79,23 +46,8 @@ export const OpenAI = class extends BaseAI {
       stream_options: { include_usage: true },
     });
 
-    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     for await (const chunk of completion) {
-      const parsed = this.parseChunk(
-        this.normalizeChunk(chunk),
-        ctx);
-      if (!parsed) continue;
-
-      if (format == 'jsonl') {
-        for (const d of parsed.delta) {
-          yield Promise.resolve({
-            delta: d,
-            partial: parsed.partial,
-            usage: parsed.usage });
-        }
-      } else {
-        yield Promise.resolve(parsed);
-      }
+      yield Promise.resolve(chunk);
     }
   }
 }

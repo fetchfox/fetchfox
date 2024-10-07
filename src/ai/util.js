@@ -53,7 +53,7 @@ export const parseAnswer = (text, format) => {
 
   } else if (format == 'json') {
     try {
-      const result = trimJson(JSON5.parse(clean));
+      const result = JSON5.parse(clean);
       return result;
     } catch(e) {
       return {};

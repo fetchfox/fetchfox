@@ -12,6 +12,16 @@ export const Fetcher = class extends BaseFetcher {
   async fetch(url, options) {
     logger.info(`Fetch ${url} with options ${options || '(none)'}`);
 
+    try {
+      new URL(url);
+    } catch (e) {
+      return null;
+    }
+
+    if (url.indexOf('javascript:') == 0) {
+      return null;
+    }
+
     const cached = await this.getCache(url, options);
     if (cached) {
       logger.info(`Returning cached ${cached}`);

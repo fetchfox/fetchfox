@@ -41,68 +41,16 @@ export const Ollama = class extends BaseAI {
     return { model, message, usage };
   }
 
-  async askInner(prompt, options) {
-    options = Object.assign({ format: 'text' }, options);
-    const { format, cacheHint } = options;
-
-    const cached = await this.getCache(prompt, options);
-    if (cached) return cached;
-
+  async *inner(prompt, options) {
     const ollama = new OllamaLib({ host: this.host });
-
-    let usage = { input: 0, output: 0, total: 0 };
-    let answer = '';
-    let buffer = '';
-
-    let completion;
-    try {
-      completion = await ollama.chat({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-      });
-    } catch(e) {
-      if (e.status_code == 524) return;
-      throw e;
-    }
-
-    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
-    const chunk = completion;
-
-    return this.parseChunk(this.normalizeChunk(chunk), ctx);
-  }
-
-  async *stream(prompt, options) {
-    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
-
-    let usage = { input: 0, output: 0, total: 0 };
-    let answer = '';
-    let buffer = '';
-
-    const ollama = new OllamaLib({ host: this.host });
-
     const completion = await ollama.chat({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
     });
 
-    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
     for await (const chunk of completion) {
-      const parsed = this.parseChunk(
-        this.normalizeChunk(chunk),
-        ctx);
-      if (!parsed) continue;
-
-      if (format == 'jsonl') {
-        for (const d of parsed.delta) {
-          yield Promise.resolve({
-            delta: d,
-            partial: parsed.partial,
-            usage: parsed.usage });
-        }
-      } else {
-        yield Promise.resolve(parsed);
-      }
+      yield Promise.resolve(chunk);
     }
   }
 }

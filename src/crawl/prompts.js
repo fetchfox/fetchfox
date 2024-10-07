@@ -1,6 +1,8 @@
 import { Template } from '../template/Template.js';
 
-export const gather = new Template(`You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
+export const gather = new Template(
+  ['query', 'links'],
+  `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
 
 Your response will be ONLY the "id" field of matching items. The "id" field will be used to generate the results later, you only need to include the "id" field.
 
@@ -18,9 +20,7 @@ Example of valid output:
 { "id": 18 }
 { "id": 45 }
 
-Return at MOST to this many links(s). Do not exceed this limit.: {{limit}}
-
-The user is looking for: {{question}}
+The user is looking for: {{query}}
 
 The list to find this is below:
 {{links}}`);

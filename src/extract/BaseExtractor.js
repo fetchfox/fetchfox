@@ -1,10 +1,10 @@
-import { getAi } from '../ai/index.js';
+import { getAI } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 
 export const BaseExtractor = class {
   constructor(options) {
     const { ai, fetcher, cache, hardCapTokens } = options || {};
-    this.ai = getAi(ai, { cache });
+    this.ai = getAI(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
     this.hardCapTokens = hardCapTokens || 128000;
   }
@@ -14,12 +14,22 @@ export const BaseExtractor = class {
   }
 
   async getDoc(target) {
-    if (typeof target == 'string') {
-      return await this.fetcher.fetch(target);
-    } else {
-      // Assume it is a doc
+    if (target.constructor.name == 'Document') {
       return target;
     }
+
+    let url;
+    if (typeof target == 'string') {
+      url = target;
+    } else if (target.url) {
+      url = target.url;
+    }
+
+    if (!url) {
+      throw new Error(`Cannot extract from: ${target}`);
+    }
+
+    return await this.fetcher.fetch(url);
   }
 
   chunks(doc) {

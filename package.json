@@ -1,25 +1,25 @@
 {
-  "name": "foxtrot-ai",
-  "version": "0.0.8",
+  "name": "fetchfox",
+  "version": "0.0.18",
   "description": "AI based web scraping library",
   "main": "src/index.js",
   "type": "module",
   "bin": {
-    "foxtrot": "./src/cli/index.js"
+    "fetchfox": "./src/cli/index.js"
   },
   "scripts": {
     "test": "mocha test/**/*.test.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fetchfox/foxtrot.git"
+    "url": "git+https://github.com/fetchfox/fetchfox.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/fetchfox/foxtrot/issues"
+    "url": "https://github.com/fetchfox/fetchfox/issues"
   },
-  "homepage": "https://github.com/fetchfox/foxtrot",
+  "homepage": "https://github.com/fetchfox/fetchfox",
   "devDependencies": {
     "chai": "^5.1.1",
     "mocha": "^10.7.3"
@@ -31,6 +31,7 @@
     "@mistralai/mistralai": "^1.0.4",
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
+    "csv-stringify": "^6.5.1",
     "groq-sdk": "^0.7.0",
     "json5": "^2.2.3",
     "node-fetch": "^3.3.2",

@@ -73,15 +73,73 @@ export const BaseAI = class {
     }
   }
 
-  async ask(prompt, options) {
+  async *stream(prompt, options) {
+    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
     const cached = await this.getCache(prompt, options);
-
     if (cached) {
-      this.addUsage(cached.usage);
-      this.elapsed.msec += cached.elapsed?.msec || 0;
-      this.elapsed.sec += cached.elapsed?.sec || 0;
-      return cached;
+      if (format == 'jsonl') {
+        for (const r of cached) {
+          yield Promise.resolve(r);
+        }
+      } else {
+        yield Promise.resolve(cached);
+      }
+      return;
     }
+
+    let usage = { input: 0, output: 0, total: 0 };
+    let answer = '';
+    let buffer = '';
+    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
+
+    let err;
+    let result;
+    try {
+      for await (const chunk of this.inner(prompt, options)) {
+        const parsed = this.parseChunk(
+          this.normalizeChunk(chunk),
+          ctx);
+
+        if (!parsed) continue;
+
+        if (format == 'jsonl') {
+          if (!result) {
+            result = [];
+          }
+
+          for (const d of parsed.delta) {
+            const r = {
+              delta: d,
+              partial: parsed.partial,
+              usage: parsed.usage,
+            };
+            result.push(r);
+            yield Promise.resolve(r);
+          }
+        } else {
+          result = parsed;
+          yield Promise.resolve(parsed);
+        }
+      }
+    } catch (e) {
+      err = e;
+    } finally {
+      if (err) {
+        logger.warn(`Error during AI stream, not caching: ${err}`);
+        return;
+      }
+      this.setCache(prompt, options, result);
+    }
+  }
+
+  async ask(prompt, options) {
+    // const cached = await this.getCache(prompt, options);
+    // if (cached) {
+    //   this.addUsage(cached.usage);
+    //   this.elapsed.msec += cached.elapsed?.msec || 0;
+    //   this.elapsed.sec += cached.elapsed?.sec || 0;
+    //   return cached;
+    // }
 
     const before = {
       usage: Object.assign({}, this.usage),
@@ -94,7 +152,10 @@ export const BaseAI = class {
     const retryMsec= 5000;
     while (true) {
       try {
-        result = await this.askInner(prompt, options);
+        for await (const chunk of this.stream(prompt, options)) {
+          result = chunk;
+        }
+
       } catch(e) {
         logger.error(`Caught ${this} error: ${e}`);
 
@@ -107,6 +168,7 @@ export const BaseAI = class {
 
         logger.info(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
         await sleep(retryMsec);
+
       }
 
       break;
@@ -137,49 +199,49 @@ export const BaseAI = class {
       total: after.cost.total - before.cost.total,
     };
 
-    this.setCache(
-      prompt,
-      options,
-      {
-        delta: result.delta,
-        partial: result.partial,
-        cost: result.cost,
-        usage: result.usage,
-        elapsed: { msec, sec: msec / 1000 },
-      });
+    // this.setCache(
+    //   prompt,
+    //   options,
+    //   {
+    //     delta: result.delta,
+    //     partial: result.partial,
+    //     cost: result.cost,
+    //     usage: result.usage,
+    //     elapsed: { msec, sec: msec / 1000 },
+    //   });
 
     return result;
   }
 
-  gen(prompt, options) {
-    logger.info(`AI generator for ${options.stream ? 'streaming' : 'blocking'} prompt "${prompt.substr(0, 32)}..."`);
+  // gen(prompt, options) {
+  //   logger.info(`AI generator for ${options.stream ? 'streaming' : 'blocking'} prompt "${prompt.substr(0, 32)}..."`);
 
-    if (options.stream) {
-      return this.stream(prompt, { format: 'jsonl' });
-    } else {
-      const that = this;
-      return (async function *() {
-        try {
-          const result = await that.ask(prompt, { format: 'jsonl' });
+  //   if (options.stream) {
+  //     return this.stream(prompt, { format: 'jsonl' });
+  //   } else {
+  //     const that = this;
+  //     return (async function *() {
+  //       try {
+  //         const result = await that.ask(prompt, { format: 'jsonl' });
 
-          if (!result?.delta) {
-            return;
-          }
-          for (let r of result.delta) {
-            yield Promise.resolve({
-              delta: r,
-              partial: result.partial,
-              usage: result.usage,
-              cost: result.cost,
-              elapsed: result.elapsed,
-            });
-          }
-        } catch(e) {
-          throw e;
-        }
-      })();
-    }
-  }
+  //         if (!result?.delta) {
+  //           return;
+  //         }
+  //         for (let r of result.delta) {
+  //           yield Promise.resolve({
+  //             delta: r,
+  //             partial: result.partial,
+  //             usage: result.usage,
+  //             cost: result.cost,
+  //             elapsed: result.elapsed,
+  //           });
+  //         }
+  //       } catch(e) {
+  //         throw e;
+  //       }
+  //     })();
+  //   }
+  // }
 
   parseChunk(chunk, ctx) {
     if (chunk.usage) {
@@ -201,17 +263,8 @@ export const BaseAI = class {
     ctx.answer += delta;
     ctx.buffer += delta;
 
-    const cache = () => {
-      this.setCache(
-        ctx.prompt,
-        { format: ctx.format, cacheHint: ctx.cacheHint },
-        { answer: parseAnswer(ctx.answer, ctx.format),
-          usage: ctx.usage });
-    }
-
     if (ctx.format == 'jsonl') {
       const parsed = parseAnswer(ctx.buffer, ctx.format);
-      cache();
       if (parsed.length) {
         ctx.buffer = '';
         return {
@@ -223,7 +276,6 @@ export const BaseAI = class {
     } else {
       const parsed = parseAnswer('' + ctx.buffer, ctx.format);
       ctx.buffer = '';
-      cache();
       return {
         delta: parsed,
         partial: parseAnswer(ctx.answer, ctx.format),
