@@ -1,22 +1,23 @@
 import { Cursor } from '../cursor/Cursor.js';
+import { Context } from '../context/Context.js';
 import { classMap } from '../step/index.js';
 
 export const Workflow = class {
-  constructor(data) {
-    if (!data?.steps || data.steps.length == 0) return;
+  constructor(args) {
+    let steps = args.steps;
 
-    let steps;
-    const first = data.steps[0];
+    const first = steps[0];
     if (typeof first.name == 'string') {
       // Assume it is JSON serializable array
-      const loaded = this.load(data);
+      const loaded = this.load({ steps });
       steps = loaded.steps;
     } else {
       // Assume it is a list of classes
-      steps = data.steps
+      steps = steps
     }
 
     this.steps = steps;
+    this.ctx = new Context(args);
   }
 
   dump() {
@@ -37,15 +38,15 @@ export const Workflow = class {
   }
 
   async run(ctx) {
-    const cursor = new Cursor(ctx);
+    const cursor = new Cursor(this.ctx.update(ctx));
     for (const step of this.steps) {
       await step.all(cursor);
     }
     return { cursor };
   }
 
-  async *stream() {
-    const cursor = new Cursor();
+  async *stream(ctx) {
+    const cursor = new Cursor(this.ctx.update(ctx));
     for (let i = 0; i < this.steps.length; i++) {
       const step = this.steps[i];
       const stream = step.stream(cursor);

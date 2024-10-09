@@ -1,15 +1,14 @@
 import crypto from 'crypto';
 import { logger } from '../log/logger.js';
 import { gather } from './prompts.js';
-import { DefaultFetcher } from '../fetch/index.js';
-import { getAI } from '../ai/index.js';
+import { getAI, getFetcher } from '../index.js';
 import { validate } from './util.js';
 
 export const Crawler = class {
   constructor(options) {
     const { ai, fetcher, cache } = options || {};
     this.ai = getAI(ai, { cache });
-    this.fetcher = fetcher || new DefaultFetcher({ cache });
+    this.fetcher = fetcher || getFetcher(null, { cache });
   }
 
   async *run(url, query, options) {

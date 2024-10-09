@@ -1,20 +1,12 @@
 import {
-  DiskCache,
   Workflow,
   Planner,
-
-  getAI,
-} from '../../src/index.js';
-
-// TODO: make these configurable
-const cache = new DiskCache(
-  '/tmp/fetchfox_cache',
-  { ttls: 10 * 24 * 3600 });
-const ai = getAI('openai:gpt-4o-mini', { cache });
+  Context,
+} from '../index.js';
 
 async function* stream(...args) {
  
-  const planner = new Planner({ ai, cache, limit: 2 });
+  const planner = new Planner(fox.ctx);
   const steps = await planner.plan(args);
   const flow = new Workflow({ steps });
   const stream = flow.stream();
@@ -28,12 +20,22 @@ async function* stream(...args) {
 }
 
 export const fox = {
+  config: (args) => {
+    fox.ctx = new Context(args);
+    return fox;
+  },
+
   stream,
 
   plan: async (...args) => {
-    const planner = new Planner({ ai, cache, limit: 2 });
+    const planner = new Planner(fox.ctx);
     const steps = await planner.plan(args);
-    const flow = new Workflow({ steps });
+    const flow = new Workflow({ ...fox.ctx, steps });
+    return flow;
+  },
+
+  load: (data) => {
+    const flow = new Workflow(data);
     return flow;
   },
 

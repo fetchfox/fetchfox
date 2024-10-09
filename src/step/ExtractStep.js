@@ -3,7 +3,7 @@ import { getExtractor } from '../index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const ExtractStep = class extends BaseStep {
-  static info = {
+  static info = BaseStep.combineInfo({
     name: 'extract',
     description: 'Extract data from a page',
     args: {
@@ -16,7 +16,7 @@ export const ExtractStep = class extends BaseStep {
         example: false
       },
     },
-  };
+  });
 
   constructor(args) {
     super(args);
@@ -38,10 +38,10 @@ export const ExtractStep = class extends BaseStep {
   }
 
   args() {
-    return {
+    return super.args({
       questions: this.questions,
       single: this.single,
-    };
+    });
   }
 
   async *run(cursor) {

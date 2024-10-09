@@ -3,7 +3,7 @@ import { BaseStep } from './BaseStep.js';
 import { DiskExporter } from '../index.js';
 
 export const ExportStep = class extends BaseStep {
-  static info = {
+  static info = BaseStep.combineInfo({
     name: 'export',
     description: 'Export data to a file',
     args: {
@@ -16,7 +16,7 @@ export const ExportStep = class extends BaseStep {
         example: 'csv',
       },
     },
-  };
+  });
 
   constructor(args) {
     super(args);
@@ -25,10 +25,10 @@ export const ExportStep = class extends BaseStep {
   }
 
   args() {
-    return {
+    return super.args({
       filename: this.filename,
       format: this.format,
-    };
+    });
   }
 
   async *run(cursor) {

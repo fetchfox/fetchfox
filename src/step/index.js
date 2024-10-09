@@ -21,10 +21,6 @@ const _classMap = {};
 for (const cls of all) {
   _classMap[cls.info.name] = cls;
 }
-
-console.log('classMap', _classMap);
-
 export const classMap = _classMap;
 export const descriptions = all.map(cls => cls.info);
 
-console.log('descriptions', descriptions);

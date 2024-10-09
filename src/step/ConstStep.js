@@ -2,7 +2,7 @@ import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 
 export const ConstStep = class extends BaseStep {
-  static info = {
+  static info = BaseStep.combineInfo({
     name: 'const',
     description: 'Add a constant item, typically used to initialize the starting URL',
     args: {
@@ -11,7 +11,7 @@ export const ConstStep = class extends BaseStep {
         example: [{ url: 'https://example.com' }],
       },
     },
-  };
+  });
 
   constructor(args) {
     super(args);
@@ -29,7 +29,7 @@ export const ConstStep = class extends BaseStep {
   }
 
   args() {
-    return { items: this.items };
+    return super.args({ items: this.items });
   }
 
   async *run(cursor) {

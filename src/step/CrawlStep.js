@@ -3,7 +3,7 @@ import { getCrawler } from '../index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const CrawlStep = class extends BaseStep {
-  static info = {
+  static info = BaseStep.combineInfo({
     name: 'crawl',
     description: 'Crawls a URL for links that match a query',
     args: {
@@ -11,8 +11,12 @@ export const CrawlStep = class extends BaseStep {
         description: 'A description of links to look for. Should be specific, and should include exclusions. Format: string',
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.'
       },
+      limit: {
+        description: 'Limit the number of results in this step. Format: Number',
+        example: 5,
+      },
     },
-  };
+  });
 
   constructor(args) {
     super(args);
@@ -29,7 +33,7 @@ export const CrawlStep = class extends BaseStep {
   }
 
   args() {
-    return { query: this.query };
+    return super.args({ query: this.query });
   }
 
   async *run(cursor) {

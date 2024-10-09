@@ -1,10 +1,25 @@
 export const BaseStep = class {
+  static combineInfo = (info) => {
+    const combined = {...info};
+    combined.args.limit = {
+      description: 'Limit the number of results in this step. Format: Number',
+      example: 5,
+    };
+    return combined;
+  };
+
   constructor(args) {
     this.limit = args?.limit;
   }
 
   toString() {
     return `[${this.constructor.name}]`;
+  }
+
+  args(a) {
+    const result = {...a};
+    if (this.limit) result.limit = this.limit;
+    return result;
   }
 
   dump() {

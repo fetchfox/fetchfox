@@ -5,6 +5,7 @@ import { singleStep, combined } from './prompts.js';
 
 export const Planner = class {
   constructor(options) {
+    const cache = options?.cache;
     this.ai = options?.ai || getAI(null, { cache });
   }
 

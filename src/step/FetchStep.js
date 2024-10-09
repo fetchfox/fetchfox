@@ -3,14 +3,18 @@ import { getFetcher } from '../index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const FetchStep = class extends BaseStep {
-  static info = {
+  static info = BaseStep.combineInfo({
     name: 'fetch',
     description: 'Fetch URLs from the web',
     args: {},
-  };
+  });
 
   constructor(args) {
     super(args);
+  }
+
+  args() {
+    return super.args({});
   }
 
   async *run(cursor) {

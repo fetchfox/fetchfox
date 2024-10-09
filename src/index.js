@@ -1,3 +1,12 @@
+export { getAI } from './ai/index.js';
+export { getCrawler } from './crawl/index.js';
+export { getExporter } from './export/index.js';
+export { getExtractor } from './extract/index.js';
+export { getFetcher } from './fetch/index.js';
+export { getMinimizer } from './min/index.js';
+
+export { Context } from './context/Context.js';
+
 export { Document } from './document/Document.js';
 
 export { Crawler } from './crawl/Crawler.js';
@@ -27,12 +36,5 @@ export { CrawlStep } from './step/CrawlStep.js';
 export { ExportStep } from './step/ExportStep.js';
 export { ExtractStep } from './step/ExtractStep.js';
 export { FetchStep } from './step/FetchStep.js';
-
-export { getAI } from './ai/index.js';
-export { getCrawler } from './crawl/index.js';
-export { getExporter } from './export/index.js';
-export { getExtractor } from './extract/index.js';
-export { getFetcher } from './fetch/index.js';
-export { getMinimizer } from './min/index.js';
 
 export { fox } from './fox/index.js';
