@@ -7,6 +7,13 @@ export const BaseStep = class {
     return `[${this.constructor.name}]`;
   }
 
+  dump() {
+    return {
+      name: this.constructor.info.name,
+      args: this.args(),
+    };
+  }
+
   async *stream(cursor) {
     cursor.head = [];
     try {

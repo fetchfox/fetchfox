@@ -3,18 +3,14 @@ import { getFetcher } from '../index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const FetchStep = class extends BaseStep {
+  static info = {
+    name: 'fetch',
+    description: 'Fetch URLs from the web',
+    args: {},
+  };
+
   constructor(args) {
     super(args);
-
-    if (typeof args?.fetch == 'function') {
-      this.fetcher = args;
-    } else if (typeof args == 'string') {
-      this.fetcher = getFetcher(args);
-    } else if (args.fetcher) {
-      this.fetcher = args.fetcher;
-    } else {
-      this.fetcher = getFetcher();
-    }
   }
 
   async *run(cursor) {
@@ -26,7 +22,7 @@ export const FetchStep = class extends BaseStep {
 
       const { url } = item;
       logger.info(`Fetch URL: ${url}`);
-      yield this.fetcher.fetch(url);
+      yield cursor.ctx.fetcher.fetch(url);
     }
   }
 }

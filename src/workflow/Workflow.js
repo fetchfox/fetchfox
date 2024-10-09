@@ -1,12 +1,43 @@
 import { Cursor } from '../cursor/Cursor.js';
+import { classMap } from '../step/index.js';
 
 export const Workflow = class {
-  constructor(steps) {
+  constructor(data) {
+    if (!data?.steps || data.steps.length == 0) return;
+
+    let steps;
+    const first = data.steps[0];
+    if (typeof first.name == 'string') {
+      // Assume it is JSON serializable array
+      const loaded = this.load(data);
+      steps = loaded.steps;
+    } else {
+      // Assume it is a list of classes
+      steps = data.steps
+    }
+
     this.steps = steps;
   }
 
-  async run() {
-    const cursor = new Cursor();
+  dump() {
+    const steps = [];
+    for (const step of this.steps) {
+      steps.push(step.dump());
+    }
+    return { steps };
+  }
+
+  load(data) {
+    const steps = [];
+    for (const step of data.steps) {
+      const cls = classMap[step.name];
+      steps.push(new cls(step.args));
+    }
+    return { steps };
+  }
+
+  async run(ctx) {
+    const cursor = new Cursor(ctx);
     for (const step of this.steps) {
       await step.all(cursor);
     }

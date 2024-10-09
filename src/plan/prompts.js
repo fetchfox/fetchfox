@@ -32,10 +32,10 @@ The step types, and their arguments, are listed below:
 
 Example of valid output:
 [
-  {"name":"ConstStep","args":{"items":[{"url":"https://news.ycombinator.com/news"}]}},
-  {"name":"CrawlStep","args":{"query":"Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements."}},
-  {"name":"ExtractStep","args":{"questions":["What is the username of this profile?","What is the number of followers?","What is the bio?","What is the URL? Format: Absolute URL"]}},
-  {"name":"ExportStep","args":{"filename":"hn.jsonl","format":"jsonl"}},
+  {"name":"const","args":{"items":[{"url":"https://news.ycombinator.com/news"}]}},
+  {"name":"crawl","args":{"query":"Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements."}},
+  {"name":"extract","args":{"questions":["What is the username of this profile?","What is the number of followers?","What is the bio?","What is the URL? Format: Absolute URL"]}},
+  {"name":"export","args":{"filename":"hn.jsonl","format":"jsonl"}},
 ]
 
 The steps are:

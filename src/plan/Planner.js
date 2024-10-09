@@ -5,12 +5,7 @@ import { singleStep, combined } from './prompts.js';
 
 export const Planner = class {
   constructor(options) {
-    const cache = options?.cache;
-    this.limit = options?.limit;
     this.ai = options?.ai || getAI(null, { cache });
-    this.crawler = options?.crawler || getCrawler(null, { cache });
-    this.fetcher = options?.fetcher || getFetcher(null, { cache });
-    this.extractor = options?.extractor || getExtractor(null, { cache });
   }
 
   async plan(...args) {
@@ -41,6 +36,9 @@ export const Planner = class {
 
   async planString(allSteps) {
     const stepLibrary = descriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
+
+    console.log('stepLibrary', stepLibrary);
+
     const context = {
       stepLibrary,
       allSteps,
@@ -53,15 +51,8 @@ export const Planner = class {
 
   fromJson(json) {
     logger.info(`JSON: ${JSON.stringify(json)}`);
-    const options = {
-      ai: this.ai,
-      crawler: this.crawler,
-      fetcher: this.fetcher,
-      extractor: this.extractor,
-    }
-    if (this.limit) options.limit = this.limit;
     const cls = classMap[json.name];
-    const args = Object.assign({}, options, json.args);
+    const args = Object.assign({}, json.args);
     return new cls(args);
   }
 }

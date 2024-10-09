@@ -6,15 +6,17 @@ import {
   getAI,
 } from '../../src/index.js';
 
+// TODO: make these configurable
+const cache = new DiskCache(
+  '/tmp/fetchfox_cache',
+  { ttls: 10 * 24 * 3600 });
+const ai = getAI('openai:gpt-4o-mini', { cache });
+
 async function* stream(...args) {
-  const cache = new DiskCache(
-    '/tmp/fetchfox_cache',
-    { ttls: 10 * 24 * 3600 });
-  const ai = getAI('openai:gpt-4o-mini', { cache });   
  
   const planner = new Planner({ ai, cache, limit: 2 });
   const steps = await planner.plan(args);
-  const flow = new Workflow(steps);
+  const flow = new Workflow({ steps });
   const stream = flow.stream();
 
   for await (const r of stream) {
@@ -27,6 +29,13 @@ async function* stream(...args) {
 
 export const fox = {
   stream,
+
+  plan: async (...args) => {
+    const planner = new Planner({ ai, cache, limit: 2 });
+    const steps = await planner.plan(args);
+    const flow = new Workflow({ steps });
+    return flow;
+  },
 
   run: async (...args) => {
     const result = [];
