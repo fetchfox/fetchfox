@@ -1,4 +1,3 @@
-import JSON5 from 'json5';
 import modelData from '../data/models.json' assert { type: 'json' };
 
 export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -44,7 +43,7 @@ export const parseAnswer = (text, format) => {
     const result = [];
     for (const line of lines) {
       try {
-        result.push(trimJson(JSON5.parse(line))) }
+        result.push(trimJson(JSON.parse(line))) }
       catch(e) {
         // Ignore
       }
@@ -53,7 +52,7 @@ export const parseAnswer = (text, format) => {
 
   } else if (format == 'json') {
     try {
-      const result = JSON5.parse(clean);
+      const result = JSON.parse(clean);
       return result;
     } catch(e) {
       return {};

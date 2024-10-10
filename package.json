@@ -33,7 +33,6 @@
     "commander": "^12.1.0",
     "csv-stringify": "^6.5.1",
     "groq-sdk": "^0.7.0",
-    "json5": "^2.2.3",
     "node-fetch": "^3.3.2",
     "ollama": "^0.5.9",
     "openai": "^4.58.1",
