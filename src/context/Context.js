@@ -27,6 +27,8 @@ export const Context = class {
   }
 
   update(other) {
+    other = other || {};
+
     for (const [key] of contextKeys) {
       if (other[key]) {
         this[key] = other[key];

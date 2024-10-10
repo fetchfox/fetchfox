@@ -1,5 +1,4 @@
 import { logger } from '../log/logger.js';
-import { getCrawler } from '../crawl/index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const CrawlStep = class extends BaseStep {
@@ -10,10 +9,6 @@ export const CrawlStep = class extends BaseStep {
       query: {
         description: 'A description of links to look for. Should be specific, and should include exclusions. Format: string',
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.'
-      },
-      limit: {
-        description: 'Limit the number of results in this step. Format: Number',
-        example: 5,
       },
     },
   });

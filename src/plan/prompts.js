@@ -10,7 +10,8 @@ The step types, and their arguments, are listed below:
 {{stepLibrary}}
 
 Example of valid output:
-{ name: 'crawl', args: { query: 'Find off-site links to articles, and ignore navigation and ads'' } }
+{ name: "crawl", args: { query: "Find off-site links to articles, and ignore navigation and ads" } }
+{ name: "crawl", args: { query: "Find links to products that are related to basketball. Ignore all other products and links", limit: 8 } }
 
 The full steps are:
 {{allSteps}}
@@ -33,8 +34,8 @@ The step types, and their arguments, are listed below:
 Example of valid output:
 [
   {"name":"const","args":{"items":[{"url":"https://news.ycombinator.com/news"}]}},
-  {"name":"crawl","args":{"query":"Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements."}},
-  {"name":"extract","args":{"questions":["What is the username of this profile?","What is the number of followers?","What is the bio?","What is the URL? Format: Absolute URL"]}},
+  {"name":"crawl","args":{"query":"Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.","limit": 12}},
+  {"name":"extract","args":{"questions":["What is the username of this profile?","What is the number of followers?","What is the bio?","What is the URL? Format: Absolute URL"],"single":true}},
   {"name":"export","args":{"filename":"hn.jsonl","format":"jsonl"}},
 ]
 

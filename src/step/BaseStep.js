@@ -1,3 +1,5 @@
+import { logger } from '../log/logger.js';
+
 export const BaseStep = class {
   static combineInfo = (info) => {
     const combined = {...info};
@@ -35,6 +37,7 @@ export const BaseStep = class {
       for await (const r of this.run(cursor)) {
         cursor.head.push(r);
         yield Promise.resolve(r);
+        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit}`);
         if (this.limit && cursor.head.length >= this.limit) break;
       }
     } finally {
@@ -47,8 +50,9 @@ export const BaseStep = class {
     cursor.head = [];
     for await (const r of this.run(cursor)) {
       cursor.head.push(r);
+      logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit}`);
+      if (this.limit && cursor.head.length >= this.limit) break;
     }
     cursor.last = cursor.head;
-    return result;
   }
 }

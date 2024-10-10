@@ -12,6 +12,7 @@ export const DiskExporter = class extends BaseExporter {
     logger.info(`Open ${filename} for export"`);
     if (this.file) throw new Error('File already open');
     this.file = fs.createWriteStream(filename); // TODO: handle appends vs. truncate
+    this.filename = filename;
 
     switch (this.format) {
       case 'json':
