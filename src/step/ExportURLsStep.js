@@ -1,9 +1,6 @@
 import playwright from 'playwright';
-import AWS from 'aws-sdk';
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
-import { publishToS3, publishToDropbox } from './publish.js';
-
 
 export const ExportURLsStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
@@ -37,7 +34,7 @@ export const ExportURLsStep = class extends BaseStep {
         example: 'dropbox',
         default: 's3',
         required: false,
-      }
+      },
     },
   });
 
@@ -57,33 +54,31 @@ export const ExportURLsStep = class extends BaseStep {
   }
 
   async *run(cursor) {
-    const browser = await playwright.chromium.launch();
+    // const browser = await playwright.chromium.launch();
+    // try {
+    //   for (const item of cursor.last) {
+    //     const url = item[this.field];
 
-    try {
-      for (const item of cursor.last) {
-        const url = item[this.field];
+    //     const page = await browser.newPage();
+    //     await page.goto(url);
+    //     await page.waitForTimeout(2000);
+    //     const buf = await page.pdf({ format: 'A4' });
 
-        const page = await browser.newPage();
-        await page.goto(url);
-        await page.waitForTimeout(2000);
-        const buf = await page.pdf({ format: 'A4' });
-
-        let renderUrl;
-        switch (this.destination) {
-          case 's3':
-            renderUrl = await publishToS3(buf, `pdfs/${url}.pdf`);
-            break;
-          case 'dropbox':
-            renderUrl = await publishToDropbox(buf, `/pdfs/${url.replace(/[^A-Za-z0-9]+/g, '-')}.pdf`);
-            break;
-          default:
-            throw new Error(`unsupported publish: ${this.destination}`);
-        }
-
-        yield Promise.resolve({ ...item, renderUrl });
-      }
-    } finally {
-      await browser.close();
-    }
+    //     let renderUrl;
+    //     switch (this.destination) {
+    //       case 's3':
+    //         renderUrl = await publishToS3(buf, `pdfs/${url}.pdf`);
+    //         break;
+    //       case 'dropbox':
+    //         renderUrl = await publishToDropbox(buf, `/pdfs/${url.replace(/[^A-Za-z0-9]+/g, '-')}.pdf`);
+    //         break;
+    //       default:
+    //         throw new Error(`unsupported publish: ${this.destination}`);
+    //     }
+    //     yield Promise.resolve({ ...item, renderUrl });
+    //   }
+    // } finally {
+    //   await browser.close();
+    // }
   }
 }

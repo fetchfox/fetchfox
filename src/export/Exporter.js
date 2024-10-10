@@ -1,5 +1,4 @@
 import fs from 'fs';
-import AWS from 'aws-sdk';
 import { logger } from '../log/logger.js';
 import { BaseExporter } from './BaseExporter.js';
 import { publishToS3 } from './publish.js';
@@ -11,7 +10,6 @@ export const Exporter = class extends BaseExporter {
 
     switch (this.destination) {
       case 's3':
-        this.s3 = new AWS.S3();
         this.s3bucket = options.s3bucket || process.env.AWS_S3_BUCKET;
         if (!this.s3bucket) throw new Error('No bucket specified for S3 export');
         break;
