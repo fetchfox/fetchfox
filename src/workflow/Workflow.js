@@ -39,7 +39,9 @@ export const Workflow = class {
 
   async run(ctx) {
     const cursor = new Cursor(this.ctx.update(ctx));
+    let index = 0;
     for (const step of this.steps) {
+      cursor.index = index++;
       await step.all(cursor);
     }
     return { cursor };
@@ -51,6 +53,8 @@ export const Workflow = class {
     const results = [];
     try {
       for (let i = 0; i < this.steps.length; i++) {
+        cursor.index = i;
+
         const step = this.steps[i];
         const stream = step.stream(cursor);
         results.push({ step: step.dump(), items: [] });

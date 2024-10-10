@@ -33,8 +33,8 @@ export { Planner } from './plan/Planner.js';
 
 export { ConstStep } from './step/ConstStep.js';
 export { CrawlStep } from './step/CrawlStep.js';
-export { ExportStep } from './step/ExportStep.js';
-export { ExtractStep } from './step/ExtractStep.js';
+export { ExportItemsStep } from './step/ExportItemsStep.js';
+export { ExportURLsStep } from './step/ExportURLsStep.js';
 export { FetchStep } from './step/FetchStep.js';
 
 export { fox } from './fox/index.js';

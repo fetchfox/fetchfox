@@ -5,10 +5,10 @@ import { BaseStep } from './BaseStep.js';
 import { publishToS3, publishToDropbox } from './publish.js';
 
 
-export const RenderStep = class extends BaseStep {
+export const ExportURLsStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
-    name: 'render',
-    description: `Renders a URL field on an item in the user's desired format. Typically used for rendering HTML pages or images.`,
+    name: 'export-urls',
+    description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service`,
     args: {
       field: {
         description: `The item field containing the target URL. Field names are an EXACT string from an 'extract' step`,
@@ -24,10 +24,16 @@ export const RenderStep = class extends BaseStep {
         default: 'pdf',
         required: false,
       },
+      filenameTemplate: {
+        description: `Filename template of the output files. Template may use {url} as part of the filename, which will differentiate the various rendered URLs`,
+        format: 'string',
+        example: 'pdfs/articles-{url}.pdf',
+        required: true,
+      },
       destination: {
         description: `The user's destination for the rendered output`,
         format: 'string',
-        options: ['s3', 'dropbox'],
+        options: ['s3', 'dropbox', 'file'],
         example: 'dropbox',
         default: 's3',
         required: false,

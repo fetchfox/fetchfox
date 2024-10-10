@@ -49,11 +49,16 @@ export const BaseStep = class {
 
   async all(cursor) {
     cursor.head = [];
-    for await (const r of this.run(cursor)) {
-      cursor.head.push(r);
-      logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit}`);
-      if (this.limit && cursor.head.length >= this.limit) break;
+    try {
+      for await (const r of this.run(cursor)) {
+        cursor.head.push(r);
+        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit}`);
+        if (this.limit && cursor.head.length >= this.limit) break;
+      }
+      cursor.last = cursor.head;
+    } finally {
+      this.finish && this.finish();
+      cursor.last = cursor.head;
     }
-    cursor.last = cursor.head;
   }
 }

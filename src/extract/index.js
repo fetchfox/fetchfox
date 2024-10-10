@@ -20,6 +20,7 @@ export const getExtractor = (which, options) => {
     min: MinimizingExtractor,
     minimizing: MinimizingExtractor,
   }[which];
+
   if (!extractorClass) {
     logger.error(`Unknown extractor type: ${which}`);
     return;

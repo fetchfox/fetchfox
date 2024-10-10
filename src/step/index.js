@@ -1,24 +1,24 @@
 import { ConstStep } from './ConstStep.js';
 import { CrawlStep } from './CrawlStep.js';
-import { ExportStep } from './ExportStep.js';
+import { ExportItemsStep } from './ExportItemsStep.js';
+import { ExportURLsStep } from './ExportURLsStep.js';
 import { ExtractStep } from './ExtractStep.js';
 import { FetchStep } from './FetchStep.js';
-import { RenderStep } from './RenderStep.js';
 
 export { ConstStep } from './ConstStep.js';
 export { CrawlStep } from './CrawlStep.js';
-export { ExportStep } from './ExportStep.js';
+export { ExportItemsStep } from './ExportItemsStep.js';
+export { ExportURLsStep } from './ExportURLsStep.js';
 export { ExtractStep } from './ExtractStep.js';
 export { FetchStep } from './FetchStep.js';
-export { RenderStep } from './RenderStep.js';
 
 const all = [
   ConstStep,
   CrawlStep,
-  ExportStep,
+  ExportItemsStep,
+  ExportURLsStep,
   ExtractStep,
   FetchStep,
-  RenderStep,
 ];
 const _classMap = {};
 for (const cls of all) {
@@ -26,4 +26,3 @@ for (const cls of all) {
 }
 export const classMap = _classMap;
 export const descriptions = all.map(cls => cls.info);
-

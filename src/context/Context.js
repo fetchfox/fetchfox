@@ -9,7 +9,6 @@ export const contextKeys = [
   ['ai', getAI],
   ['crawler', getCrawler],
   ['extractor', getExtractor],
-  ['exporter', getExporter],
 ];
 
 export const Context = class {
