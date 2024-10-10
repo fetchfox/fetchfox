@@ -47,17 +47,30 @@ export const Workflow = class {
 
   async *stream(ctx) {
     const cursor = new Cursor(this.ctx.update(ctx));
-    for (let i = 0; i < this.steps.length; i++) {
-      const step = this.steps[i];
-      const stream = step.stream(cursor);
-      for await (const r of stream) {
-        yield Promise.resolve({
-          cursor,
-          step,
-          index: i,
-          delta: r,
-        });
+
+    const results = [];
+    try {
+      for (let i = 0; i < this.steps.length; i++) {
+        const step = this.steps[i];
+        const stream = step.stream(cursor);
+        results.push({ step: step.dump(), items: [] });
+
+        for await (const r of stream) {
+          results[i].items.push(r);
+
+          yield Promise.resolve({
+            index: i,
+            delta: r,
+            results,
+            done: false,
+          });
+        }
       }
+    } catch(e) {
+      logger.error(`Caugh error during workflow: ${e}`);
+      throw e;
+    } finally {
+      yield Promise.resolve({ results, done: true });
     }
   }
 }

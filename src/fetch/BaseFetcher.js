@@ -17,10 +17,7 @@ export const BaseFetcher = class {
   }
 
   async getCache(url, options) {
-    if (!this.cache) {
-      throw '??';
-      return;
-    }
+    if (!this.cache) return;
 
     const key = this.cacheKey(url, options);
     const result = await this.cache.get(key);
