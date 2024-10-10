@@ -15,7 +15,7 @@ export const Anthropic = class extends BaseAI {
     this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY;
 
     // Shouldn't need more than this, and Anthropic has a problem with stop tokens
-    this.maxTokensOut = 2000;
+    this.maxTokensOut = 8000;
 
     // This is lower than model max, but it is within their per-minute rate limit
     this.maxTokens = 80000;
@@ -62,7 +62,7 @@ export const Anthropic = class extends BaseAI {
   async *inner(prompt, options) {
     const anthropic = new AnthropicLib({ apiKey: this.apiKey });
     const completion = await anthropic.messages.create({
-      max_tokens: this.maxTokens,
+      max_tokens: this.maxTokensOut,
       messages: [{ role: 'user', content: prompt }],
       model: this.model,
       stream: true,

@@ -33,6 +33,7 @@
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
     "csv-stringify": "^6.5.1",
+    "dropbox": "^10.34.0",
     "groq-sdk": "^0.7.0",
     "node-fetch": "^3.3.2",
     "ollama": "^0.5.9",

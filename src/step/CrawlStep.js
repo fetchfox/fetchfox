@@ -7,8 +7,10 @@ export const CrawlStep = class extends BaseStep {
     description: 'Crawls a URL for links that match a query',
     args: {
       query: {
-        description: 'A description of links to look for. Should be specific, and should include exclusions. Format: string',
-        example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.'
+        description: 'A description of links to look for. Should be specific, and should include exclusions.',
+        formmat: 'string',
+        example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
+        required: true,
       },
     },
   });

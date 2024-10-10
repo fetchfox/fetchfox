@@ -1,9 +1,8 @@
-import { logger } from '../log/logger.js';
-import { BaseStep } from './BaseStep.js';
 import playwright from 'playwright';
 import AWS from 'aws-sdk';
-
-const s3 = new AWS.S3();
+import { logger } from '../log/logger.js';
+import { BaseStep } from './BaseStep.js';
+import { publishToS3, publishToDropbox } from './publish.js';
 
 
 export const RenderStep = class extends BaseStep {
@@ -14,13 +13,24 @@ export const RenderStep = class extends BaseStep {
       field: {
         description: `The item field containing the target URL. Field names are an EXACT string from an 'extract' step`,
         format: 'string',
-        example: 'What is the URL of the linked article? Format: Absolute URL'
+        example: 'What is the URL of the linked article? Format: Absolute URL',
+        required: true,
       },
       format: {
         description: `The user's desired output format`,
         format: 'string',
         options: ['pdf'],
-        example: 'pdf'
+        example: 'pdf',
+        default: 'pdf',
+        required: false,
+      },
+      destination: {
+        description: `The user's destination for the rendered output`,
+        format: 'string',
+        options: ['s3', 'dropbox'],
+        example: 'dropbox',
+        default: 's3',
+        required: false,
       }
     },
   });
@@ -28,51 +38,43 @@ export const RenderStep = class extends BaseStep {
   constructor(args) {
     super(args);
     this.field = args.field;
-    this.format = args.format;
+    this.format = args.format || 'pdf';
+    this.destination = args.destination || 's3';
   }
 
   args() {
     return super.args({
       field: this.field,
       format: this.format,
+      destination: this.destination,
     });
   }
 
   async *run(cursor) {
     const browser = await playwright.chromium.launch();
 
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-
-
     try {
       for (const item of cursor.last) {
         const url = item[this.field];
-
-        console.log('try to render:', url);
 
         const page = await browser.newPage();
         await page.goto(url);
         await page.waitForTimeout(2000);
         const buf = await page.pdf({ format: 'A4' });
 
-        const key = `pdfs/${url}.pdf`;
-        const params = {
-          Bucket: 'ffcloud',
-          Key: key,
-          Body: buf,
-          ContentType: 'application/pdf',
-          ACL: 'public-read',
-        };
-        const resp = await s3.upload(params).promise();
-        const pdfUrl = resp.Location;
+        let renderUrl;
+        switch (this.destination) {
+          case 's3':
+            renderUrl = await publishToS3(buf, `pdfs/${url}.pdf`);
+            break;
+          case 'dropbox':
+            renderUrl = await publishToDropbox(buf, `/pdfs/${url.replace(/[^A-Za-z0-9]+/g, '-')}.pdf`);
+            break;
+          default:
+            throw new Error(`unsupported publish: ${this.destination}`);
+        }
 
-        console.log('pdfUrl', pdfUrl);
-
-        yield Promise.resolve({ ...item, pdfUrl });
+        yield Promise.resolve({ ...item, renderUrl });
       }
     } finally {
       await browser.close();

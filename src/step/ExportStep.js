@@ -8,12 +8,17 @@ export const ExportStep = class extends BaseStep {
     description: 'Export data to a file',
     args: {
       filename: {
-        description: 'Name of the output file. Format: string',
+        description: 'Name of the output file.',
+        format: 'string',
         example: 'out.csv',
+        required: true,
       },
       format: {
         description: 'Output format, one of: csv, json, jsonl',
+        format: 'string',
         example: 'csv',
+        default: 'jsonl',
+        required: false,
       },
     },
   });

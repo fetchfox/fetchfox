@@ -7,8 +7,10 @@ export const ConstStep = class extends BaseStep {
     description: 'Add a constant item, typically used to initialize the starting URL',
     args: {
       items: {
-        description: 'An object to add. Format: array of objects',
+        description: 'An array of objects to add.',
+        format: 'array',
         example: [{ url: 'https://example.com' }],
+        required: true,
       },
     },
   });

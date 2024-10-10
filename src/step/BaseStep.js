@@ -6,6 +6,7 @@ export const BaseStep = class {
     combined.args.limit = {
       description: 'Limit the number of results in this step. Format: Number',
       example: 5,
+      required: false,
     };
     return combined;
   };

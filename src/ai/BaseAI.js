@@ -133,14 +133,6 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
-    // const cached = await this.getCache(prompt, options);
-    // if (cached) {
-    //   this.addUsage(cached.usage);
-    //   this.elapsed.msec += cached.elapsed?.msec || 0;
-    //   this.elapsed.sec += cached.elapsed?.sec || 0;
-    //   return cached;
-    // }
-
     const before = {
       usage: Object.assign({}, this.usage),
       cost: Object.assign({}, this.cost),
@@ -199,49 +191,8 @@ export const BaseAI = class {
       total: after.cost.total - before.cost.total,
     };
 
-    // this.setCache(
-    //   prompt,
-    //   options,
-    //   {
-    //     delta: result.delta,
-    //     partial: result.partial,
-    //     cost: result.cost,
-    //     usage: result.usage,
-    //     elapsed: { msec, sec: msec / 1000 },
-    //   });
-
     return result;
   }
-
-  // gen(prompt, options) {
-  //   logger.info(`AI generator for ${options.stream ? 'streaming' : 'blocking'} prompt "${prompt.substr(0, 32)}..."`);
-
-  //   if (options.stream) {
-  //     return this.stream(prompt, { format: 'jsonl' });
-  //   } else {
-  //     const that = this;
-  //     return (async function *() {
-  //       try {
-  //         const result = await that.ask(prompt, { format: 'jsonl' });
-
-  //         if (!result?.delta) {
-  //           return;
-  //         }
-  //         for (let r of result.delta) {
-  //           yield Promise.resolve({
-  //             delta: r,
-  //             partial: result.partial,
-  //             usage: result.usage,
-  //             cost: result.cost,
-  //             elapsed: result.elapsed,
-  //           });
-  //         }
-  //       } catch(e) {
-  //         throw e;
-  //       }
-  //     })();
-  //   }
-  // }
 
   parseChunk(chunk, ctx) {
     if (chunk.usage) {
