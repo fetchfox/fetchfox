@@ -17,7 +17,7 @@ export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
 export { IterativePromptExtractor } from './extract/IterativePromptExtractor.js';
 export { MinimizingExtractor } from './extract/MinimizingExtractor.js';
 
-export { DiskExporter } from './export/DiskExporter.js';
+export { Exporter } from './export/Exporter.js';
 
 export { OpenAI } from './ai/OpenAI.js';
 export { Anthropic } from './ai/Anthropic.js';
