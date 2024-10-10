@@ -32,6 +32,18 @@ export const BaseStep = class {
     };
   }
 
+  async _finish(cursor) {
+    if (!this.finish) return;
+
+    const out = await this.finish();
+    if (out) {
+      const key = `Step${cursor.index}_${this.constructor.name}`;
+      for (const item of cursor.head) {
+        item[key] = out;
+      }
+    }
+  }
+
   async *stream(cursor) {
     cursor.head = [];
     try {
@@ -42,8 +54,8 @@ export const BaseStep = class {
         if (this.limit && cursor.head.length >= this.limit) break;
       }
     } finally {
-      this.finish && this.finish();
       cursor.last = cursor.head;
+      await this._finish(cursor);
     }
   }
 
@@ -55,10 +67,9 @@ export const BaseStep = class {
         logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit}`);
         if (this.limit && cursor.head.length >= this.limit) break;
       }
-      cursor.last = cursor.head;
     } finally {
-      this.finish && this.finish();
       cursor.last = cursor.head;
+      await this._finish(cursor);
     }
   }
 }

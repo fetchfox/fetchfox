@@ -1,7 +1,8 @@
 import fs from 'fs';
 import { logger } from '../log/logger.js';
 import { BaseExporter } from './BaseExporter.js';
-import { publishToS3 } from './publish.js';
+import { publishToS3, publishToDropbox } from './publish.js';
+import { stringify } from 'csv-stringify';
 
 export const Exporter = class extends BaseExporter {
   constructor(options) {
@@ -12,6 +13,10 @@ export const Exporter = class extends BaseExporter {
       case 's3':
         this.s3bucket = options.s3bucket || process.env.AWS_S3_BUCKET;
         if (!this.s3bucket) throw new Error('No bucket specified for S3 export');
+        break;
+
+      case 'dropbox':
+        this.dropboxToken = options.dropboxToken || process.env.DROPBOX_ACCESS_TOKEN;
         break;
 
       case 'file':
@@ -30,6 +35,10 @@ export const Exporter = class extends BaseExporter {
         this.key = path;
         break;
 
+      case 'dropbox':
+        this.filepath = path.startsWith('/') ? path : '/' + path;
+        break;
+
       case 'file':
         this.filepath = path;
         this.file = fs.createWriteStream(this.filepath);
@@ -46,12 +55,6 @@ export const Exporter = class extends BaseExporter {
   async write(item) {
     logger.info(`Push ${item} for export"`);
     this.buffer.push(item);
-
-    switch (this.destination) {
-      case 's3': return `https://${this.s3bucket}.s3.amazonaws.com/${this.key}`;
-      case 'file': return this.filepath;
-      default: throw new Error(`Unhandled destination: ${this.destination}`);
-    }
   }
 
   async close() {
@@ -105,6 +108,10 @@ export const Exporter = class extends BaseExporter {
           this.key);
         break;
 
+      case 'dropbox':
+        url = await publishToDropbox(body, this.filepath, this.dropboxToken);
+        break;
+
       case 'file':
         this.file.write(body);
         this.file.end();
@@ -114,7 +121,6 @@ export const Exporter = class extends BaseExporter {
       default: throw new Error(`Unhandled destination: ${this.destination}`);
     }
 
-    this.s3bucket = null;
     this.key = null;
     this.filepath = null
     this.file = null;

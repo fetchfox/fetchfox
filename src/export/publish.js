@@ -15,7 +15,35 @@ export const publishToS3 = async (buf, contentType, acl, bucket, key) => {
   };
 
   const command = new PutObjectCommand(params);
-  const resp = await s3.send(command);
-  const location = `https://${bucket}.s3.${s3.config.region}.amazonaws.com/${key}`;
+  const [ , region] = await Promise.all([
+    s3.send(command),
+    s3.config.region(),
+  ]);
+  const location = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
   return location;
+}
+
+export const publishToDropbox = async (buf, path, token) => {
+  const dbx = new Dropbox({ accessToken: token, fetch });
+
+  const resp = await dbx.filesUpload({
+    path: path,
+    contents: buf,
+    mode: 'overwrite',
+    autorename: true,
+  });
+  const existing = await dbx.sharingListSharedLinks({
+    path: resp.result.path_display,
+    direct_only: true,
+  });
+
+  let url;
+  if ((existing?.result?.links || []).length) {
+    url = existing.result.links[0].url;
+  } else {
+    url = (await dbx.sharingCreateSharedLinkWithSettings({
+      path: resp.result.path_display,
+    })).result.url;
+  }
+  return url;
 }

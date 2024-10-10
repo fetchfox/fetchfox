@@ -56,32 +56,17 @@ export const ExportItemsStep = class extends BaseStep {
   }
 
   async *run(cursor) {
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
     this.exporter = getExporter(this.destination, this.args());
-
-    console.log('MADE exporter', this.exporter);
-
-    console.log('open:', this.filepath);
-    console.log('');
-    console.log('');
-
     await this.exporter.open(this.filepath);
-
     for (const item of cursor.last) {
-      const location = await this.exporter.write(item);
-      const key = `Step_${cursor.index}_ExportItems_${this.destination}`;
-      const out = { ...item };
-      out[key] = location;
-      console.log('Export Location:', key, location);
-      yield Promise.resolve(out);
+      await this.exporter.write(item);
+      yield Promise.resolve(item);
     }
   }
 
-  finish() {
-    this.exporter?.close();
+  async finish() {
+    const url = await this.exporter?.close();
     this.exporter = null;
+    return url;
   }
 }
