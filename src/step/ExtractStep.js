@@ -1,5 +1,5 @@
 import { logger } from '../log/logger.js';
-import { getExtractor } from '../index.js';
+import { getExtractor } from '../extract/index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const ExtractStep = class extends BaseStep {

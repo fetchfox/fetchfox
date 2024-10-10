@@ -1,7 +1,8 @@
 import crypto from 'crypto';
 import { logger } from '../log/logger.js';
 import { gather } from './prompts.js';
-import { getAI, getFetcher } from '../index.js';
+import { getAI } from '../ai/index.js';
+import { getFetcher } from '../fetch/index.js';
 import { validate } from './util.js';
 
 export const Crawler = class {

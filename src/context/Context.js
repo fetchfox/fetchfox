@@ -1,10 +1,8 @@
-import {
-  getAI,
-  getCrawler,
-  getFetcher,
-  getExtractor,
-  getExporter,
-} from '../index.js';
+import { getAI } from '../ai/index.js';
+import { getCrawler } from '../crawl/index.js';
+import { getExporter } from '../export/index.js';
+import { getExtractor } from '../extract/index.js';
+import { getFetcher } from '../fetch/index.js';
 
 export const contextKeys = [
   ['fetcher', getFetcher],

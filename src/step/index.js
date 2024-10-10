@@ -1,14 +1,14 @@
-export { ConstStep } from './ConstStep.js';
-export { CrawlStep } from './CrawlStep.js';
-export { ExportStep } from './ExportStep.js';
-export { ExtractStep } from './ExtractStep.js';
-export { FetchStep } from './FetchStep.js';
-
 import { ConstStep } from './ConstStep.js';
 import { CrawlStep } from './CrawlStep.js';
 import { ExportStep } from './ExportStep.js';
 import { ExtractStep } from './ExtractStep.js';
 import { FetchStep } from './FetchStep.js';
+
+export { ConstStep } from './ConstStep.js';
+export { CrawlStep } from './CrawlStep.js';
+export { ExportStep } from './ExportStep.js';
+export { ExtractStep } from './ExtractStep.js';
+export { FetchStep } from './FetchStep.js';
 
 const all = [
   ConstStep,

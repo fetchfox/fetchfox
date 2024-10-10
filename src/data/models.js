@@ -1,4 +1,4 @@
-{
+export const models = {
   "source": "https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json",
   "sample_spec": {
     "max_tokens": "set to max_output_tokens if provider specifies it. IF not set to max_tokens provider specifies", 

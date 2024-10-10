@@ -1,6 +1,6 @@
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
-import { DiskExporter } from '../index.js';
+import { DiskExporter } from '../export/DiskExporter.js';
 
 export const ExportStep = class extends BaseStep {
   static info = BaseStep.combineInfo({

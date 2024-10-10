@@ -1,4 +1,4 @@
-import modelData from '../data/models.json' assert { type: 'json' };
+import { models } from '../data/models.js';
 
 export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -7,7 +7,7 @@ export const getModelData = (provider, model) => {
   if (['groq', 'mistral'].includes(provider)) {
     modelStr = provider + '/' + model;
   }
-  return modelData[modelStr];
+  return models[modelStr];
 }
 
 const normalizeText = (text) => {

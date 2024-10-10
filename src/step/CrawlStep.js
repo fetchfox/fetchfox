@@ -1,5 +1,5 @@
 import { logger } from '../log/logger.js';
-import { getCrawler } from '../index.js';
+import { getCrawler } from '../crawl/index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const CrawlStep = class extends BaseStep {
