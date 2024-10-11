@@ -11,6 +11,10 @@ export const contextKeys = [
   ['extractor', getExtractor],
 ];
 
+const copyKeys = [
+  ['tokens', {}],
+];
+
 export const Context = class {
   constructor(args) {
     const cache = args?.cache;
@@ -23,6 +27,9 @@ export const Context = class {
       }
       this[key] = val;
     }
+
+    // Copy tokens
+    this.tokens = args?.tokens || {};
   }
 
   update(other) {
@@ -32,6 +39,11 @@ export const Context = class {
       if (other[key]) {
         this[key] = other[key];
       }
+    }
+
+    // Update tokens
+    for (const key of Object.keys(other.tokens || {})) {
+      this.tokens[key] = other.tokens[key];
     }
 
     if (other.cache) {

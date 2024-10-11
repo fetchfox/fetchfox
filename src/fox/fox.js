@@ -8,7 +8,7 @@ async function* stream(...args) {
  
   const planner = new Planner(fox.ctx);
   const steps = await planner.plan(args);
-  const flow = new Workflow({ steps });
+  const flow = new Workflow({ ...fox.ctx, steps });
   const stream = flow.stream();
 
   for await (const r of stream) {

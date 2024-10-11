@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import { Cursor } from '../cursor/Cursor.js';
 import { Context } from '../context/Context.js';
 import { classMap } from '../step/index.js';

@@ -57,14 +57,10 @@ export const ExportURLsStep = class extends BaseStep {
   }
 
   async *run(cursor) {
-
-    console.log('===== EXPORT URLS =====');
-
     const args = this.args();
     args.mode = this.mode;
     args.filepath = this.filepathTemplate;
-
-    console.log('export args', args);
+    args.tokens = cursor.ctx.tokens;
 
     this.exporter = getExporter(this.destination, args);
 

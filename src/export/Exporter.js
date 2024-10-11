@@ -8,6 +8,7 @@ import { stringify } from 'csv-stringify';
 export const Exporter = class extends BaseExporter {
   constructor(options) {
     super(options);
+
     this.destination = options.destination;
     this.field = options.field;
     this.mode = options.mode || 'combined';
@@ -19,7 +20,7 @@ export const Exporter = class extends BaseExporter {
         break;
 
       case 'dropbox':
-        this.dropboxToken = options.dropboxToken || process.env.DROPBOX_ACCESS_TOKEN;
+        this.dropboxToken = options.tokens?.dropbox || process.env.DROPBOX_ACCESS_TOKEN;
         break;
 
       case 'file':
@@ -142,9 +143,7 @@ export const Exporter = class extends BaseExporter {
           break;
 
         case 'dropbox':
-          console.log('publish to dropbox', filepath);
           url = await publishToDropbox(body, filepath, this.dropboxToken);
-          console.log('got dropbox url', url);
           break;
 
         case 'file':

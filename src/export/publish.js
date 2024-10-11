@@ -26,12 +26,14 @@ export const publishToS3 = async (buf, contentType, acl, bucket, key) => {
 export const publishToDropbox = async (buf, path, token) => {
   const dbx = new Dropbox({ accessToken: token, fetch });
 
-  const resp = await dbx.filesUpload({
+  let resp;
+  resp = await dbx.filesUpload({
     path: path,
     contents: buf,
     mode: 'overwrite',
     autorename: true,
   });
+
   const existing = await dbx.sharingListSharedLinks({
     path: resp.result.path_display,
     direct_only: true,
