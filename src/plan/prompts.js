@@ -31,6 +31,12 @@ Your JSON definition will be based on the available steps in the scraping librar
 The step types, and their arguments, are listed below:
 {{stepLibrary}}
 
+
+Follow these guidelines:
+- Most scrapes will have an extract step. Include one of these unless there's a good reason not to.
+- Usually the extract step will follow the crawl step. Do it in this order unless you have a good reason not to.
+
+
 Example of valid output:
 [
   {"name":"const","args":{"items":[{"url":"https://news.ycombinator.com/news"}]}},
