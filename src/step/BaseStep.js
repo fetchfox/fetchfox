@@ -20,9 +20,12 @@ export const BaseStep = class {
   }
 
   args(a) {
-    const result = {...a};
-    if (this.limit) result.limit = this.limit;
-    return result;
+    const info = this.constructor.info;
+    const args = {};
+    for (const key of Object.keys(info.args)) {
+      args[key] = this[key];
+    }
+    return args;
   }
 
   dump() {
@@ -36,11 +39,12 @@ export const BaseStep = class {
     if (!this.finish) return;
 
     const out = await this.finish();
-    if (out) {
-      const key = `Step${cursor.index}_${this.constructor.name}`;
-      for (const item of cursor.head) {
-        item[key] = out;
-      }
+    if (!out) return;
+
+    const key = `Step${cursor.index}_${this.constructor.name}`;
+    for (let i = 0; i < out.length && i < cursor.head.length; i++) {
+      const item = cursor.head[i];
+      item[key] = out[i];
     }
   }
 

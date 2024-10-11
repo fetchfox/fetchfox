@@ -30,10 +30,6 @@ export const ConstStep = class extends BaseStep {
     }
   }
 
-  args() {
-    return super.args({ items: this.items });
-  }
-
   async *run(cursor) {
     logger.info(`Running ${this}`);
     for (const item of this.items) {

@@ -41,18 +41,10 @@ export const ExportItemsStep = class extends BaseStep {
   constructor(args) {
     super(args);
     this.filepath = args?.filepath;
+
     this.format = args?.format || 'jsonl';
     this.destination = args?.destination || 'file';
     this.s3bucket = args?.s3bucket;
-  }
-
-  args() {
-    return super.args({
-      filepath: this.filepath,
-      format: this.format,
-      destination: this.destination,
-      s3bucket: this.s3bucket,
-    });
   }
 
   async *run(cursor) {
@@ -65,8 +57,8 @@ export const ExportItemsStep = class extends BaseStep {
   }
 
   async finish() {
-    const url = await this.exporter?.close();
+    const urls = await this.exporter?.close();
     this.exporter = null;
-    return url;
+    return urls;
   }
 }

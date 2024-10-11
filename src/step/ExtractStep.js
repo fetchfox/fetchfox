@@ -33,15 +33,7 @@ export const ExtractStep = class extends BaseStep {
     if (!questions) throw new Error('No questions for extract step');
 
     this.questions = questions;
-
     this.single = args?.single;
-  }
-
-  args() {
-    return super.args({
-      questions: this.questions,
-      single: this.single,
-    });
   }
 
   async *run(cursor) {

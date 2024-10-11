@@ -13,10 +13,6 @@ export const FetchStep = class extends BaseStep {
     super(args);
   }
 
-  args() {
-    return super.args({});
-  }
-
   async *run(cursor) {
     for (const item of cursor.last) {
       if (!item.url) {

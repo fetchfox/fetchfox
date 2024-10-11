@@ -1,6 +1,7 @@
 import playwright from 'playwright';
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
+import { getExporter } from '../export/index.js';
 
 export const ExportURLsStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
@@ -21,64 +22,56 @@ export const ExportURLsStep = class extends BaseStep {
         default: 'pdf',
         required: false,
       },
-      filenameTemplate: {
+      destination: {
+        description: `The user's destination for the output`,
+        format: 'string',
+        options: ['s3', 'dropbox', 'file'],
+        example: 'dropbox',
+        default: 'file',
+        required: false,
+      },
+      s3bucket: {
+        description: `If destionation=s3, what is the bucket name. Leave empty if none can be inferred, since it may be in the user's env variables.`,
+        format: 'string',
+        example: 'my-s3-bucket',
+        required: false,
+      },
+      filepathTemplate: {
         description: `Filename template of the output files. Template may use {url} as part of the filename, which will differentiate the various rendered URLs`,
         format: 'string',
         example: 'pdfs/articles-{url}.pdf',
         required: true,
-      },
-      destination: {
-        description: `The user's destination for the rendered output`,
-        format: 'string',
-        options: ['s3', 'dropbox', 'file'],
-        example: 'dropbox',
-        default: 's3',
-        required: false,
       },
     },
   });
 
   constructor(args) {
     super(args);
+    this.filepathTemplate = args?.filepathTemplate;
     this.field = args.field;
-    this.format = args.format || 'pdf';
-    this.destination = args.destination || 's3';
-  }
 
-  args() {
-    return super.args({
-      field: this.field,
-      format: this.format,
-      destination: this.destination,
-    });
+    this.format = 'render-' + args.format || 'render-pdf';
+    this.destination = args.destination || 'file';
+    this.mode = 'separate'; // TODO: combined URLs export
+    this.s3bucket = args?.s3bucket;
   }
 
   async *run(cursor) {
-    // const browser = await playwright.chromium.launch();
-    // try {
-    //   for (const item of cursor.last) {
-    //     const url = item[this.field];
+    const args = this.args();
+    args.mode = this.mode;
+    args.filepath = this.filepathTemplate;
+    this.exporter = getExporter(this.destination, args);
 
-    //     const page = await browser.newPage();
-    //     await page.goto(url);
-    //     await page.waitForTimeout(2000);
-    //     const buf = await page.pdf({ format: 'A4' });
+    this.exporter.open(this.filepathTemplate);
+    for (const item of cursor.last) {
+      this.exporter.write(item);
+      yield Promise.resolve(item);
+    }
+  }
 
-    //     let renderUrl;
-    //     switch (this.destination) {
-    //       case 's3':
-    //         renderUrl = await publishToS3(buf, `pdfs/${url}.pdf`);
-    //         break;
-    //       case 'dropbox':
-    //         renderUrl = await publishToDropbox(buf, `/pdfs/${url.replace(/[^A-Za-z0-9]+/g, '-')}.pdf`);
-    //         break;
-    //       default:
-    //         throw new Error(`unsupported publish: ${this.destination}`);
-    //     }
-    //     yield Promise.resolve({ ...item, renderUrl });
-    //   }
-    // } finally {
-    //   await browser.close();
-    // }
+  async finish() {
+    const urls = await this.exporter?.close();
+    this.exporter = null;
+    return urls;
   }
 }
