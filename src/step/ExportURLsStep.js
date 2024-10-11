@@ -50,16 +50,22 @@ export const ExportURLsStep = class extends BaseStep {
     this.filepathTemplate = args?.filepathTemplate;
     this.field = args.field;
 
-    this.format = 'render-' + args.format || 'render-pdf';
+    this.format = args.format || 'pdf';
     this.destination = args.destination || 'file';
     this.mode = 'separate'; // TODO: combined URLs export
     this.s3bucket = args?.s3bucket;
   }
 
   async *run(cursor) {
+
+    console.log('===== EXPORT URLS =====');
+
     const args = this.args();
     args.mode = this.mode;
     args.filepath = this.filepathTemplate;
+
+    console.log('export args', args);
+
     this.exporter = getExporter(this.destination, args);
 
     this.exporter.open(this.filepathTemplate);

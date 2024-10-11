@@ -25,7 +25,7 @@ export const Exporter = class extends BaseExporter {
       case 'file':
         break;
 
-      case 'render-pdf':
+      case 'pdf':
         this.field = options.field;
         break;
 
@@ -116,7 +116,7 @@ export const Exporter = class extends BaseExporter {
               }));
           break;
 
-        case 'render-pdf':
+        case 'pdf':
           if (this.mode != 'separate') {
             throw new Error('TODO: combined pdf rendering');
           }
@@ -142,7 +142,9 @@ export const Exporter = class extends BaseExporter {
           break;
 
         case 'dropbox':
+          console.log('publish to dropbox', filepath);
           url = await publishToDropbox(body, filepath, this.dropboxToken);
+          console.log('got dropbox url', url);
           break;
 
         case 'file':

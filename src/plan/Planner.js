@@ -37,9 +37,6 @@ export const Planner = class {
 
   async planString(allSteps) {
     const stepLibrary = descriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
-
-    console.log('stepLibrary', stepLibrary);
-
     const context = {
       stepLibrary,
       allSteps,

@@ -71,7 +71,7 @@ export const Workflow = class {
         }
       }
     } catch(e) {
-      logger.error(`Caugh error during workflow: ${e}`);
+      logger.error(`Caught error during workflow: ${e}`);
       throw e;
     } finally {
       yield Promise.resolve({ results, done: true });
