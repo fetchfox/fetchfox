@@ -54,7 +54,7 @@ export const BaseStep = class {
       for await (const r of this.run(cursor)) {
         cursor.head.push(r);
         yield Promise.resolve(r);
-        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit}`);
+        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit || '(no limit)'}`);
         if (this.limit && cursor.head.length >= this.limit) break;
       }
     } finally {
@@ -68,7 +68,7 @@ export const BaseStep = class {
     try {
       for await (const r of this.run(cursor)) {
         cursor.head.push(r);
-        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit}`);
+        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit || '(no limit)'}`);
         if (this.limit && cursor.head.length >= this.limit) break;
       }
     } finally {
