@@ -3,6 +3,7 @@ import { getCrawler } from '../crawl/index.js';
 import { getExporter } from '../export/index.js';
 import { getExtractor } from '../extract/index.js';
 import { getFetcher } from '../fetch/index.js';
+import { DiskCache } from '../cache/DiskCache.js';
 
 export const contextKeys = [
   ['fetcher', getFetcher],
@@ -17,6 +18,10 @@ const copyKeys = [
 
 export const Context = class {
   constructor(args) {
+    if (args?.diskCache) {
+      args.cache = new DiskCache(args?.diskCache);
+    }
+
     const cache = args?.cache;
     for (const [key, getter] of contextKeys) {
       let val;

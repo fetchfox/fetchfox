@@ -4,7 +4,8 @@ export const BaseStep = class {
   static combineInfo = (info) => {
     const combined = {...info};
     combined.args.limit = {
-      description: 'Limit the number of results in this step. Format: Number',
+      description: 'Limit the number of results in this step.',
+      format: 'number',
       example: 5,
       required: false,
     };

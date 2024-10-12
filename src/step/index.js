@@ -4,13 +4,14 @@ import { ExportItemsStep } from './ExportItemsStep.js';
 import { ExportURLsStep } from './ExportURLsStep.js';
 import { ExtractStep } from './ExtractStep.js';
 import { FetchStep } from './FetchStep.js';
+import { LimitStep } from './LimitStep.js';
 
 export { ConstStep } from './ConstStep.js';
 export { CrawlStep } from './CrawlStep.js';
 export { ExportItemsStep } from './ExportItemsStep.js';
 export { ExportURLsStep } from './ExportURLsStep.js';
 export { ExtractStep } from './ExtractStep.js';
-export { FetchStep } from './FetchStep.js';
+export { LimitStep } from './LimitStep.js';
 
 const all = [
   ConstStep,
@@ -19,6 +20,7 @@ const all = [
   ExportURLsStep,
   ExtractStep,
   FetchStep,
+  LimitStep,
 ];
 const _classMap = {};
 for (const cls of all) {
