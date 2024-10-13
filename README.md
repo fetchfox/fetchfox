@@ -31,7 +31,7 @@ Easiest is to use a single prompt.
 ```javascript
 import { fox } from 'fetchfox';
 
-await fox.run(
+const results = await fox.run(
   `https://news.ycombinator.com/news find links to comments, get basic data, export to out3.jsonl`);
 ```
 
