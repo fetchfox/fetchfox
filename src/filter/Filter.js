@@ -1,4 +1,5 @@
 import { logger } from '../log/logger.js';
+import { Item } from '../item/Item.js';
 import { getAI } from '../ai/index.js';
 import { shuffle, chunkList } from '../util.js';
 import { filter } from './prompts.js';
@@ -11,8 +12,9 @@ export const Filter = class {
 
   async *run(items, query) {
     let id = 1;
-    const copy = shuffle([...items])
+    const copy = [...items]
       .map(item => { return { ...item, _ffid: id++ } });
+
     const maxBytes = this.ai.maxTokens / 2;
     const chunked = chunkList(copy, maxBytes);
 
@@ -29,12 +31,13 @@ export const Filter = class {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta, usage } of stream) {
         const matchId = delta._ffid;
-        for (const item of copy) {
-          if (item._ffid == delta._ffid) {
+        for (let i = 0; i < copy.length; i++) {
+          const orig = items[i];
+          const data = copy[i];
+          if (data._ffid == delta._ffid) {
             count++;
-            delete item._ffid;
-            console.log('Filter YIELD', item);
-            yield Promise.resolve(item);
+            delete data._ffid;
+            yield Promise.resolve(new Item(data, orig.source()));
           }
         }
       }

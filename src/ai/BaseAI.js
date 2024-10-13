@@ -31,10 +31,10 @@ export const BaseAI = class {
     return `[${this.constructor.name} ${this.model}]`;
   }
 
-  cacheKey(prompt, { systemPrompt, format, cacheHint }) {
+  cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
     const hash = crypto
       .createHash('sha256')
-      .update(JSON.stringify({ prompt, systemPrompt, format, cacheHint }))
+      .update(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
       .digest('hex')
       .substr(0, 16);
     const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
@@ -44,8 +44,8 @@ export const BaseAI = class {
   async getCache(prompt, options) {
     if (!this.cache) return;
 
-    const { systemPrompt, format, cacheHint } = options || {};
-    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
+    const { systemPrompt, format, cacheHint, schema } = options || {};
+    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
     logger.info(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
@@ -56,8 +56,8 @@ export const BaseAI = class {
   async setCache(prompt, options, val) {
     if (!this.cache) return;
 
-    const { systemPrompt, format, cacheHint } = options || {};
-    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
+    const { systemPrompt, format, cacheHint, schema } = options || {};
+    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
     logger.verbose(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'prompt');
   }
@@ -74,7 +74,7 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
-    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
+    const { format, cacheHint, schema } = Object.assign({ format: 'text' }, options);
     const cached = await this.getCache(prompt, options);
     if (cached) {
       if (format == 'jsonl') {
@@ -126,9 +126,11 @@ export const BaseAI = class {
     } finally {
       if (err) {
         logger.warn(`Error during AI stream, not caching: ${err}`);
+        throw err;
         return;
+      } else {
+        this.setCache(prompt, options, result);
       }
-      this.setCache(prompt, options, result);
     }
   }
 
@@ -160,7 +162,6 @@ export const BaseAI = class {
 
         logger.info(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
         await sleep(retryMsec);
-
       }
 
       break;

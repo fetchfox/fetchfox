@@ -33,7 +33,13 @@ export const CrawlStep = class extends BaseStep {
     for (const item of cursor.last) {
       logger.info(`Crawl ${JSON.stringify(item)} for ${this.query}`);
       // TODO: Should `crawler` be removed from context?
-      const stream = cursor.ctx.crawler.run(item.url, this.query);
+
+      const url = item.url || item.source().url;
+      if (!url) {
+        logger.error(`No URL found for item ${item}`);
+      }
+
+      const stream = cursor.ctx.crawler.run(url, this.query);
       for await (const link of stream) {
         logger.info(`Found link ${link.url}`);
         yield Promise.resolve(link);
