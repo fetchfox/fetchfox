@@ -1,6 +1,8 @@
 <div align="center">
   <h1>FetchFox</h1>
-  <div><img width="400" alt="FetchFox is an AI powered scraping library" src="https://github.com/user-attachments/assets/44c3731f-b919-4b82-89ae-c64cfd302f0f"></div>
+  <div>
+    <img width="515" alt="Screenshot 2024-10-13 at 1 14 28 AM" src="https://github.com/user-attachments/assets/290d26c5-f0a0-48ba-985a-8052ad23f252">
+  </div>
 
 <p>FetchFox is an AI powered scraping, automation, and data extraction library.</p>
   
