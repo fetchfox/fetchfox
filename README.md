@@ -50,8 +50,7 @@ const f = await fox
   .extract('get username and repos they commit to')
   .schema({ username: 'username', repos: ['array of repos'] });
 
-// Streaming mode gives results for reach step, as
-// soon as they are available
+// Streaming mode gives results for reach step, as soon as they are available
 for await (const delta of f.stream()) {
   console.log('delta', delta);
 }
