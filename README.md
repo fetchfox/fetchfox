@@ -29,7 +29,8 @@ Easiest is to use a single prompt.
 ```javascript
 import { fox } from 'fetchfox';
 
-await fox.run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out3.jsonl`);
+await fox.run(
+  `https://news.ycombinator.com/news find links to comments, get basic data, export to out3.jsonl`);
 ```
 
 For more control, you can specify one prompt per step.
@@ -37,12 +38,21 @@ For more control, you can specify one prompt per step.
 ```javascript
 import { fox } from 'fetchfox';
 
-await fox.run(
-  'https://news.ycombinator.com/news',
-  'find links to comments',
-  'find the usernames of the commenters',
-  'get their bio',
-  'export to out2.jsonl');
+const f = await fox
+  .config({ diskCache: '/tmp/ff_minihack_2'  })
+  .init('https://github.com/bitcoin/bitcoin/commits/master')
+  .crawl('find urls commits, limit: 10')
+  .extract('get commit hash, author, and loc changed')
+  .filter('commits that changed at least 10 lines')
+  .crawl('get urls of the authors of those commits')
+  .extract('get username and repos they commit to')
+  .schema({ username: 'username', repos: ['array of repos'] });
+
+// Streaming mode gives results for reach step, as
+// soon as they are available
+for await (const delta of f.stream()) {
+  console.log('delta', delta);
+}
 ```
 
 The library is modular, and you can use the component individually.
