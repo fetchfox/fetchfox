@@ -8,7 +8,7 @@ export const CrawlStep = class extends BaseStep {
     args: {
       query: {
         description: 'A description of links to look for. Should be specific, and should include exclusions.',
-        formmat: 'string',
+        format: 'string',
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
         required: true,
       },
@@ -32,6 +32,7 @@ export const CrawlStep = class extends BaseStep {
   async *run(cursor) {
     for (const item of cursor.last) {
       logger.info(`Crawl ${JSON.stringify(item)} for ${this.query}`);
+      // TODO: Should `crawler` be removed from context?
       const stream = cursor.ctx.crawler.run(item.url, this.query);
       for await (const link of stream) {
         logger.info(`Found link ${link.url}`);

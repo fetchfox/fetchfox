@@ -35,6 +35,8 @@ The step types, and their arguments, are listed below:
 Follow these guidelines:
 - Most scrapes will have an extract step. Include one of these unless there's a good reason not to.
 - Usually the extract step will follow the crawl step. Do it in this order unless you have a good reason not to.
+- Do not include an export step unless there is indication that the user wants one.
+- If the step is in JSON and includes "name" and "prompt" fields, then you MUST honor the "name" field, and use the "prompt" to generate EXACTLY ONE step of ONLY the specified name type.
 
 
 Example of valid output:

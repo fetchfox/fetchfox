@@ -2,23 +2,13 @@ import { logger } from '../log/logger.js';
 import { Cursor } from '../cursor/Cursor.js';
 import { Context } from '../context/Context.js';
 import { Planner } from '../plan/Planner.js';
-import { classMap } from '../step/index.js';
+import { classMap, stepNames } from '../step/index.js';
 
 export const Workflow = class {
-  // constructor(args) {
   constructor() {
-    // let steps = args.steps;
-    // const first = steps[0];
-    // if (typeof first.name == 'string') {
-    //   // Assume it is JSON serializable array
-    //   const loaded = this.load({ steps });
-    //   steps = loaded.steps;
-    // } else {
-    //   // Assume it is a list of classes
-    //   steps = steps
-    // }
-    // this.steps = steps;
-    // this.config(args);
+    this._stepsInput = [];
+
+    this.steps = [];
     this.ctx = new Context({});
   }
 
@@ -35,13 +25,6 @@ export const Workflow = class {
     return this;
   }
 
-  async plan(...args) {
-    const planner = new Planner(this.ctx);
-    const steps = await planner.plan(args);
-    this.steps = steps;
-    return this;
-  }
-
   load(data) {
     this.steps = [];
     for (const step of data.steps) {
@@ -51,15 +34,34 @@ export const Workflow = class {
     return this;
   }
 
-  async parseRunArgs(args) {
+  step(data) {
+    this._stepsInput.push(data);
+    return this;
+  }
+
+  init(prompt) {
+    return this.step(JSON.stringify({ name: 'const', prompt }));
+  }
+
+  parseRunArgs(args) {
     if (typeof args == 'string') {
-      // Treat it as a scrape prompt
-      await this.plan(args);
+      this._stepsInput.push(args);
+    } else if (Array.isArray(args)) {
+      this._stepsInput = [...this._stepsInput, ...args];
     }
   }
 
+  async plan(...args) {
+    if (args) this.parseRunArgs(args);
+    const planner = new Planner(this.ctx);
+    this.steps = await planner.plan(...this.steps, ...this._stepsInput);
+    this._stepsInput = [];
+    return this;
+  }
+
   async run(args) {
-    if (args) await this.parseRunArgs(args);
+    if (args) this.parseRunArgs(args);
+    await this.plan();
 
     const cursor = new Cursor(this.ctx);
     let index = 0;
@@ -71,7 +73,8 @@ export const Workflow = class {
   }
 
   async *stream(args) {
-    if (args) await this.parseRunArgs(args);
+    if (args) this.parseRunArgs(args);
+    await this.plan();
 
     const cursor = new Cursor(this.ctx);
     const results = [];
@@ -100,5 +103,12 @@ export const Workflow = class {
     } finally {
       yield Promise.resolve({ results, done: true });
     }
+  }
+}
+
+for (const stepName of stepNames) {
+  Workflow.prototype[stepName] = function(prompt) {
+    const name = stepName;
+    return this.step(JSON.stringify({ name, prompt }));
   }
 }

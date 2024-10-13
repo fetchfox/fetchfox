@@ -4,7 +4,7 @@ import { getExporter } from '../export/index.js';
 
 export const ExportItemsStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
-    name: 'export-items',
+    name: 'exportItems',
     description: 'Exports the entire item result array into a file or cloud service.',
     args: {
       filepath: {

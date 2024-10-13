@@ -1,9 +1,8 @@
-import crypto from 'crypto';
 import { logger } from '../log/logger.js';
-import { gather } from './prompts.js';
 import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
-import { validate } from './util.js';
+import { shuffle, chunkList } from '../util.js';
+import { gather } from './prompts.js';
 
 export const Crawler = class {
   constructor(options) {
@@ -18,9 +17,7 @@ export const Crawler = class {
     logger.info(`Crawling ${url} with for "${query}"`);
 
     const doc = await this.fetcher.fetch(url, fetchOptions);
-
     const links = shuffle(doc.links);
-    // const links = doc.links;
     const maxBytes = this.ai.maxTokens / 2;
     const slimmer = item => ({
       id: item.id,
@@ -52,7 +49,7 @@ export const Crawler = class {
       const stream = this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit });
       for await (const { delta, usage } of stream) {
         if (!toLink[delta.id]) {
-          console.warn(`Could not find link with id ${delta.id}`);
+          logger.warn(`Could not find link with id ${delta.id}`);
           continue;
         }
 
@@ -99,32 +96,6 @@ export const Crawler = class {
   }
 }
 
-const shuffle = (l) => {
-  // Deterministic shuffle to keep prompts stable
-  const h = (v) => crypto
-    .createHash('sha256')
-    .update(JSON.stringify(v))
-    .digest('hex');
-  l.sort((a, b) => h(a).localeCompare(h(b)));
-  return l;
-}
-
-const chunkList = (list, maxBytes) => {
-  const chunks = [];
-  let current = [];
-  for (let item of list) {
-    current.push(item);
-    if (JSON.stringify(current, null, 2).length > maxBytes) {
-      chunks.push(current);
-      current = [];
-    }
-  }
-  if (current.length) {
-    chunks.push(current);
-  }
-  return chunks;
-};
-
 const dedupeLinks = (l) => {
   const u = [];
   const seen = {};    
@@ -149,4 +120,8 @@ const cleanLinks = (l) => {
     clean.push(item);
   }
   return clean;
+}
+
+export const validate = (url) => {
+  return url.indexOf('javascript:') != 0;
 }

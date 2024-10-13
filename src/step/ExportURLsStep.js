@@ -5,7 +5,7 @@ import { getExporter } from '../export/index.js';
 
 export const ExportURLsStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
-    name: 'export-urls',
+    name: 'exportUrls',
     description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service`,
     args: {
       field: {
