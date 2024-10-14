@@ -1,6 +1,6 @@
 import { logger } from '../log/logger.js';
 import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
-import { descriptions, classMap, BaseStep } from '../step/index.js';
+import { stepDescriptions, classMap, BaseStep } from '../step/index.js';
 import { singleStep, combined } from './prompts.js';
 
 export const Planner = class {
@@ -37,7 +37,7 @@ export const Planner = class {
 
     for (const input of stepsInput) {
       const str = stringify(input);
-      const stepLibrary = descriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
+      const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
       const context = {
         stepLibrary,
         allSteps,
@@ -53,7 +53,7 @@ export const Planner = class {
   }
 
   async planString(allSteps) {
-    const stepLibrary = descriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
+    const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,
       allSteps,

@@ -34,4 +34,4 @@ for (const cls of all) {
 }
 export const classMap = _classMap;
 export const stepNames = Object.keys(_classMap);
-export const descriptions = all.map(cls => cls.info);
+export const stepDescriptions = all.map(cls => cls.info);

@@ -1,4 +1,3 @@
-import playwright from 'playwright';
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 import { getExporter } from '../export/index.js';
@@ -16,19 +15,17 @@ export const ExportURLsStep = class extends BaseStep {
       },
       format: {
         description: `The user's desired output format`,
-        format: 'string',
-        options: ['pdf'],
+        format: 'choices',
+        choices: ['pdf'],
         example: 'pdf',
-        default: 'pdf',
-        required: false,
+        required: true,
       },
       destination: {
         description: `The user's destination for the output`,
-        format: 'string',
-        options: ['s3', 'dropbox', 'file'],
+        format: 'choices',
+        choices: ['s3', 'dropbox', 'file'],
         example: 'dropbox',
-        default: 'file',
-        required: false,
+        required: true,
       },
       s3bucket: {
         description: `If destionation=s3, what is the bucket name. Leave empty if none can be inferred, since it may be in the user's env variables.`,

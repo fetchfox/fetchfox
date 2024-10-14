@@ -39,4 +39,5 @@ export { ExportItemsStep } from './step/ExportItemsStep.js';
 export { ExportURLsStep } from './step/ExportURLsStep.js';
 export { FetchStep } from './step/FetchStep.js';
 
+export { stepDescriptions } from './step/index.js';
 export { fox } from './fox/index.js';
