@@ -1,6 +1,8 @@
 <div align="center">
   <h1>FetchFox</h1>
-  <div><img width="400" alt="FetchFox is an AI powered scraping library" src="https://github.com/user-attachments/assets/44c3731f-b919-4b82-89ae-c64cfd302f0f"></div>
+  <div>
+    <img width="515" alt="Screenshot 2024-10-13 at 1 14 28 AM" src="https://github.com/user-attachments/assets/290d26c5-f0a0-48ba-985a-8052ad23f252">
+  </div>
 
 <p>FetchFox is an AI powered scraping, automation, and data extraction library.</p>
   
@@ -29,7 +31,8 @@ Easiest is to use a single prompt.
 ```javascript
 import { fox } from 'fetchfox';
 
-await fox.run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out3.jsonl`);
+const results = await fox.run(
+  `https://news.ycombinator.com/news find links to comments, get basic data, export to out3.jsonl`);
 ```
 
 For more control, you can specify one prompt per step.
@@ -37,12 +40,20 @@ For more control, you can specify one prompt per step.
 ```javascript
 import { fox } from 'fetchfox';
 
-await fox.run(
-  'https://news.ycombinator.com/news',
-  'find links to comments',
-  'find the usernames of the commenters',
-  'get their bio',
-  'export to out2.jsonl');
+const f = await fox
+  .config({ diskCache: '/tmp/ff_minihack_2'  })
+  .init('https://github.com/bitcoin/bitcoin/commits/master')
+  .crawl('find urls commits, limit: 10')
+  .extract('get commit hash, author, and loc changed')
+  .filter('commits that changed at least 10 lines')
+  .crawl('get urls of the authors of those commits')
+  .extract('get username and repos they commit to')
+  .schema({ username: 'username', repos: ['array of repos'] });
+
+// Streaming mode gives results for reach step, as soon as they are available
+for await (const delta of f.stream()) {
+  console.log('delta', delta);
+}
 ```
 
 The library is modular, and you can use the component individually.
