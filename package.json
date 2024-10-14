@@ -1,6 +1,6 @@
 {
   "name": "fetchfox",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "description": "AI based web scraping library",
   "main": "src/index.js",
   "type": "module",
