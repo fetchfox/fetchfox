@@ -7,6 +7,7 @@ export const Planner = class {
   constructor(options) {
     const cache = options?.cache;
     this.ai = options?.ai || getAI(null, { cache });
+    this.user = options.user;
   }
 
   async plan(...args) {
@@ -43,6 +44,9 @@ export const Planner = class {
         allSteps,
         step: str,
       }
+      if (this.user) {
+        context.user = userPrompt(this.user);
+      }
       const prompt = singleStep.render(context);
       const answer = await this.ai.ask(prompt, { format: 'json' });
       logger.verbose(`Step planned "${str}" into ${JSON.stringify(answer.partial)}`);
@@ -58,6 +62,9 @@ export const Planner = class {
       stepLibrary,
       allSteps,
     };
+    if (this.user) {
+      context.user = userPrompt(this.user);
+    }
     const prompt = combined.render(context);
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const stepsJson = answer.partial;
@@ -71,3 +78,8 @@ export const Planner = class {
     return new cls(args);
   }
 }
+
+const userPrompt = (user) => `The user executing this prompt is below.
+- For export steps, take into account the users available platforms and folders on those platforms
+- UNLESS there is GOOD CLEAR MATCH, use the top level "/" folder
+${JSON.stringify(user, null, 2)}`;
