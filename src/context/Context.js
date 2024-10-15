@@ -34,6 +34,7 @@ export const Context = class {
     }
 
     // Copy tokens
+    this.user = args?.user || null
     this.tokens = args?.tokens || {};
   }
 
@@ -50,6 +51,8 @@ export const Context = class {
     for (const key of Object.keys(other.tokens || {})) {
       this.tokens[key] = other.tokens[key];
     }
+
+    if (other.user) this.user = JSON.parse(JSON.stringify(other.user));
 
     if (other.cache) {
       for (const [key] of contextKeys) {
