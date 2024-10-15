@@ -132,27 +132,31 @@ export const Exporter = class extends BaseExporter {
           }
       }
 
-      switch (this.destination) {
-        case 's3':
-          url = await publishToS3(
-            body,
-            contentType,
-            'public-read',
-            this.s3bucket,
-            filepath);
-          break;
+      if (!body) {
+        url = '(error)';
+      } else {
+        switch (this.destination) {
+          case 's3':
+            url = await publishToS3(
+              body,
+              contentType,
+              'public-read',
+              this.s3bucket,
+              filepath);
+            break;
 
-        case 'dropbox':
-          url = await publishToDropbox(body, filepath, this.dropboxToken);
-          break;
+          case 'dropbox':
+            url = await publishToDropbox(body, filepath, this.dropboxToken);
+            break;
 
-        case 'file':
-          this.file.write(body);
-          this.file.end();
-          url = filepath;
-          break;
+          case 'file':
+            this.file.write(body);
+            this.file.end();
+            url = filepath;
+            break;
 
-        default: throw new Error(`Unhandled destination: ${this.destination}`);
+          default: throw new Error(`Unhandled destination: ${this.destination}`);
+        }
       }
 
       batch.map(() => urls.push(url));
@@ -173,6 +177,14 @@ export const Exporter = class extends BaseExporter {
     }
 
     const page = await this.browser.newPage();
+
+    try {
+      new URL(url);
+    } catch (e) {
+      logger.error(`Skipping invalid url ${url}`);
+      return;
+    }
+
     await page.goto(url);
     await page.waitForTimeout(2000);
     const buf = await page.pdf({ format: 'A4' });
