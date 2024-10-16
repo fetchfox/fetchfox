@@ -166,18 +166,10 @@ export const Exporter = class extends BaseExporter {
     this.filepath = null
     this.file = null;
 
-    if (this.browser) await this.browser.close();
-
     return urls;
   }
 
   async render(url) {
-    if (!this.browser) {
-      this.browser = await playwright.chromium.launch();
-    }
-
-    const page = await this.browser.newPage();
-
     try {
       new URL(url);
     } catch (e) {
@@ -185,9 +177,19 @@ export const Exporter = class extends BaseExporter {
       return;
     }
 
-    await page.goto(url);
-    await page.waitForTimeout(2000);
-    const buf = await page.pdf({ format: 'A4' });
+    let buf;
+    let browser;
+
+    try {
+      browser = await playwright.chromium.launch();
+      const page = await browser.newPage();
+      await page.goto(url);
+      await page.waitForTimeout(2000);
+      buf = await page.pdf({ format: 'A4' });
+
+    } finally {
+      await browser.close();
+    }
 
     return buf;
   }
