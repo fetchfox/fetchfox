@@ -57,6 +57,10 @@ export const BaseStep = class {
     }
 
     try {
+      if (this.before) {
+        await this.before(cursor);
+      }
+
       for await (const item of inputs) {
         for await (const output of this.runItem(cursor, item)) {
           if (buffer) {
@@ -65,6 +69,10 @@ export const BaseStep = class {
             yield complete(output);
           }
         }
+      }
+    } catch(e) {
+      if (e.code != 'limit') {
+        throw e
       }
     } finally {
       if (buffer) {

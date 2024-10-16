@@ -28,7 +28,6 @@ export const CrawlStep = class extends BaseStep {
 
     this.query= query;
   }
-
   async *runItem(cursor, item) {
     logger.verbose(`Crawl ${JSON.stringify(item)} for ${this.query}`);
 

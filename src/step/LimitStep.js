@@ -20,16 +20,19 @@ export const LimitStep = class extends BaseStep {
     this.count = null;
   }
 
-  async *runItem(cursor, item) {
-    logger.verbose(`Limit to ${this.limit} items`);
+  before() {
+    this.count = 0;
+  }
 
-    if (!this.count == null) {
-      this.count = 0;
-    }
+  async *runItem(cursor, item) {
+    logger.verbose(`Limit to ${this.limit} items, count is ${this.count}`);
+
     this.count++
-    if (this.count <= this.limit) {
-      yield Promise.resolve(item);
+    if (this.count > this.limit) {
+      throw { code: 'limit' };
     }
+
+    yield Promise.resolve(item);
   }
 
   async finish() {
