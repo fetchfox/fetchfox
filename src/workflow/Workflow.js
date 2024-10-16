@@ -67,16 +67,18 @@ export const Workflow = class {
     return results;
   }
 
-  async *stream(args) {
+  async *stream(args, cb) {
     if (args) this.parseRunArgs(args);
     await this.plan();
 
     if (this.steps.length == 0) return;
 
-    const cursor = new Cursor(this.ctx, this.steps);
+    const cursor = new Cursor(this.ctx, this.steps, cb);
+
     let head = (async function* () {
       yield Promise.resolve(null);
     })();
+
 
     for (let i = 0; i < this.steps.length; i++) {
       head = this.steps[i].pipe(cursor, head, i);
