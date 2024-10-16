@@ -40,15 +40,13 @@ export const ExtractStep = class extends BaseStep {
     this.single = args?.single;
   }
 
-  async *run(cursor) {
-    logger.info(`Extract for ${this.questions.join(', ')}`);
+  async *runItem(cursor, item) {
+    logger.verbose(`Extract ${this.questions.join(', ')} from ${item}`);
 
-    for (const target of cursor.last) {
-      logger.info(`Extract from ${target}`);
-      for await (const item of cursor.ctx.extractor.stream(target, this.questions)) {
-        yield Promise.resolve(item);
-        if (this.single) break;
-      }
+    const ex = cursor.ctx.extractor;
+    for await (const output of ex.stream(item, this.questions)) {
+      yield Promise.resolve(output);
+      if (this.single) break;
     }
   }
 }

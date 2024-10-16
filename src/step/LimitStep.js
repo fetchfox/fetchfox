@@ -17,5 +17,22 @@ export const LimitStep = class extends BaseStep {
 
   constructor(args) {
     super(args);
+    this.count = null;
+  }
+
+  async *runItem(cursor, item) {
+    logger.verbose(`Limit to ${this.limit} items`);
+
+    if (!this.count == null) {
+      this.count = 0;
+    }
+    this.count++
+    if (this.count <= this.limit) {
+      yield Promise.resolve(item);
+    }
+  }
+
+  async finish() {
+    this.count = null;
   }
 }

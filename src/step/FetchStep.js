@@ -13,16 +13,14 @@ export const FetchStep = class extends BaseStep {
     super(args);
   }
 
-  async *run(cursor) {
-    for (const item of cursor.last) {
-      if (!item.url) {
-        logger.warn(`Skipping item without URL: ${item}`);
-        continue;
-      }
-
-      const { url } = item;
-      logger.info(`Fetch URL: ${url}`);
-      yield cursor.ctx.fetcher.fetch(url);
+  async *runItem(cursor, item) {
+    if (!item.url) {
+      logger.warn(`Skipping item without URL: ${item}`);
+      return;
     }
+
+    const { url } = item;
+    logger.verbose(`Fetch URL: ${url}`);
+    yield cursor.ctx.fetcher.fetch(url);
   }
 }

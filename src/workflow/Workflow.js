@@ -60,48 +60,33 @@ export const Workflow = class {
   }
 
   async run(args) {
-    if (args) this.parseRunArgs(args);
-    await this.plan();
-
-    const cursor = new Cursor(this.ctx);
-    let index = 0;
-    for (const step of this.steps) {
-      cursor.index = index++;
-      await step.all(cursor);
+    let results;
+    for await (const delta of this.stream()) {
+      results = delta.results;
     }
-    return { results: cursor.head };
+    return results;
   }
 
   async *stream(args) {
     if (args) this.parseRunArgs(args);
     await this.plan();
 
-    const cursor = new Cursor(this.ctx);
-    const results = [];
-    try {
-      for (let i = 0; i < this.steps.length; i++) {
-        cursor.index = i;
+    if (this.steps.length == 0) return;
 
-        const step = this.steps[i];
-        const stream = step.stream(cursor);
-        results.push({ step: step.dump(), items: [] });
+    const cursor = new Cursor(this.ctx, this.steps);
+    let head = (async function* () {
+      yield Promise.resolve(null);
+    })();
 
-        for await (const r of stream) {
-          results[i].items.push(r);
+    for (let i = 0; i < this.steps.length; i++) {
+      head = this.steps[i].pipe(cursor, head, i);
+    }
 
-          yield Promise.resolve({
-            step: { ...step, index: i },
-            delta: r,
-            results,
-            done: false,
-          });
-        }
-      }
-    } catch(e) {
-      logger.error(`Caught error during workflow: ${e}`);
-      throw e;
-    } finally {
-      yield Promise.resolve({ results, done: true });
+    for await (const item of head) {
+      yield Promise.resolve({
+        delta: item,
+        results: cursor.results,
+      });
     }
   }
 }

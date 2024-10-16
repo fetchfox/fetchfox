@@ -30,45 +30,49 @@ export const BaseStep = class {
     };
   }
 
-  async _finish(cursor) {
-    if (!this.finish) return;
+  async _finish(cursor, index, buffer) {
+    if (!this.finish) throw new Error('invalid call');
 
     const out = await this.finish();
-    if (!out) return;
+    if (!out) return buffer;
 
-    const key = `Step${cursor.index}_${this.constructor.name}`;
-    for (let i = 0; i < out.length && i < cursor.head.length; i++) {
-      const item = cursor.head[i];
+    const key = `Step${index + 1}_${this.constructor.name}`;
+    for (let i = 0; i < out.length && i < buffer.length; i++) {
+      const item = buffer[i];
       item[key] = out[i];
     }
+
+    return buffer;
   }
 
-  async *stream(cursor) {
-    cursor.head = [];
-    try {
-      for await (const r of this.run(cursor)) {
-        cursor.head.push(r);
-        yield Promise.resolve(r);
-        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit || '(no limit)'}`);
-        if (this.limit && cursor.head.length >= this.limit) break;
-      }
-    } finally {
-      cursor.last = cursor.head;
-      await this._finish(cursor);
+  async *pipe(cursor, inputs, index) {
+    let buffer;
+    if (this.finish) {
+      buffer = [];
     }
-  }
 
-  async all(cursor) {
-    cursor.head = [];
+    const complete = (item) => {
+      cursor.publish(index, item);
+      return Promise.resolve(item);
+    }
+
     try {
-      for await (const r of this.run(cursor)) {
-        cursor.head.push(r);
-        logger.info(`Step found ${cursor.head.length} items, limit is ${this.limit || '(no limit)'}`);
-        if (this.limit && cursor.head.length >= this.limit) break;
+      for await (const item of inputs) {
+        for await (const output of this.runItem(cursor, item)) {
+          if (buffer) {
+            buffer.push(output);
+          } else {
+            yield complete(output);
+          }
+        }
       }
     } finally {
-      cursor.last = cursor.head;
-      await this._finish(cursor);
+      if (buffer) {
+        const finished = await this._finish(cursor, index, buffer);
+        for (const output of finished) {
+          yield complete(output);
+        }
+      }
     }
   }
 }

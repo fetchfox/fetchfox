@@ -8,7 +8,7 @@ export const ExportURLsStep = class extends BaseStep {
     description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service`,
     args: {
       field: {
-        description: `The item field containing the target URL. Field names are an EXACT string from an 'extract' step`,
+        description: `The item field containing the target URL. The value here MUST be an EXACT string from a previous 'extract' or 'schema' step`,
         format: 'string',
         example: 'What is the URL of the linked article? Format: Absolute URL',
         required: true,
@@ -21,7 +21,7 @@ export const ExportURLsStep = class extends BaseStep {
         required: true,
       },
       destination: {
-        description: `The user's destination for the output`,
+        description: `The user's destination for the output. Use absolute path, starting with /`,
         format: 'choices',
         choices: ['s3', 'dropbox', 'file'],
         example: 'dropbox',
@@ -53,19 +53,20 @@ export const ExportURLsStep = class extends BaseStep {
     this.s3bucket = args?.s3bucket;
   }
 
-  async *run(cursor) {
-    const args = this.args();
-    args.mode = this.mode;
-    args.filepath = this.filepathTemplate;
-    args.tokens = cursor.ctx.tokens;
+  async *runItem(cursor, item) {
+    logger.verbose(`Export URL field ${this.field} of item ${item}`);
 
-    this.exporter = getExporter(this.destination, args);
-
-    this.exporter.open(this.filepathTemplate);
-    for (const item of cursor.last) {
-      this.exporter.write(item);
-      yield Promise.resolve(item);
+    if (!this.exporter) {
+      const args = this.args();
+      args.mode = this.mode;
+      args.filepath = this.filepathTemplate;
+      args.tokens = cursor.ctx.tokens;
+      this.exporter = getExporter(this.destination, args);
+      this.exporter.open(this.filepathTemplate);
     }
+
+    await this.exporter.write(item);
+    yield Promise.resolve(item);
   }
 
   async finish() {

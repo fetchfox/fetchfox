@@ -47,13 +47,16 @@ export const ExportItemsStep = class extends BaseStep {
     this.s3bucket = args?.s3bucket;
   }
 
-  async *run(cursor) {
-    this.exporter = getExporter(this.destination, this.args());
-    await this.exporter.open(this.filepath);
-    for (const item of cursor.last) {
-      await this.exporter.write(item);
-      yield Promise.resolve(item);
+  async *runItem(cursor, item) {
+    logger.verbose(`Export items`);
+
+    if (!this.exporter) {
+      this.exporter = getExporter(this.destination, this.args());
+      await this.exporter.open(this.filepath);
     }
+
+    await this.exporter.write(item);
+    yield Promise.resolve(item);
   }
 
   async finish() {
