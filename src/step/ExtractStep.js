@@ -50,13 +50,4 @@ export const ExtractStep = class extends BaseStep {
       if (this.single) break;
     }
   }
-
-  // async *runItem(cursor, item) {
-  //   logger.verbose(`Extract ${this.questions.join(', ')} from ${item}`);
-  //   const ex = cursor.ctx.extractor;
-  //   for await (const output of ex.stream(item, this.questions)) {
-  //     yield Promise.resolve(output);
-  //     if (this.single) break;
-  //   }
-  // }
 }

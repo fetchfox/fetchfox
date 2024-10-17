@@ -69,29 +69,20 @@ export const Workflow = class {
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
-    console.log('run last', last.run);
-    const lastOut = await last.run(cursor, rest, this.steps.length - 1);
-    console.log('lastOut', lastOut);
-    return lastOut;
+    return last.run(cursor, rest, this.steps.length - 1);
   }
 
   // async *stream(args, cb) {
   //   if (args) this.parseRunArgs(args);
   //   await this.plan();
-
   //   if (this.steps.length == 0) return;
-
   //   const cursor = new Cursor(this.ctx, this.steps, cb);
-
   //   let head = (async function* () {
   //     yield Promise.resolve(null);
   //   })();
-
-
   //   for (let i = 0; i < this.steps.length; i++) {
   //     head = this.steps[i].pipe(cursor, head, i);
   //   }
-
   //   for await (const item of head) {
   //     yield Promise.resolve({
   //       delta: item,

@@ -47,10 +47,6 @@ export const BaseStep = class {
 
   async _finish(cursor, index) {
     try {
-      // if (!buffer || buffer.length == 0) {
-      //   return;
-      // }
-
       if (!this.finish) {
         return;
       }
@@ -68,18 +64,21 @@ export const BaseStep = class {
     }
   }
 
-  on(event, cb) {
+  _checkEvent(event) {
     if (!['item', 'done'].includes(event)) {
       throw new Error(`Unhandled event ${event}`);
     }
+  }
+
+  on(event, cb) {
+    this._checkEvent(event);
+
     this.callbacks[event] ||= [];
     this.callbacks[event].push(cb);
   }
 
   trigger(event, item) {
-    if (!['item', 'done'].includes(event)) {
-      throw new Error(`Unhandled event ${event}`);
-    }
+    this._checkEvent(event);
 
     const cbs = this.callbacks[event] || [];
     cbs.map(cb => cb(item));
@@ -90,15 +89,6 @@ export const BaseStep = class {
       this.callbacks[key] = this.callbacks[key].filter(cb => cb != rm);
     }
   }
-
-  // publish(item) {
-  //   this.results.push(item);
-  //   const done = this.limit && this.results.length >= this.limit;
-  //   for (const cb of (this.callbacks.item || [])) {
-  //     cb(item);
-  //   }
-  //   return done;
-  // }
 
   async run(cursor, upstream, index) {
     console.log('run()');
@@ -119,17 +109,12 @@ export const BaseStep = class {
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
     await new Promise(async (ok) => {
-      console.log('in promise', ok);
-
-      onParentDone = parent.on('done', async () => {
-        console.log('got parent done event, stats:', received);
-        parentDone = true;
-        // ok();
-      });
+      onParentDone = parent.on(
+        'done',
+        () => parentDone = true);
 
       onParentItem = parent.on('item', async (item) => {
         received++;
-        console.log('got ITEM event, stats:', received, completed);
         await this.process(
           cursor,
           item,
@@ -140,123 +125,28 @@ export const BaseStep = class {
             const hitLimit = this.limit && this.results.length >= this.limit;
             const done = hitLimit;
 
-            if (done) {
-              console.log('DONE! in: ' + this);
-              ok();
-            }
+            if (done) ok();
 
             return done;
           });
 
         completed++;
-        console.log('finished item, stats:', received, completed, parentDone);
 
         if (parentDone && received == completed) {
           ok();
         }
-
       });
 
-      console.log('set up cb', onParentItem);
-
-      await parent.run(cursor, rest, index);
+      parent.run(cursor, rest, index);
     });
 
     await this._finish(cursor, index);
+
     parent.remove(onParentItem);
     parent.remove(onParentDone);
 
     this.trigger('done');
 
     return this.results;
-
-    // let onMe;
-    // let onParentDone;
-    // let parentDone = false;
-    // onMe = this.on('item', (item) => {
-    //   return cursor.publish(item, index);
-    // });
-
-      // let inflight = 0;
-      // onParentDone = parent.on('done', async (item) => {
-      //   console.log('parent done cb');
-      // });
-
-        // console.log(`----> process item in ${this}`);
-        // inflight++;
-        // const hitLimit = await this.process(cursor, item, index);
-        // console.log(`:::::: GOT DONE value ${done} from in ${this}`);
-        // inflight--;
-        // console.log(`an item completed in ${this}, still inflight: ${inflight}`);
-        // console.log(`---> now have ${this.results.length} results in ${this}, limit is ${this.limit}`);
-        // done && doneCb && doneCb();
-        // if (this.results.length >= this.limit) {
-        //   ok();
-        // }
-      // });
-
-
-        // () => {
-        //   console.log('===> DONE CB in ' + this);
-        //   // parentDone = true;
-        //   // ok('OK DUE TO ');
-        // }
-    //   );
-    // });
-
-    // console.log('DO FINISH in step ' + this);
-
-
-    // this.remove(onMe);
-    // parent.remove(onParentDone);
-    // console.log('FINISHED WITH step ' + this, this.results);
-
   }
-
-  // async *pipe(cursor, inputs, index) {
-  //   try {
-  //     for await (const r of this._pipe(cursor, inputs, index)) {
-  //       yield Promise.resolve(r);
-  //     }
-  //   } catch(e) {
-  //     cursor.error(e.toString(), index);
-  //   }
-  // }
-
-  // async *_pipe(cursor, inputs, index) {
-  //   let buffer;
-  //   if (this.finish) {
-  //     buffer = [];
-  //   }
-
-  //   const complete = (item) => {
-  //     cursor.publish(item, index);
-  //     return Promise.resolve(item);
-  //   }
-
-  //   try {
-  //     await this._before(cursor, index);
-
-  //     for await (const item of inputs) {
-  //       cursor.didStart(index);
-
-  //       for await (const output of this.runItem(cursor, item)) {
-  //         if (buffer) {
-  //           buffer.push(output);
-  //         } else {
-  //           yield complete(output);
-  //         }
-  //       }
-  //     }
-  //   } catch(e) {
-  //     if (e.code != 'limit') {
-  //       throw e;
-  //     }
-  //   } finally {
-  //     const finished = await this._finish(cursor, index, buffer);
-  //     for (const output of (finished || [])) {
-  //       yield complete(output);
-  //     }
-  //   }
-  // }
 }

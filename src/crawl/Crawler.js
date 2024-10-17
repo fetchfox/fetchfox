@@ -17,7 +17,6 @@ export const Crawler = class {
     logger.info(`Crawling ${url} with for "${query}"`);
 
     const doc = await this.fetcher.fetch(url, fetchOptions);
-    // const links = shuffle(doc.links);
     const links = doc.links;
     const maxBytes = this.ai.maxTokens / 2;
     const slimmer = item => ({
@@ -49,9 +48,6 @@ export const Crawler = class {
 
       const stream = this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit });
       for await (const { delta, usage } of stream) {
-
-        console.log('crawler DELTA==>', delta);
-
         if (!toLink[delta.id]) {
           logger.warn(`Could not find link with id ${delta.id}`);
           continue;
