@@ -144,7 +144,12 @@ export const BaseStep = class {
         maybeOk();
       });
 
-      parent.run(cursor, rest, index);
+      if (parent) {
+        parent.run(cursor, rest, index - 1);
+      } else {
+        await this.process(cursor, [], (output) => cursor.publish(output, index));
+        ok();
+      }
     });
 
     await this._finish(cursor, index);

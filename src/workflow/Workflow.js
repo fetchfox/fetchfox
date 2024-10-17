@@ -69,7 +69,9 @@ export const Workflow = class {
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
-    return last.run(cursor, rest, this.steps.length - 1);
+    await last.run(cursor, rest, this.steps.length - 1);
+
+    return cursor.results;
   }
 }
 
