@@ -18,6 +18,7 @@ export const ExportURLsStep = class extends BaseStep {
         format: 'choices',
         choices: ['pdf'],
         example: 'pdf',
+        default: 'pdf',
         required: true,
       },
       destination: {
@@ -38,6 +39,7 @@ export const ExportURLsStep = class extends BaseStep {
         description: `Filename template of the output files. Template may use {url} as part of the filename, which will differentiate the various rendered URLs`,
         format: 'string',
         example: 'pdfs/articles-{url}.pdf',
+        default: '{url}.pdf',
         required: true,
       },
     },
