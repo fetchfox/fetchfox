@@ -38,8 +38,8 @@ export const BaseStep = class {
   }
 
   async _before(cursor, index) {
+    cursor.didStart(index);
     this.results = [];
-
     if (this.before) {
       return this.before(cursor);
     }
@@ -91,7 +91,7 @@ export const BaseStep = class {
   }
 
   async run(cursor, upstream, index) {
-    await this._before();
+    await this._before(cursor, index);
 
     const parent = upstream[upstream.length - 1];
     const rest = upstream.slice(0, upstream.length - 1);
