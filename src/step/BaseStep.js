@@ -91,8 +91,6 @@ export const BaseStep = class {
   }
 
   async run(cursor, upstream, index) {
-    console.log('run()');
-
     await this._before();
 
     const parent = upstream[upstream.length - 1];
@@ -109,9 +107,19 @@ export const BaseStep = class {
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
     await new Promise(async (ok) => {
+
+      const maybeOk = () => {
+        if (parentDone && received == completed) {
+          ok();
+        }
+      }
+
       onParentDone = parent.on(
         'done',
-        () => parentDone = true);
+        () => {
+          parentDone = true;
+          maybeOk();
+        });
 
       onParentItem = parent.on('item', async (item) => {
         received++;
@@ -131,10 +139,7 @@ export const BaseStep = class {
           });
 
         completed++;
-
-        if (parentDone && received == completed) {
-          ok();
-        }
+        maybeOk();
       });
 
       parent.run(cursor, rest, index);
