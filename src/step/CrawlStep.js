@@ -28,20 +28,29 @@ export const CrawlStep = class extends BaseStep {
 
     this.query= query;
   }
-  async *runItem(cursor, item) {
-    logger.verbose(`Crawl ${JSON.stringify(item)} for ${this.query}`);
 
-    // TODO: Should `crawler` be removed from context?
+  async process(cursor, item, cb) {
     const crawler = cursor.ctx.crawler;
     const url = item.url || item.source().url;
-
-    if (!url) {
-      logger.error(`No URL found for item ${item}`);
-    }
-
     for await (const link of crawler.run(url, this.query)) {
-      logger.verbose(`Found link ${link.url}`);
-      yield Promise.resolve(link);
+      if (!url) {
+        logger.error(`No URL found for item ${item}`);
+        continue;
+      }
+
+      const done = cb(link);
+      if (done) break;
     }
   }
+
+  // async *runItem(cursor, item) {
+  //   logger.verbose(`Crawl ${JSON.stringify(item)} for ${this.query}`);
+  //   // TODO: Should `crawler` be removed from context?
+  //   const crawler = cursor.ctx.crawler;
+  //   const url = item.url || item.source().url;
+  //   for await (const link of crawler.run(url, this.query)) {
+  //     logger.verbose(`Found link ${link.url}`);
+  //     yield Promise.resolve(link);
+  //   }
+  // }
 }

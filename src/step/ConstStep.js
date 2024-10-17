@@ -30,6 +30,13 @@ export const ConstStep = class extends BaseStep {
     }
   }
 
+  async run(cursor, parent, index, doneCb) {
+    for (const item of this.items) {
+      this.trigger('item', item);
+    }
+    this.trigger('done');
+  }
+
   async *runItem() {
     for (const item of this.items) {
       logger.info(`Const step giving ${JSON.stringify(item)}`);

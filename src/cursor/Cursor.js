@@ -3,7 +3,7 @@ import { Context } from '../context/Context.js';
 export const Cursor = class {
   constructor(args, steps, cb) {
     this.ctx = new Context(args);
-    this.cb = cb;
+    this.cb = cb ? cb : () => {};
     this.results = [];
     steps.map((step) => this.results.push({
       items: [],
