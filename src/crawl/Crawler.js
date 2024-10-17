@@ -30,6 +30,7 @@ export const Crawler = class {
 
     let matches = [];
     let count = 0;
+
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
       const prompt = gather.render({
@@ -55,19 +56,13 @@ export const Crawler = class {
 
         const link = toLink[delta.id];
         if (seen[link.url]) continue;
+        seen[link.url] = true;
         delete link.id;
 
         logger.info(`Found link ${link.url} in response to "${query}"`);
 
         if (count++ >= limit) break;
-
         yield Promise.resolve(link);
-
-        // yield Promise.resolve({
-        //   ...link,
-        //   usage,
-        //   progress: { done: i, total: chunked.length },
-        // });
       }
 
       if (limit && count >= limit) return;

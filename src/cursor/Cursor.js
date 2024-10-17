@@ -15,7 +15,7 @@ export const Cursor = class {
     this.results[stepIndex].loading = true;
     this.results[stepIndex].didStart = true;
     this.results[stepIndex].done = false;
-    this.cb(
+    return this.cb && this.cb(
       {
         delta: { startedStep: stepIndex },
         results: this.results,
@@ -27,20 +27,19 @@ export const Cursor = class {
     this.results[stepIndex].items.push(
       JSON.parse(JSON.stringify(item))
     );
-    if (this.cb) {
-      this.cb(
-        {
-          delta: { item, index: stepIndex },
-          results: this.results,
-        },
-        stepIndex);
-    }
+    return this.cb && this.cb(
+      {
+        delta: { item, index: stepIndex },
+        results: this.results,
+      },
+      stepIndex);
   }
 
   error(message, stepIndex) {
     this.results[stepIndex].error = message;
+    this.results[stepIndex].done = true;
     delete this.results[stepIndex].loading;
-    this.cb(
+    return this.cb && this.cb(
       {
         delta: { error: { index: stepIndex, message } },
         results: this.results,
@@ -51,7 +50,7 @@ export const Cursor = class {
   finish(stepIndex) {
     this.results[stepIndex].done = true;
     delete this.results[stepIndex].loading;
-    this.cb(
+    return this.cb && this.cb(
       {
         delta: { finishedStep: stepIndex },
         results: this.results

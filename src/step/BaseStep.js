@@ -91,6 +91,15 @@ export const BaseStep = class {
   }
 
   async run(cursor, upstream, index) {
+    try {
+      return await this._run(cursor, upstream, index);
+    } catch(e) {
+      await cursor.error('' + e, index);
+      throw e;
+    }
+  }
+  
+  async _run(cursor, upstream, index) {
     // TODO: batch process items mode for steps that work better when
     // all items are available. Applies to FilterStep, SchemaStep,
     // and maybe others.
