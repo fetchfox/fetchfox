@@ -71,25 +71,6 @@ export const Workflow = class {
 
     return last.run(cursor, rest, this.steps.length - 1);
   }
-
-  // async *stream(args, cb) {
-  //   if (args) this.parseRunArgs(args);
-  //   await this.plan();
-  //   if (this.steps.length == 0) return;
-  //   const cursor = new Cursor(this.ctx, this.steps, cb);
-  //   let head = (async function* () {
-  //     yield Promise.resolve(null);
-  //   })();
-  //   for (let i = 0; i < this.steps.length; i++) {
-  //     head = this.steps[i].pipe(cursor, head, i);
-  //   }
-  //   for await (const item of head) {
-  //     yield Promise.resolve({
-  //       delta: item,
-  //       results: cursor.results,
-  //     });
-  //   }
-  // }
 }
 
 for (const stepName of stepNames) {

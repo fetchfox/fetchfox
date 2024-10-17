@@ -15,7 +15,12 @@ export const Cursor = class {
     this.results[stepIndex].loading = true;
     this.results[stepIndex].didStart = true;
     this.results[stepIndex].done = false;
-    this.cb({ results: this.results }, stepIndex);
+    this.cb(
+      {
+        delta: { didStart: stepIndex },
+        results: this.results,
+      },
+      stepIndex);
   }
 
   publish(item, stepIndex) {
@@ -23,19 +28,30 @@ export const Cursor = class {
       JSON.parse(JSON.stringify(item))
     );
     if (this.cb) {
-      this.cb({ delta: item, results: this.results }, stepIndex);
+      console.log('cursor call cb with', item, stepIndex);
+      this.cb({ delta: { item }, results: this.results }, stepIndex);
     }
   }
 
   error(message, stepIndex) {
     this.results[stepIndex].error = message;
     delete this.results[stepIndex].loading;
-    this.cb({ results: this.results }, stepIndex);
+    this.cb(
+      {
+        delta: { error: { index: stepIndex, message } },
+        results: this.results,
+      },
+      stepIndex);
   }
 
   finish(stepIndex) {
     this.results[stepIndex].done = true;
     delete this.results[stepIndex].loading;
-    this.cb({ results: this.results }, stepIndex);
+    this.cb(
+      {
+        delta: { finish: stepIndex },
+        results: this.results
+      },
+      stepIndex);
   }
 }

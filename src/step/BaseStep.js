@@ -123,10 +123,12 @@ export const BaseStep = class {
 
       onParentItem = parent.on('item', async (item) => {
         received++;
+
         await this.process(
           cursor,
           item,
           (output) => {
+            cursor.publish(output, index);
             this.results.push(output);
             this.trigger('item', output);
 
