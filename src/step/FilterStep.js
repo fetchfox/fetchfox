@@ -30,14 +30,18 @@ export const FilterStep = class extends BaseStep {
     this.query= query;
   }
 
-  async *run(cursor) {
+  async process(cursor, item, cb) {
+    // TODO: Need a process for processing all items at once,
+    // eg. if the users asks something like "take the 10% of items"
+
     const filter = new Filter(cursor.ctx);
-    const items = cursor.last;
-    logger.info(`Filter ${items.length} items for ${this.query}`);
-    const stream = filter.run(cursor.last, this.query);
-    for await (const match of stream) {
-      logger.info(`Filter matched ${match}`);
-      yield Promise.resolve(match);
+    const stream = filter.run([item], this.query);
+    const matches = [];
+    logger.verbose(`Filter on ${item} on ${this.query}`);
+    for await (const output of stream) {
+      logger.verbose(`Filter matched ${item} on ${this.query}`);
+      const done = cb(output);
+      if (done) break;
     }
   }
 }

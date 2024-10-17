@@ -6,7 +6,6 @@ import { ExportItemsStep } from './ExportItemsStep.js';
 import { ExportURLsStep } from './ExportURLsStep.js';
 import { ExtractStep } from './ExtractStep.js';
 import { FilterStep } from './FilterStep.js';
-import { LimitStep } from './LimitStep.js';
 import { SchemaStep } from './SchemaStep.js';
 
 export { ConstStep } from './ConstStep.js';
@@ -15,7 +14,6 @@ export { ExportItemsStep } from './ExportItemsStep.js';
 export { ExportURLsStep } from './ExportURLsStep.js';
 export { ExtractStep } from './ExtractStep.js';
 export { FilterStep } from './FilterStep.js';
-export { LimitStep } from './LimitStep.js';
 export { SchemaStep } from './SchemaStep.js';
 
 const all = [
@@ -25,7 +23,6 @@ const all = [
   ExportURLsStep,
   ExtractStep,
   FilterStep,
-  // LimitStep,
   SchemaStep,
 ];
 const _classMap = {};

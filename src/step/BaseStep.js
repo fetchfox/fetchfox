@@ -91,6 +91,10 @@ export const BaseStep = class {
   }
 
   async run(cursor, upstream, index) {
+    // TODO: batch process items mode for steps that work better when
+    // all items are available. Applies to FilterStep, SchemaStep,
+    // and maybe others.
+
     await this._before(cursor, index);
 
     const parent = upstream[upstream.length - 1];

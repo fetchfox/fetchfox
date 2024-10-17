@@ -62,11 +62,10 @@ export const ExportURLsStep = class extends BaseStep {
     this.exporter.open(this.filepathTemplate);
   }
 
-  async *runItem(cursor, item) {
+  async process(cursor, item, cb) {
     logger.verbose(`Export URL field ${this.field} of item ${item}`);
-
     await this.exporter.write(item);
-    yield Promise.resolve(item);
+    cb(item);
   }
 
   async finish() {

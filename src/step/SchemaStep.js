@@ -27,14 +27,17 @@ export const SchemaStep = class extends BaseStep {
     if (!this.schema) throw new Error('no schema'); 
   }
 
-  async *run(cursor) {
+  async process(cursor, item, cb) {
+    // TODO: use batch mode once available
+
     const schema = new Schema(cursor.ctx);
-    const items = cursor.last;
-    logger.info(`Schema transform ${items.length} items into ${JSON.stringify(this.schema)}`);
-    const stream = schema.run(cursor.last, this.schema);
-    for await (const match of stream) {
-      logger.info(`Schema transformed into ${match}`);
-      yield Promise.resolve(match);
+    const items = [item]
+    logger.verbose(`Schema transform ${item} items into ${JSON.stringify(this.schema)}`);
+    const stream = schema.run([item], this.schema);
+    for await (const output of stream) {
+      logger.verbose(`Schema transformed into ${output}`);
+      const done = cb(output);
+      if (done) break;
     }
   }
 }
