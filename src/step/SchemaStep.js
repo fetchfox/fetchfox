@@ -27,7 +27,7 @@ export const SchemaStep = class extends BaseStep {
     if (!this.schema) throw new Error('no schema'); 
   }
 
-  async process(cursor, item, cb) {
+  async process({ cursor, item }, cb) {
     // TODO: use batch mode once available
 
     const schema = new Schema(cursor.ctx);

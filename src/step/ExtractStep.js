@@ -40,7 +40,7 @@ export const ExtractStep = class extends BaseStep {
     this.single = args?.single;
   }
 
-  async process(cursor, item, cb) {
+  async process({ cursor, item }, cb) {
     logger.verbose(`Extract ${this.questions.join(', ')} from ${item}`);
 
     const ex = cursor.ctx.extractor;

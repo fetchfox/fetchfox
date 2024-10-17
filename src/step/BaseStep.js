@@ -47,17 +47,22 @@ export const BaseStep = class {
 
   async _finish(cursor, index) {
     try {
-      if (!this.finish) {
-        return;
+      if (this.finish) {
+        await this.finish();
       }
 
-      const out = await this.finish();
+      // TODO: implement `batch` option for steps that need all items, and
+      // use that instead of the below commented out flow
 
-      const key = `Step${index + 1}_${this.constructor.name}`;
-      for (let i = 0; i < out.length && i < this.results.length; i++) {
-        const item = this.results[i];
-        item[key] = out[i];
-      }
+      // if (!this.finish) {
+      //   return;
+      // }
+      // const out = await this.finish();
+      // const key = `Step${index + 1}_${this.constructor.name}`;
+      // for (let i = 0; i < out.length && i < this.results.length; i++) {
+      //   const item = this.results[i];
+      //   item[key] = out[i];
+      // }
 
     } finally {
       cursor.finish(index);
@@ -138,8 +143,7 @@ export const BaseStep = class {
         received++;
 
         await this.process(
-          cursor,
-          item,
+          { cursor, item, index },
           (output) => {
             cursor.publish(output, index);
             this.results.push(output);

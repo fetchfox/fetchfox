@@ -29,7 +29,7 @@ export const CrawlStep = class extends BaseStep {
     this.query= query;
   }
 
-  async process(cursor, item, cb) {
+  async process({ cursor, item }, cb) {
     const crawler = cursor.ctx.crawler;
     const url = item.url || item.source().url;
     for await (const output of crawler.run(url, this.query)) {

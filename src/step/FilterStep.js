@@ -30,7 +30,7 @@ export const FilterStep = class extends BaseStep {
     this.query= query;
   }
 
-  async process(cursor, item, cb) {
+  async process({ cursor, item }, cb) {
     // TODO: Need a process for processing all items at once,
     // eg. if the users asks something like "take the 10% of items"
 

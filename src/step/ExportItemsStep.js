@@ -52,7 +52,7 @@ export const ExportItemsStep = class extends BaseStep {
     await this.exporter.open(this.filepath);
   }
 
-  async process(cursor, item, cb) {
+  async process({ cursor, item }, cb) {
     logger.verbose(`Export item ${item}`);
     await this.exporter.write(item);
     cb(item);
