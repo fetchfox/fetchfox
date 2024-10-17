@@ -56,24 +56,23 @@ export const ExportURLsStep = class extends BaseStep {
     this.s3bucket = args?.s3bucket;
   }
 
-  async before(cursor) {
+  async process({ cursor, item, index }, cb) {
+    logger.verbose(`Export URL field ${this.field} of item ${item}`);
+
     const args = this.args();
     args.mode = this.mode;
     args.filepath = this.filepathTemplate;
     args.tokens = cursor.ctx.tokens;
-    this.exporter = getExporter(this.destination, args);
-    this.exporter.open(this.filepathTemplate);
-  }
+    const exporter = getExporter(this.destination, args);
+    exporter.open(this.filepathTemplate);
 
-  async process(cursor, item, cb) {
-    logger.verbose(`Export URL field ${this.field} of item ${item}`);
-    await this.exporter.write(item);
+    await exporter.write(item);
+
+    const [url] = await exporter.close();
+
+    const key = `Step${index + 1}_Export`;
+    item[key] = url;
+
     cb(item);
-  }
-
-  async finish() {
-    const urls = await this.exporter?.close();
-    this.exporter = null;
-    return urls;
   }
 }
