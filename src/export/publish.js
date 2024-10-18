@@ -1,7 +1,8 @@
+import fetch from 'node-fetch';
+import { Readable } from 'stream';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Dropbox } from 'dropbox';
 import { google } from 'googleapis';
-import fetch from 'node-fetch';
 
 const s3 = new S3Client();
 const dbx = new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN, fetch });
@@ -54,8 +55,39 @@ export const publishToDropbox = async (buf, path, token) => {
 
 export const publishToGoogle = async (buf, path, token) => {
   const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: googleToken });
+  auth.setCredentials({ access_token: token });
   const drive = google.drive({ version: 'v3', auth });
 
-  // TODO: write buf to path, and return the URL
+  const parts = path.split('/');
+  const directoryId = parts[0];
+  const filename = parts.slice(1).join('/');
+
+  const fileMetadata = {
+    name: filename,
+    parents: [directoryId],
+  };
+
+  const media = {
+    mimeType: 'application/pdf',
+    // TODO: Use Blob for browser environment
+    body: Readable.from(buf),
+  };
+
+  const file = await drive.files.create({
+    resource: fileMetadata,
+    media: media,
+    fields: 'id',
+  });
+
+  await drive.permissions.create({
+    fileId: file.data.id,
+    requestBody: {
+      role: 'reader',
+      type: 'anyone',
+    },
+  });
+
+  const url = `https://drive.google.com/uc?id=${file.data.id}&export=download`;
+
+  return url;
 }

@@ -2,7 +2,7 @@ import fs from 'fs';
 import playwright from 'playwright';
 import { logger } from '../log/logger.js';
 import { BaseExporter } from './BaseExporter.js';
-import { publishToS3, publishToDropbox } from './publish.js';
+import { publishToS3, publishToDropbox, publishToGoogle } from './publish.js';
 import { stringify } from 'csv-stringify';
 
 export const Exporter = class extends BaseExporter {
@@ -21,6 +21,10 @@ export const Exporter = class extends BaseExporter {
 
       case 'dropbox':
         this.dropboxToken = options.tokens?.dropbox || process.env.DROPBOX_ACCESS_TOKEN;
+        break;
+
+      case 'google':
+        this.googleToken = options.tokens?.google || process.env.GOOGLE_ACCESS_TOKEN;
         break;
 
       case 'file':
@@ -45,6 +49,10 @@ export const Exporter = class extends BaseExporter {
 
       case 'dropbox':
         this.filepath = filepath.startsWith('/') ? filepath : '/' + filepath;
+        break;
+
+      case 'google':
+        this.filepath = filepath;
         break;
 
       case 'file':
@@ -147,6 +155,10 @@ export const Exporter = class extends BaseExporter {
 
           case 'dropbox':
             url = await publishToDropbox(body, filepath, this.dropboxToken);
+            break;
+
+          case 'google':
+            url = await publishToGoogle(body, filepath, this.googleToken);
             break;
 
           case 'file':
