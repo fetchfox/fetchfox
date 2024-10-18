@@ -35,11 +35,18 @@ export const ExportURLsStep = class extends BaseStep {
         example: 'my-s3-bucket',
         required: false,
       },
-      filepathTemplate: {
+      filename: {
         description: `Filename template of the output files. Template may use {url} as part of the filename, which will differentiate the various rendered URLs`,
         format: 'string',
-        example: 'pdfs/articles-{url}.pdf',
+        example: 'article-{url}.pdf',
         default: '{url}.pdf',
+        required: true,
+      },
+      directory: {
+        description: `Directory of the output files. Template may use {url} as part of the filename, which will differentiate the various rendered URLs`,
+        format: 'string',
+        example: 'output/',
+        default: '',
         required: true,
       },
     },
@@ -47,7 +54,8 @@ export const ExportURLsStep = class extends BaseStep {
 
   constructor(args) {
     super(args);
-    this.filepathTemplate = args?.filepathTemplate;
+    this.filename = args?.filename || '{url}.pdf'
+    this.directory = args?.directory || ''
     this.field = args.field;
 
     this.format = args.format || 'pdf';
@@ -61,10 +69,13 @@ export const ExportURLsStep = class extends BaseStep {
 
     const args = this.args();
     args.mode = this.mode;
-    args.filepath = this.filepathTemplate;
+    const filepath = (this.directory
+                    ? `${this.directory}/${this.filename}`
+                    : this.filename)
+    args.filepath = filepath;
     args.tokens = cursor.ctx.tokens;
     const exporter = getExporter(this.destination, args);
-    exporter.open(this.filepathTemplate);
+    exporter.open(filepath);
 
     await exporter.write(item);
 

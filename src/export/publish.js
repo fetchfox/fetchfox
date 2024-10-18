@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Dropbox } from 'dropbox';
+import { google } from 'googleapis';
 import fetch from 'node-fetch';
 
 const s3 = new S3Client();
@@ -47,5 +48,14 @@ export const publishToDropbox = async (buf, path, token) => {
       path: resp.result.path_display,
     })).result.url;
   }
+
   return url;
+}
+
+export const publishToGoogle = async (buf, path, token) => {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: googleToken });
+  const drive = google.drive({ version: 'v3', auth });
+
+  // TODO: write buf to path, and return the URL
 }
