@@ -24,7 +24,7 @@ export const ExportURLsStep = class extends BaseStep {
       destination: {
         description: `The user's destination for the output. Use absolute path, starting with /`,
         format: 'choices',
-        choices: ['s3', 'dropbox', 'file'],
+        choices: ['s3', 'dropbox', 'google', 'file'],
         default: 's3',
         example: 'dropbox',
         required: true,
