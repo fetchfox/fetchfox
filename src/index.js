@@ -37,7 +37,6 @@ export { ConstStep } from './step/ConstStep.js';
 export { CrawlStep } from './step/CrawlStep.js';
 export { ExportItemsStep } from './step/ExportItemsStep.js';
 export { ExportURLsStep } from './step/ExportURLsStep.js';
-export { FetchStep } from './step/FetchStep.js';
 
 export { stepDescriptions } from './step/index.js';
 export { fox } from './fox/index.js';
