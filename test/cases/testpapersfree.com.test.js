@@ -4,9 +4,6 @@ import { fox } from '../../src/index.js';
 process.on('unhandledRejection', async (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);
   process.exit(1);
-  // throw 'xyz';
-  // throw new Error(p);
-  // application specific logging, throwing an error, or other logic here
 });
 
 describe('testpapersfree.com', function() {
@@ -26,9 +23,12 @@ describe('testpapersfree.com', function() {
       .action({
         action: 'click',
         query: 'download testpaper buttons.',
-        selector: 'input[type=submit],button',
+        selector: 'input[type="submit"],button',
       })
       .extract('exam PDF filename')
-      .run();
+      .run(null, (partial) => {
+        const { item, index } = partial.delta;
+        console.log('item-->', item);
+      });
   });
 });

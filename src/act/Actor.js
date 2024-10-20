@@ -21,11 +21,12 @@ export const Actor = class {
   }
 
   async doc() {
+    logger.verbose(`Doc from ${this.url()}`);
     const doc = new Document();
     const data = {
       url: this.url(),
       html: await this.page.content(),
-      text: await this.page.evaluate(() => document.body.innerText),
+      text: await this.page.evaluate(() => document?.body?.innerText || ''),
       contentType: 'text/html',
     };
     doc.loadData(data);
