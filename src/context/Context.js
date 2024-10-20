@@ -1,5 +1,5 @@
 import { getAI } from '../ai/index.js';
-import { getActor } from '../act/index.js';
+// import { getActor } from '../act/index.js';
 import { getCrawler } from '../crawl/index.js';
 import { getExporter } from '../export/index.js';
 import { getExtractor } from '../extract/index.js';
@@ -7,7 +7,7 @@ import { getFetcher } from '../fetch/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 
 export const contextKeys = [
-  ['actor', getActor],
+  // ['actor', getActor],
   ['ai', getAI],
   ['crawler', getCrawler],
   ['extractor', getExtractor],

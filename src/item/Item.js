@@ -5,12 +5,14 @@ import { logger } from '../log/logger.js';
 
 export const Item = class {
   #source;
+  #actor;
 
   constructor(data, source) {
     for (const k of Object.keys(data)) {
       this[k] = this.clean(data[k]);
     }
     this.#source = source;
+    this.url = source?.url;
   }
 
   clean(val) {
@@ -27,6 +29,14 @@ export const Item = class {
 
   toString() {
     return `[Item: ${JSON.stringify(this).substr(0, 40)}... from ${this.#source}]`;
+  }
+
+  actor() {
+    return this.#actor;
+  }
+
+  setActor(actor) {
+    this.#actor = actor;
   }
 
   source() {

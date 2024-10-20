@@ -1,5 +1,6 @@
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
+import { Item } from '../item/Item.js';
 
 export const ConstStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
@@ -32,7 +33,7 @@ export const ConstStep = class extends BaseStep {
 
   async run(cursor, parent, index) {
     for (const output of this.items) {
-      cursor.publish(output, index);
+      cursor.publish(new Item(output), index);
       this.trigger('item', output);
     }
     cursor.finish(index);

@@ -1,5 +1,6 @@
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
+import { Item } from '../item/Item.js';
 
 export const FetchStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
@@ -17,6 +18,6 @@ export const FetchStep = class extends BaseStep {
     console.log('Fetch!', item.url);
     const doc = await cursor.ctx.fetcher.fetch(item.url);
     // console.log('Got doc: ' + doc);
-    cb(doc);
+    cb(new Item({}, doc));
   }
 }
