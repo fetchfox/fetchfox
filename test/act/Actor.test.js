@@ -37,7 +37,8 @@ describe('Actor', function() {
     await copy.finish();
   });
 
-  it('should fork', async (done) => {
+  // TODO: this test never terminates, figure out why
+  it('should fork', async () => {
     const actor = new Actor();
 
     await actor.start('https://www.sgtestpapersfree.com/');
