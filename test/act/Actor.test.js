@@ -2,7 +2,7 @@ import assert from 'assert';
 import { Actor } from '../../src/act/Actor.js';
 
 describe('Actor', function() {
-  this.timeout(0);
+  this.timeout(3 * 60 * 1000); // 3 minutes
 
   it('should replay', async () => {
     const actor = new Actor();
@@ -23,7 +23,6 @@ describe('Actor', function() {
 
     const expectView = async (a) => {
       const el = await (a.finder('Button that says "View"', 'button')).first();
-      console.log('ev el->', el);
       assert.equal(await el.innerText(), 'View');
       assert.equal(
         await el.evaluate(el => el.getAttribute('data-file')),
@@ -31,11 +30,53 @@ describe('Actor', function() {
     }
     await expectView(actor);
 
-    console.log('history:', actor.history);
     await actor.finish();
 
-    const copy = await actor.rerun();
+    const copy = await actor.replay();
     await expectView(copy);
     await copy.finish();
+  });
+
+  it('should fork', async (done) => {
+    const actor = new Actor();
+
+    await actor.start('https://www.sgtestpapersfree.com/');
+
+    const url = actor.url();
+    assert.equal(actor.url(), 'https://www.sgtestpapersfree.com/');
+
+    await actor.finish();
+
+    const fork1 = await actor.fork(
+      'click',
+      'Buttons that contains "Primary"',
+      'a.btn');
+
+    const fork2 = await actor.fork(
+      'click',
+      'Buttons that contain "Primary"',
+      'a.btn');
+
+    const fork3 = await actor.fork(
+      'click',
+      'Buttons that contain "Primary"',
+      'a.btn');
+
+    const expect = [
+      [fork1, 'P1_HChinese_2019_Red_Swastika_test1_Papers.pdf'],
+      [fork2, 'P3_Chinese_2022_WA1_anglochinese.pdf'],
+      [fork3, 'P5_Chinese_2022_WA1_acs.pdf'],
+    ];
+
+    for (const [fork, filename] of expect) {
+      const el = await (fork.finder('Button that says "View"', 'button')).first();
+      assert.equal(
+        await el.evaluate(el => el.getAttribute('data-file')),
+        filename);
+    }
+
+    await fork1.finish();
+    await fork2.finish();
+    return fork3.finish();
   });
 });

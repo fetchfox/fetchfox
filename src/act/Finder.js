@@ -47,12 +47,8 @@ export const Finder = class {
   }
 
   async *stream() {
-    // console.log('PAGE====>', await page.content());
-    logger.verbose(`Find ${this.query} matching ${this.selector} on ${this.page}`);
-
+    logger.verbose(`Find ${this.query} matching ${this.selector}`);
     const { candidates, map } = await this.label(this.page, this.selector);
-
-
     const maxBytes = this.ai.maxTokens / 2;
     const chunked = chunkList(candidates, maxBytes);
     let matches = [];
@@ -60,33 +56,33 @@ export const Finder = class {
 
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
-      // console.log('chunk', chunk);
       const prompt = find.render({
         query: this.query,
         items: JSON.stringify(chunk, null, 2),
       });
 
       for await (const { delta } of this.ai.stream(prompt, { format: 'jsonl' })) {
-        // console.log('map', map);
-        // console.log('delta._ffid', delta._ffid);
-        const r = map[delta._ffid];
-        console.log('YIELD', r);
-        yield Promise.resolve(r);
+        logger.verbose(`Found ffid=${delta._ffid}`);
+        yield Promise.resolve(map[delta._ffid]);
       }
     }
   }
 
-  async first() {
-    for await (const r of this.stream()) {
-      return r;
-    }
-  }
-
-  async all() {
+  async limit(l) {
     const results = [];
     for await (const r of this.stream()) {
       results.push(r);
+      if (l && results.length >= l) break;
     }
     return results;
+  }
+
+  async first() {
+    const results = await this.limit(1);
+    return results?.length ? results[0] : null;
+  }
+
+  async all() {
+    return this.limit();
   }
 }
