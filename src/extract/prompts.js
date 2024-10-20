@@ -16,7 +16,6 @@ Follow these important rules:
 - Please make sure the response is valid JSONL. Only ONE JSON object per line. Remove any \n characters in questions and answers.
 - Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
-- Maximum 20 items
 
 {{extraRules}}
 

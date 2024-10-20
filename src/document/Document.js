@@ -72,10 +72,9 @@ export const Document = class {
   }
 
   async read(resp, reqUrl, reqOptions) {
-    logger.info(`Loading document from response ${resp.url}`);
-
-    this.body = await resp.text();
     this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
+    logger.info(`Loading document from response ${this.url}`);
+    this.body = await resp.text();
 
     let respHeaders = {};
     if (typeof resp.headers == 'function') {

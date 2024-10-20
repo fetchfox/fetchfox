@@ -12,7 +12,7 @@ export const Item = class {
       this[k] = this.clean(data[k]);
     }
     this.#source = source;
-    this.url = source?.url;
+    this.url = source?.url || data?.url;
   }
 
   clean(val) {

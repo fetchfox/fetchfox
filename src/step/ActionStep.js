@@ -28,70 +28,27 @@ export const ActionStep = class extends BaseStep {
     this.action = args.action;
     this.query = args.query;
     this.selector = args.selector;
-
-    // this.actions = args.actions || [];
   }
 
   async process({ cursor, item }, cb) {
+    const url = item.url;
 
-    console.log('');
-    console.log('');
-    console.log('   => Running Action', this.action, this.query, item.actor());
-    console.log('');
-    console.log('');
-
-    logger.verbose(`Action step for ${item}`);
-    console.log('Act! ' + item);
-    let actor = item.actor();
-    if (actor) {
-      console.log('actor history:', actor.history);
+    let actor;
+    let base = item.actor();
+    if (base) {
+      actor = base.fork();
     } else {
       actor = new Actor(cursor.ctx);
-      const url = item?.url || item.source().url;
       await actor.start(url);
     }
 
-    // console.log('got actor: ' + actor);
-
-    let done = false;
-    while (!done) {
-      const clone = await actor.clone();
-      done = await clone.act(this.action, this.query, this.selector);
-      const doc = await actor.doc();
+    while (true) {
+      let [fork, done] = await actor.fork(this.action, this.query, this.selector);
+      const doc = await fork.doc();
       const output = new Item(item, doc);
-      output.setActor(clone);
-
-      // console.log('Output has actor:', output.actor());
+      output.setActor(fork);
       done = done || cb(output);
-      console.log('===DONE?', done);
-      await new Promise(ok => setTimeout(ok, 2000));
-      // throw 'STOP';
+      if (done) break;
     }
-
-    // // let done = false
-    // let index = 0;
-    // while (!done) {
-    //   await actor.act(this.action, this.query, this.selector, index++);
-    //   const doc = await actor.doc();
-    //   console.log('actor doc: ' + doc);
-    //   const output = new Item(item, doc);
-    //   output.setActor();
-    //   await new Promise(ok => setTimeout(ok, 4000));
-    // }
-
-    // return done;
-
-    // const actor = cursor.ctx.actor;
-    // await actor.act(item.url, this.actions);
-
-    // try {
-    //   // for (const [action, query, selector] of this.actions) {
-    //   //   console.log('-->', action, 'query:', query, 'selector:', selector);
-    //   //   await actor.act(action, query, selector);
-    //   //   throw 'xyz';
-    //   // }
-    // } finally {
-    //   await actor.finish();
-    // }
   }
 }

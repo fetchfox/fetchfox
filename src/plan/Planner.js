@@ -72,7 +72,7 @@ export const Planner = class {
   }
 
   fromJson(json) {
-    logger.verbose(`Plann from JSON: ${JSON.stringify(json)}`);
+    logger.verbose(`Plan from JSON: ${JSON.stringify(json)}`);
     const cls = classMap[json.name];
     const args = Object.assign({}, json.args);
     return new cls(args);

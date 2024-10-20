@@ -34,11 +34,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let browser;
 
     try {
-      browser = await playwright.chromium.launch({ headless: false });
+      browser = await playwright.chromium.launch({ headless: true });
       const page = await browser.newPage();
       const resp = await page.goto(url);
 
-      logger.info(`Got response: ${resp.status} for ${resp.url}`);
+      logger.info(`Playwright got response: ${resp.status()} for ${resp.url}`);
       await doc.read(resp, url, options);
 
       this.setCache(url, options, doc.dump());

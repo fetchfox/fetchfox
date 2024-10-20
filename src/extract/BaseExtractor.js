@@ -1,5 +1,6 @@
 import { getAI } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
+import { Document } from '../document/Document.js';
 
 export const BaseExtractor = class {
   constructor(options) {
@@ -14,8 +15,11 @@ export const BaseExtractor = class {
   }
 
   async getDoc(target) {
-    if (target.constructor.name == 'Document') {
+    if (target instanceof Document) {
       return target;
+    }
+    if (target.source() instanceof Document) {
+      return target.source();
     }
 
     let url;

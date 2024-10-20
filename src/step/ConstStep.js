@@ -32,8 +32,9 @@ export const ConstStep = class extends BaseStep {
   }
 
   async run(cursor, parent, index) {
-    for (const output of this.items) {
-      cursor.publish(new Item(output), index);
+    for (const data of this.items) {
+      const output = new Item(data);
+      cursor.publish(output, index);
       this.trigger('item', output);
     }
     cursor.finish(index);

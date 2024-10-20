@@ -26,7 +26,6 @@ export const Context = class {
 
     const cache = args?.cache;
     for (const [key, getter] of contextKeys) {
-      console.log('key', key, getter);
       let val;
       let which = null;
       let options = {};
@@ -41,7 +40,6 @@ export const Context = class {
         }
       }
       if (!val) {
-        console.log('call getter with', which, options);
         val = getter(which, { ...this, cache, ...options });
       }
       this[key] = val;

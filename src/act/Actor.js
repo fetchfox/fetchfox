@@ -11,6 +11,11 @@ export const Actor = class {
     this.extractor = options?.extractor || getExtractor();
   }
 
+  toString() {
+    const url = this.url();
+    return `[Actor ${url.length > 40 ? url.substr(32) + '...' : url } ${(this.history || []).length} acts]`;
+  }
+
   url() {
     return this.page?.url();
   }
@@ -47,11 +52,11 @@ export const Actor = class {
 
   async fork(action, query, selector) {
     const fork = await this.replay();
-    await fork.act(action, query, selector);
+    const done = await fork.act(action, query, selector);
     this.history = JSON.parse(JSON.stringify(fork.history));
     this.history.pop();
     this.index = fork.index + 1;
-    return fork;
+    return [fork, done];
   }
 
   async start(url) {

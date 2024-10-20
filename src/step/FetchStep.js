@@ -15,9 +15,7 @@ export const FetchStep = class extends BaseStep {
 
   async process({ cursor, item }, cb) {
     logger.verbose(`Fetch step for ${item}`);
-    console.log('Fetch!', item.url);
     const doc = await cursor.ctx.fetcher.fetch(item.url);
-    // console.log('Got doc: ' + doc);
     cb(new Item({}, doc));
   }
 }

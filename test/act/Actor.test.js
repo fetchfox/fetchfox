@@ -48,17 +48,17 @@ describe('Actor', function() {
 
     await actor.finish();
 
-    const fork1 = await actor.fork(
+    const { fork: fork1 } = await actor.fork(
       'click',
       'Buttons that contains "Primary"',
       'a.btn');
 
-    const fork2 = await actor.fork(
+    const { fork: fork2 } = await actor.fork(
       'click',
       'Buttons that contain "Primary"',
       'a.btn');
 
-    const fork3 = await actor.fork(
+    const { fork: fork3 } = await actor.fork(
       'click',
       'Buttons that contain "Primary"',
       'a.btn');

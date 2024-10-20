@@ -44,67 +44,23 @@ export const SinglePromptExtractor = class extends BaseExtractor {
             : ''),
       };
       const prompt = scrapeOnce.render(context);
-
-      let count = 0;
-      let expectedCount;
-
-      let gen = that.ai.stream(prompt, { format: 'jsonl', stream });
-      for await (const { delta, usage } of gen) {
-        if (delta.itemCount) {
-          expectedCount = delta.itemCount;
-          continue;
-        }
-
-        let r;
-        if (single) {
-          single = Object.assign({}, delta, single);
-          r = single;
-        } else {
-          // Assume its a new result
-          r = delta;
-        }
-
-        const done = (
-          limit && count >= limit ||
-          // Single complete item cases:
-          expectedCount == 1 && that.countMissing(delta, questions) == 0 ||
-          single && that.countMissing(single, questions) == 0);
-
-        count++;
-        if (single && !done && more) {
-          continue;
-        }
-
+      const stream = that.ai.stream(prompt, { format: 'jsonl' });
+      for await (const { delta } of stream) {
         yield Promise.resolve({
-          item: new Item(r, doc),
-          done,
-          more,
+          item: new Item(delta, doc),
         });
-
-        return;
       }
     }
 
-    let done;
-    let more;
-    const max = 3;
-    let i;
     const chunks = this.chunks(doc);
-    for (i = 0; i < max && i < chunks.length; i++) {
-      logger.info(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
+    const max = 3;
+    let count = 0;
+    for (let i = 0; i < max && i < chunks.length; i++) {
+      logger.verbose(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
       for await (const result of inner(chunks[i])) {
+        logger.verbose(`Extraction found item (count=${count++}): ${result.item}`);
         yield Promise.resolve(result.item);
-        more = result.more;
-        done = result.done;
-        if (done) break;
-        if (single) return;
       }
-
-      if (done) break;
-      if (!more) break;
-      if (i + 1 == max) logger.warn(`Stopping extraction with some bytes left unprocessed for ${doc}`);
     }
-
-    if (i < max) logger.info(`Stopped extraction before reading all bytes, but probably got all info`);
   }
 }
