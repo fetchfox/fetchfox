@@ -1,7 +1,7 @@
 import { logger } from '../log/logger.js';
 import { Item } from '../item/Item.js';
 import { getAI } from '../ai/index.js';
-import { shuffle, chunkList } from '../util.js';
+import { chunkList } from '../util.js';
 import { filter } from './prompts.js';
 
 export const Filter = class {
@@ -25,7 +25,7 @@ export const Filter = class {
       const chunk = chunked[i];
       const prompt = filter.render({
         query,
-        items: JSON.stringify(copy, null, 2),
+        items: JSON.stringify(chunk, null, 2),
       });
 
       const stream = this.ai.stream(prompt, { format: 'jsonl' });

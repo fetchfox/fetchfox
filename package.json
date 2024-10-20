@@ -15,7 +15,7 @@
     "url": "git+https://github.com/fetchfox/fetchfox.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/fetchfox/fetchfox/issues"
   },

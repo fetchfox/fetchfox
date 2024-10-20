@@ -54,6 +54,9 @@ export const publishToDropbox = async (buf, path, token) => {
 }
 
 export const publishToGoogle = async (buf, path, token) => {
+
+  console.log('publishToGoogle', path, token);
+
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: token });
   const drive = google.drive({ version: 'v3', auth });

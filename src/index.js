@@ -1,6 +1,7 @@
 console.log('FetchFox is new! If you need help, ask on Discord: https://discord.gg/mM54bwdu59');
 
 export { getAI } from './ai/index.js';
+export { getActor } from './act/index.js';
 export { getCrawler } from './crawl/index.js';
 export { getExporter } from './export/index.js';
 export { getExtractor } from './extract/index.js';

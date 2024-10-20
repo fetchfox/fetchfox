@@ -9,7 +9,7 @@ export const Document = class {
   constructor() {}
 
   toString() {
-    return `[Document: ${this.resp?.url}]`;
+    return `[Document: ${this.url}]`;
   }
 
   dump() {
@@ -48,7 +48,7 @@ export const Document = class {
   }
 
   generateFilename() {
-    const { hostname, pathname } = new URL(this.resp?.url);
+    const { hostname, pathname } = new URL(this.url);
     const hash = createHash('sha256')
       .update(JSON.stringify(this.dump()))
       .digest('hex');
@@ -66,9 +66,7 @@ export const Document = class {
     }
     
     logger.info(`Save document to ${dest}`);
-    fs.writeFileSync(
-      dest,
-      JSON.stringify(this.dump(), null, 2));
+    fs.writeFileSync(dest, JSON.stringify(this.dump(), null, 2));
 
     return dest;
   }
@@ -77,14 +75,19 @@ export const Document = class {
     logger.info(`Loading document from response ${resp.url}`);
 
     this.body = await resp.text();
-    this.url = resp.url;
+    this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
 
-    const respHeaders = {};
-    resp.headers.forEach((value, key) => {
-      respHeaders[key] = value;
-    });
+    let respHeaders = {};
+    if (typeof resp.headers == 'function') {
+      respHeaders = resp.headers();
+    } else {
+      resp.headers.forEach((value, key) => {
+        respHeaders[key] = value;
+      });
+    }
+
     this.resp = {
-      url: resp.url,
+      url: this.url,
       status: resp.status,
       statusText: resp.statusText,
       headers: respHeaders,
@@ -99,7 +102,7 @@ export const Document = class {
   }
 
   parse() {
-    const contentType = this.resp.headers['content-type'];
+    const contentType = this.resp?.headers['content-type'] || 'text/plain';
     if (contentType.indexOf('text/html') != -1) {
       this.parseHtml();
     }
@@ -161,7 +164,7 @@ export const Document = class {
       try {
         url = new URL(href, this.url);
       } catch (e) {
-        logger.warn(`Skipping invalid link: ${html}`);
+        logger.warn(`Skipping invalid link: ${this.url} ${html}`);
         continue;
       }
 

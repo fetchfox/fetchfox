@@ -1,4 +1,5 @@
 import { getAI } from '../ai/index.js';
+import { getActor } from '../act/index.js';
 import { getCrawler } from '../crawl/index.js';
 import { getExporter } from '../export/index.js';
 import { getExtractor } from '../extract/index.js';
@@ -6,10 +7,11 @@ import { getFetcher } from '../fetch/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 
 export const contextKeys = [
-  ['fetcher', getFetcher],
+  ['actor', getActor],
   ['ai', getAI],
   ['crawler', getCrawler],
   ['extractor', getExtractor],
+  ['fetcher', getFetcher],
 ];
 
 const copyKeys = [
@@ -24,11 +26,23 @@ export const Context = class {
 
     const cache = args?.cache;
     for (const [key, getter] of contextKeys) {
+      console.log('key', key, getter);
       let val;
+      let which = null;
+      let options = {};
       if (args && args[key]) {
-        val = args[key];
-      } else {
-        val = getter(null, { ...this, cache });
+        const v = args[key];
+        if (typeof v == 'string') {
+          which = v;
+        } else if (Array.isArray(v)) {
+          [which, options] = v;
+        } else {
+          val = v;
+        }
+      }
+      if (!val) {
+        console.log('call getter with', which, options);
+        val = getter(which, { ...this, cache, ...options });
       }
       this[key] = val;
     }
