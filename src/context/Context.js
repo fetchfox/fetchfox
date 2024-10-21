@@ -39,9 +39,7 @@ export const Context = class {
         }
       }
 
-      console.log('val is:', val);
       if (!val) {
-        console.log('call getter with', which, options);
         val = getter(which, { ...this, cache, ...options });
       }
       this[key] = val;
