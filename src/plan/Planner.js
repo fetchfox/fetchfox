@@ -75,6 +75,9 @@ export const Planner = class {
     logger.verbose(`Plan from JSON: ${JSON.stringify(json)}`);
     const cls = classMap[json.name];
     const args = Object.assign({}, json.args);
+    if (!cls) {
+      throw new Error(`Planner got invalid JSON: ${JSON.stringify(json)}`);
+    }
     return new cls(args);
   }
 }

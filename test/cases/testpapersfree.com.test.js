@@ -22,13 +22,16 @@ describe('testpapersfree.com', function() {
       // TODO: single string prompt for action
       .action({
         action: 'click',
-        query: 'download testpaper buttons.',
+        query: 'download testpaper buttons',
         selector: 'input[type="submit"],button',
       })
-      .extract('exam PDF filename')
+      .extract('exam PDF filename, limit 3')
+      .schema({ filename: 'the pdf filename' })
       .run(null, (partial) => {
         const { item, index } = partial.delta;
-        console.log('item-->', item);
+        console.log('item-->', index, item);
       });
+
+    console.log('out', out);
   });
 });

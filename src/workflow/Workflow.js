@@ -7,9 +7,7 @@ import { classMap, stepNames } from '../step/index.js';
 export const Workflow = class {
   constructor() {
     this._stepsInput = [];
-
     this.steps = [];
-    this.ctx = new Context({});
   }
 
   dump() {
@@ -21,8 +19,14 @@ export const Workflow = class {
   }
 
   config(args) {
+    console.log('config got args', args);
     this.ctx = new Context(args);
     return this;
+  }
+
+  context() {
+    if (!this.ctx) this.config({});
+    return this.ctx;
   }
 
   load(data) {
@@ -53,7 +57,7 @@ export const Workflow = class {
 
   async plan(...args) {
     if (args) this.parseRunArgs(args);
-    const planner = new Planner(this.ctx);
+    const planner = new Planner(this.context());
     this.steps = await planner.plan(...this.steps, ...this._stepsInput);
     this._stepsInput = [];
     return this;
@@ -65,7 +69,7 @@ export const Workflow = class {
 
     if (this.steps.length == 0) return;
 
-    const cursor = new Cursor(this.ctx, this.steps, cb);
+    const cursor = new Cursor(this.context(), this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 

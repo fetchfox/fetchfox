@@ -1,16 +1,9 @@
 import { logger } from '../log/logger.js';
-import { getAI } from '../ai/index.js';
-import { getFetcher } from '../fetch/index.js';
 import { shuffle, chunkList } from '../util.js';
+import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 
-export const Crawler = class {
-  constructor(options) {
-    const { ai, fetcher, cache } = options || {};
-    this.ai = getAI(ai, { cache });
-    this.fetcher = fetcher || getFetcher(null, { cache });
-  }
-
+export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
     const { fetchOptions, limit, stream } = options || {};
 

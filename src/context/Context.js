@@ -1,17 +1,14 @@
-import { getAI } from '../ai/index.js';
-// import { getActor } from '../act/index.js';
-import { getCrawler } from '../crawl/index.js';
-import { getExporter } from '../export/index.js';
-import { getExtractor } from '../extract/index.js';
-import { getFetcher } from '../fetch/index.js';
+import { getAI, BaseAI } from '../ai/index.js';
+import { getCrawler, BaseCrawler } from '../crawl/index.js';
+import { getExtractor, BaseExtractor } from '../extract/index.js';
+import { getFetcher, BaseFetcher } from '../fetch/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 
 export const contextKeys = [
-  // ['actor', getActor],
-  ['ai', getAI],
-  ['crawler', getCrawler],
-  ['extractor', getExtractor],
-  ['fetcher', getFetcher],
+  ['ai', getAI, BaseAI],
+  ['crawler', getCrawler, BaseCrawler],
+  ['extractor', getExtractor, BaseExtractor],
+  ['fetcher', getFetcher, BaseFetcher],
 ];
 
 const copyKeys = [
@@ -25,7 +22,7 @@ export const Context = class {
     }
 
     const cache = args?.cache;
-    for (const [key, getter] of contextKeys) {
+    for (const [key, getter, parentClass] of contextKeys) {
       let val;
       let which = null;
       let options = {};
@@ -35,11 +32,16 @@ export const Context = class {
           which = v;
         } else if (Array.isArray(v)) {
           [which, options] = v;
-        } else {
+        } else if (v instanceof parentClass) {
           val = v;
+        } else if (v instanceof Object) {
+          options = v;
         }
       }
+
+      console.log('val is:', val);
       if (!val) {
+        console.log('call getter with', which, options);
         val = getter(which, { ...this, cache, ...options });
       }
       this[key] = val;

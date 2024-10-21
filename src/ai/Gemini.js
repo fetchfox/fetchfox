@@ -5,11 +5,11 @@ import { BaseAI } from './BaseAI.js';
 import { parseAnswer } from './util.js';
 
 export const Gemini = class extends BaseAI {
-  constructor(model, options) {
-    model = model || 'gemini-1.5-flash';
-    super(model, options);
-    const { apiKey } = options || {};
-    this.apiKey = apiKey || process.env.GEMINI_API_KEY;
+  static apiKeyEnvVariable = 'GEMINI_API_KEY';
+  static defaultModel = 'gemini-1.5-flash';
+
+  constructor(options) {
+    super(options);
 
     if (this.model.indexOf('flash') != -1) {
       // Cap tokens at 128k to receive lower pricing tier

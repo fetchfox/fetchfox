@@ -4,12 +4,12 @@ import { BaseAI } from './BaseAI.js';
 import { parseAnswer } from './util.js';
 
 export const Ollama = class extends BaseAI {
-  constructor(model, options) {
-    super(model, options);
-    const { host } = options || {};
+  static apiKeyEnvVariable = 'OLLAMA_API_KEY';
+  static defaultModel = 'llama3.1';
 
-    this.model = model || 'llama3.1';
-    this.host = host || process.env.OLLAMA_HOST;
+  constructor(options) {
+    super(options);
+    this.host = options.host || process.env.OLLAMA_HOST;
 
     if (!this.maxTokens) {
       if (this.model.indexOf('llama3.1') != -1) {

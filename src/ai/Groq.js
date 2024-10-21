@@ -4,14 +4,8 @@ import { BaseAI } from './BaseAI.js';
 import { parseAnswer } from './util.js';
 
 export const Groq = class extends BaseAI {
-  envVariable = 'GROQ_API_KEY';
-
-  constructor(model, options) {
-    model = model || 'llama3-8b-8192';
-    super(model, options);
-    const { apiKey } = options || {};
-    this.apiKey = apiKey || process.env.GROQ_API_KEY;
-  }
+  static apiKeyEnvVariable = 'GROQ_API_KEY';
+  static defaultModel = 'llama3-8b-8192';
 
   normalizeChunk(chunk) {
     const { model } = chunk;

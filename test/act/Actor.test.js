@@ -48,17 +48,17 @@ describe('Actor', function() {
 
     await actor.finish();
 
-    const { fork: fork1 } = await actor.fork(
+    const [fork1] = await actor.fork(
       'click',
       'Buttons that contains "Primary"',
       'a.btn');
 
-    const { fork: fork2 } = await actor.fork(
+    const [fork2] = await actor.fork(
       'click',
       'Buttons that contain "Primary"',
       'a.btn');
 
-    const { fork: fork3 } = await actor.fork(
+    const [fork3] = await actor.fork(
       'click',
       'Buttons that contain "Primary"',
       'a.btn');
@@ -79,5 +79,27 @@ describe('Actor', function() {
     await fork1.finish();
     await fork2.finish();
     return fork3.finish();
+  });
+
+  it('should get testpapersfree', async () => {
+    const actor = new Actor();
+    await actor.start('https://www.testpapersfree.com/secondary/sec3/index.php?level=secondary3&year=%25&subject=Pure-Chemistry&type=%25&school=%25&Submit=Show+Test+Papers');
+    console.log('started');
+
+    await actor.act('click', 'download testpaper buttons', 'input[type="submit"],button');
+    const doc1 = await actor.doc();
+    await new Promise(ok => setTimeout(ok, 4000));
+    const doc2 = await actor.doc();
+
+    console.log('doc1 html', doc1.html);
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('doc2 html', doc2.html);
+
+    await actor.finish();
   });
 });

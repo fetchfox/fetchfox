@@ -2,6 +2,7 @@ import { logger } from '../log/logger.js';
 import { Fetcher } from './Fetcher.js';
 import { PlaywrightFetcher } from './PlaywrightFetcher.js';
 
+export { BaseFetcher } from './BaseFetcher.js';
 export const DefaultFetcher = Fetcher;
 
 export const getFetcher = (which, options) => {

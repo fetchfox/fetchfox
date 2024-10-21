@@ -5,15 +5,19 @@ import { Ollama } from './Ollama.js';
 import { Mistral } from './Mistral.js';
 import { Groq } from './Groq.js';
 import { Gemini } from './Gemini.js';
+export { BaseAI } from './BaseAI.js';
 
 export const DefaultAI = OpenAI;
 
 export const getAI = (which, options) => {
+  console.log('get ai:', which, options);
+  which = which || options.model;
   if (!which) return new DefaultAI(null, options);
   if (typeof which != 'string') return which;
 
-  let [provider, model, extra] = which.split(':');
-  if (extra) model += ':' + extra;
+  let parts = which.split(':');
+  const provider = parts[0];
+  const model = parts.slice(1).join(':');
   let aiClass = {
     openai: OpenAI,
     anthropic: Anthropic,
@@ -29,5 +33,5 @@ export const getAI = (which, options) => {
     logger.error(`Unknown AI provider: ${provider}`);
     return;
   }
-  return new aiClass(model, options);
+  return new aiClass(options);
 }

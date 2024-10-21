@@ -4,15 +4,11 @@ import { BaseAI } from './BaseAI.js';
 import { parseAnswer, sleep } from './util.js';
 
 export const Anthropic = class extends BaseAI {
-  constructor(model, options) {
-    const { apiKey, cache } = options || {};
-    model = model || 'claude-3-haiku-20240307';
-    super(model, Object.assign(
-      {},
-      { maxRetries: 10, retryMsec: 10000 },
-      options));
+  static apiKeyEnvVariable = 'ANTHROPIC_API_KEY';
+  static defaultModel = 'claude-3-haiku-20240307';
 
-    this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY;
+  constructor(options) {
+    super(options);
 
     // Shouldn't need more than this, and Anthropic has a problem with stop tokens
     this.maxTokensOut = 8000;

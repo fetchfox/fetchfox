@@ -18,7 +18,7 @@ export const BaseExtractor = class {
     if (target instanceof Document) {
       return target;
     }
-    if (target.source() instanceof Document) {
+    if (typeof target?.source == 'function' && target.source() instanceof Document) {
       return target.source();
     }
 

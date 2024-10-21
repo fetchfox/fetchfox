@@ -15,21 +15,34 @@ export const Cursor = class {
     this.results[stepIndex].loading = true;
     this.results[stepIndex].didStart = true;
     this.results[stepIndex].done = false;
+    const delta = { startedStep: stepIndex };
+    if (stepIndex == this.results.length - 1) {
+      delta.lastStep = true;
+    }
     return this.cb && this.cb(
       {
-        delta: { startedStep: stepIndex },
+        delta,
         results: this.results,
       },
       stepIndex);
+  }
+
+  _delta(item, stepIndex) {
+    return d;
   }
 
   publish(item, stepIndex) {
     this.results[stepIndex].items.push(
       JSON.parse(JSON.stringify(item))
     );
+    
+    const delta = { item, index: stepIndex };
+    if (stepIndex == this.results.length - 1) {
+      delta.lastStep = true;
+    }
     return this.cb && this.cb(
       {
-        delta: { item, index: stepIndex },
+        delta,
         results: this.results,
       },
       stepIndex);
@@ -39,9 +52,13 @@ export const Cursor = class {
     this.results[stepIndex].error = message;
     this.results[stepIndex].done = true;
     delete this.results[stepIndex].loading;
+    const delta = { error: { index: stepIndex, message } };
+    if (stepIndex == this.results.length - 1) {
+      delta.lastStep = true;
+    }
     return this.cb && this.cb(
       {
-        delta: { error: { index: stepIndex, message } },
+        delta,
         results: this.results,
       },
       stepIndex);
@@ -50,9 +67,13 @@ export const Cursor = class {
   finish(stepIndex) {
     this.results[stepIndex].done = true;
     delete this.results[stepIndex].loading;
+    const delta = { finishedStep: stepIndex };
+    if (stepIndex == this.results.length - 1) {
+      delta.lastStep = true;
+    }
     return this.cb && this.cb(
       {
-        delta: { finishedStep: stepIndex },
+        delta,
         results: this.results
       },
       stepIndex);

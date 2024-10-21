@@ -3,13 +3,49 @@ import { logger } from '../log/logger.js';
 import { parseAnswer, getModelData, sleep } from './util.js';
 
 export const BaseAI = class {
-  constructor(model, options) {
-    const { cache, maxTokens, maxRetries, retryMsec } = Object.assign(
-      {},
-      { maxRetries: 10, retryMsec: 5000 },
+  constructor(options) {
+    const apiKeyEnvVariable = this.constructor.apiKeyEnvVariable;
+    let {
+      cache,
+      maxTokens,
+      maxRetries,
+      retryMsec,
+      model,
+      apiKey,
+    } =
+    Object.assign(
+      {
+        maxRetries: 10,
+        retryMsec: 5000,
+        model: this.constructor.defaultModel,
+        apiKey: (apiKeyEnvVariable ? process.env[apiKeyEnvVariable] : null),
+      },
       options);
+
+    if (!apiKey) {
+      throw new Error(`FetchFox is missing API key for ${this.constructor.name}. Enter it using environment variable ${apiKeyEnvVariable} or pass it in to the constructor`);
+    }
+
     if (cache) this.cache = cache;
+
+    const providers = [
+      'openai',
+      'anthropic',
+      'ollama',
+      'mistral',
+      'groq',
+      'gemini',
+      'google',
+    ];
+    for (const p of providers) {
+      if (model.startsWith(p + ':')) {
+        model = model.replace(p + ':', '');
+      }
+    }
+
     this.model = model;
+    this.apiKey = apiKey;
+
     this.maxRetries = maxRetries;
     this.retryMsec = retryMsec;
     this.usage = { input: 0, output: 0, total: 0 };

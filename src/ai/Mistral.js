@@ -4,13 +4,8 @@ import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
 
 export const Mistral = class extends BaseAI {
-  constructor(model, options) {
-    const { apiKey, cache } = options || {};
-    super(model, options);
-
-    this.model = model || 'mistral-large-latest';
-    this.apiKey = apiKey || process.env.MISTRAL_API_KEY;
-  }
+  static apiKeyEnvVariable = 'MISTRAL_API_KEY';
+  static defaultModel = 'mistral-large-latest';
 
   normalizeChunk(chunk) {
     const { id, model } = chunk;

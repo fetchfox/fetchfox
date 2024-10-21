@@ -6,13 +6,8 @@ import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
 
 export const OpenAI = class extends BaseAI {
-  constructor(model, options) {
-    const { apiKey, cache } = options || {};
-    model ||= 'gpt-4o';
-    super(model, options);
-    this.model = model;
-    this.apiKey = apiKey || process.env.OPENAI_API_KEY;
-  }
+  static apiKeyEnvVariable = 'OPENAI_API_KEY';
+  static defaultModel = 'gpt-4o-mini';
 
   normalizeChunk(chunk) {
     const { id, model } = chunk;
