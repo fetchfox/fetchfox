@@ -5,6 +5,9 @@ import { Item } from '../item/Item.js';
 
 export const ActionStep = class extends BaseStep {
   static info = BaseStep.combineInfo({
+    // This step is hard for AI to configure, so don't show it for now
+    hideFromAI: true,
+
     name: 'action',
     description: 'Perform some action on the page, such as clicking buttons',
     args: {

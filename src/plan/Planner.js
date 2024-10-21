@@ -38,7 +38,9 @@ export const Planner = class {
 
     for (const input of stepsInput) {
       const str = stringify(input);
-      const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
+      const stepLibrary = stepDescriptions
+        .filter(v => !v.hideFromAI)
+        .map(v => JSON.stringify(v, null, 2)).join('\n\n');
       const context = {
         stepLibrary,
         allSteps,
