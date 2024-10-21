@@ -26,8 +26,14 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
     for (const tag of this.removeTags) {
       $(tag).replaceWith(`[[${tag} removed]]`);
     }
+
+    const removeAttributes = ['style'];
+    for (const attribute of removeAttributes) {
+      $('*').removeAttr(attribute); // Removes the attribute from all tags
+    }
+
     const data = doc.dump();
-    const html = $.html();
+    const html = pretty($.html(), { ocd: true });
     data.body = html;
     data.html = html;
 

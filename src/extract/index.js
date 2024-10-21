@@ -6,7 +6,9 @@ import { MinimizingExtractor } from './MinimizingExtractor.js';
 export const DefaultExtractor = SinglePromptExtractor;
 
 export const getExtractor = (which, options) => {
-  if (!which) return new DefaultExtractor(options);
+  if (!which) {
+    return new MinimizingExtractor({ ...options, extractor: new SinglePromptExtractor(options) });
+  }
   if (typeof which != 'string') return which;
 
   let extractorClass = {

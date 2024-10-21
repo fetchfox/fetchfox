@@ -88,7 +88,6 @@ export const Actor = class {
       const el = results[this.index];
       await this._do(action, el);
       this.history.push({ action, query, selector, index: this.index });
-
       this.index++
     }
 
@@ -100,6 +99,10 @@ export const Actor = class {
     switch (action) {
       case 'click':
         await el.click();
+
+        // TODO: better solution than this heuristic
+        await new Promise(ok => setTimeout(ok, 500));
+
         break;
       default:
         throw new Error(`Unhandled action: ${action}`);
