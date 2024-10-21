@@ -7,10 +7,15 @@ const logFormat = printf(({ level, message, label, timestamp }) => {
 
 export const logger = createLogger({
   format: combine(
-    label({ label: 'foxtrot' }),
+    label({ label: 'fetchfox' }),
     timestamp(),
     errors({ stack: true }),
     logFormat,
   ),
-  transports: [new transports.Console({ level: process.env.FOXTROT_LOG_LEVEL || 'warn' })],
+  transports: [new transports.Console({
+    level: (
+      process.env.FETCHFOX_LOG_LEVEL ||
+      process.env.FF_LOG ||
+      'warn')
+  })],
 });
