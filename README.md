@@ -15,24 +15,53 @@
 
 </div>
 
-# Usage
+# Getting started
 
 Install the package:
 
 ```bash
 npm i fetchfox
 ```
-# Example
 
-Use the npm package in Javascript:
+## Enter your API key
 
-Easiest is to use a single prompt.
+You'll need to give an API key for OpenAI, or whichever AI provider you are using. There are a few ways to do this.
+
+The easiest option is to set the `OPENAI_API_KEY` environment variable. This will get picked up by the FetchFox library, and all AI calls will go through that key. to use this option, run your code like this:
+
+```bash
+OPENAI_API_KEY=sk-your-key node index.js
+```
+
+Alternatively, you can pass in your API key in code, like this:
+
+```javascript
+import { fox } from 'fetchfox';
+
+const results = await fox
+  .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' }})
+  .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
+```
+
+This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can pass in other models, including models from other providers like this:
+
+```javascript
+const results = await fox
+  .config({ ai: { model: 'anthropic:claude-3-5-sonnet-20240620', apiKey: 'your-anthropic-key' }})
+  .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
+```
+
+Choose the AI model that best suits your needs.
+
+## Start prompting
+
+Easiest is to use a single prompt, like in the example below.
 
 ```javascript
 import { fox } from 'fetchfox';
 
 const results = await fox.run(
-  `https://news.ycombinator.com/news find links to comments, get basic data, export to out3.jsonl`);
+  `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
 ```
 
 For more control, you can specify one prompt per step.
@@ -80,6 +109,12 @@ for await (const link of crawler.stream(url, 'comment links')) {
   }
 }
 ```
+
+## Choosing the right AI model
+
+FetchFox lets you swap in a variety of different AI providers and models. You can check the [src/ai/...](https://github.com/fetchfox/fetchfox/tree/master/src/ai) directory for the list of currently supported providers.
+
+By default, FetchFox uses OpenAI's `gpt-4o-mini` model. We've found this model to provide a good tradeoff between cost, runtime, and accuracy. You can read [more about benchmarking on our blog](https://ortutay.substack.com/p/the-most-accurate-and-cheapest-ai).
 
 # CLI
 
