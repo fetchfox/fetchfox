@@ -23,6 +23,17 @@ Install the package:
 npm i fetchfox
 ```
 
+Then use it:
+
+```javascript
+import { fox } from 'fetchfox';
+
+const results = await fox.run(
+  `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
+```
+
+Read on below for instructions on how to configure your API key and AI model.
+
 ## Enter your API key
 
 You'll need to give an API key for OpenAI, or whichever AI provider you are using. There are a few ways to do this.
