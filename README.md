@@ -81,7 +81,7 @@ For more control, you can specify one prompt per step.
 import { fox } from 'fetchfox';
 
 const f = await fox
-  .config({ diskCache: '/tmp/ff_minihack_2'  })
+  .config({ diskCache: '/tmp/fetchfox_cache'  })
   .init('https://github.com/bitcoin/bitcoin/commits/master')
   .crawl('find urls commits, limit: 10')
   .extract('get commit hash, author, and loc changed')
