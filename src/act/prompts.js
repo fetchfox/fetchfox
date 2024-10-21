@@ -9,6 +9,7 @@ Follow these important rules:
 - Do not wrap the response in an array, return individual dictionaries only per-line.
 - Do not include any markdown formatting. Only include JSONL.
 - You MUST format your answer as an object with an _ffid field
+- You may return EMPTY response if nothing matchers the user filter. This will happen sometimes.
 
 Example of valid output:
 
