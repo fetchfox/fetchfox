@@ -5,6 +5,53 @@ import { Document } from '../document/Document.js';
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
+    this.sleepTime = 500;
+    this.waiting = null;
+    this.queue = [];
+  }
+
+  async ready() {
+    if (!this.waiting) {
+      this.waiting = new Promise((ok) => {
+        setTimeout(ok, this.sleepTime);
+      });
+    } else {
+      const p = this.waiting.then(() => {
+        return new Promise((ok) => {
+          setTimeout(ok, this.sleepTime);
+        });
+      });
+      this.waiting = p;
+    }
+
+    return this.waiting;
+  }
+
+  async fetch(url, options) {
+    const cached = await this.getCache(url, options);
+    if (cached) {
+      logger.info(`Returning cached ${cached}`);
+      return cached;
+    }
+
+    await this.ready();
+
+    try {
+      new URL(url);
+    } catch (e) {
+      return null;
+    }
+
+    const exclude = ['javascript:', 'mailto:'];
+    for (const e of exclude) {
+      if (url.indexOf(e) == 0) {
+        return null;
+      }
+    }
+
+    const doc = await this._fetch(url, options);
+
+    this.setCache(url, options, doc.dump());
   }
 
   cacheKey(url, options) {

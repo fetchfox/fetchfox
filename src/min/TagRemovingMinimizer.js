@@ -10,13 +10,7 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
     this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg'];
   }
 
-  async min(doc) {
-    const options = { removeTags: this.removeTags }
-    const cached = await this.getCache(doc, options);
-    if (cached) return cached;
-
-    const start = (new Date()).getTime() / 1000;
-    const before = JSON.stringify([doc.html, doc.text]).length;
+  async _min(doc) {
     logger.info(`Minimizing ${doc} with tag removing heuristics`);
 
     let initial = doc.html
@@ -41,13 +35,6 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
     min.loadData(data);
 
     min.parse();
-
-    const after = JSON.stringify([min.html, min.text]).length;
-    const took = (new Date()).getTime() / 1000 - start;
-    logger.info(`Minimizing took ${took.toFixed(2)} seconds`);
-    logger.info(`Minimized doc from ${before} bytes -> ${after} bytes`);
-
-    this.setCache(doc, options, min);
 
     return min;
   }

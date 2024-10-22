@@ -4,11 +4,12 @@ import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 
+// Order matters
 export const contextKeys = [
+  ['fetcher', getFetcher, BaseFetcher],
   ['ai', getAI, BaseAI],
   ['crawler', getCrawler, BaseCrawler],
   ['extractor', getExtractor, BaseExtractor],
-  ['fetcher', getFetcher, BaseFetcher],
 ];
 
 const copyKeys = [
@@ -47,6 +48,9 @@ export const Context = class {
       }
       this[key] = val;
     }
+
+    // console.log(this);
+    // throw 'THIS';
 
     // Copy tokens
     this.user = args?.user || null

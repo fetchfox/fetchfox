@@ -12,6 +12,7 @@ export const TextOnlyMinimizer = class extends BaseMinimizer {
   async min(doc) {
     const cached = await this.getCache(doc, {});
     if (cached) return cached;
+    if (!doc) return;
 
     const start = (new Date()).getTime() / 1000;
     const before = JSON.stringify([doc.html, doc.text]).length;

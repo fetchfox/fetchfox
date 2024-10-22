@@ -12,6 +12,7 @@ export const ExtractusMinimizer = class extends BaseMinimizer {
     const options = { removeTags: this.removeTags }
     const cached = await this.getCache(doc, options);
     if (cached) return cached;
+    if (!doc) return;
 
     const start = (new Date()).getTime() / 1000;
     const before = JSON.stringify([doc.html, doc.text]).length;

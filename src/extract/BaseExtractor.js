@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
@@ -25,12 +26,13 @@ export const BaseExtractor = class {
     let url;
     if (typeof target == 'string') {
       url = target;
-    } else if (target.url) {
+    } else if (target?.url) {
       url = target.url;
     }
 
     if (!url) {
-      throw new Error(`Cannot extract from: ${target}`);
+      logger.warn(`Could not find extraction target in ${target}`);
+      return;
     }
 
     return await this.fetcher.fetch(url);
@@ -41,8 +43,8 @@ export const BaseExtractor = class {
 
     let textChunkSize = maxTokens * 4 * 0.1;
     let htmlChunkSize = maxTokens * 4 * 0.25;
-    const text = doc.text || '';
-    const html = doc.html || '';
+    const text = doc?.text || '';
+    const html = doc?.html || '';
 
     if (html.length <= 100) {
       textChunkSize += htmlChunkSize;
