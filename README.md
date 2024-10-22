@@ -36,9 +36,9 @@ Read on below for instructions on how to configure your API key and AI model.
 
 ## Enter your API key
 
-You'll need to give an API key for OpenAI, or whichever AI provider you are using. There are a few ways to do this.
+You'll need to give an API key for the AI provider you are using, such as OpenAI. There are a few ways to do this.
 
-The easiest option is to set the `OPENAI_API_KEY` environment variable. This will get picked up by the FetchFox library, and all AI calls will go through that key. to use this option, run your code like this:
+The easiest option is to set the `OPENAI_API_KEY` environment variable. This will get picked up by the FetchFox library, and all AI calls will go through that key. To use this option, run your code like this:
 
 ```bash
 OPENAI_API_KEY=sk-your-key node index.js
