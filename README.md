@@ -75,7 +75,28 @@ const results = await fox.run(
   `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
 ```
 
-For more control, you can specify one prompt per step.
+For more control, you can specify the steps like below.
+
+```javascript
+import { fox } from 'fetchfox';
+
+const results = await fox
+  .init('[https://github.com/bitcoin/bitcoin/commits/master](https://news.ycombinator.com/news)')
+  .crawl('find links to the comment pages')
+  .extract('get the following data: article name, top comment text, top commenter username')
+  .schema({ articleName: '', commentText: '', username: '' })
+  .export('out.jsonl')
+```
+
+You can chain steps to do more complicated scrapes. The example below does the following:
+
+1. Start on the GitHub page for the bitcoin project
+2. Find 10 commits
+3. Get data bout them including lines of code changed
+4. Filter for only the ones that change 10 lines of code
+5. Get the authors of those commits, and find the repos those authors commit to
+
+This scrape will take some time, so there is an option to output incremental results.
 
 ```javascript
 import { fox } from 'fetchfox';
@@ -90,10 +111,9 @@ const f = await fox
   .extract('get username and repos they commit to')
   .schema({ username: 'username', repos: ['array of repos'] });
 
-// Streaming mode gives results for reach step, as soon as they are available
-for await (const delta of f.stream()) {
-  console.log('delta', delta);
-}
+const results = f.run(null, ({ delta, index }) => {
+  console.log(`Got incremental result on step ${index}: ${delta}`);
+});
 ```
 
 The library is modular, and you can use the component individually.
