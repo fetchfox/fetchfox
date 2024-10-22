@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import fetch from 'node-fetch';
 import playwright from 'playwright';
 import { logger } from '../log/logger.js';
@@ -8,6 +7,7 @@ import { BaseFetcher } from './BaseFetcher.js';
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
+    this.headless = options.headless === undefined ? true : options.headless;
   }
 
   async fetch(url, options) {
@@ -34,11 +34,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let browser;
 
     try {
-      browser = await playwright.chromium.launch({ headless: true });
+      browser = await playwright.chromium.launch({ headless: this.headless });
       const page = await browser.newPage();
       const resp = await page.goto(url);
 
-      logger.info(`Playwright got response: ${resp.status()} for ${resp.url}`);
+      logger.info(`Playwright got response: ${resp.status()} for ${resp.url()}`);
+
+      await new Promise(ok => setTimeout(ok, 4000));
+
       await doc.read(resp, url, options);
 
       this.setCache(url, options, doc.dump());

@@ -51,7 +51,7 @@ export const Planner = class {
       }
       const prompt = singleStep.render(context);
       const answer = await this.ai.ask(prompt, { format: 'json' });
-      logger.verbose(`Step planned "${str}" into ${JSON.stringify(answer.partial)}`);
+      logger.debug(`Step planned "${str}" into ${JSON.stringify(answer.partial)}`);
       stepsJson.push(answer.partial);
     }
 
@@ -74,7 +74,7 @@ export const Planner = class {
   }
 
   fromJson(json) {
-    logger.verbose(`Plan from JSON: ${JSON.stringify(json)}`);
+    logger.debug(`Plan from JSON: ${JSON.stringify(json)}`);
     const cls = classMap[json.name];
     const args = Object.assign({}, json.args);
     if (!cls) {

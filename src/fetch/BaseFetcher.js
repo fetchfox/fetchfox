@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 
@@ -8,10 +8,9 @@ export const BaseFetcher = class {
   }
 
   cacheKey(url, options) {
-    const hash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify({ url, options }))
-      .digest('hex')
+    const hash = CryptoJS
+      .SHA256(JSON.stringify({ url, options }))
+      .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-')}-${hash}`;
   }

@@ -37,9 +37,9 @@ export const FilterStep = class extends BaseStep {
     const filter = new Filter(cursor.ctx);
     const stream = filter.run([item], this.query);
     const matches = [];
-    logger.verbose(`Filter on ${item} on ${this.query}`);
+    logger.debug(`Filter on ${item} on ${this.query}`);
     for await (const output of stream) {
-      logger.verbose(`Filter matched ${item} on ${this.query}`);
+      logger.debug(`Filter matched ${item} on ${this.query}`);
       const done = cb(output);
       if (done) break;
     }

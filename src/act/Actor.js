@@ -21,7 +21,7 @@ export const Actor = class {
   }
 
   async doc() {
-    logger.verbose(`Doc from ${this.url()}`);
+    logger.debug(`Doc from ${this.url()}`);
     const doc = new Document();
     const data = {
       url: this.url(),
@@ -81,7 +81,7 @@ export const Actor = class {
   }
 
   async act(action, query, selector) {
-    logger.verbose(`Acting ${action} for ${query} matching ${selector} on ${this.url()}`);
+    logger.debug(`Acting ${action} for ${query} matching ${selector} on ${this.url()}`);
     const results = await (this.finder(query, selector).limit(this.index + 1));
     let done = this.index >= results.length;
     if (!done) {
@@ -95,7 +95,7 @@ export const Actor = class {
   }
 
   async _do(action, el) {
-    logger.verbose(`Actor doing ${action} on ${el}`);
+    logger.debug(`Actor doing ${action} on ${el}`);
     switch (action) {
       case 'click':
         await el.click();

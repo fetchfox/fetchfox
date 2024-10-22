@@ -9,8 +9,8 @@ export const ExtractStep = class extends BaseStep {
     args: {
       questions: {
         description: 'A list of questions describing the data to extract from a page.',
-        format: 'list',
-        example: ['What is the username of this profile?', 'What is the number of folllowers?', 'What is the bio?', 'What is the URL? Format: Absolute URL'],
+        format: 'dictionary',
+        example: { username: 'What is the username of this profile?', followers: 'What is the number of followers?', bio: 'What is the bio?', url: 'What is the URL? Format: Absolute URL' },
         required: true,
       },
       single: {
@@ -41,8 +41,9 @@ export const ExtractStep = class extends BaseStep {
   }
 
   async process({ cursor, item }, cb) {
-    logger.verbose(`Extract ${this.questions.join(', ')} from ${item}`);
+    logger.debug(`Extract ${JSON.stringify(this.questions)} from ${item}`);
     const ex = cursor.ctx.extractor;
+
     for await (const output of ex.stream(item, this.questions)) {
       const done = cb(output);
       if (done) break;

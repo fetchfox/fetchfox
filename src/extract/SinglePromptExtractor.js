@@ -9,7 +9,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     super(options);
   }
 
-  async *run(target, questions, options) {
+  async *_run(target, questionsList, options) {
     const { stream } = options || {};
 
     const doc = await this.getDoc(target);
@@ -19,7 +19,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let { single } = options || {};
     if (single) single = {};
 
-    logger.info(`Extracting from ${doc}: ${questions.join(', ')}`);
+    logger.info(`Extracting from ${doc}: ${JSON.stringify(questionsList)}`);
 
     // Executes scrape on a chunk of the text + HTML
     const that = this;
@@ -27,7 +27,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       const { more, text, html } = chunk;
 
       const questionsDict = {};
-      for (const q of questions) {
+      for (const q of questionsList) {
         questionsDict[q] = '';
       }
 
@@ -58,9 +58,9 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const max = 3;
     let count = 0;
     for (let i = 0; i < max && i < chunks.length; i++) {
-      logger.verbose(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
+      logger.debug(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
       for await (const result of inner(chunks[i])) {
-        logger.verbose(`Extraction found item (count=${count++}): ${result.item}`);
+        logger.debug(`Extraction found item (count=${count++}): ${result.item}`);
         yield Promise.resolve(result.item);
       }
     }

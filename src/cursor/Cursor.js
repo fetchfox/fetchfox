@@ -4,78 +4,49 @@ export const Cursor = class {
   constructor(args, steps, cb) {
     this.ctx = new Context(args);
     this.cb = cb ? cb : () => {};
+    this.full = [];
     this.results = [];
-    steps.map((step) => this.results.push({
+    steps.map((step) => this.full.push({
       items: [],
       step: step.dump(),
     }));
   }
 
   didStart(stepIndex) {
-    this.results[stepIndex].loading = true;
-    this.results[stepIndex].didStart = true;
-    this.results[stepIndex].done = false;
-    const delta = { startedStep: stepIndex };
-    if (stepIndex == this.results.length - 1) {
-      delta.lastStep = true;
-    }
-    return this.cb && this.cb(
-      {
-        delta,
-        results: this.results,
-      },
-      stepIndex);
-  }
-
-  _delta(item, stepIndex) {
-    return d;
+    this.full[stepIndex].loading = true;
+    this.full[stepIndex].didStart = true;
+    this.full[stepIndex].done = false;
   }
 
   publish(item, stepIndex) {
-    this.results[stepIndex].items.push(
+    this.full[stepIndex].items.push(
       JSON.parse(JSON.stringify(item))
     );
-    
-    const delta = { item, index: stepIndex };
-    if (stepIndex == this.results.length - 1) {
-      delta.lastStep = true;
-    }
-    return this.cb && this.cb(
-      {
-        delta,
+    if (this.cb && stepIndex == this.full.length - 1) {
+      this.results = JSON.parse(JSON.stringify(this.full[stepIndex].items));
+      this.cb({
+        item,
+        stepIndex,
         results: this.results,
-      },
-      stepIndex);
+        full: this.full,
+      });
+    }
   }
 
   error(message, stepIndex) {
-    this.results[stepIndex].error = message;
-    this.results[stepIndex].done = true;
-    delete this.results[stepIndex].loading;
-    const delta = { error: { index: stepIndex, message } };
-    if (stepIndex == this.results.length - 1) {
-      delta.lastStep = true;
-    }
+    this.full[stepIndex].error = message;
+    this.full[stepIndex].done = true;
+    delete this.full[stepIndex].loading;
     return this.cb && this.cb(
       {
-        delta,
-        results: this.results,
+        error: { index: stepIndex, message },
+        full: this.full,
       },
       stepIndex);
   }
 
   finish(stepIndex) {
-    this.results[stepIndex].done = true;
-    delete this.results[stepIndex].loading;
-    const delta = { finishedStep: stepIndex };
-    if (stepIndex == this.results.length - 1) {
-      delta.lastStep = true;
-    }
-    return this.cb && this.cb(
-      {
-        delta,
-        results: this.results
-      },
-      stepIndex);
+    this.full[stepIndex].done = true;
+    delete this.full[stepIndex].loading;
   }
 }

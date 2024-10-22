@@ -76,6 +76,35 @@ export const BaseExtractor = class {
     return result;
   }
 
+  async *run(target, questions, options) {
+    const map = {};
+    const questionsList = [];
+    if (Array.isArray(questions)) {
+      for (const q of questions) {
+        questionsList.push(q);
+        map[q] = q;
+      }
+    } else {
+      for (const key of Object.keys(questions)) {
+        questionsList.push(questions[key]);
+        map[questions[key]] = key;
+      }
+    }
+
+    for await (const r of this._run(target, questionsList, options)) {
+      for (const key of Object.keys(r)) {
+        const remap = map[key];
+        if (remap) {
+          const val = r[key];
+          delete r[key];
+          r[remap] = val;
+        }
+      }
+
+      yield Promise.resolve(r);
+    }
+  }
+
   isMissing(data, question) {
     return !data[question] || data[question] == '(not found)';
   }

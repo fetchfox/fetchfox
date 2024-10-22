@@ -65,7 +65,7 @@ export const ExportURLsStep = class extends BaseStep {
   }
 
   async process({ cursor, item, index }, cb) {
-    logger.verbose(`Export URL field ${this.field} of item ${item}`);
+    logger.debug(`Export URL field ${this.field} of item ${item}`);
 
     const args = this.args();
     args.mode = this.mode;

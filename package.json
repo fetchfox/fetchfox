@@ -7,6 +7,11 @@
   "bin": {
     "fetchfox": "./src/cli/index.js"
   },
+  "exports": {
+    "./core": "./src/index.js",
+    "./web": "./src/web.js",
+    "./server": "./src/server.js"
+  },
   "scripts": {
     "test": "mocha test/**/*.test.js"
   },
@@ -32,10 +37,12 @@
     "@mistralai/mistralai": "^1.0.4",
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
+    "crypto-js": "^4.2.0",
     "csv-stringify": "^6.5.1",
     "dropbox": "^10.34.0",
     "googleapis": "^144.0.0",
     "groq-sdk": "^0.7.0",
+    "loglevel": "^1.9.2",
     "node-fetch": "^3.3.2",
     "ollama": "^0.5.9",
     "openai": "^4.58.1",
@@ -43,6 +50,7 @@
     "playwright": "^1.48.0",
     "pretty": "^2.0.0",
     "url-polyfill": "^1.1.12",
-    "winston": "^3.14.2"
+    "whatwg-url": "^14.0.0",
+    "ws": "^8.18.0"
   }
 }

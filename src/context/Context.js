@@ -21,11 +21,13 @@ export const Context = class {
       args.cache = new DiskCache(args?.diskCache);
     }
 
-    const cache = args?.cache;
+    if (args.cache) this.cache = args.cache;
+
     for (const [key, getter, parentClass] of contextKeys) {
       let val;
       let which = null;
       let options = {};
+
       if (args && args[key]) {
         const v = args[key];
         if (typeof v == 'string') {
@@ -40,7 +42,8 @@ export const Context = class {
       }
 
       if (!val) {
-        val = getter(which, { ...this, cache, ...options });
+        const useOptions = { ...this, cache: this.cache, ...options };
+        val = getter(which, useOptions);
       }
       this[key] = val;
     }
@@ -67,8 +70,9 @@ export const Context = class {
     if (other.user) this.user = JSON.parse(JSON.stringify(other.user));
 
     if (other.cache) {
+      this.cache = other.cache;
       for (const [key] of contextKeys) {
-        this[key].cache = other.cache;
+        this[key].cache = this.cache;
       }
     }
 

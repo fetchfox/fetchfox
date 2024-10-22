@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 
@@ -12,10 +12,9 @@ export const BaseMinimizer = class {
   }
 
   cacheKey(doc, options) {
-    const hash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify({ doc: doc.dump(), options }))
-      .digest('hex')
+    const hash = CryptoJS
+      .SHA256(JSON.stringify({ doc: doc.dump(), options }))
+      .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     return `min-${this.constructor.name}-${doc.url.replace(/\//g, '-').substr(0, 100)}-${hash}`;
   }

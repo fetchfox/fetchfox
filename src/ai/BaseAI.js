@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { parseAnswer, getModelData, sleep } from './util.js';
 
@@ -68,10 +68,9 @@ export const BaseAI = class {
   }
 
   cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
-      .digest('hex')
+    const hash = CryptoJS
+      .SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
+      .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
     return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`
@@ -94,7 +93,7 @@ export const BaseAI = class {
 
     const { systemPrompt, format, cacheHint, schema } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
-    logger.verbose(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
+    logger.debug(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'prompt');
   }
 

@@ -13,7 +13,6 @@ export const Finder = class {
 
   async label(page, selector) {
     const cssSelector = 'css=' + (selector || '*');
-    // const candidates = [];
     const loc = await page.locator(cssSelector);
     const map = {};
     let ffid = 1;
@@ -47,7 +46,7 @@ export const Finder = class {
   }
 
   async *stream() {
-    logger.verbose(`Find ${this.query} matching ${this.selector}`);
+    logger.debug(`Find ${this.query} matching ${this.selector}`);
     const { candidates, map } = await this.label(this.page, this.selector);
     const maxBytes = this.ai.maxTokens / 2;
     const chunked = chunkList(candidates, maxBytes);
@@ -62,7 +61,7 @@ export const Finder = class {
       });
 
       for await (const { delta } of this.ai.stream(prompt, { format: 'jsonl' })) {
-        logger.verbose(`Found ffid=${delta._ffid}`);
+        logger.debug(`Found ffid=${delta._ffid}`);
         yield Promise.resolve(map[delta._ffid]);
       }
     }

@@ -1,9 +1,6 @@
-import path from 'path';
-import fs from 'fs';
-import { createHash } from 'crypto';
-import * as cheerio from 'cheerio';
-import { URL } from 'url';
 import { logger } from '../log/logger.js';
+import * as cheerio from 'cheerio';
+import { URL } from 'whatwg-url';
 
 export const Document = class {
   constructor() {}
@@ -39,36 +36,6 @@ export const Document = class {
     if (data.req) {
       this.req = data.req;
     }
-  }
-
-  load(filename) {
-    const resp = fs.readFileSync(filename, 'utf-8');
-    const data = JSON.parse(resp);
-    this.loadData(data);
-  }
-
-  generateFilename() {
-    const { hostname, pathname } = new URL(this.url);
-    const hash = createHash('sha256')
-      .update(JSON.stringify(this.dump()))
-      .digest('hex');
-    return `doc-${hostname}${pathname.replaceAll(/[^A-Za-z0-9]+/g, '-')}-${hash.substr(0, 10)}.json`;
-  }
-
-  save(dest) {
-    if (!dest) {
-      dest = this.generateFilename();
-    }
-
-    const stat = fs.statSync(dest);
-    if (stat.isDirectory()) {
-      dest = path.join(dest, this.generateFilename());
-    }
-    
-    logger.info(`Save document to ${dest}`);
-    fs.writeFileSync(dest, JSON.stringify(this.dump(), null, 2));
-
-    return dest;
   }
 
   async read(resp, reqUrl, reqOptions) {

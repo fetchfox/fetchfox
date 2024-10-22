@@ -11,7 +11,7 @@ export const DefaultAI = OpenAI;
 
 export const getAI = (which, options) => {
   which = which || options?.model;
-  if (!which) return new DefaultAI(null, options);
+  if (!which) return new DefaultAI(options);
   if (typeof which != 'string') return which;
 
   let parts = which.split(':');

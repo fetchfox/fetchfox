@@ -3,6 +3,7 @@ import { Cursor } from '../cursor/Cursor.js';
 import { Context } from '../context/Context.js';
 import { Planner } from '../plan/Planner.js';
 import { classMap, stepNames } from '../step/index.js';
+import { isPlainObject } from '../util.js';
 
 export const Workflow = class {
   constructor() {
@@ -19,7 +20,6 @@ export const Workflow = class {
   }
 
   config(args) {
-    console.log('config got args', args);
     this.ctx = new Context(args);
     return this;
   }
@@ -73,7 +73,7 @@ export const Workflow = class {
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
-    await last.run(cursor, rest, this.steps.length - 1);
+    await last.run(cursor, this.steps, this.steps.length - 1);
 
     return cursor.results;
   }
@@ -82,6 +82,24 @@ export const Workflow = class {
 for (const stepName of stepNames) {
   Workflow.prototype[stepName] = function(prompt) {
     const name = stepName;
+    const cls = classMap[name];
+
+    if (name == 'extract') {
+      // TODO: generalize + test this
+      if (prompt.questions) {
+        return this.step(new cls(prompt));
+      } else if (Array.isArray(prompt) || isPlainObject(prompt)) {
+        return this.step(new cls({ questions: prompt }));
+      }
+    } else if (name == 'limit') {
+      if (prompt.limit) {
+        return this.step(new cls(prompt));
+      } else if (typeof prompt == 'number') {
+        return this.step(new cls({ limit: prompt }));
+      }
+    }
+
+
     return this.step(JSON.stringify({ name, prompt }));
   }
 }

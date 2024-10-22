@@ -95,42 +95,57 @@ export const BaseStep = class {
     }
   }
 
-  async run(cursor, upstream, index) {
+  async run(cursor, steps, index) {
     try {
-      return await this._run(cursor, upstream, index);
+      return await this._run(cursor, steps, index);
     } catch(e) {
       await cursor.error('' + e, index);
       throw e;
     }
   }
   
-  async _run(cursor, upstream, index) {
+  async _run(cursor, steps, index) {
     // TODO: batch process items mode for steps that work better when
     // all items are available. Applies to FilterStep, SchemaStep,
     // and maybe others.
 
     await this._before(cursor, index);
 
-    const parent = upstream[upstream.length - 1];
-    const rest = upstream.slice(0, upstream.length - 1);
+    const parent = steps[index - 1];
+    // const rest = upstream.slice(0, upstream.length - 1);
+    const next = index + 1 >= steps.length ? null : steps[index + 1];
 
+    let onNextDone;
     let onParentDone;
     let onParentItem;
 
+    let nextDone = false;
     let parentDone = false;
     let received = 0;
     let completed = 0;
 
-    // The following promise resolves on one of two conditions:
+    // The following promise resolves on one of three conditions:
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
+    // 3) There is a next step, and next step is done (regardless 
     await new Promise(async (ok) => {
 
       const maybeOk = () => {
-        if (parentDone && received == completed) {
+        const isOk = (
+          (parentDone && received == completed) ||
+          nextDone);
+        if (isOk) {
           ok();
         }
+        return isOk;
       }
+
+      onNextDone = next && next.on(
+        'done',
+        () => {
+          nextDone = true;
+          maybeOk();
+        });
 
       onParentDone = parent.on(
         'done',
@@ -140,6 +155,8 @@ export const BaseStep = class {
         });
 
       onParentItem = parent.on('item', async (item) => {
+        if (received >= this.limit) return;
+
         received++;
 
         await this.process(
@@ -150,9 +167,13 @@ export const BaseStep = class {
             this.trigger('item', output);
 
             const hitLimit = this.limit && this.results.length >= this.limit;
-            const done = hitLimit;
+            let done = hitLimit;
 
-            if (done) ok();
+            if (done) {
+              ok();
+            } else {
+              done = maybeOk();
+            }
 
             return done;
           });
@@ -162,7 +183,7 @@ export const BaseStep = class {
       });
 
       if (parent) {
-        parent.run(cursor, rest, index - 1);
+        parent.run(cursor, steps, index - 1);
       } else {
         await this.process(cursor, [], (output) => cursor.publish(output, index));
         ok();
@@ -171,6 +192,7 @@ export const BaseStep = class {
 
     await this._finish(cursor, index);
 
+    onNextDone && next.remove(onNextDone);
     parent.remove(onParentItem);
     parent.remove(onParentDone);
 
