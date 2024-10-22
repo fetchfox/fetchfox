@@ -49,9 +49,6 @@ export const Context = class {
       this[key] = val;
     }
 
-    // console.log(this);
-    // throw 'THIS';
-
     // Copy tokens
     this.user = args?.user || null
     this.tokens = args?.tokens || {};

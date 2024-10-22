@@ -7,8 +7,6 @@ export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
     const { fetchOptions, limit, stream } = options || {};
 
-    console.log('====> CRAWL');
-
     logger.info(`Crawling ${url} with for "${query}"`);
 
     const doc = await this.fetcher.fetch(url, fetchOptions);
@@ -42,12 +40,6 @@ export const Crawler = class extends BaseCrawler {
         toLink[link.id] = link;
       }
 
-      console.log('');
-      console.log('');
-      console.log('Look for links');
-      console.log('');
-      console.log('');
-      console.log('');
       const stream = this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit });
       for await (const { delta, usage } of stream) {
         if (!toLink[delta.id]) {
@@ -59,9 +51,6 @@ export const Crawler = class extends BaseCrawler {
 
         if (seen[link.url]) continue;
         seen[link.url] = true;
-
-        console.log('FOUND LINK', link.url);
-
         delete link.id;
 
         logger.info(`Found link ${link.url} in response to "${query}"`);
