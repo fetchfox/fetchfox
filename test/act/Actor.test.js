@@ -80,6 +80,7 @@ describe('Actor', function() {
           filename);
       }
     } finally {
+      console.log('Close actor and forks');
       await Promise.all([
         actor.finish(),
         fork1.finish(),
