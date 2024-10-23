@@ -3,25 +3,6 @@ import { getExtractor } from '../extract/index.js';
 import { BaseStep } from './BaseStep.js';
 
 export const ExtractStep = class extends BaseStep {
-  static info = BaseStep.combineInfo({
-    name: 'extract',
-    description: 'Extract data from a page.',
-    args: {
-      questions: {
-        description: 'A list of questions describing the data to extract from a page.',
-        format: 'dictionary',
-        example: { username: 'What is the username of this profile?', followers: 'What is the number of followers?', bio: 'What is the bio?', url: 'What is the URL? Format: Absolute URL' },
-        required: true,
-      },
-      single: {
-        description: 'If true, the extraction will find only one item per page. If false, it can find multiple. Should correspond to the users desired number of results per page',
-        format: 'boolean',
-        example: false,
-        required: false,
-      },
-    },
-  });
-
   constructor(args) {
     super(args);
 

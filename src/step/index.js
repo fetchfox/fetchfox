@@ -22,22 +22,17 @@ export { FilterStep } from './FilterStep.js';
 export { LimitStep } from './LimitStep.js';
 export { SchemaStep } from './SchemaStep.js';
 
-const all = [
-  ActionStep,
-  ConstStep,
-  CrawlStep,
-  ExportItemsStep,
-  ExportURLsStep,
-  ExtractStep,
-  FetchStep,
-  FilterStep,
-  LimitStep,
-  SchemaStep,
-];
-const _classMap = {};
-for (const cls of all) {
-  _classMap[cls.info.name] = cls;
-}
-export const classMap = _classMap;
-export const stepNames = Object.keys(_classMap);
-export const stepDescriptions = all.map(cls => cls.info);
+export const classMap = {
+  action: ActionStep,
+  'const': ConstStep,
+  crawl: CrawlStep,
+  exportItems: ExportItemsStep,
+  exportURLs: ExportURLsStep,
+  extract: ExtractStep,
+  fetch: FetchStep,
+  filter: FilterStep,
+  limit: LimitStep,
+  schema: SchemaStep,
+};
+
+export { stepNames, stepDescriptions } from './info.js';

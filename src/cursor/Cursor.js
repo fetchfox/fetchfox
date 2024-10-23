@@ -20,10 +20,12 @@ export const Cursor = class {
 
   publish(item, stepIndex) {
     this.full[stepIndex].items.push(
-      JSON.parse(JSON.stringify(item))
+      item 
+      // JSON.parse(JSON.stringify(item))
     );
     if (this.cb && stepIndex == this.full.length - 1) {
-      this.results = JSON.parse(JSON.stringify(this.full[stepIndex].items));
+      // this.results = JSON.parse(JSON.stringify(this.full[stepIndex].items));
+      this.results = this.full[stepIndex].items;
       this.cb({
         item,
         stepIndex,

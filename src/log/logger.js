@@ -10,7 +10,14 @@ const colors = {
   ERROR: chalk.red,
 };
 
-const LOG_LEVEL = process.env.FETCHFOX_LOG_LEVEL || process.env.FF_LOG || 'warn';
+let LOG_LEVEL;
+
+try {
+  LOG_LEVEL = process.env.FETCHFOX_LOG_LEVEL || process.env.FF_LOG || 'warn';
+} catch (e) {
+  // Likely browser env
+  LOG_LEVEL = 'info';
+}
 
 prefix.reg(log);
 log.setLevel(LOG_LEVEL);

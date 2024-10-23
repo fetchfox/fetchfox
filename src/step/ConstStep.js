@@ -3,19 +3,6 @@ import { BaseStep } from './BaseStep.js';
 import { Item } from '../item/Item.js';
 
 export const ConstStep = class extends BaseStep {
-  static info = BaseStep.combineInfo({
-    name: 'const',
-    description: 'Add a constant item, typically used to initialize the starting URL',
-    args: {
-      items: {
-        description: 'An array of objects to add.',
-        format: 'array',
-        example: [{ url: 'https://example.com' }],
-        required: true,
-      },
-    },
-  });
-
   constructor(args) {
     super(args);
 

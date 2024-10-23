@@ -20,10 +20,45 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       browser = await playwright.chromium.launch({ headless: this.headless });
       const page = await browser.newPage();
       const resp = await page.goto(url);
-
       logger.info(`Playwright got response: ${resp.status()} for ${resp.url()}`);
+      await new Promise(ok => setTimeout(ok, 4000));
 
-      await new Promise(ok => setTimeout(ok, 500));
+      // Get all the iframes
+      const frames = await page.frames();
+      const iframes = [];
+      for (const frame of frames) {
+        let el;
+        try {
+          el = await frame.frameElement();
+        } catch(e) {
+          continue;
+        }
+        const tagName = await el.evaluate(el => el.tagName);
+        if (tagName == 'IFRAME') {
+          iframes.push(frame);
+        }
+      }
+
+      // Get the HTML inside each iframe, and insert it into the page
+      for (let i = 0; i < iframes.length; i++) {
+        const iframe = iframes[i];
+        const content = await iframe.content();
+        const result = await page.evaluate(({ index, content }) => {
+          const iframes = document.querySelectorAll('iframe');
+          const iframe = iframes[index];
+          if (iframe) {
+            const div = document.createElement('div');
+            div.innerHTML = iframe.outerHTML.replace(
+              '</iframe>',
+              content + '</iframe>');
+            iframe.replaceWith(div);
+          }
+        }, { index: i, content });
+      }
+      const html = await page.content();
+      console.log('html', html);
+      resp.text = () => html;
+      const doc = new Document();
       await doc.read(resp, url, options);
 
       return doc;

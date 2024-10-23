@@ -1,4 +1,5 @@
-import { Workflow } from '../index.js';
+import { Workflow } from '../workflow/Workflow.js';
+import { stepNames } from '../step/index.js';
 
 export const fox = {
   config: (...args) => new Workflow().config(...args),
@@ -8,3 +9,8 @@ export const fox = {
   stream: (...args) => new Workflow().stream(...args),
   step: (...args) => new Workflow().step(...args),
 };
+
+for (const stepName of stepNames) {
+  fox[stepName] = (...args) => (new Workflow())[stepName](...args);
+}
+fox['init'] = fox['const'];
