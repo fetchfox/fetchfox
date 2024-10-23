@@ -4,7 +4,7 @@ import assert from 'assert';
 import process from 'node:process';
 import { Document } from '../../src/document/Document.js';
 import { fox } from '../../src/index.js';
-import { sample } from './sample.html.js';
+import { sample } from './data/chia-anime-sample.html.js';
 
 process.on('unhandledRejection', async (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);
