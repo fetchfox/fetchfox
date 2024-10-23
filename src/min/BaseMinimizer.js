@@ -26,7 +26,7 @@ export const BaseMinimizer = class {
     const key = this.cacheKey(doc, options);
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
-    logger.info(`Minimizer cache ${outcome} for ${doc}`);
+    logger.debug(`Minimizer cache ${outcome} for ${doc}`);
 
     if (!result) return;
 
@@ -40,7 +40,7 @@ export const BaseMinimizer = class {
     if (!doc) return;
 
     const key = this.cacheKey(doc, options);
-    logger.info(`Set minimizer cache for ${doc}`);
+    logger.debug(`Set minimizer cache for ${doc}`);
     return this.cache.set(key, min.dump(), 'min');
   }
 

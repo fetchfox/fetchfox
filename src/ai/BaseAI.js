@@ -83,7 +83,7 @@ export const BaseAI = class {
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
-    logger.info(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
+    logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
 
     return result;
   }
@@ -195,7 +195,7 @@ export const BaseAI = class {
           throw e;
         }
 
-        logger.info(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
+        logger.debug(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
         await sleep(retryMsec);
       }
 

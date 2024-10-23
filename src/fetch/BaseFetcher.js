@@ -30,7 +30,7 @@ export const BaseFetcher = class {
   async fetch(url, options) {
     const cached = await this.getCache(url, options);
     if (cached) {
-      logger.info(`Returning cached ${cached}`);
+      logger.debug(`Returning cached ${cached}`);
       return cached;
     }
 
@@ -52,6 +52,8 @@ export const BaseFetcher = class {
     const doc = await this._fetch(url, options);
 
     this.setCache(url, options, doc.dump());
+
+    return doc;
   }
 
   cacheKey(url, options) {
@@ -68,12 +70,12 @@ export const BaseFetcher = class {
     const key = this.cacheKey(url, options);
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
-    logger.info(`Fetch cache ${outcome} for ${url} ${result}`);
+    logger.debug(`Fetch cache ${outcome} for ${url} ${result}`);
 
     if (result) {
       const doc = new Document();
       doc.loadData(result);
-      logger.info(`Fetch cache loaded ${doc}`);
+      logger.debug(`Fetch cache loaded ${doc}`);
       return doc;
     } else {
       return null;
@@ -84,7 +86,7 @@ export const BaseFetcher = class {
     if (!this.cache) return;
 
     const key = this.cacheKey(url, options);
-    logger.info(`Set fetch cache for ${url} to "${('' + val).substr(0, 32)}..."`);
+    logger.debug(`Set fetch cache for ${url} to "${('' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'fetch');
   }
 }

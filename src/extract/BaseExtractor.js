@@ -88,7 +88,7 @@ export const BaseExtractor = class {
       }
     } else {
       for (const key of Object.keys(questions)) {
-        questionsList.push(questions[key]);
+        questionsList.push(questions[key] || key);
         map[questions[key]] = key;
       }
     }

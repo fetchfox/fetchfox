@@ -4,7 +4,7 @@ import { fox } from '../fox/fox.js';
 
 export const Server = class {
   listen(port, cb) {
-    const s = http.createServer((req, res) => {
+    this.s = http.createServer((req, res) => {
       // console.log('req', req);
 
       if (req.method === 'POST' && req.url === '/plan') {
@@ -18,13 +18,13 @@ export const Server = class {
         req.on('end', async () => {
           // Set headers and respond with the same data
 
-          console.log('got body:', body);
+          console.log('/plan got body:', body);
           let data;
-          try {
-            let data = JSON.parse(body);
-          } catch(e) {
-            data = body;
-          }
+          // try {
+            data = JSON.parse(body);
+          // } catch(e) {
+          //   data = body;
+          // }
           console.log('got data:', data);
 
           const f = await fox.plan(data);
@@ -42,6 +42,10 @@ export const Server = class {
 
     console.log('listen on', port);
 
-    return s.listen(port, cb);
+    return this.s.listen(port, cb);
+  }
+
+  close(cb) {
+    return this.s.close(cb);
   }
 }
