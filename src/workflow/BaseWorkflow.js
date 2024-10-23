@@ -1,4 +1,5 @@
 import { classMap, stepNames } from '../step/index.js';
+import { isPlainObject } from '../util.js';
 
 export const BaseWorkflow = class {
   constructor() {
