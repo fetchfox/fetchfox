@@ -49,7 +49,7 @@ export const DiskCache = class {
     try {
       await fs.promises.unlink(filepath);
     } catch (e) {
-      if (e.code != 'ENOENT') return;
+      if (e.code == 'ENOENT') return;
       throw e;
     }
   }

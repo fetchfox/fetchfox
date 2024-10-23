@@ -25,6 +25,7 @@ export const BaseStep = class {
     const info = this.constructor.info;
     const args = {};
     for (const key of Object.keys(info.args)) {
+      console.log('args key', key);
       args[key] = this[key];
     }
     return args;
