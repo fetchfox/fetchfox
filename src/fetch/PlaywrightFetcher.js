@@ -21,7 +21,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       const page = await browser.newPage();
       const resp = await page.goto(url);
       logger.info(`Playwright got response: ${resp.status()} for ${resp.url()}`);
-      // await new Promise(ok => setTimeout(ok, 4000));
+      await new Promise(ok => setTimeout(ok, 4000));
 
       // Get all the iframes
       const frames = await page.frames();
