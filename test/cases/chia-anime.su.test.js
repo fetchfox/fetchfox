@@ -2,7 +2,9 @@ import os from 'os';
 import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
+import { Document } from '../../src/document/Document.js';
 import { fox } from '../../src/index.js';
+import { sample } from './sample.html.js';
 
 process.on('unhandledRejection', async (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);
@@ -12,11 +14,11 @@ process.on('unhandledRejection', async (reason, p) => {
 describe('chia-anime.su', function() {
   this.timeout(0);
 
-  it('should work', async () => {
+  it('should work for simple crawl', async () => {
     const f = await fox
       .config({
-        fetcher: ['playwright', { headless: false } ],
-        diskCache: os.tmpdir() + '/fetchfox-text-cache',
+        fetcher: ['playwright', { headless: true } ],
+        diskCache: os.tmpdir() + '/fetchfox-test-cache',
       });
 
     let countPartials = 0;
@@ -60,4 +62,63 @@ describe('chia-anime.su', function() {
     
     assert.equal(rows.length, 5);
   });
+
+  it('should work for complex crawl', async () => {
+    const f = await fox
+      .config({
+        fetcher: ['playwright', { headless: true } ],
+        diskCache: os.tmpdir() + '/fetchfox-test-cache',
+      });
+
+    const out = await f
+      .init('https://chia-anime.su/')
+      .crawl('find links to animes videos')
+      .limit(5)
+      .extract({
+        'title': 'title of the anime video',
+        'video_url': 'Url of the anime video iframe embed',
+        single: true,
+      })
+      .run();
+
+    assert.equal(
+      out
+        .filter(item => item.video_url.indexOf('en.embedz.net/watch?v=') != -1)
+        .length,
+      5);
+  });
+
+  it('should work extract from the sample', async () => {
+    const doc = new Document();
+    doc.loadData({ html: sample });
+    
+    const result = await fox
+      .init(doc)
+      .extract({
+        'title': 'title of the anime video',
+        'video_url': 'Url of the anime video inside the iframe, MUST start with https://vid.embedz.net/directlink/source_cpanel/embed.php',
+        single: true,
+      })
+      .run();
+
+    assert.equal(
+      result[0].video_url,
+      `https://vid.embedz.net/directlink/source_cpanel/embed.php?data=q96F7jdq2QFdRiT+YaaFCmyZHvKIFPliqya1pejOCTs++581vUUry2Q5bfJ/chlm40a32sAma+um6kZri5UHgu4RevLIFmfbE6b+pk0WUsXj1dlTK6IPh2F3aGLzSHBBv4VhDHCJ5iDoS3eZLtV0o5uo7oXr`);
+  });
+
+  it('should get iframe code', async () => {
+    const out = await fox
+      .config({
+        fetcher: ['playwright', { headless: true } ],
+      })
+      .init('https://chia-anime.su/tasuketsu-episode-15-english-subbed')
+      .fetch()
+      .run();
+
+    const html = out[0].source().html;
+    const index = html.indexOf('https://vid.embedz.net/directlink/source_cpanel/embed.php');
+
+    assert.ok(index != -1, 'expect iframe html');
+  });
+
 });

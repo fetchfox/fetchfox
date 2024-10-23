@@ -4,26 +4,6 @@ import { Actor } from '../act/Actor.js';
 import { Item } from '../item/Item.js';
 
 export const ActionStep = class extends BaseStep {
-  static info = BaseStep.combineInfo({
-    // This step is hard for AI to configure, so don't show it for now
-    hideFromAI: true,
-
-    name: 'action',
-    description: 'Perform some action on the page, such as clicking buttons',
-    args: {
-      action: {},
-      query: {},
-      selector: {},
-
-      // actions: {
-      //   description: `A list of actions to take on the page. Each action is an array of three items. The first item is the action to take, eg. 'click'. The second item is a description of the target of this action, eg. 'all the download buttons on the page. The third item is an optional CSS selector, to narrow the range of elements searched.'`,
-      //   format: 'array',
-      //   example: ['click', 'the next page button', 'button.cta'],
-      //   required: true,
-      // },
-    },
-  });
-
   constructor(args) {
     super(args);
 

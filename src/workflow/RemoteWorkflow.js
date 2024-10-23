@@ -1,4 +1,5 @@
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch';
+import { BaseStep } from '../step/BaseStep.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
 
 export const RemoteWorkflow = class extends BaseWorkflow {
@@ -29,7 +30,16 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     console.log('');
     console.log('');
 
-    const stepStrs = [...this.steps, ...this._stepsInput];
+    const stepStrs = []; //[...this.steps, ...this._stepsInput];
+
+    for (const input of this._stepsInput) {
+      if (input instanceof BaseStep) {
+        stepStrs.push(input.dump());
+      } else {
+        stepStrs.push(input);
+      }
+    }
+
     const resp = await fetch(
       url,
       {
@@ -39,5 +49,6 @@ export const RemoteWorkflow = class extends BaseWorkflow {
       });
     const data = await resp.json();
     console.log('response', data);
+    return data;
   }
 }

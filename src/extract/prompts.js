@@ -33,11 +33,6 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 >>>> Limit to this many item(s):
 {{limit}}
 
->>>> {{description}}
-
->>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS:
-{{questions}}
-
 >>>> The URL of the website:
 {{url}}
 
@@ -46,6 +41,11 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
 >>>> HTML text from innerHTML of the page (first {{count}} characters):
 {{html}}
+
+>>>> {{description}}
+
+>>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS:
+{{questions}}
 `);
 
 export const iterative = new Template(

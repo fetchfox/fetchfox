@@ -1,17 +1,7 @@
 import { logger } from '../log/logger.js';
+import { stepDescriptionsMap, nameMap } from './info.js';
 
 export const BaseStep = class {
-  static combineInfo = (info) => {
-    const combined = {...info};
-    combined.args.limit = {
-      description: 'Limit the number of results in this step.',
-      format: 'number',
-      example: 5,
-      required: false,
-    };
-    return combined;
-  };
-
   constructor(args) {
     this.limit = args?.limit;
     this.callbacks = {};
@@ -21,11 +11,14 @@ export const BaseStep = class {
     return `[${this.constructor.name}]`;
   }
 
+  name() {
+    return nameMap[this.constructor.name];
+  }
+
   args(a) {
-    const info = this.constructor.info;
+    const info = stepDescriptionsMap[this.name()];
     const args = {};
     for (const key of Object.keys(info.args)) {
-      console.log('args key', key);
       args[key] = this[key];
     }
     return args;
@@ -33,7 +26,7 @@ export const BaseStep = class {
 
   dump() {
     return {
-      name: this.constructor.info.name,
+      name: this.name(),
       args: this.args(),
     };
   }

@@ -1,4 +1,4 @@
-import { classMap, stepNames } from '../step/index.js';
+// import { classMap, stepNames } from '../step/index.js';
 
 export const BaseWorkflow = class {
   constructor() {
@@ -43,40 +43,5 @@ export const BaseWorkflow = class {
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];
     }
-  }
-}
-
-for (const stepName of stepNames) {
-  BaseWorkflow.prototype[stepName] = function(prompt) {
-    const name = stepName;
-    const cls = classMap[name];
-
-    if (name == 'extract') {
-      // TODO: generalize + test this
-      if (prompt.questions) {
-        return this.step(new cls(prompt));
-      } else if (Array.isArray(prompt) || isPlainObject(prompt)) {
-        return this.step(new cls({ questions: prompt }));
-      }
-    } else if (name == 'crawl') {
-      if (typeof prompt == 'string') {
-        return this.step(new cls({ query: prompt }));
-      }
-
-      // if (prompt.limit) {
-      //   return this.step(new cls(prompt));
-      // } else if (typeof prompt == 'number') {
-      //   return this.step(new cls({ limit: prompt }));
-      // }
-    } else if (name == 'limit') {
-      if (prompt.limit) {
-        return this.step(new cls(prompt));
-      } else if (typeof prompt == 'number') {
-        return this.step(new cls({ limit: prompt }));
-      }
-    }
-
-
-    return this.step(JSON.stringify({ name, prompt }));
   }
 }

@@ -35,3 +35,39 @@ export const Workflow = class extends BaseWorkflow {
     return cursor.results;
   }
 }
+
+for (const stepName of stepNames) {
+  Workflow.prototype[stepName] = function(prompt) {
+    const name = stepName;
+    const cls = classMap[name];
+
+    if (name == 'extract') {
+      // TODO: generalize + test this
+      // TODO: This is a major tech debt, FIXME
+      if (prompt.questions) {
+        return this.step(new cls(prompt));
+      } else if (Array.isArray(prompt) || isPlainObject(prompt)) {
+        const args = { questions: JSON.parse(JSON.stringify(prompt)) };
+        if (isPlainObject(args.questions) && args.questions.single === true) {
+          delete args.questions.single;
+          args.single = true;
+        }
+        return this.step(new cls(args));
+      }
+    } else if (name == 'crawl') {
+      if (typeof prompt == 'string') {
+        return this.step(new cls({ query: prompt }));
+      }
+    } else if (name == 'fetch') {
+      return this.step(new cls());
+    } else if (name == 'limit') {
+      if (prompt.limit) {
+        return this.step(new cls(prompt));
+      } else if (typeof prompt == 'number') {
+        return this.step(new cls({ limit: prompt }));
+      }
+    }
+
+    return this.step(JSON.stringify({ name, prompt }));
+  }
+}

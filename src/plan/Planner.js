@@ -1,7 +1,8 @@
 import { logger } from '../log/logger.js';
 import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
-import { stepDescriptions, classMap, BaseStep } from '../step/index.js';
+import { stepDescriptions , classMap, BaseStep } from '../step/index.js';
 import { singleStep, combined } from './prompts.js';
+import { isPlainObject } from '../util.js';
 
 export const Planner = class {
   constructor(options) {
@@ -19,6 +20,7 @@ export const Planner = class {
   }
 
   async planArray(stepsInput) {
+    const objs = [];
     const stepsJson = [];
 
     const stringify = (input) => {
@@ -37,25 +39,33 @@ export const Planner = class {
     }
 
     for (const input of stepsInput) {
-      const str = stringify(input);
-      const stepLibrary = stepDescriptions
-        .filter(v => !v.hideFromAI)
-        .map(v => JSON.stringify(v, null, 2)).join('\n\n');
-      const context = {
-        stepLibrary,
-        allSteps,
-        step: str,
+      if (input instanceof BaseStep) {
+        logger.debug(`Planner pushing ${input} into steps`);
+        objs.push(input);
+      } else if (isPlainObject(input) && input.name) {
+        logger.debug(`Planner parsing JSON input ${JSON.stringify(input)} into steps`);
+        objs.push(this.fromJson(input));
+      } else {
+        const str = stringify(input);
+        const stepLibrary = stepDescriptions
+          .filter(v => !v.hideFromAI)
+          .map(v => JSON.stringify(v, null, 2)).join('\n\n');
+        const context = {
+          stepLibrary,
+          allSteps,
+          step: str,
+        }
+        if (this.user) {
+          context.user = userPrompt(this.user);
+        }
+        const prompt = singleStep.render(context);
+        const answer = await this.ai.ask(prompt, { format: 'json' });
+        logger.debug(`Step planned "${str}" into ${JSON.stringify(answer.partial)}`);
+        objs.push(this.fromJson(answer.partial));
       }
-      if (this.user) {
-        context.user = userPrompt(this.user);
-      }
-      const prompt = singleStep.render(context);
-      const answer = await this.ai.ask(prompt, { format: 'json' });
-      logger.debug(`Step planned "${str}" into ${JSON.stringify(answer.partial)}`);
-      stepsJson.push(answer.partial);
     }
 
-    return stepsJson.map(x => this.fromJson(x));
+    return objs;
   }
 
   async planString(allSteps) {

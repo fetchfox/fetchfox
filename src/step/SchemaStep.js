@@ -3,19 +3,6 @@ import { BaseStep } from './BaseStep.js';
 import { Schema } from '../schema/Schema.js';
 
 export const SchemaStep = class extends BaseStep {
-  static info = BaseStep.combineInfo({
-    name: 'schema',
-    description: 'Reformat items into a target schema',
-    args: {
-      schema: {
-        description: 'The desired target schema',
-        format: 'object',
-        example: '{"title": "article title", "authors": ["list of authors..."]}',
-        required: true,
-      },
-    },
-  });
-
   constructor(args) {
     super(args);
 

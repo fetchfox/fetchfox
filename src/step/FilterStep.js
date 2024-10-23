@@ -3,19 +3,6 @@ import { BaseStep } from './BaseStep.js';
 import { Filter } from '../filter/Filter.js';
 
 export const FilterStep = class extends BaseStep {
-  static info = BaseStep.combineInfo({
-    name: 'filter',
-    description: 'Filter results based on a user prompt',
-    args: {
-      query: {
-        description: 'A description of what to filter from.',
-        format: 'string',
-        example: 'Look only for articles relating to technology and business. Ignore anything written more than a week ago.',
-        required: true,
-      },
-    },
-  });
-
   constructor(args) {
     super(args);
 
