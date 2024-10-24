@@ -1,5 +1,5 @@
 import { logger } from '../log/logger.js';
-import { classMap, stepNames } from '../step/index.js';
+import { stepNames } from '../step/index.js';
 
 export const BaseWorkflow = class {
   constructor() {
@@ -23,8 +23,7 @@ export const BaseWorkflow = class {
   load(data) {
     this.steps = [];
     for (const step of data.steps) {
-      const cls = classMap[step.name];
-      this.steps.push(new cls(step.args));
+      this.step(step);
     }
     return this;
   }
