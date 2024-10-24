@@ -8,6 +8,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
     this.headless = options.headless === undefined ? true : options.headless;
+    this.browser = options.browser || 'chromium';
+  }
+
+  async launch() {
+    return playwright[this.browser].launch({ headless: this.headless });
   }
 
   async _fetch(url, options) {
@@ -17,7 +22,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     let browser;
     try {
-      browser = await playwright.chromium.launch({ headless: this.headless });
+      browser = await this.launch();
       const page = await browser.newPage();
       const resp = await page.goto(url);
       logger.info(`Playwright got response: ${resp.status()} for ${resp.url()}`);
@@ -56,14 +61,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         }, { index: i, content });
       }
       const html = await page.content();
-      console.log('html', html);
       resp.text = () => html;
       const doc = new Document();
       await doc.read(resp, url, options);
 
       return doc;
     } finally {
-      await browser.close();
+      if (browser) {
+        await browser.close();
+      }
     }
   }
 }
