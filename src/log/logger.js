@@ -35,6 +35,9 @@ prefix.apply(log.getLogger('critical'), {
 });
 
 export const logger = {
+  trace: (...args) => {
+    log.trace(...args);
+  },
   debug: (...args) => {
     if (log.getLevel() <= log.levels.DEBUG) {
       log.debug(...args);

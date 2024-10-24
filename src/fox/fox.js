@@ -6,7 +6,10 @@ export const fox = {
   plan: (...args) => new Workflow().plan(...args),
   load: (data) => new Workflow().load(data),
   run: (...args) => new Workflow().run(...args),
-  stream: (...args) => new Workflow().stream(...args),
+  stream: (...args) => {
+    console.log('???');
+    return new Workflow().stream(...args);
+  },
   step: (...args) => new Workflow().step(...args),
 };
 

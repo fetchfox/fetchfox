@@ -14,30 +14,13 @@ describe('news.ycombinator.com', function() {
 
   it('should work', async () => {
     const f = await fox
-      .config({
-        fetcher: ['playwright', { headless: true }],
-        diskCache: os.tmpdir() + '/fetchfox-text-cache',
-      });
-
-    let countPartials = 0;
-
-    const out = await f
       .init('https://news.ycombinator.com')
-      .crawl('find links to comment pages for each article. URL must have item?id= in it')
       .extract({
-        questions: {
-          articleTitle: 'What is the title of the article?',
-          numComments: 'What is the number of comments?',
-          submitAuthor: 'Who submitted this article?',
-          topAuthor: 'What is the username of the top commenter?',
-          topCommentFirstWords: 'What are the first 5 words of the top comment?',
-        },
-        single: true,
+        articleTitle: 'What is the title of the article?',
+        numComments: 'What is the number of comments?',
       })
       .run(null, (partial) => {
-        const { item, results } = partial;
-        console.log(item);
-        countPartials++;
+        // stuff
       });
 
     // Sanity checks

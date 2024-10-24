@@ -17,19 +17,38 @@
 
 # Getting started
 
-Install the package:
+Install the package and playwright:
 
 ```bash
 npm i fetchfox
+npx install playwright
 ```
 
-Then use it:
+Then use it. Here is the callback style:
 
 ```javascript
 import { fox } from 'fetchfox';
 
-const results = await fox.run(
-  `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
+const results = await fox
+  .init('https://pokemondb.net/pokedex/national')
+  .extract({ name: 'Pokemon name', number: 'Pokemon number' })
+  .limit(3)
+  .run(null, (delta) => { console.log(delta.item) });
+```
+
+If you prefer, you can use the streaming style:
+
+```javascript
+import { fox } from 'fetchfox';
+
+const stream = fox
+  .init('https://pokemondb.net/pokedex/national')
+  .extract({ name: 'Pokemon name', number: 'Pokemon number' })
+  .stream();
+  
+for await (const delta of stream) {
+  console.log(delta.item);
+}
 ```
 
 Read on below for instructions on how to configure your API key and AI model.
@@ -81,11 +100,11 @@ For more control, you can specify the steps like below.
 import { fox } from 'fetchfox';
 
 const results = await fox
-  .init('[https://github.com/bitcoin/bitcoin/commits/master](https://news.ycombinator.com/news)')
+  .init('https://github.com/bitcoin/bitcoin/commits/master')
   .crawl('find links to the comment pages')
   .extract('get the following data: article name, top comment text, top commenter username')
   .schema({ articleName: '', commentText: '', username: '' })
-  .export('out.jsonl')
+  .export('out.jsonl');
 ```
 
 You can chain steps to do more complicated scrapes. The example below does the following:
