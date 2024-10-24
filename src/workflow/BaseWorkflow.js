@@ -1,5 +1,5 @@
 import { logger } from '../log/logger.js';
-import { stepNames } from '../step/index.js';
+import { stepNames } from '../step/info.js';
 
 export const BaseWorkflow = class {
   constructor() {
