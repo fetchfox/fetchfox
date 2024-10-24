@@ -15,27 +15,28 @@ describe('pointhound.com', function() {
   this.timeout(0);
 
   it('should work for simple crawl', async () => {
-
     const url = 'https://www.pointhound.com/flights?dateBuffer=false&flightClass=Business+%26+First+Class&originCode=JFK&originName=New+York&destinationCode=BOS&destinationName=Boston&passengerCount=1&departureDate=2024-11-23';
 
     const f = await fox
       .config({
-        fetcher: ['playwright', { headless: false } ],
-        // diskCache: os.tmpdir() + '/fetchfox-test-cache',
+        fetcher: ['playwright', { headless: true, wait: 4000 } ],
       });
     const out = await f
       .init(url)
       .extract({
         duration: 'Flight duration',
         time: 'Flight departure and arrival time',
-        flightNumber: 'What is the flight number? If available',
+        airline: 'What is the airline?',
         points: 'What is the number of points for this flight?',
       })
-      .limit(5)
-      .run(null, (partial) => {
-        console.log('got partial result:', partial);
-      });
+      .limit(2)
+      .run();
 
-    console.log('out:', out);
+    // Sanity checks
+    for (const item of out) {
+      console.log(item);
+      assert.ok(item.duration.match(/\d+ hr \d+ mins/, 'duration format'));
+      assert.ok(item.points.match(/[0-9,]+ pts/, 'points format'));
+    }
   })
 })
