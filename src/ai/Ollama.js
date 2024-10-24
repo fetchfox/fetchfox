@@ -5,11 +5,13 @@ import { parseAnswer } from './util.js';
 
 export const Ollama = class extends BaseAI {
   static apiKeyEnvVariable = 'OLLAMA_API_KEY';
+  static optionalApiKey = true;
   static defaultModel = 'llama3.1';
 
   constructor(options) {
     super(options);
-    this.host = options.host || process.env.OLLAMA_HOST;
+    this.host = options?.host || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
+    logger.info(`Using Ollama host ${this.host}`);
 
     if (!this.maxTokens) {
       if (this.model.indexOf('llama3.1') != -1) {

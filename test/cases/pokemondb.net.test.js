@@ -1,5 +1,3 @@
-import os from 'os';
-import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';

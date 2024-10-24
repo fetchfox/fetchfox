@@ -22,7 +22,7 @@ export const BaseAI = class {
       },
       options);
 
-    if (!apiKey) {
+    if (!apiKey && !this.constructor.optionalApiKey) {
       throw new Error(`FetchFox is missing API key for ${this.constructor.name}. Enter it using environment variable ${apiKeyEnvVariable} or pass it in to the constructor`);
     }
 
@@ -62,7 +62,7 @@ export const BaseAI = class {
       this.maxTokens = 10000;
     }
 
-    if (options.maxTokens) this.maxTokens = options.maxTokens;
+    if (options?.maxTokens) this.maxTokens = options.maxTokens;
   }
 
   toString() {
