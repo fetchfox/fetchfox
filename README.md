@@ -45,7 +45,7 @@ const stream = fox
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .stream();
-  
+
 for await (const delta of stream) {
   console.log(delta.item);
 }
