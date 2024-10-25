@@ -63,7 +63,7 @@ export const publishToGoogle = async (buf, path, token) => {
   const filename = parts.slice(1).join('/');
 
   try {
-    await drive.files.get({ fileId: folderId });
+    await drive.files.get({ fileId: directoryId });
   } catch (e) {
     const resp = await drive.files.list({
       q: `mimeType='application/vnd.google-apps.folder' and name='${directoryId}' and trashed=false`,
