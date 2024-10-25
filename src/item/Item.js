@@ -12,8 +12,13 @@ export const Item = class {
       this[k] = this.clean(data[k]);
     }
     this.#source = source;
-    console.log('make item from source:' + source);
     this.url = source?.url || data?.url;
+  }
+
+  copy() {
+    return new Item(
+      JSON.parse(JSON.stringify(this)),
+      this.#source);
   }
 
   clean(val) {
