@@ -7,6 +7,7 @@ export const LimitStep = class extends BaseStep {
   }
 
   async process({ cursor, item }, cb) {
+    logger.info(`Limit step on ${item}`);
     cb(item);
   }
 }
