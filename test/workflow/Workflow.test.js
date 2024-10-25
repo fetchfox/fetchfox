@@ -1,4 +1,5 @@
 import assert from 'assert';
+import os from 'os';
 import { fox } from '../../src/index.js';
 
 describe('Workflow', function() {
@@ -59,4 +60,44 @@ describe('Workflow', function() {
       JSON.stringify(f.dump()),
       JSON.stringify(data));
   });
+
+  it('should be able to publish all steps', async () => {
+    const f = await fox
+      .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+      })
+      .limit(3);
+
+    let count = 0;
+
+    await f.run(null, () => {
+      count++
+    });
+
+    assert.equal(count, 3);
+
+    const f2 = await fox
+      .config({
+        diskCache: os.tmpdir() + '/fetchfox-test-cache',
+        publishAllSteps: true,
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+      })
+      .limit(3);
+
+    let count2 = 0;
+
+    await f2.run(null, () => {
+      count2++
+    });
+
+    assert.equal(count2, 7);
+  });
+
 });

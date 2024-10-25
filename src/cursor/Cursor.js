@@ -28,7 +28,9 @@ export const Cursor = class {
     }
 
     this.full[stepIndex].items.push(copy);
-    if (this.cb && stepIndex == this.full.length - 1) {
+
+    const isLast = stepIndex == this.full.length - 1;
+    if (this.cb && (isLast || this.ctx.publishAllSteps)) {
       this.results = this.full[stepIndex].items;
       this.cb({
         item,
