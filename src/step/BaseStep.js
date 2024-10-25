@@ -91,7 +91,7 @@ export const BaseStep = class {
 
   async run(cursor, steps, index) {
     try {
-      return await this._run(cursor, steps, index);
+      return this._run(cursor, steps, index);
     } catch(e) {
       await cursor.error('' + e, index);
       throw e;
@@ -159,24 +159,29 @@ export const BaseStep = class {
 
         received++;
 
-        await this.process(
-          { cursor, item, index },
-          (output) => {
-            cursor.publish(output, index);
-            this.results.push(output);
-            this.trigger('item', output);
+        try {
+          await this.process(
+            { cursor, item, index },
+            (output) => {
+              cursor.publish(output, index);
+              this.results.push(output);
+              this.trigger('item', output);
 
-            const hitLimit = this.limit && this.results.length >= this.limit;
-            let done = hitLimit;
+              const hitLimit = this.limit && this.results.length >= this.limit;
+              let done = hitLimit;
 
-            if (done) {
-              ok();
-            } else {
-              done = maybeOk();
-            }
+              if (done) {
+                ok();
+              } else {
+                done = maybeOk();
+              }
 
-            return done;
-          });
+              return done;
+            });
+        } catch(e) {
+          await cursor.error(e, index);
+          throw e;
+        }
 
         completed++;
         maybeOk();
