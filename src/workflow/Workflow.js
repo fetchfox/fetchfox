@@ -20,6 +20,19 @@ export const Workflow = class extends BaseWorkflow {
     return this;
   }
 
+  async load(data) {
+    this.steps = [];
+    for (const json of data.steps) {
+      const cls = classMap[json.name];
+      const args = Object.assign({}, json.args);
+      if (!cls) {
+        throw new Error(`Workflow cannot load: ${JSON.stringify(json)}`);
+      }
+      this.steps.push(new cls(args));
+    }
+    return this;
+  }
+
   async run(args, cb) {
     if (args) this.parseRunArgs(args);
     await this.plan();

@@ -16,6 +16,14 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     return this.host() + endpoint;
   }
 
+  load(data) {
+    this.steps = [];
+    for (const step of data.steps) {
+      this.step(step);
+    }
+    return this;
+  }
+
   async plan(...args) {
     if (args) this.parseRunArgs(args);
     const url = this.url('/plan');
