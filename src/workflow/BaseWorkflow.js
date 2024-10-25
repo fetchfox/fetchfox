@@ -20,14 +20,6 @@ export const BaseWorkflow = class {
     return this.ctx;
   }
 
-  load(data) {
-    this.steps = [];
-    for (const step of data.steps) {
-      this.step(step);
-    }
-    return this;
-  }
-
   step(data) {
     this._stepsInput.push(data);
     return this;
