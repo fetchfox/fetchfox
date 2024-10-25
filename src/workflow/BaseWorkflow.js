@@ -34,6 +34,8 @@ export const BaseWorkflow = class {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];
+    } else {
+      throw new Error('Unexpected run args: ' + args);
     }
   }
 
