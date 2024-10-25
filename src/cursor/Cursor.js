@@ -47,7 +47,7 @@ export const Cursor = class {
     delete this.full[stepIndex].loading;
     return this.cb && this.cb(
       {
-        error: { index: stepIndex, message },
+        error: { index: stepIndex, message: '' + message },
         full: this.full,
       },
       stepIndex);
