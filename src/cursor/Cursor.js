@@ -1,4 +1,5 @@
 import { Context } from '../context/Context.js';
+import { Item } from '../item/Item.js';
 
 export const Cursor = class {
   constructor(args, steps, cb) {
@@ -19,12 +20,15 @@ export const Cursor = class {
   }
 
   publish(item, stepIndex) {
-    this.full[stepIndex].items.push(
-      item 
-      // JSON.parse(JSON.stringify(item))
-    );
+    let copy;
+    if (item instanceof Item) {
+      copy = item.copy();
+    } else {
+      copy = JSON.parse(JSON.stringify(item));
+    }
+
+    this.full[stepIndex].items.push(copy);
     if (this.cb && stepIndex == this.full.length - 1) {
-      // this.results = JSON.parse(JSON.stringify(this.full[stepIndex].items));
       this.results = this.full[stepIndex].items;
       this.cb({
         item,
