@@ -149,7 +149,13 @@ export const BaseStep = class {
         });
 
       onParentItem = parent.on('item', async (item) => {
-        if (received >= this.limit) return;
+        if (
+          this.limit !== null &&
+          this.limit !== undefined &&
+          received >= this.limit)
+        {
+          return;
+        }
 
         received++;
 
