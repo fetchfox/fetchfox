@@ -14,8 +14,13 @@ export const Server = class {
 
         req.on('end', async () => {
           const data = JSON.parse(body);
+
+          console.log('Got plan request:', data);
+
           const f = await fox.plan(...data);
-          const out = JSON.stringify(f.dump(), null, 2);
+          const out = JSON.stringify(f.dump());
+
+          console.log('Returning plan:', out);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(out);

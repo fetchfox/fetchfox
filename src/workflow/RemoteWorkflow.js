@@ -9,7 +9,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   host() {
-    return this.ctx?.host || 'http://localhost:9090';
+    return this.ctx?.host || 'http://127.0.0.1:9090';
   }
 
   url(endpoint) {
