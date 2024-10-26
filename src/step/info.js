@@ -158,7 +158,7 @@ export const stepDescriptionsMap = {
     description: 'Extract data from a page.',
     args: {
       questions: {
-        description: 'A list of questions describing the data to extract from a page.',
+        description: 'A dictionary of questions describing the data to extract from a page. They keys are the field names, and the values are the questions describing what to extract.',
         format: 'object',
         example: { username: 'What is the username of this profile?', followers: 'What is the number of followers?', bio: 'What is the bio?', url: 'What is the URL? Format: Absolute URL' },
         required: true,
