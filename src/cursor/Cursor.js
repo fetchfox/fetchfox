@@ -42,12 +42,13 @@ export const Cursor = class {
   }
 
   error(message, stepIndex) {
+    message = '' + message;
     this.full[stepIndex].error = message;
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
     return this.cb && this.cb(
       {
-        error: { index: stepIndex, message: '' + message },
+        error: { index: stepIndex, message },
         full: this.full,
       },
       stepIndex);
