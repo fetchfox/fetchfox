@@ -39,6 +39,9 @@ export const Workflow = class extends BaseWorkflow {
 
     if (this.steps.length == 0) return;
 
+    // console.log('STEPS', this.steps);
+    // throw 'yyyy';
+
     const cursor = new Cursor(this.context(), this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);

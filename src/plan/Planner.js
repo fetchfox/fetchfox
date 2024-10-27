@@ -44,7 +44,6 @@ export const Planner = class {
         objs.push(input);
 
       } else if (isPlainObject(input) && input.name) {
-        console.log('isPlainObject', input);
         logger.debug(`Planner parsing JSON input ${JSON.stringify(input)} into steps`);
         objs.push(this.fromJson(input));
 
@@ -95,20 +94,25 @@ export const Planner = class {
       if (typeof json.args == 'number') {
         json.args = { limit: json.args };
       }
+
     } else if (json.name == 'const') {
       let arr = [];
-      if (Array.isArray(json.args)) {
+      let items;
+      if (json.args.items) {
+        items = json.args.items;
+      } if (Array.isArray(json.args)) {
         arr = json.args;
       } else {
         arr = [json.args];
       }
 
-      const items = [];
-      for (const a of arr) {
-        if (typeof a == 'string') {
-          items.push({ url: a });
-        } else {
-          items.push(a);
+      if (!items) {
+        for (const a of arr) {
+          if (typeof a == 'string') {
+            items.push({ url: a });
+          } else {
+            items.push(a);
+          }
         }
       }
 

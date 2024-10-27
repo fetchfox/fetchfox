@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { fox } from '../../src/index.js';
 import { Server } from '../../src/server/Server.js';
 import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
 
@@ -8,7 +9,6 @@ describe('Server', function() {
   it('should serve and run', async () => {
     const s = new Server();
     await new Promise(ok => s.listen(7070, ok));
-    console.log('started server');
 
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
@@ -29,11 +29,51 @@ describe('Server', function() {
           console.log('partial ===>', partial);
         });
 
-    // console.log('PLAN:', rw.steps);
-    // await rw.run();
-    //   .plan();
+    s.close();
+  });
 
-    console.log('run done');
+  it('should get same results as local', async () => {
+    // const s = new Server();
+    // await new Promise(ok => s.listen(7070, ok));
+
+    const partials = [];
+    const rwPartials = [];
+
+    const run = fox
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .limit(3)
+      .run(
+        null,
+        (partial) => {
+          results.push(partial);
+        });
+
+    // const rw = new RemoteWorkflow()
+    //   .config({ host: 'http://127.0.0.1:7070' });
+    // const rwRun = rw
+    //   .init('https://pokemondb.net/pokedex/national')
+    //   .extract({
+    //     questions: {
+    //       name: 'Pokemon name',
+    //       type: 'Pokemon type',
+    //       number: 'Pokedex number',
+    //     },
+    //     single: false })
+    //   .limit(3)
+    //   .run(
+    //     null,
+    //     (partial) => {
+    //       rwPartials.push(partial);
+    //     });
+
+    await Promise.all([run]);
 
     // s.close();
   });
