@@ -96,6 +96,7 @@ export const Planner = class {
       }
 
     } else if (json.name == 'const') {
+      console.log('1');
       let arr = [];
       let items;
       if (json.args.items) {
@@ -106,7 +107,9 @@ export const Planner = class {
         arr = [json.args];
       }
 
+      console.log('2', items);
       if (!items) {
+        items = [];
         for (const a of arr) {
           if (typeof a == 'string') {
             items.push({ url: a });
@@ -116,6 +119,7 @@ export const Planner = class {
         }
       }
 
+      console.log('3');
       json.args = { items };
     }
     logger.debug(`Cleaned JSON args: ${JSON.stringify(json.args)}`);

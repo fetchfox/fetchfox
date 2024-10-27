@@ -51,6 +51,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
     return new Promise((ok, err) => {
       ws.on('open', () => {
+        console.log('OPEN');
         const message = JSON.stringify({
           command: 'run',
           context: this.ctx,

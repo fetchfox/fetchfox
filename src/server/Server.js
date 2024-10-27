@@ -16,7 +16,9 @@ export const Server = class {
     this.wss.on('connection', ws => {
       ws.on('message', async message => {
         const data = JSON.parse(message);
+        console.log('got data', data);
         const f = await fox.plan(...(data.workflow.steps));
+        console.log('got f', f);
         const out = await f.run(
           null,
           (r) => {
@@ -24,7 +26,6 @@ export const Server = class {
           })
 
         // ws.send(out);
-
         ws.close(1000);
       });
 

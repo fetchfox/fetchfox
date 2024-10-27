@@ -137,6 +137,7 @@ export const BaseStep = class {
       onNextDone = next && next.on(
         'done',
         () => {
+          console.log('NEXT DONE' + this);
           nextDone = true;
           maybeOk();
         });
@@ -144,16 +145,21 @@ export const BaseStep = class {
       onParentDone = parent.on(
         'done',
         () => {
+          console.log('PARENT DONE' + this);
           parentDone = true;
           maybeOk();
         });
 
       onParentItem = parent.on('item', async (item) => {
+        console.log('PARENT ITEM' + this);
+
         if (
           this.limit !== null &&
           this.limit !== undefined &&
           received >= this.limit)
         {
+          console.log('early return' + this);
+          ok();
           return;
         }
 
@@ -168,6 +174,7 @@ export const BaseStep = class {
               this.trigger('item', output);
 
               const hitLimit = this.limit && this.results.length >= this.limit;
+              console.log('HIT LIMIT?' + this, hitLimit);
               let done = hitLimit;
 
               if (done) {
