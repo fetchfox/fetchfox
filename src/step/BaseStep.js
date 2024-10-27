@@ -154,7 +154,6 @@ export const BaseStep = class {
           this.limit !== undefined &&
           received >= this.limit)
         {
-          ok();
           return;
         }
 
@@ -185,6 +184,11 @@ export const BaseStep = class {
         }
 
         completed++;
+
+        if (completed >= this.limit) {
+          ok();
+        }
+
         maybeOk();
       });
 
