@@ -51,7 +51,6 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
     return new Promise((ok, err) => {
       ws.on('open', () => {
-        console.log('OPEN');
         const message = JSON.stringify({
           command: 'run',
           context: this.ctx,
@@ -64,8 +63,12 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
       ws.on('message', (msg) => {
         const data = JSON.parse(msg);
-        logger.debug(`Client side websocket message: ${data}`);
-        cb(data);
+        logger.debug(`Client side websocket message: ${JSON.stringify(data).substr(0, 120)}`);
+        if (data.close) {
+          ok(data.out);
+        } else {
+          cb(data);
+        }
       });
 
       ws.on('error', (e) => {
@@ -75,7 +78,6 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
       ws.on('close', () => {
         logger.info('Client side websocket connection closed');
-        ok();
       });
     });
   }

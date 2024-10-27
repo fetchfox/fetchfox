@@ -16,21 +16,19 @@ export const Server = class {
     this.wss.on('connection', ws => {
       ws.on('message', async message => {
         const data = JSON.parse(message);
-        console.log('got data', data);
         const f = await fox.plan(...(data.workflow.steps));
-        console.log('got f', f);
         const out = await f.run(
           null,
           (r) => {
             ws.send(JSON.stringify(r));
-          })
-
-        // ws.send(out);
+          });
+        logger.info(`Server side run done: ${JSON.stringify(out).substr(0, 120)}`);
+        ws.send(JSON.stringify({ close: true, out }));
         ws.close(1000);
       });
 
       ws.on('close', () => {
-        logger.info(`Close websocket connection`);
+        logger.info(`Server side close websocket connection`);
       });
     });
 

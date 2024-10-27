@@ -13,7 +13,7 @@ describe('Server', function() {
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
 
-    await rw
+    const out = await rw
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
@@ -26,10 +26,14 @@ describe('Server', function() {
       .run(
         null,
         (partial) => {
-          console.log('partial ===>', partial);
         });
 
     s.close();
+
+    assert.equal(out.length, 3);
+    assert.equal(out[0].name, 'Bulbasaur');
+    assert.equal(out[1].name, 'Ivysaur');
+    assert.equal(out[2].name, 'Venusaur');
   });
 
   it('should get same results as local', async () => {
@@ -72,8 +76,6 @@ describe('Server', function() {
         null,
         (partial) => {
           rwPartials.push(partial.item);
-
-          console.log('rwPartials===>', rwPartials);
         });
 
     await Promise.all([run, rwRun]);
