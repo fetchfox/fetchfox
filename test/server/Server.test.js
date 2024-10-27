@@ -7,13 +7,13 @@ describe('Server', function() {
 
   it('should serve and run', async () => {
     const s = new Server();
-    await new Promise(ok => s.listen(9090, ok));
+    await new Promise(ok => s.listen(7070, ok));
     console.log('started server');
 
     const rw = new RemoteWorkflow()
-      .config({ host: 'http://localhost:9090' });
+      .config({ host: 'http://127.0.0.1:7070' });
 
-    const plan = await rw
+    await rw
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
@@ -22,10 +22,19 @@ describe('Server', function() {
           number: 'Pokedex number',
         },
         single: false })
-      .plan();
+      .limit(3)
+      .run(
+        null,
+        (partial) => {
+          console.log('partial ===>', partial);
+        });
 
-    console.log('plan', plan);
+    // console.log('PLAN:', rw.steps);
+    // await rw.run();
+    //   .plan();
 
-    s.close();
+    console.log('run done');
+
+    // s.close();
   });
 });

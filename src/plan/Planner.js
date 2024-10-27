@@ -42,9 +42,12 @@ export const Planner = class {
       if (input instanceof BaseStep) {
         logger.debug(`Planner pushing ${input} into steps`);
         objs.push(input);
+
       } else if (isPlainObject(input) && input.name) {
+        console.log('isPlainObject', input);
         logger.debug(`Planner parsing JSON input ${JSON.stringify(input)} into steps`);
         objs.push(this.fromJson(input));
+
       } else {
         const str = stringify(input);
         const stepLibrary = stepDescriptions
@@ -86,7 +89,35 @@ export const Planner = class {
   fromJson(json) {
     logger.debug(`Plan from JSON: ${JSON.stringify(json)}`);
     const cls = classMap[json.name];
-    const args = Object.assign({}, json.args);
+    logger.debug(`Got JSON args: ${JSON.stringify(json.args)}`);
+
+    if (json.name == 'limit') {
+      if (typeof json.args == 'number') {
+        json.args = { limit: json.args };
+      }
+    } else if (json.name == 'const') {
+      let arr = [];
+      if (Array.isArray(json.args)) {
+        arr = json.args;
+      } else {
+        arr = [json.args];
+      }
+
+      const items = [];
+      for (const a of arr) {
+        if (typeof a == 'string') {
+          items.push({ url: a });
+        } else {
+          items.push(a);
+        }
+      }
+
+      json.args = { items };
+    }
+    logger.debug(`Cleaned JSON args: ${JSON.stringify(json.args)}`);
+
+    let args = Object.assign({}, json.args);
+
     if (!cls) {
       throw new Error(`Planner got invalid JSON: ${JSON.stringify(json)}`);
     }

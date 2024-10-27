@@ -1,6 +1,8 @@
 // import fetch from 'node-fetch';
+import WebSocket from 'ws';
 import { BaseStep } from '../step/BaseStep.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
+import { stepNames } from '../step/index.js';
 
 export const RemoteWorkflow = class extends BaseWorkflow {
   config(args) {
@@ -16,6 +18,20 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     return this.host() + endpoint;
   }
 
+  ws() {
+    const wsUrl = this.host().replace(/^http/, 'ws');
+    return new WebSocket(wsUrl);
+  }
+
+  init(prompt) {
+    return this.step({ name: 'const', args: prompt });
+  }
+
+  step(data) {
+    this.steps.push(data);
+    return this;
+  }
+
   load(data) {
     this.steps = [];
     for (const step of data.steps) {
@@ -25,38 +41,82 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async plan(...args) {
-    if (args) this.parseRunArgs(args);
-    const url = this.url('/plan');
-    console.log('plan url:', url);
+    throw 'TODO';
+    // if (args) this.parseRunArgs(args);
+    // const url = this.url('/plan');
+    // const stepStrs = [];
 
-    console.log('');
-    console.log('');
-    console.log('this.steps:      ', this.steps);
-    console.log('');
-    console.log('');
-    console.log('this._stepsInput:', this._stepsInput);
-    console.log('');
-    console.log('');
+    // for (const input of this._stepsInput) {
+    //   if (input instanceof BaseStep) {
+    //     stepStrs.push(input.dump());
+    //   } else {
+    //     stepStrs.push(input);
+    //   }
+    // }
+    // const resp = await fetch(
+    //   url,
+    //   {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(stepStrs),
+    //   });
+    // const data = await resp.json();
+    // console.log('plan response data:', data);
+    // this.steps = data.steps;
+    // this._stepsInput = [];
+    // return this;
+  }
 
-    const stepStrs = []; //[...this.steps, ...this._stepsInput];
+  async run(args, cb) {
+    // await this.plan(args);
 
-    for (const input of this._stepsInput) {
-      if (input instanceof BaseStep) {
-        stepStrs.push(input.dump());
-      } else {
-        stepStrs.push(input);
-      }
-    }
+    console.log('this._stepsInput', this._stepsInput);
+    console.log('this.steps', this.steps);
 
-    const resp = await fetch(
-      url,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stepStrs),
+    const url = this.host().replace(/^http/, 'ws');
+    const ws = new WebSocket(url);
+
+    return new Promise((ok, err) => {
+      ws.on('open', () => {
+        console.log('Connected to WebSocket server');
+        const message = JSON.stringify({
+          command: 'run',
+          context: this.ctx,
+          workflow: {
+            steps: this.steps,
+          }
+        });
+        console.log('Send message:', message);
+        ws.send(message);
       });
-    const data = await resp.json();
-    console.log('response', data);
-    return data;
+
+      ws.on('message', (msg) => {
+        // console.log('===>Received msg: ', msg);
+        const data = JSON.parse(msg);
+        // console.log('===>Received data:', data);
+        cb(data);
+      });
+
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        err(error);
+      });
+
+      ws.on('close', () => {
+        console.log('WebSocket connection closed');
+        ok();
+      });
+    });
+  }
+}
+
+for (const stepName of stepNames) {
+  RemoteWorkflow.prototype[stepName] = function(prompt) {
+    console.log('===' + stepName + ' ' + JSON.stringify(prompt));
+    this.step({
+      name: stepName,
+      args: prompt,
+    });
+    return this;
   }
 }

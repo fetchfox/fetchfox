@@ -67,12 +67,15 @@ for (const stepName of stepNames) {
         }
         return this.step(new cls(args));
       }
+
     } else if (name == 'crawl') {
       if (typeof prompt == 'string') {
         return this.step(new cls({ query: prompt }));
       }
+
     } else if (name == 'fetch') {
       return this.step(new cls());
+
     } else if (name == 'limit') {
       if (prompt.limit) {
         return this.step(new cls(prompt));
