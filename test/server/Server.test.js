@@ -97,4 +97,20 @@ describe('Server', function() {
     assert.equal(rwPartials[1].name, partials[1].name);
     assert.equal(rwPartials[2].name, partials[2].name);
   });
+
+  it('should plan', async () => {
+    const s = new Server();
+    await new Promise(ok => s.listen(7070, ok));
+
+    const rw = new RemoteWorkflow()
+      .config({ host: 'http://127.0.0.1:7070' });
+    const workflow = await rw.plan('https://pokemondb.net/pokedex/national find links to pokemon pages and extract names');
+
+    s.close();
+
+    assert.equal(workflow.steps.length, 3);
+    assert.equal(workflow.steps[0].name, 'const');
+    assert.equal(workflow.steps[1].name, 'crawl');
+    assert.equal(workflow.steps[2].name, 'extract');
+  });
 });

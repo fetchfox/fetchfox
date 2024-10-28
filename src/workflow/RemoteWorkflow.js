@@ -3,7 +3,7 @@ import WebSocket from 'ws';
 import { logger } from '../log/logger.js';
 import { BaseStep } from '../step/BaseStep.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
-import { stepNames } from '../step/index.js';
+import { stepNames } from '../step/info.js';
 
 export const RemoteWorkflow = class extends BaseWorkflow {
   config(args) {
@@ -17,11 +17,6 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
   url(endpoint) {
     return this.host() + endpoint;
-  }
-
-  ws() {
-    const wsUrl = this.host().replace(/^http/, 'ws');
-    return new WebSocket(wsUrl);
   }
 
   init(prompt) {
@@ -41,24 +36,13 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     return this;
   }
 
-  async plan(...args) {
-    throw 'TODO';
-  }
-
-  async run(args, cb) {
+  ws(msg, cb) {
     const url = this.host().replace(/^http/, 'ws');
     const ws = new WebSocket(url);
 
     return new Promise((ok, err) => {
       ws.on('open', () => {
-        const message = JSON.stringify({
-          command: 'run',
-          context: this.ctx,
-          workflow: {
-            steps: this.steps,
-          }
-        });
-        ws.send(message);
+        ws.send(JSON.stringify(msg));
       });
 
       ws.on('message', (msg) => {
@@ -67,7 +51,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
         if (data.close) {
           ok(data.out);
         } else {
-          cb(data);
+          cb && cb(data);
         }
       });
 
@@ -80,6 +64,21 @@ export const RemoteWorkflow = class extends BaseWorkflow {
         logger.info('Client side websocket connection closed');
       });
     });
+  }
+
+  async plan(...args) {
+    return this.ws({
+      command: 'plan',
+      prompt: args,
+    });
+  }
+
+  async run(args, cb) {
+    return this.ws({
+      command: 'run',
+      context: this.ctx,
+      workflow: { steps: this.steps },
+    }, cb);
   }
 }
 
