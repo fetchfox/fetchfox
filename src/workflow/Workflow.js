@@ -33,11 +33,12 @@ export const Workflow = class extends BaseWorkflow {
     return this;
   }
 
-  stop() {
+  async stop() {
     logger.info(`Stop workflow ${this}`);
     for (const step of this.steps) {
       step.stop();
     }
+    return this.cursor.out();
   }
 
   async run(args, cb) {
@@ -46,13 +47,13 @@ export const Workflow = class extends BaseWorkflow {
 
     if (this.steps.length == 0) return;
 
-    const cursor = new Cursor(this.context(), this.steps, cb);
+    this.cursor = new Cursor(this.context(), this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
-    await last.run(cursor, this.steps, this.steps.length - 1);
+    await last.run(this.cursor, this.steps, this.steps.length - 1);
 
-    return cursor.results;
+    return this.cursor.out();
   }
 }
 

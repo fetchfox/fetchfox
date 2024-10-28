@@ -45,9 +45,9 @@ export const Store = class {
     this.trigger(id);
   }
 
-  async finish(id, items) {
-    this.jobs[id].results = items;
-    this.jobs[id].done = true;;
+  async finish(id, results) {
+    // this.jobs[id].items = results.items;
+    this.jobs[id].done = true;
 
     this.trigger(id);
 

@@ -13,16 +13,20 @@ export const Cursor = class {
     }));
   }
 
+  out() {
+    return {
+      items: this.items,
+      full: this.full,
+    }
+  }
+
   didStart(stepIndex) {
     this.full[stepIndex].loading = true;
     this.full[stepIndex].didStart = true;
     this.full[stepIndex].done = false;
 
     if (this.ctx.publishAllSteps) {
-      this.cb({
-        items: this.items,
-        full: this.full,
-      });
+      this.cb(this.out());
     }
   }
 
@@ -42,13 +46,15 @@ export const Cursor = class {
     }
 
     const isLast = stepIndex == this.full.length - 1;
-    if (this.cb && (isLast || this.ctx.publishAllSteps)) {
+    if (isLast) {
       this.items = this.full[stepIndex].items;
+    }
+
+    if (this.cb && (isLast || this.ctx.publishAllSteps)) {
       this.cb({
+        ...this.out(),
         item,
         stepIndex,
-        items: this.items,
-        full: this.full,
       });
     }
   }
@@ -58,12 +64,11 @@ export const Cursor = class {
     this.full[stepIndex].error = message;
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
-    return this.cb && this.cb(
-      {
-        error: { index: stepIndex, message },
-        full: this.full,
-      },
-      stepIndex);
+    return this.cb && this.cb({
+      ...this.out(),
+      stepIndex,
+      error: { index: stepIndex, message },
+    });
   }
 
   finish(stepIndex) {
@@ -71,10 +76,7 @@ export const Cursor = class {
     delete this.full[stepIndex].loading;
 
     if (this.ctx.publishAllSteps) {
-      this.cb({
-        items: this.items,
-        full: this.full,
-      });
+      this.cb(this.out());
     }
   }
 }

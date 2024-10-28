@@ -34,16 +34,13 @@ describe('Server', function() {
 
     s.close();
 
-    console.log('CLOSED! out --> ', out);
-    console.log('CLOSED! partials --> ', partials);
-
-    assert.ok(!!out);
-    assert.equal(out.length, 3);
+    assert.ok(!!out.items);
+    assert.equal(out.items.length, 3);
     assert.equal(partials.length, 3);
 
-    assert.equal(out[0].name, 'Bulbasaur');
-    assert.equal(out[1].name, 'Ivysaur');
-    assert.equal(out[2].name, 'Venusaur');
+    assert.equal(out.items[0].name, 'Bulbasaur');
+    assert.equal(out.items[1].name, 'Ivysaur');
+    assert.equal(out.items[2].name, 'Venusaur');
   });
 
   it('should start and sub', async () => {
@@ -73,12 +70,12 @@ describe('Server', function() {
       });
 
     assert.ok(!!out);
-    assert.equal(out.length, 3);
+    assert.equal(out.items.length, 3);
     assert.equal(partials.length, 3);
 
-    assert.equal(out[0].name, 'Bulbasaur');
-    assert.equal(out[1].name, 'Ivysaur');
-    assert.equal(out[2].name, 'Venusaur');
+    assert.equal(out.items[0].name, 'Bulbasaur');
+    assert.equal(out.items[1].name, 'Ivysaur');
+    assert.equal(out.items[2].name, 'Venusaur');
 
     s.close();
 
@@ -114,12 +111,12 @@ describe('Server', function() {
     console.log('111');
 
     assert.ok(!!out);
-    assert.equal(out.length, 1);
+    assert.equal(out.items.length, 1);
     assert.equal(partials.length, 1);
 
-    assert.equal(out[0].name, 'Bulbasaur');
-    // assert.equal(out[1].name, 'Ivysaur');
-    // assert.equal(out[2].name, 'Venusaur');
+    assert.equal(out.items[0].name, 'Bulbasaur');
+    // assert.equal(out.items[1].name, 'Ivysaur');
+    // assert.equal(out.items[2].name, 'Venusaur');
 
     console.log('');
     console.log('');
@@ -200,7 +197,7 @@ describe('Server', function() {
 
     console.log('OUT2', out2);
 
-    assert.equal(out2.length, 10);
+    assert.equal(out2.items.length, 10);
 
     s.close();
     
@@ -248,10 +245,10 @@ describe('Server', function() {
 
     s.close();
 
-    assert.equal(out.length, 3);
-    assert.equal(out[0].name, 'Bulbasaur');
-    assert.equal(out[1].name, 'Ivysaur');
-    assert.equal(out[2].name, 'Venusaur');
+    assert.equal(out.items.length, 3);
+    assert.equal(out.items[0].name, 'Bulbasaur');
+    assert.equal(out.items[1].name, 'Ivysaur');
+    assert.equal(out.items[2].name, 'Venusaur');
   });
 
 
@@ -341,8 +338,9 @@ describe('Server', function() {
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
 
+    let stopOut;
     const partials = [];
-    const out = await rw
+    const final = await rw
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
@@ -354,14 +352,24 @@ describe('Server', function() {
       .limit(3)
       .run(
         null,
-        (partial) => {
+        async (partial) => {
           partials.push(partial.item);
-          rw.stop();
+          stopOut = await rw.stop();
         });
 
     s.close();
 
-    assert.ok(!!out);
-    assert.equal(out.length, 1);
+    assert.equal(final.items.length, 1);
+    assert.equal(final.items[0].name, 'Bulbasaur');
+    assert.equal(final.full[2].items[0].name, 'Bulbasaur');
+
+    assert.ok(final.full[0].done);
+    assert.ok(final.full[1].done);
+    assert.ok(final.full[2].done);
+
+    assert.equal(stopOut.items.length, 1);
+    assert.equal(
+      JSON.stringify(final.items, null, 2),
+      JSON.stringify(stopOut.items, null, 2))
   });
 });

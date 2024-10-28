@@ -77,7 +77,6 @@ export const RemoteWorkflow = class extends BaseWorkflow {
       ws.onclose = () => {
         logger.info('Client side websocket connection closed');
       }
-
     });
   }
 
@@ -98,7 +97,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
       const out = await this.ws(
         { command: 'sub', id },
         cb);
-      return out.items;
+      return out;
     } finally {
       this.id = null;
     }

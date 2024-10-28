@@ -48,9 +48,12 @@ export const Server = class {
     logger.info(`Server stop ${JSON.stringify(data, null, 2)}`);
     const id = data.id;
     if (this.workflows[id]) {
-      this.workflows[id].stop();
+      const out = await this.workflows[id].stop();
+      console.log('SERVER STOP OUT', out);
+      return out;
+    } else {
+      return null;
     }
-    return 'stopped';
   }
 
   async plan(data, ws) {

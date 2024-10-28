@@ -113,12 +113,22 @@ describe('Workflow', function() {
 
     let count = 0;
 
-    await f.run(null, (partial) => {
+    let stopOut;
+    const final = await f.run(null, async (partial) => {
       count++;
-      f.stop();
+      stopOut = await f.stop();
     });
 
     assert.equal(count, 1);
+
+    console.log('stopOut', stopOut);
+
+    assert.equal(final.items.length, 1);
+    assert.equal(final.items[0].name, 'Bulbasaur');
+    assert.equal(stopOut.items.length, 1);
+    assert.equal(
+      JSON.stringify(final),
+      JSON.stringify(stopOut))
   });
 
 });
