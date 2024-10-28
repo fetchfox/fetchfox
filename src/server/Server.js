@@ -5,13 +5,13 @@ import { fox } from '../fox/fox.js';
 
 export const Server = class {
   async run(data, ws) {
+    logger.info(`Server run ${JSON.stringify(data, null, 2)}`);
     const f = await fox.plan(...(data.workflow.steps));
     const out = await f.run(
       null,
       (r) => {
         ws.send(JSON.stringify(r));
       });
-    console.log('run done, got', out);
     return out;
   }
 
@@ -49,6 +49,7 @@ export const Server = class {
       });
     });
 
+    logger.info(`Fox server listen on ${port}`);
     return this.s.listen(port, cb);
   }
 

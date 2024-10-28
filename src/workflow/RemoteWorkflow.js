@@ -1,5 +1,3 @@
-// import fetch from 'node-fetch';
-import WebSocket from 'ws';
 import { logger } from '../log/logger.js';
 import { BaseStep } from '../step/BaseStep.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
@@ -36,33 +34,50 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     return this;
   }
 
-  ws(msg, cb) {
+  async _initWs() {
+    if (this.WebSocket) return;
+
+    try {
+      this.WebSocket = window.WebSocket;
+    } catch(e) {
+      const wsModule = await import('ws');
+      this.WebSocket = wsModule.default;
+    }
+  }
+
+  async ws(msg, cb) {
+    await this._initWs();
+
     const url = this.host().replace(/^http/, 'ws');
-    const ws = new WebSocket(url);
+    logger.info(`Connect to ws: ${url}`);
+    const ws = new this.WebSocket(url);
 
     return new Promise((ok, err) => {
-      ws.on('open', () => {
+      ws.onopen = () => {
+        logger.info(`Websocket open, sending ${JSON.stringify(msg)}`);
         ws.send(JSON.stringify(msg));
-      });
+      }
 
-      ws.on('message', (msg) => {
-        const data = JSON.parse(msg);
+      ws.onmessage = (msg) => {
+        const data = JSON.parse(msg.data);
         logger.debug(`Client side websocket message: ${JSON.stringify(data).substr(0, 120)}`);
         if (data.close) {
           ok(data.out);
+          ws.close(1000);
         } else {
           cb && cb(data);
         }
-      });
+      }
 
-      ws.on('error', (e) => {
+      ws.onerror = (e) => {
         logger.error(`Client side websocket error: ${e}`);
         err(e);
-      });
+      }
 
-      ws.on('close', () => {
+      ws.onclose = () => {
         logger.info('Client side websocket connection closed');
-      });
+      }
+
     });
   }
 
@@ -74,6 +89,9 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async run(args, cb) {
+    if (args.steps) {
+      this.steps = args.steps;
+    }
     return this.ws({
       command: 'run',
       context: this.ctx,

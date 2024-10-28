@@ -91,8 +91,9 @@ export const Planner = class {
     logger.debug(`Got JSON args: ${JSON.stringify(json.args)}`);
 
     if (json.name == 'limit') {
-      if (typeof json.args == 'number') {
-        json.args = { limit: json.args };
+      const parsed = parseInt(json.args);
+      if (!isNaN(parsed)) {
+        json.args = { limit: parsed };
       }
 
     } else if (json.name == 'const') {

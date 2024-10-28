@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { fox } from '../../src/index.js';
+import { webfox } from '../../src/web.js';
 import { Server } from '../../src/server/Server.js';
 import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
 
@@ -35,6 +36,55 @@ describe('Server', function() {
     assert.equal(out[1].name, 'Ivysaur');
     assert.equal(out[2].name, 'Venusaur');
   });
+
+  it('should run json', async () => {
+    const s = new Server();
+    await new Promise(ok => s.listen(7070, ok));
+
+    const wf = webfox;
+    const out = await wf
+      .config({ host: 'http://127.0.0.1:7070' })
+      .run(
+        {
+          "steps": [
+            {
+              "name": "const",
+              "args": {
+                "items": [
+                  {
+                    "url": "https://pokemondb.net/pokedex/national"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "extract",
+              "args": {
+                "questions": {
+                  "name": "What is the name of the Pokémon?",
+                  "type": "What is the type of the Pokémon?"
+                },
+                "single": false
+              }
+            },
+            {
+              "name": "limit",
+              "args": {
+                "limit": "3"
+              }
+            },
+          ]
+        },
+        (partial) => {});
+
+    s.close();
+
+    assert.equal(out.length, 3);
+    assert.equal(out[0].name, 'Bulbasaur');
+    assert.equal(out[1].name, 'Ivysaur');
+    assert.equal(out[2].name, 'Venusaur');
+  });
+
 
   it('should get same results as local', async () => {
     const s = new Server();
