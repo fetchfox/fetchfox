@@ -89,14 +89,27 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async run(args, cb) {
-    if (args.steps) {
+    if (args?.steps) {
       this.steps = args.steps;
     }
-    return this.ws({
+
+    console.log('====> RUN...');
+
+    const id = await this.ws({
       command: 'run',
       context: this.ctx,
       workflow: { steps: this.steps },
-    }, cb);
+    });
+
+    console.log('run gave id:', id);
+
+    const out = await this.ws(
+      { command: 'sub', id },
+      cb);
+
+    console.log('SUB gave:', out);
+
+    return out.items;
   }
 }
 

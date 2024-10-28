@@ -51,6 +51,7 @@
     "papaparse": "^5.4.1",
     "playwright": "^1.48.0",
     "pretty": "^2.0.0",
+    "short-unique-id": "^5.2.0",
     "url-polyfill": "^1.1.12",
     "whatwg-url": "^14.0.0",
     "ws": "^8.18.0"

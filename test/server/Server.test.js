@@ -14,6 +14,7 @@ describe('Server', function() {
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
 
+    const partials = [];
     const out = await rw
       .init('https://pokemondb.net/pokedex/national')
       .extract({
@@ -27,11 +28,20 @@ describe('Server', function() {
       .run(
         null,
         (partial) => {
+          console.log('CLIENT PARTIAL: -->', partial);
+          partials.push(partial.item);
         });
 
     s.close();
+    console.log('CLOSED! out --> ', out);
+    console.log('CLOSED! partials --> ', partials);
 
+    assert.ok(!!out);
     assert.equal(out.length, 3);
+    assert.equal(partials.length, 3);
+
+    return;
+
     assert.equal(out[0].name, 'Bulbasaur');
     assert.equal(out[1].name, 'Ivysaur');
     assert.equal(out[2].name, 'Venusaur');

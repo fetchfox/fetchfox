@@ -2,17 +2,45 @@ import http from 'http';
 import { WebSocketServer } from 'ws';
 import { logger } from '../log/logger.js';
 import { fox } from '../fox/fox.js';
+import { Store } from './Store.js';
 
 export const Server = class {
+  constructor() {
+    this.store = new Store();
+  }
+
+  async sub(data, ws) {
+    console.log('======> SUB:', JSON.stringify(data));
+    return new Promise((ok) => {
+      this.store.sub(
+        data.id,
+        (r) => {
+          console.log('---> sub got CB', r);
+          r.id = data.id;
+
+          if (r.done) {
+            ok(r);
+          } else {
+            ws.send(JSON.stringify(r));
+          }
+        });
+    });
+  }
+
   async run(data, ws) {
     logger.info(`Server run ${JSON.stringify(data, null, 2)}`);
+    const id = this.store.nextId();
     const f = await fox.plan(...(data.workflow.steps));
-    const out = await f.run(
+    f.run(
       null,
       (r) => {
-        ws.send(JSON.stringify(r));
+        this.store.pub(id, r);
+      })
+      .then(items => {
+        this.store.finish(id, items);
       });
-    return out;
+
+    return id;
   }
 
   async plan(data, ws) {
@@ -26,7 +54,6 @@ export const Server = class {
       res.end('Not Found');
     });
 
-    // Set up the WebSocket server
     this.wss = new WebSocketServer({ server: this.s });
 
     this.wss.on('connection', ws => {
@@ -37,6 +64,9 @@ export const Server = class {
         switch (data.command) {
           case 'run':
             out = await this.run(data, ws);
+            break;
+          case 'sub':
+            out = await this.sub(data, ws);
             break;
           case 'plan':
             out = await this.plan(data, ws);
