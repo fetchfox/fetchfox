@@ -26,8 +26,8 @@ export const Server = class {
     });
   }
 
-  async run(data, ws) {
-    logger.info(`Server run ${JSON.stringify(data, null, 2)}`);
+  async start(data, ws) {
+    logger.info(`Server start ${JSON.stringify(data, null, 2)}`);
     const id = this.store.nextId();
     const f = await fox.plan(...(data.workflow.steps));
     f.run(
@@ -61,8 +61,8 @@ export const Server = class {
 
         let out;
         switch (data.command) {
-          case 'run':
-            out = await this.run(data, ws);
+          case 'start':
+            out = await this.start(data, ws);
             break;
           case 'sub':
             out = await this.sub(data, ws);

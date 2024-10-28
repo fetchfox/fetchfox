@@ -46,6 +46,44 @@ describe('Server', function() {
     assert.equal(out[2].name, 'Venusaur');
   });
 
+  it('should start and sub', async () => {
+    const s = new Server();
+    await new Promise(ok => s.listen(7070, ok));
+
+    const rw = new RemoteWorkflow()
+      .config({ host: 'http://127.0.0.1:7070' });
+
+    const partials = [];
+    const id = await rw
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .limit(3)
+      .start();
+
+    const out = await rw.sub(
+      id,
+      (partial) => {
+        partials.push(partial.item);
+      });
+
+    assert.ok(!!out);
+    assert.equal(out.length, 3);
+    assert.equal(partials.length, 3);
+
+    assert.equal(out[0].name, 'Bulbasaur');
+    assert.equal(out[1].name, 'Ivysaur');
+    assert.equal(out[2].name, 'Venusaur');
+
+    s.close();
+
+  });
+
   it('should replay results on re-connect', async () => {
     const s = new Server();
     await new Promise(ok => s.listen(7070, ok));
