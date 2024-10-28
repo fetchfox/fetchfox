@@ -17,7 +17,6 @@ export const Server = class {
         (r) => {
           console.log('---> sub got CB', r);
           r.id = data.id;
-
           if (r.done) {
             ok(r);
           } else {

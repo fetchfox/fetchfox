@@ -17,10 +17,25 @@ export const Store = class {
   }
 
   async sub(id, cb) {
+    console.log('subbed to', id);
+
+    const job = this.jobs[id];
+    if (job) {
+      cb(job);
+      if (job.done) return;
+    }
+
     if (!this.subs[id]) {
-      this.subs[id] = []
+      this.subs[id] = [];
     }
     this.subs[id].push(cb);
+
+    // if (this.jobs[id]) {
+    //   cb(this.jobs[id]);
+
+    //   console.log('*-> subbed to existing', this.jobs[id]);
+    //   console.log('*-> subbed to existing, done?', this.jobs[id].done);
+    // }
   }
 
   async unsub(id, cb) {

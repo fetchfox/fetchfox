@@ -40,11 +40,72 @@ describe('Server', function() {
     assert.equal(out.length, 3);
     assert.equal(partials.length, 3);
 
-    return;
-
     assert.equal(out[0].name, 'Bulbasaur');
     assert.equal(out[1].name, 'Ivysaur');
     assert.equal(out[2].name, 'Venusaur');
+  });
+
+  it('should replay results on re-connect', async () => {
+    const s = new Server();
+    await new Promise(ok => s.listen(7070, ok));
+
+    const rw = new RemoteWorkflow()
+      .config({ host: 'http://127.0.0.1:7070' });
+
+    let id;
+    const partials = [];
+    const out = await rw
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .limit(1)
+      .run(
+        null,
+        (partial) => {
+          console.log('TEST CLIENT GOT partial', partial.id);
+          id = partial.id;
+          partials.push(partial.item);
+        });
+
+    console.log('111');
+
+    assert.ok(!!out);
+    assert.equal(out.length, 1);
+    assert.equal(partials.length, 1);
+
+    assert.equal(out[0].name, 'Bulbasaur');
+    // assert.equal(out[1].name, 'Ivysaur');
+    // assert.equal(out[2].name, 'Venusaur');
+
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('Sub again and check results');
+    console.log('id=>', id);
+
+    const partials2 = [];
+    const out2 = await rw.sub(id, () => {
+    });
+
+    console.log('out ', out);
+    console.log('out2', out2);
+
+    assert.equal(
+      JSON.stringify(out2),
+      JSON.stringify(out));
+
+    assert.equal((s.store[id] || []).length, 0);
+
+    s.close();
   });
 
   it('should run json', async () => {
