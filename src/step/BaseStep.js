@@ -149,6 +149,10 @@ export const BaseStep = class {
           return;
         }
 
+        if (this.stopped) {
+          return;
+        }
+
         received++;
 
         try {

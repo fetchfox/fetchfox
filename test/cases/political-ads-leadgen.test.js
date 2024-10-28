@@ -96,7 +96,6 @@ describe('political-ads-leadgen', function() {
       });
 
     const r4 = await f4.run();
-    console.log('r4', r4.items);
 
     let validEmails = 0;
     let validPhones = 0;

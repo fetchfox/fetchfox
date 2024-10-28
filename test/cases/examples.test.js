@@ -19,8 +19,7 @@ describe('examples', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({ name: 'Pokemon name', number: 'Pokemon number' })
       .limit(3)
-      .run(null, (delta) => { console.log(delta.item) });
-    console.log(results);
+      .run(null, (delta) => { });
 
     assert.equal(results.length, 3);
     assert.equal(results[0].name, 'Bulbasaur');
@@ -40,7 +39,6 @@ describe('examples', function() {
 
     const results = [];
     for await (const delta of stream) {
-      console.log(delta.item);
       results.push(delta.item);
     }
 

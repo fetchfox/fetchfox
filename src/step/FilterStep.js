@@ -26,6 +26,8 @@ export const FilterStep = class extends BaseStep {
     const matches = [];
     logger.debug(`Filter on ${item} on ${this.query}`);
     for await (const output of stream) {
+      if (this.stopped) break;
+
       logger.debug(`Filter matched ${item} on ${this.query}`);
       const done = cb(output);
       if (done) break;

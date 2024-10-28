@@ -28,7 +28,6 @@ describe('Server', function() {
       .run(
         null,
         (partial) => {
-          console.log('CLIENT PARTIAL: -->', partial);
           partials.push(partial.item);
         });
 
@@ -103,37 +102,21 @@ describe('Server', function() {
       .run(
         null,
         (partial) => {
-          console.log('TEST CLIENT GOT partial', partial.id);
           id = partial.id;
           partials.push(partial.item);
         });
 
-    console.log('111');
 
     assert.ok(!!out);
     assert.equal(out.items.length, 1);
     assert.equal(partials.length, 1);
 
     assert.equal(out.items[0].name, 'Bulbasaur');
-    // assert.equal(out.items[1].name, 'Ivysaur');
-    // assert.equal(out.items[2].name, 'Venusaur');
-
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('Sub again and check results');
-    console.log('id=>', id);
 
     const partials2 = [];
     const out2 = await rw.sub(id, () => {
     });
 
-    console.log('out ', out);
-    console.log('out2', out2);
 
     assert.equal(
       JSON.stringify(out2),
@@ -168,34 +151,27 @@ describe('Server', function() {
       .run(
         null,
         (partial) => {
-          console.log('TEST CLIENT GOT partial', partial.id);
           id = partial.id;
           partials.push(partial.item);
         });
 
     const waitForNum = 5;
     for (let i = 0; i < 30; i++) {
-      console.log('check', partials.length);
       await new Promise(ok => setTimeout(ok, 1000));
       if (partials.length >= waitForNum) break;
     }
 
-    console.log('partials.length', id, partials.length);
     let stream2;
     const partials2 = await new Promise((ok) => {
       stream2 = rw.sub(id, (partial) => {
-        console.log('22222 partial', partial);
         ok(partial);
       });
     });
 
-    console.log('XXXXXXX partials2', partials2);
     assert.ok(partials2.items.length >= waitForNum, 'expect replay');
     assert.ok(partials2.items.length < 10, 'expect not finished');
 
     const out2 = await stream2;
-
-    console.log('OUT2', out2);
 
     assert.equal(out2.items.length, 10);
 
@@ -371,5 +347,37 @@ describe('Server', function() {
     assert.equal(
       JSON.stringify(final.items, null, 2),
       JSON.stringify(stopOut.items, null, 2))
+  });
+
+  it('should be able to publish all steps', async () => {
+    const s = new Server();
+    await new Promise(ok => s.listen(7070, ok));
+
+    const rw = new RemoteWorkflow()
+      .config({
+        host: 'http://127.0.0.1:7070',
+        publishAllSteps: true,
+      });
+
+    let count = 0;
+    const final = await rw
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .limit(3)
+      .run(
+        null,
+        async (partial) => {
+          count++
+        });
+
+    s.close();
+
+    assert.equal(count, 9);
   });
 });

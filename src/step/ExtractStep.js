@@ -23,9 +23,15 @@ export const ExtractStep = class extends BaseStep {
 
   async process({ cursor, item }, cb) {
     logger.debug(`Extract ${JSON.stringify(this.questions)} from ${item}`);
+    const start = (new Date()).getTime();
     const ex = cursor.ctx.extractor;
 
     for await (const output of ex.stream(item, this.questions)) {
+      if (this.stopped) break;
+
+      const took = (new Date()).getTime() - start;
+      logger.debug(`Extract took ${took/1000} sec so far`);
+
       const done = cb(output);
       if (done) break;
       if (this.single) break;

@@ -94,9 +94,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
     this.id = id;
     try {
-      const out = await this.ws(
-        { command: 'sub', id },
-        cb);
+      const out = await this.ws({ command: 'sub', id }, cb);
       return out;
     } finally {
       this.id = null;
@@ -104,17 +102,11 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async stop() {
-    const out = await this.ws(
-      { command: 'stop', id: this.id });
-    console.log('stop out:', out);
+    const out = await this.ws({ command: 'stop', id: this.id });
     return out;
   }
 
   async start(args, cb) {
-    if (this.id) {
-      throw new Error(`already running ${this.id}`);
-    }
-
     if (args?.steps) {
       this.steps = args.steps;
     }
@@ -127,10 +119,6 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async run(args, cb) {
-    if (this.id) {
-      throw new Error(`already running ${this.id}`);
-    }
-
     try {
       this.id = await this.start(args, cb);
       return await this.sub(this.id, cb);

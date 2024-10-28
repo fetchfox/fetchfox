@@ -24,6 +24,7 @@ export const Cursor = class {
     this.full[stepIndex].loading = true;
     this.full[stepIndex].didStart = true;
     this.full[stepIndex].done = false;
+    this.full[stepIndex].items = [];
 
     if (this.ctx.publishAllSteps) {
       this.cb(this.out());

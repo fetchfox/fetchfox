@@ -15,7 +15,6 @@ export const Server = class {
       this.store.sub(
         data.id,
         (r) => {
-          console.log('---> sub got CB', r);
           r.id = data.id;
           if (r.done) {
             ok(r);
@@ -29,7 +28,7 @@ export const Server = class {
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data, null, 2)}`);
     const id = this.store.nextId();
-    const f = await fox.plan(...(data.workflow.steps));
+    const f = await fox.config(data.context).plan(...(data.workflow.steps));
     this.workflows[id] = f;
     f.run(
       null,
@@ -49,7 +48,6 @@ export const Server = class {
     const id = data.id;
     if (this.workflows[id]) {
       const out = await this.workflows[id].stop();
-      console.log('SERVER STOP OUT', out);
       return out;
     } else {
       return null;

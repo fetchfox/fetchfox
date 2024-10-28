@@ -60,7 +60,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     for (let i = 0; i < max && i < chunks.length; i++) {
       logger.debug(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
       for await (const result of inner(chunks[i])) {
-        logger.debug(`Extraction found item (count=${count++}): ${result.item}`);
+        logger.debug(`Extraction found item (${++count} on this page): ${result.item}`);
         yield Promise.resolve(result.item);
       }
     }

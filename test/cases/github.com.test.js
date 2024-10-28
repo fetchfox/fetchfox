@@ -29,7 +29,6 @@ describe('github.com', function() {
       })
       .run(null, (partial) => {
         const { item, results } = partial;
-        console.log('item -->', item);
         countPartials++;
       });
 
@@ -65,10 +64,8 @@ describe('github.com', function() {
       // .schema({ username: 'username', repos: ['array of repos'] })
       .run(null, (partial) => {
         const { item, results } = partial;
-        console.log('item -->', item);
         countPartials++;
       });
 
-    console.log('out', out);
   });
 });

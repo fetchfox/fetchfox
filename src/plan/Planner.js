@@ -119,6 +119,7 @@ export const Planner = class {
       }
 
       json.args = { items };
+
     }
     logger.debug(`Cleaned JSON args: ${JSON.stringify(json.args)}`);
 

@@ -34,7 +34,6 @@ describe('pointhound.com', function() {
 
     // Sanity checks
     for (const item of out) {
-      console.log(item);
       assert.ok(item.duration.match(/\d+ hr \d+ mins/, 'duration format'));
       assert.ok(item.points.match(/[0-9,]+ pts/, 'points format'));
     }
