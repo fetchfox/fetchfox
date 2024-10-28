@@ -33,6 +33,7 @@ describe('Server', function() {
         });
 
     s.close();
+
     console.log('CLOSED! out --> ', out);
     console.log('CLOSED! partials --> ', partials);
 
@@ -106,6 +107,65 @@ describe('Server', function() {
     assert.equal((s.store[id] || []).length, 0);
 
     s.close();
+  });
+
+  it('should partial replay results on re-connect', async () => {
+    const s = new Server();
+    await new Promise(ok => s.listen(7070, ok));
+
+    const rw = new RemoteWorkflow()
+      .config({ host: 'http://127.0.0.1:7070' });
+
+    let id;
+    const partials = [];
+
+    // Do *not* wait for full results
+    rw
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .limit(10)
+      .run(
+        null,
+        (partial) => {
+          console.log('TEST CLIENT GOT partial', partial.id);
+          id = partial.id;
+          partials.push(partial.item);
+        });
+
+    const waitForNum = 5;
+    for (let i = 0; i < 30; i++) {
+      console.log('check', partials.length);
+      await new Promise(ok => setTimeout(ok, 1000));
+      if (partials.length >= waitForNum) break;
+    }
+
+    console.log('partials.length', id, partials.length);
+    let stream2;
+    const partials2 = await new Promise((ok) => {
+      stream2 = rw.sub(id, (partial) => {
+        console.log('22222 partial', partial);
+        ok(partial);
+      });
+    });
+
+    console.log('XXXXXXX partials2', partials2);
+    assert.ok(partials2.results.length >= waitForNum, 'expect replay');
+    assert.ok(partials2.results.length < 10, 'expect not finished');
+
+    const out2 = await stream2;
+
+    console.log('OUT2', out2);
+
+    assert.equal(out2.length, 10);
+
+    s.close();
+    
   });
 
   it('should run json', async () => {

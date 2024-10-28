@@ -92,7 +92,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     const out = await this.ws(
       { command: 'sub', id },
       cb);
-    return out.items;
+    return out.results;
   }
 
   async run(args, cb) {
@@ -116,7 +116,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
     console.log('SUB gave:', out);
 
-    return out.items;
+    return out.results;
   }
 }
 

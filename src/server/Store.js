@@ -61,7 +61,7 @@ export const Store = class {
   }
 
   async finish(id, items) {
-    this.jobs[id].items = items;
+    this.jobs[id].results = items;
     this.jobs[id].done = true;;
 
     console.log('FINISH store:', this.jobs[id]);
