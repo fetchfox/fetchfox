@@ -193,8 +193,8 @@ describe('Server', function() {
     });
 
     console.log('XXXXXXX partials2', partials2);
-    assert.ok(partials2.results.length >= waitForNum, 'expect replay');
-    assert.ok(partials2.results.length < 10, 'expect not finished');
+    assert.ok(partials2.items.length >= waitForNum, 'expect replay');
+    assert.ok(partials2.items.length < 10, 'expect not finished');
 
     const out2 = await stream2;
 
@@ -331,5 +331,37 @@ describe('Server', function() {
     assert.equal(workflow.steps[0].name, 'const');
     assert.equal(workflow.steps[1].name, 'crawl');
     assert.equal(workflow.steps[2].name, 'extract');
+  });
+
+
+  it('should stop', async () => {
+    const s = new Server();
+    await new Promise(ok => s.listen(7070, ok));
+
+    const rw = new RemoteWorkflow()
+      .config({ host: 'http://127.0.0.1:7070' });
+
+    const partials = [];
+    const out = await rw
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .limit(3)
+      .run(
+        null,
+        (partial) => {
+          partials.push(partial.item);
+          rw.stop();
+        });
+
+    s.close();
+
+    assert.ok(!!out);
+    assert.equal(out.length, 1);
   });
 });

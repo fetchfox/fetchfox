@@ -6,7 +6,7 @@ export const Cursor = class {
     this.ctx = new Context(args);
     this.cb = cb ? cb : () => {};
     this.full = [];
-    this.results = [];
+    this.items = [];
     steps.map((step) => this.full.push({
       items: [],
       step: step.dump(),
@@ -17,9 +17,16 @@ export const Cursor = class {
     this.full[stepIndex].loading = true;
     this.full[stepIndex].didStart = true;
     this.full[stepIndex].done = false;
+
+    if (this.ctx.publishAllSteps) {
+      this.cb({
+        items: this.items,
+        full: this.full,
+      });
+    }
   }
 
-  publish(item, stepIndex) {
+  publish(item, stepIndex, done) {
     let copy;
     if (item instanceof Item) {
       copy = item.copy();
@@ -29,13 +36,18 @@ export const Cursor = class {
 
     this.full[stepIndex].items.push(copy);
 
+    if (done) {
+      this.full[stepIndex].done = true;
+      delete this.full[stepIndex].loading;
+    }
+
     const isLast = stepIndex == this.full.length - 1;
     if (this.cb && (isLast || this.ctx.publishAllSteps)) {
-      this.results = this.full[stepIndex].items;
+      this.items = this.full[stepIndex].items;
       this.cb({
         item,
         stepIndex,
-        results: this.results,
+        items: this.items,
         full: this.full,
       });
     }
@@ -57,5 +69,12 @@ export const Cursor = class {
   finish(stepIndex) {
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
+
+    if (this.ctx.publishAllSteps) {
+      this.cb({
+        items: this.items,
+        full: this.full,
+      });
+    }
   }
 }

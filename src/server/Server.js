@@ -7,10 +7,10 @@ import { Store } from './Store.js';
 export const Server = class {
   constructor() {
     this.store = new Store();
+    this.workflows = {};
   }
 
   async sub(data, ws) {
-    console.log('======> SUB:', JSON.stringify(data));
     return new Promise((ok) => {
       this.store.sub(
         data.id,
@@ -30,6 +30,7 @@ export const Server = class {
     logger.info(`Server start ${JSON.stringify(data, null, 2)}`);
     const id = this.store.nextId();
     const f = await fox.plan(...(data.workflow.steps));
+    this.workflows[id] = f;
     f.run(
       null,
       (r) => {
@@ -37,9 +38,19 @@ export const Server = class {
       })
       .then(items => {
         this.store.finish(id, items);
+        delete this.workflows[id];
       });
 
     return id;
+  }
+
+  async stop(data) {
+    logger.info(`Server stop ${JSON.stringify(data, null, 2)}`);
+    const id = data.id;
+    if (this.workflows[id]) {
+      this.workflows[id].stop();
+    }
+    return 'stopped';
   }
 
   async plan(data, ws) {
@@ -63,6 +74,9 @@ export const Server = class {
         switch (data.command) {
           case 'start':
             out = await this.start(data, ws);
+            break;
+          case 'stop':
+            out = await this.stop(data, ws);
             break;
           case 'sub':
             out = await this.sub(data, ws);

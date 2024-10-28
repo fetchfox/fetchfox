@@ -97,7 +97,28 @@ describe('Workflow', function() {
       count2++
     });
 
-    assert.equal(count2, 7);
+    assert.equal(count2, 12);
+  });
+
+
+  it('should stop', async () => {
+    const f = await fox
+      .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+      })
+      .limit(3);
+
+    let count = 0;
+
+    await f.run(null, (partial) => {
+      count++;
+      f.stop();
+    });
+
+    assert.equal(count, 1);
   });
 
 });

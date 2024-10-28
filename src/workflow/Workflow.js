@@ -33,14 +33,18 @@ export const Workflow = class extends BaseWorkflow {
     return this;
   }
 
+  stop() {
+    logger.info(`Stop workflow ${this}`);
+    for (const step of this.steps) {
+      step.stop();
+    }
+  }
+
   async run(args, cb) {
     if (args) this.parseRunArgs(args);
     await this.plan();
 
     if (this.steps.length == 0) return;
-
-    // console.log('STEPS', this.steps);
-    // throw 'yyyy';
 
     const cursor = new Cursor(this.context(), this.steps, cb);
     const last = this.steps[this.steps.length - 1];

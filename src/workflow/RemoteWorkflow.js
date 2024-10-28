@@ -89,26 +89,55 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async sub(id, cb) {
+    if (this.id && this.id != id) {
+      throw new Error(`unexpected id ${id}`);
+    }
+
+    this.id = id;
+    try {
+      const out = await this.ws(
+        { command: 'sub', id },
+        cb);
+      return out.items;
+    } finally {
+      this.id = null;
+    }
+  }
+
+  async stop() {
     const out = await this.ws(
-      { command: 'sub', id },
-      cb);
-    return out.results;
+      { command: 'stop', id: this.id });
+    console.log('stop out:', out);
+    return out;
   }
 
   async start(args, cb) {
+    if (this.id) {
+      throw new Error(`already running ${this.id}`);
+    }
+
     if (args?.steps) {
       this.steps = args.steps;
     }
-    return await this.ws({
+    this.id = await this.ws({
       command: 'start',
       context: this.ctx,
       workflow: { steps: this.steps },
     });
+    return this.id;
   }
 
   async run(args, cb) {
-    const id = await this.start(args, cb);
-    return this.sub(id, cb);
+    if (this.id) {
+      throw new Error(`already running ${this.id}`);
+    }
+
+    try {
+      this.id = await this.start(args, cb);
+      return await this.sub(this.id, cb);
+    } finally {
+      this.id = null;
+    }
   }
 }
 
