@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import { Context } from '../context/Context.js';
 import { Item } from '../item/Item.js';
 
@@ -11,6 +12,20 @@ export const Cursor = class {
       items: [],
       step: step.dump(),
     }));
+  }
+
+  async stop() {
+    logger.info(`Cursor stopping ${this.ctx.extractor}`);
+    if (this.ctx.extractor) this.ctx.extractor.stop();
+
+    logger.info(`Cursor stopping ${this.ctx.fetcher}`);
+    if (this.ctx.fetcher) this.ctx.fetcher.stop();
+
+    logger.info(`Cursor stopping ${this.ctx.crawler}`);
+    if (this.ctx.crawler) this.ctx.crawler.stop();
+
+    logger.info(`Cursor stopping ${this.ctx.ai}`);
+    if (this.ctx.ai) this.ctx.ai.stop();
   }
 
   out() {

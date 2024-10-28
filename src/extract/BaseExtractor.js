@@ -78,6 +78,10 @@ export const BaseExtractor = class {
     return result;
   }
 
+  async stop() {
+    this.stopped = true;
+  }
+
   async *run(target, questions, options) {
     const map = {};
     const questionsList = [];
@@ -93,7 +97,14 @@ export const BaseExtractor = class {
       }
     }
 
+    if (this.stopped) {
+      logger.trace(`${this} is stopped, not starting _run`);
+      return;
+    }
+
     for await (const r of this._run(target, questionsList, options)) {
+      if (this.stopped) break;
+
       for (const key of Object.keys(r)) {
         const remap = map[key];
         if (remap) {
@@ -105,6 +116,8 @@ export const BaseExtractor = class {
 
       yield Promise.resolve(r);
     }
+
+    // TODO: should we clear `this.stopped` here in a finally block?
   }
 
   isMissing(data, question) {

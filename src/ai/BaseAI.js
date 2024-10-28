@@ -110,6 +110,10 @@ export const BaseAI = class {
     }
   }
 
+  async stop() {
+    this.stopped = true;
+  }
+
   async *stream(prompt, options) {
     const { format, cacheHint, schema } = Object.assign({ format: 'text' }, options);
     const cached = await this.getCache(prompt, options);
@@ -133,6 +137,8 @@ export const BaseAI = class {
     let result;
     try {
       for await (const chunk of this.inner(prompt, options)) {
+        if (this.stopped) break;
+
         const parsed = this.parseChunk(
           this.normalizeChunk(chunk),
           ctx);
@@ -182,8 +188,12 @@ export const BaseAI = class {
     let retries = 3;
     const retryMsec= 5000;
     while (true) {
+      if (this.stopped) break;
+
       try {
         for await (const chunk of this.stream(prompt, options)) {
+          if (this.stopped) break;
+
           result = chunk;
         }
 

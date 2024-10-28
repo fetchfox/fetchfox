@@ -38,6 +38,8 @@ export const Workflow = class extends BaseWorkflow {
     for (const step of this.steps) {
       step.stop();
     }
+    logger.info(`Workflow calling stop on cursor`);
+    await this.cursor.stop();
     return this.cursor.out();
   }
 
@@ -46,12 +48,16 @@ export const Workflow = class extends BaseWorkflow {
     await this.plan();
 
     if (this.steps.length == 0) return;
-
-    this.cursor = new Cursor(this.context(), this.steps, cb);
-    const last = this.steps[this.steps.length - 1];
-    const rest = this.steps.slice(0, this.steps.length - 1);
-
-    await last.run(this.cursor, this.steps, this.steps.length - 1);
+    try {
+      this.cursor = new Cursor(this.context(), this.steps, cb);
+      const last = this.steps[this.steps.length - 1];
+      const rest = this.steps.slice(0, this.steps.length - 1);
+      const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
+      console.log('out', out);
+    } catch (e) {
+      logger.error(`Run caught: ${e}`);
+      throw e;
+    }
 
     return this.cursor.out();
   }

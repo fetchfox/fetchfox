@@ -149,16 +149,16 @@ export const BaseStep = class {
           return;
         }
 
-        if (this.stopped) {
-          return;
-        }
-
         received++;
 
         try {
           await this.process(
             { cursor, item, index },
             (output) => {
+              if (this.stopped) {
+                console.log('got result after stopped');
+              }
+
               const hitLimit = this.limit && this.results.length >= this.limit;
               let done = hitLimit || this.stopped;
 

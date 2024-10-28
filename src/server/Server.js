@@ -48,6 +48,7 @@ export const Server = class {
     const id = data.id;
     if (this.workflows[id]) {
       const out = await this.workflows[id].stop();
+      console.log('STOP GOT:', out);
       return out;
     } else {
       return null;

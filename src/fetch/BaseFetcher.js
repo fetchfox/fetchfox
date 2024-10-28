@@ -28,6 +28,10 @@ export const BaseFetcher = class {
     return waiting;
   }
 
+  async stop() {
+    this.stopped = true;
+  }
+
   async fetch(url, options) {
     const cached = await this.getCache(url, options);
     if (cached) {
@@ -37,6 +41,7 @@ export const BaseFetcher = class {
 
     logger.debug(`Start waiting for ready: ${(new Date()).getTime()}`);
     await this.ready();
+    if (this.stopped) return;
     logger.debug(`Done waiting for ready: ${(new Date()).getTime()}`);
 
     try {
@@ -53,6 +58,7 @@ export const BaseFetcher = class {
     }
 
     const doc = await this._fetch(url, options);
+    if (this.stopped) return;
 
     // TODO: option to cache null/bad responses
     if (doc) this.setCache(url, options, doc.dump());
