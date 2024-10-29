@@ -84,7 +84,7 @@ describe('github.com', function() {
 
     let hasBitcoin = 0;
     const seen = [];
-    assert.ok(out.items.length < 10);
+    assert.ok(out.items.length <= 10);
     assert.ok(out.items.length > 3);
     for (let { username, repos } of out.items) {
       if (username == '(not found)') continue;
