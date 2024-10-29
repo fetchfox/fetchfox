@@ -12,7 +12,7 @@ process.on('unhandledRejection', async (reason, p) => {
 describe('github.com', function() {
   this.timeout(5 * 60 * 1000);
 
-  it('should do basic scrape @run', async () => {
+  it('should do basic scrape', async () => {
     let countPartials = 0;
     const out = await fox
       .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
@@ -51,7 +51,7 @@ describe('github.com', function() {
     assert.ok(locTotal >= 10, 'loc total');
   });
 
-  it('should do complex scrape @run', async () => {
+  it('should do complex scrape', async () => {
     let countPartials = 0;
     const out = await fox
       .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
