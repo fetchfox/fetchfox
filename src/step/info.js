@@ -9,6 +9,7 @@ export const nameMap = {
   FilterStep: 'filter',
   LimitStep: 'limit',
   SchemaStep: 'schema',
+  UniqueStep: 'unique',
 };
 
 const combineInfo = (info) => {
@@ -212,6 +213,19 @@ export const stepDescriptionsMap = {
         format: 'object',
         example: '{"title": "article title", "authors": ["list of authors..."]}',
         required: true,
+      },
+    },
+  }),
+
+  unique: combineInfo({
+    name: 'unique',
+    description: 'Keep only unique items on the basis of a praticular field, or the entire item if no field is specified',
+    args: {
+      fields: {
+        description: 'Fields to ouse for making results unique. Can be one or more. Leave blank to use all fields on every object.',
+        format: 'array',
+        example: ['username', 'subject'],
+        required: false,
       },
     },
   }),

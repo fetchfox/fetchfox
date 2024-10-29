@@ -56,21 +56,44 @@ describe('github.com', function() {
     const out = await fox
       .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
-      .crawl('find urls commits, limit: 10')
+      .crawl({
+        query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+      })
       .extract({
         url: 'commit URL',
         hash: 'commit hash',
         author: 'commit author',
         loc: 'loc changed, NUMBER only',
+        single: true,
       })
       .filter('commits that changed at least 10 lines')
-      .crawl('get URL of the author github profile. MUST match pattern: https://github.com/[username]')
-      // .extract('get username and repos they commit to')
-      // .schema({ username: 'username', repos: ['array of repos'] })
+      .crawl({
+        query: 'get URL of the author github profile. MUST match pattern: https://github.com/[username]',
+      })
+      .extract({
+        username: 'get username of this profile',
+        repos: 'repos they commit to. for repo, ONLY include the the last part of th repo, with no slash',
+      })
+      .schema({ username: 'username', repos: ['array of repos'] })
+      .unique('username')
+      .limit(10)
       .run(null, (partial) => {
         const { item, results } = partial;
         countPartials++;
       });
 
+    let hasBitcoin = 0;
+    const seen = [];
+    assert.equal(out.items.length, 10);
+    for (let { username, repos } of out.items) {
+      if (username == '(not found)') continue;
+      assert.ok(!seen[username]);
+      assert.ok(username.match(/^[A-Za-z0-9\-_ ]+$/));
+      assert.ok(Array.isArray(repos));
+      if (repos.includes('bitcoin')) {
+        hasBitcoin++;
+      }
+    }
+    assert.ok(hasBitcoin > 3);
   });
 });
