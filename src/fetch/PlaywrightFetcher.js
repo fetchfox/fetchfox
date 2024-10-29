@@ -9,7 +9,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     super(options);
     this.headless = options.headless === undefined ? true : options.headless;
     this.browser = options.browser || 'chromium';
-    this.wait = options.wait || 1000;
+    this.loadWait = options.loadWait || 1000;
   }
 
   async launch() {
@@ -36,7 +36,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
 
       logger.info(`Playwright got response: ${resp.status()} for ${resp.url()}`);
-      await new Promise(ok => setTimeout(ok, this.wait));
+      await new Promise(ok => setTimeout(ok, this.loadWait));
 
       // Get all the iframes
       const frames = await page.frames();

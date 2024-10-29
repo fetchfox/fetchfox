@@ -38,4 +38,20 @@ describe('news.ycombinator.com', function() {
       .reduce((acc, item) => acc + parseInt(item.numComments), 0);
     assert.ok(totalComments > 100 && totalComments < 10000);
   });
+
+  it('should crawl @run', async () => {
+    let countPartials = 0;
+    const out = await fox
+      .init('https://news.ycombinator.com')
+      .crawl('find links to comment pages')
+      .extract({
+        topCommenter: 'What is the username of the top commenter?',
+      })
+      .run(null, (partial) => {
+        countPartials++;
+      });
+
+    assert.ok(countPartials > 15 && countPartials < 35);
+    assert.ok(out.items.length > 15 && out.items.length < 35);
+  });
 });

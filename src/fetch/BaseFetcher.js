@@ -7,19 +7,19 @@ let waiting = null;
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
-    this.sleepTime = 500;
+    this.requestWait = options?.requestWait || 500;
     this.queue = [];
   }
 
   async ready() {
     if (!waiting) {
       waiting = new Promise((ok) => {
-        setTimeout(ok, this.sleepTime);
+        setTimeout(ok, this.requestWait);
       });
     } else {
       const p = waiting.then(() => {
         return new Promise((ok) => {
-          setTimeout(ok, this.sleepTime);
+          setTimeout(ok, this.requestWait);
         });
       });
       waiting = p;

@@ -12,10 +12,13 @@ process.on('unhandledRejection', async (reason, p) => {
 describe('github.com', function() {
   this.timeout(5 * 60 * 1000);
 
-  it('should do basic scrape', async () => {
+  it('should do basic scrape @run', async () => {
     let countPartials = 0;
     const out = await fox
-      .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
+      .config({
+        diskCache: os.tmpdir() + '/fetchfox-test-cache',
+        fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
+      })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
@@ -51,10 +54,13 @@ describe('github.com', function() {
     assert.ok(locTotal >= 10, 'loc total');
   });
 
-  it('should do complex scrape', async () => {
+  it('should do complex scrape @run', async () => {
     let countPartials = 0;
     const out = await fox
-      .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
+      .config({
+        diskCache: os.tmpdir() + '/fetchfox-test-cache',
+        fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
+      })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
