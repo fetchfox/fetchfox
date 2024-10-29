@@ -1,3 +1,4 @@
+import path from 'path';
 import { fork } from 'child_process';
 import http from 'http';
 import { WebSocketServer } from 'ws';
@@ -6,9 +7,16 @@ import { fox } from '../fox/fox.js';
 import { Store } from './Store.js';
 
 export const Server = class {
-  constructor() {
+  constructor(options) {
+    options ||= {};
+
     this.store = new Store();
     this.children = {};
+    this.childPath = (
+      options.childPath ||
+      path.join(
+        process.cwd(),
+        'node_modules/fetchfox/src/server/child.js'));
   }
 
   async sub(data, ws) {
@@ -29,7 +37,8 @@ export const Server = class {
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data)}`);
     const id = this.store.nextId();
-    const child = fork('./src/server/child.js');
+
+    const child = fork(this.childPath);
 
     this.children[id] = child;
 

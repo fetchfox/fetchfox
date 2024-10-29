@@ -12,9 +12,14 @@ process.on('unhandledRejection', async (reason, p) => {
 describe('Server', function() {
   this.timeout(3 * 60 * 1000); // 3 minutes
 
-  it('should serve and run', async () => {
-    const s = new Server();
+  this.launch = async () => {
+    const s = new Server({ childPath: 'src/server/child.js' });
     await new Promise(ok => s.listen(7070, ok));
+    return s;
+  }
+
+  it('should serve and run', async () => {
+    const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
@@ -48,8 +53,7 @@ describe('Server', function() {
   });
 
   it('should start and sub', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
@@ -86,8 +90,7 @@ describe('Server', function() {
   });
 
   it('should replay results on re-connect', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
@@ -133,8 +136,7 @@ describe('Server', function() {
   });
 
   it('should partial replay results on re-connect', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
@@ -185,8 +187,7 @@ describe('Server', function() {
   });
 
   it('should run json', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const wf = webfox;
     const out = await wf
@@ -234,8 +235,7 @@ describe('Server', function() {
 
 
   it('should get same results as local', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const partials = [];
     const rwPartials = [];
@@ -296,8 +296,7 @@ describe('Server', function() {
   });
 
   it('should plan', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
@@ -313,8 +312,7 @@ describe('Server', function() {
 
 
   it('should stop', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
       .config({ host: 'http://127.0.0.1:7070' });
@@ -353,8 +351,7 @@ describe('Server', function() {
   });
 
   it('should be able to publish all steps', async () => {
-    const s = new Server();
-    await new Promise(ok => s.listen(7070, ok));
+    const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
       .config({

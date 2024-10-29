@@ -149,11 +149,12 @@ export const BaseStep = class {
           await this.process(
             { cursor, item, index },
             (output) => {
+              this.results.push(output);
+
               const hitLimit = this.limit && this.results.length >= this.limit;
               let done = hitLimit;
 
               cursor.publish(output, index, done);
-              this.results.push(output);
               this.trigger('item', output);
 
               if (done) {

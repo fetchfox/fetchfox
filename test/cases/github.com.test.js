@@ -17,7 +17,10 @@ describe('github.com', function() {
     const out = await fox
       .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
-      .crawl('find urls commits, limit: 10')
+      .crawl({
+        query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+        limit: 10,
+      })
       .extract({
         questions: {
           url: 'commit URL, full absolute URL',
@@ -34,15 +37,17 @@ describe('github.com', function() {
 
     // Sanity checks
     assert.equal(countPartials, 10);
-    assert.equal(out.length, 10);
+    assert.equal(out.items.length, 10);
+
     let locTotal = 0;
-    for (const item of out) {
+    for (const item of out.items) {
       assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
       let loc = parseInt(item.loc);
       if (!isNaN(loc)) {
         locTotal += loc;
       }
     }
+
     assert.ok(locTotal >= 10, 'loc total');
   });
 
