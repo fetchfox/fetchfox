@@ -12,7 +12,10 @@ export const BaseWorkflow = class {
     for (const step of this.steps) {
       steps.push(step.dump());
     }
-    return { steps };
+    return {
+      steps,
+      meta: this.meta || {},
+    };
   }
 
   context() {

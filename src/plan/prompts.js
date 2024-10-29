@@ -74,7 +74,9 @@ Respond in JSON format:
 - Make your name suggestion concise, relevant, and between 3-10 words.
 - Try to avoid redundancy between name and description.
 - Make the slug a concise ID of the name, 1-3 terms, dash connected. ONLY JSON, no markdown.
-- Do NOT mention the word "scraper" or "scraping" or similar terms in the name
+- Do NOT mention the word "information" or "data" or similar terms in the name
+- Instead, focus on relevant topical terms in the name that are likely to uniquely identify this scraper in a list of many others
+- Uppercase the first letter of the name, uppercase proper nouns
 
 The scrape job you are describing and naming is:
 {{job}}

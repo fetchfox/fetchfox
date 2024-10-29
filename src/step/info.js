@@ -165,9 +165,9 @@ export const stepDescriptionsMap = {
         required: true,
       },
       single: {
-        description: 'If true, the extraction will find only one item per page. If false, it can find multiple. Should correspond to the users desired number of results per page',
+        description: 'If true, the extraction will find only one item per page. If false, it can find multiple. Typically, if there is a "crawl" step before extraction, you will want single=true, and if there is no "crawl" step you will want single=false',
         format: 'boolean',
-        example: false,
+        example: true,
         required: false,
       },
     },
