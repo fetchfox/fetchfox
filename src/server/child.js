@@ -3,8 +3,6 @@ import { fox } from '../fox/fox.js';
 let workflow = null;
 
 process.on('message', async ({ command, data }) => {
-  // console.log('Message from parent:', data);
-
   switch (command) {
     case 'start':
       if (workflow != null) {

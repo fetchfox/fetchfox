@@ -14,20 +14,6 @@ export const Cursor = class {
     }));
   }
 
-  async stop() {
-    logger.info(`Cursor stopping ${this.ctx.extractor}`);
-    if (this.ctx.extractor) this.ctx.extractor.stop();
-
-    logger.info(`Cursor stopping ${this.ctx.fetcher}`);
-    if (this.ctx.fetcher) this.ctx.fetcher.stop();
-
-    logger.info(`Cursor stopping ${this.ctx.crawler}`);
-    if (this.ctx.crawler) this.ctx.crawler.stop();
-
-    logger.info(`Cursor stopping ${this.ctx.ai}`);
-    if (this.ctx.ai) this.ctx.ai.stop();
-  }
-
   out(markDone) {
     const out = JSON.parse(JSON.stringify({
       items: this.items,

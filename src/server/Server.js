@@ -27,21 +27,19 @@ export const Server = class {
   }
 
   async start(data, ws) {
-    logger.info(`Server start ${JSON.stringify(data, null, 2)}`);
+    logger.info(`Server start ${JSON.stringify(data)}`);
     const id = this.store.nextId();
     const child = fork('./src/server/child.js');
 
     this.children[id] = child;
 
     child.on('message', ({ command, data }) => {
-      console.log('Message from child:', command, data);
       switch (command) {
         case 'partial':
           this.store.pub(id, data);
           break;
 
         case 'stop':
-          console.log('Got STOP data', data);
         case 'final':
           this.store.finish(id, data);
           break;
@@ -56,17 +54,15 @@ export const Server = class {
   }
 
   async stop(data) {
-    logger.info(`Server stop ${JSON.stringify(data, null, 2)}`);
+    logger.info(`Server stop ${JSON.stringify(data)}`);
     const id = data.id;
-    if (this.children[id]) {
-      const child = this.children[id];
-      child.send({ command: 'stop' });
-      // const out = await this.workflows[id].stop();
-      // console.log('STOP GOT:', out);
-     return 'ok';
-    } else {
-      return null;
+    if (!this.children[id]) {
+      logger.warn(`No child process to stop ${id}`);
+      return;
     }
+
+    const child = this.children[id];
+    child.send({ command: 'stop' });
   }
 
   async plan(data, ws) {
@@ -102,7 +98,7 @@ export const Server = class {
             break;
         }
 
-        logger.info(`Server side run of ${data.command} done: ${JSON.stringify(out).substr(0, 120)}`);
+        logger.info(`Server side run of ${data.command} done: ${(JSON.stringify(out) || '').substr(0, 120)}`);
         ws.send(JSON.stringify({ close: true, out }));
         ws.close(1000);
       });

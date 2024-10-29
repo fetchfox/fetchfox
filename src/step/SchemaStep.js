@@ -22,8 +22,6 @@ export const SchemaStep = class extends BaseStep {
     logger.debug(`Schema transform ${item} items into ${JSON.stringify(this.schema)}`);
     const stream = schema.run([item], this.schema);
     for await (const output of stream) {
-      if (this.stopped) break;
-
       logger.debug(`Schema transformed into ${output}`);
       const done = cb(output);
       if (done) break;

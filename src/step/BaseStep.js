@@ -75,13 +75,7 @@ export const BaseStep = class {
     }
   }
 
-  stop() {
-    logger.info(`Stop step ${this}`);
-    this.stopped = true;
-  }
-
   async run(cursor, steps, index) {
-    this.stopped = false;
     try {
       return this._run(cursor, steps, index);
     } catch(e) {
@@ -149,28 +143,18 @@ export const BaseStep = class {
           return;
         }
 
-        if (this.stopped) {
-          return;
-        }
-
         received++;
 
         try {
           await this.process(
             { cursor, item, index },
             (output) => {
-              if (this.stopped) {
-                console.log('got result after stopped');
-              }
-
               const hitLimit = this.limit && this.results.length >= this.limit;
-              let done = hitLimit || this.stopped;
+              let done = hitLimit;
 
-              if (!this.stopped) {
-                cursor.publish(output, index, done);
-                this.results.push(output);
-                this.trigger('item', output);
-              }
+              cursor.publish(output, index, done);
+              this.results.push(output);
+              this.trigger('item', output);
 
               if (done) {
                 ok();

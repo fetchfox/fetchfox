@@ -7,9 +7,4 @@ export const BaseCrawler = class {
     this.ai = getAI(ai, { cache });
     this.fetcher = fetcher || getFetcher(null, { cache });
   }
-
-  async stop() {
-    this.ai.stop();
-    this.fetcher.stop();
-  }
 }

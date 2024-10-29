@@ -12,24 +12,11 @@ export const MinimizingExtractor = class extends BaseExtractor {
     this.minimizer = getMinimizer(options.minimizer, options);
   }
 
-  async stop() {
-    console.log('MIN EX GOT STOP');
-    this.extractor.stop();
-  }
-
   async *run(target, questions, options) {
-    const { stream } = options || {};
-
     const doc = await this.getDoc(target);
-    if (this.stopped) return;
-
     const chunks = this.chunks(doc);
-
     const min = await this.minimizer.min(doc);
-    if (this.stopped) return;
-
     for await (const result of this.extractor.run(min, questions, options)) {
-      if (this.stopped) break;
       yield Promise.resolve(result);
     }
   }

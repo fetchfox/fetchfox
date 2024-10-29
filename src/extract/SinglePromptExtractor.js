@@ -16,7 +16,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     const doc = await this.getDoc(target);
     if (!doc) return;
-    if (this.stopped) return;
 
     const { extraRules, description, limit } = options || {};
     let { single } = options || {};
@@ -50,8 +49,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
       const stream = that.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
-        if (that.stopped) return;
-
         if (delta.itemCount) continue;
         yield Promise.resolve({
           item: new Item(delta, doc),
@@ -63,12 +60,8 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const max = 3;
     let count = 0;
     for (let i = 0; i < max && i < chunks.length; i++) {
-      if (this.stopped) return;
-
       logger.debug(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
       for await (const result of inner(chunks[i])) {
-        if (this.stopped) return;
-
         logger.debug(`Extraction found item (${++count} on this page): ${result.item}`);
         yield Promise.resolve(result.item);
       }

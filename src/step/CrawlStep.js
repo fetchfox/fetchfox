@@ -22,8 +22,6 @@ export const CrawlStep = class extends BaseStep {
 
     const url = item.url || item.source().url;
     for await (const output of crawler.run(url, this.query)) {
-      if (this.stopped) break;
-
       if (!output.url) {
         logger.error(`No URL found for item ${item}`);
         continue;

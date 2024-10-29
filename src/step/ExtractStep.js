@@ -26,11 +26,7 @@ export const ExtractStep = class extends BaseStep {
     const start = (new Date()).getTime();
     const ex = cursor.ctx.extractor;
 
-    if (this.stopped) return;
-
     for await (const output of ex.stream(item, this.questions)) {
-      if (this.stopped) break;
-
       const took = (new Date()).getTime() - start;
       logger.debug(`Extract took ${took/1000} sec so far`);
 

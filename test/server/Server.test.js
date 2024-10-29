@@ -321,7 +321,8 @@ describe('Server', function() {
 
     let stopOut;
     const partials = [];
-    const final = await rw
+
+    const f = rw
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
@@ -337,6 +338,8 @@ describe('Server', function() {
           partials.push(partial.item);
           rw.stop();
         });
+    
+    const final = await f;
 
     s.close();
 
@@ -344,16 +347,9 @@ describe('Server', function() {
     assert.equal(final.items[0].name, 'Bulbasaur');
     assert.equal(final.full[2].items[0].name, 'Bulbasaur');
 
-    console.log('FINAL:', final);
-
     assert.ok(final.full[0].done);
     assert.ok(final.full[1].done);
     assert.ok(final.full[2].done);
-
-    // assert.equal(stopOut.items.length, 1);
-    // assert.equal(
-    //   JSON.stringify(final.items, null, 2),
-    //   JSON.stringify(stopOut.items, null, 2))
   });
 
   it('should be able to publish all steps', async () => {
