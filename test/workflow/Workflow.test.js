@@ -5,7 +5,7 @@ import { fox } from '../../src/index.js';
 describe('Workflow', function() {
   this.timeout(0);
 
-  it('should load from json', async () => {
+  it('should load from json @run', async () => {
     const data = {
       "steps": [
         {
@@ -61,7 +61,7 @@ describe('Workflow', function() {
       JSON.stringify(data));
   });
 
-  it('should be able to publish all steps', async () => {
+  it('should be able to publish all steps @run', async () => {
     const f = await fox
       .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
       .init('https://pokemondb.net/pokedex/national')

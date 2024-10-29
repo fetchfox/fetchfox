@@ -14,7 +14,7 @@ process.on('unhandledRejection', async (reason, p) => {
 describe('examples', function() {
   this.timeout(5 * 60 * 1000);
 
-  it('should do basic example', async () => {
+  it('should do basic example @run', async () => {
     const results = await fox
       .init('https://pokemondb.net/pokedex/national')
       .extract({ name: 'Pokemon name', number: 'Pokemon number' })
@@ -30,7 +30,7 @@ describe('examples', function() {
     assert.equal(results.items[2].number, '#0003');
   });
 
-  it('should do streaming example', async () => {
+  it('should do streaming example @run', async () => {
     const stream = fox
       .init('https://pokemondb.net/pokedex/national')
       .extract({ name: 'Pokemon name', number: 'Pokemon number' })

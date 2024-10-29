@@ -12,7 +12,7 @@ process.on('unhandledRejection', async (reason, p) => {
 describe('news.ycombinator.com', function() {
   this.timeout(5 * 60 * 1000);
 
-  it('should work', async () => {
+  it('should work @run', async () => {
     let countPartials = 0;
     const out = await fox
       .init('https://news.ycombinator.com')

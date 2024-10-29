@@ -18,7 +18,7 @@ describe('Server', function() {
     return s;
   }
 
-  it('should serve and run', async () => {
+  it('should serve and run @run', async () => {
     const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
@@ -52,7 +52,7 @@ describe('Server', function() {
     assert.equal(out.items[2].name, 'Venusaur');
   });
 
-  it('should start and sub', async () => {
+  it('should start and sub @run', async () => {
     const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
@@ -89,7 +89,7 @@ describe('Server', function() {
 
   });
 
-  it('should replay results on re-connect', async () => {
+  it('should replay results on re-connect @run', async () => {
     const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
@@ -135,7 +135,7 @@ describe('Server', function() {
     s.close();
   });
 
-  it('should partial replay results on re-connect', async () => {
+  it('should partial replay results on re-connect @run', async () => {
     const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
@@ -186,7 +186,7 @@ describe('Server', function() {
     
   });
 
-  it('should run json', async () => {
+  it('should run json @run', async () => {
     const s = await this.launch(); 
 
     const wf = webfox;
@@ -234,7 +234,7 @@ describe('Server', function() {
   });
 
 
-  it('should get same results as local', async () => {
+  it('should get same results as local @run', async () => {
     const s = await this.launch(); 
 
     const partials = [];
@@ -295,7 +295,7 @@ describe('Server', function() {
     assert.equal(rwPartials[2].name, partials[2].name);
   });
 
-  it('should plan', async () => {
+  it('should plan @run', async () => {
     const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
@@ -311,7 +311,7 @@ describe('Server', function() {
   });
 
 
-  it('should stop', async () => {
+  it('should stop @run', async () => {
     const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
@@ -350,7 +350,7 @@ describe('Server', function() {
     assert.ok(final.full[2].done);
   });
 
-  it('should be able to publish all steps', async () => {
+  it('should be able to publish all steps @run', async () => {
     const s = await this.launch(); 
 
     const rw = new RemoteWorkflow()
