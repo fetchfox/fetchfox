@@ -13,7 +13,7 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
   async _min(doc) {
     logger.info(`Minimizing ${doc} with tag removing heuristics`);
 
-    let initial = doc.html.replace(/[ \t\n]+/g, ' '); // remove extra whitespace
+    let initial = (doc.html || '').replace(/[ \t\n]+/g, ' '); // remove extra whitespace
     const root = parse(initial);
 
     this.removeTags.forEach(tag => {
