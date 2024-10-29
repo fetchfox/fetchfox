@@ -58,7 +58,7 @@ export const publishToGoogle = async (buf, path, token) => {
   auth.setCredentials({ access_token: token });
   const drive = google.drive({ version: 'v3', auth });
 
-  const parts = path.split('/');
+  const parts = path.replace(/\/+/g, '/').split('/');
   let directoryId = parts[0];
   const filename = parts.slice(1).join('/');
 
