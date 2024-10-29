@@ -13,20 +13,21 @@ describe('news.ycombinator.com', function() {
   this.timeout(5 * 60 * 1000);
 
   it('should work', async () => {
-    const f = await fox
+    let countPartials = 0;
+    const out = await fox
       .init('https://news.ycombinator.com')
       .extract({
         articleTitle: 'What is the title of the article?',
         numComments: 'What is the number of comments?',
       })
       .run(null, (partial) => {
-        // stuff
+        countPartials++;
       });
 
     // Sanity checks
     assert.ok(countPartials > 15 && countPartials < 35);
-    assert.ok(out.length > 15 && out.length < 35);
-    const totalComments = out
+    assert.ok(out.items.length > 15 && out.items.length < 35);
+    const totalComments = out.items
       .filter(item => {
         try {
           return !isNaN(parseInt(item.numComments));

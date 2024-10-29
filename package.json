@@ -13,7 +13,7 @@
     "./server": "./src/server.js"
   },
   "scripts": {
-    "test": "mocha test/workflow/Workflow.test.js"
+    "test": "mocha test/workflow/Workflow.test.js test/server/Server.test.js test/cases/examples.test.js test/cases/github.com.test.js test/cases/news.ycombinator.com.test.js"
   },
   "repository": {
     "type": "git",
