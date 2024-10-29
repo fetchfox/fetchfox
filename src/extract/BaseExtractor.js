@@ -97,10 +97,7 @@ export const BaseExtractor = class {
       }
     }
 
-    if (this.stopped) {
-      logger.trace(`${this} is stopped, not starting _run`);
-      return;
-    }
+    if (this.stopped) return;
 
     for await (const r of this._run(target, questionsList, options)) {
       if (this.stopped) break;
@@ -152,6 +149,7 @@ export const BaseExtractor = class {
   async *stream(target, questions, options) {
     options = {...options, stream: true };
     for await (const r of this.run(target, questions, options)) {
+      if (this.stopped) break;
       yield Promise.resolve(r);
     }
   }

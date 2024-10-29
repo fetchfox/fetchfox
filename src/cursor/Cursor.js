@@ -28,11 +28,23 @@ export const Cursor = class {
     if (this.ctx.ai) this.ctx.ai.stop();
   }
 
-  out() {
-    return {
+  out(markDone) {
+    const out = JSON.parse(JSON.stringify({
       items: this.items,
       full: this.full,
+    }));
+
+    if (markDone) {
+      for (const step of out.full) {
+        delete step.loading;
+        if (!step.done) {
+          step.forcedDone = true;
+          step.done = true;
+        }
+      }
     }
+
+    return out;
   }
 
   didStart(stepIndex) {

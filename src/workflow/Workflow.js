@@ -43,6 +43,10 @@ export const Workflow = class extends BaseWorkflow {
     return this.cursor.out();
   }
 
+  out(markDone) {
+    return this.cursor.out(markDone);
+  }
+
   async run(args, cb) {
     if (args) this.parseRunArgs(args);
     await this.plan();

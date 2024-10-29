@@ -1,3 +1,4 @@
+import { fork } from 'child_process';
 import http from 'http';
 import { WebSocketServer } from 'ws';
 import { logger } from '../log/logger.js';
@@ -7,7 +8,7 @@ import { Store } from './Store.js';
 export const Server = class {
   constructor() {
     this.store = new Store();
-    this.workflows = {};
+    this.children = {};
   }
 
   async sub(data, ws) {
@@ -28,28 +29,41 @@ export const Server = class {
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data, null, 2)}`);
     const id = this.store.nextId();
-    const f = await fox.config(data.context).plan(...(data.workflow.steps));
-    this.workflows[id] = f;
-    f.run(
-      null,
-      (r) => {
-        this.store.pub(id, r);
-      })
-      .then(items => {
-        this.store.finish(id, items);
-        delete this.workflows[id];
-      });
+    const child = fork('./src/server/child.js');
 
+    this.children[id] = child;
+
+    child.on('message', ({ command, data }) => {
+      console.log('Message from child:', command, data);
+      switch (command) {
+        case 'partial':
+          this.store.pub(id, data);
+          break;
+
+        case 'stop':
+          console.log('Got STOP data', data);
+        case 'final':
+          this.store.finish(id, data);
+          break;
+
+        default:
+          throw new Error(`Unhandled child command: ${command} ${data}`);
+      }
+    });
+
+    child.send({ command: 'start', id, data });
     return id;
   }
 
   async stop(data) {
     logger.info(`Server stop ${JSON.stringify(data, null, 2)}`);
     const id = data.id;
-    if (this.workflows[id]) {
-      const out = await this.workflows[id].stop();
-      console.log('STOP GOT:', out);
-      return out;
+    if (this.children[id]) {
+      const child = this.children[id];
+      child.send({ command: 'stop' });
+      // const out = await this.workflows[id].stop();
+      // console.log('STOP GOT:', out);
+     return 'ok';
     } else {
       return null;
     }
@@ -88,7 +102,7 @@ export const Server = class {
             break;
         }
 
-        logger.info(`Server side run done: ${JSON.stringify(out).substr(0, 120)}`);
+        logger.info(`Server side run of ${data.command} done: ${JSON.stringify(out).substr(0, 120)}`);
         ws.send(JSON.stringify({ close: true, out }));
         ws.close(1000);
       });

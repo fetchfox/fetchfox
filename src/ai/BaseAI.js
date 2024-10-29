@@ -111,6 +111,7 @@ export const BaseAI = class {
   }
 
   async stop() {
+    throw new Error('STOP');
     this.stopped = true;
   }
 
