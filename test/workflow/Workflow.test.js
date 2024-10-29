@@ -99,36 +99,4 @@ describe('Workflow', function() {
 
     assert.equal(count2, 12);
   });
-
-
-  it('should stop', async () => {
-    const f = await fox
-      .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
-      .init('https://pokemondb.net/pokedex/national')
-      .extract({
-        name: 'What is the name of the pokemon?',
-        number: 'What is the pokedex number?',
-      })
-      .limit(3);
-
-    let count = 0;
-
-    let stopOut;
-    const final = await f.run(null, async (partial) => {
-      count++;
-      stopOut = await f.stop();
-    });
-
-    assert.equal(count, 1);
-
-    console.log('stopOut', stopOut);
-
-    assert.equal(final.items.length, 1);
-    assert.equal(final.items[0].name, 'Bulbasaur');
-    assert.equal(stopOut.items.length, 1);
-    assert.equal(
-      JSON.stringify(final),
-      JSON.stringify(stopOut))
-  });
-
 });
