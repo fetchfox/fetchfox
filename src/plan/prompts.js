@@ -56,3 +56,26 @@ The steps are:
 
 Make sure to ONLY return JSON, with no explanation. Your output will parsed using JSON.parse()
 `);
+
+export const describe = new Template(
+  ['job'],
+  `Suggest a description, name, and slug for the scraping job below.
+
+Respond in JSON format:
+
+{
+  "description": "Describe the scrape job...",
+  "name": "Your name suggestion...",
+  "slug": "your-slug-suggestion"
+}
+
+- The description should tell the user what the scrape does, and mention the domain of the site being scraped.
+- Description should be 10-25 words.
+- Make your name suggestion concise, relevant, and between 3-10 words.
+- Try to avoid redundancy between name and description.
+- Make the slug a concise ID of the name, 1-3 terms, dash connected. ONLY JSON, no markdown.
+- Do NOT mention the word "scraper" or "scraping" or similar terms in the name
+
+The scrape job you are describing and naming is:
+{{job}}
+`);

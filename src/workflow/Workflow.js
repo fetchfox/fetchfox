@@ -4,7 +4,7 @@ import { Context } from '../context/Context.js';
 import { Planner } from '../plan/Planner.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
 import { isPlainObject } from '../util.js';
-import { classMap, stepNames } from '../step/index.js';
+import { classMap, stepNames, BaseStep } from '../step/index.js';
 
 export const Workflow = class extends BaseWorkflow {
   config(args) {
@@ -15,12 +15,27 @@ export const Workflow = class extends BaseWorkflow {
   async plan(...args) {
     if (args) this.parseRunArgs(args);
     const planner = new Planner(this.context());
-    this.steps = await planner.plan(...this.steps, ...this._stepsInput);
+    const steps = [...this.steps, ...this._stepsInput];
+    const stepsPlain = steps.map(step => {
+      if (step instanceof BaseStep) {
+        return step.dump();
+      } else {
+        // Assum it is plain object
+        return step;
+      }
+    });
+
+    const results = await Promise.all([
+      planner.plan(stepsPlain),
+      planner.analyze({ steps: stepsPlain }),
+    ]);
+    this.steps = results[0];
+    this.meta = results[1];
     this._stepsInput = [];
     return this;
   }
 
-  async load(data) {
+  load(data) {
     this.steps = [];
     for (const json of data.steps) {
       const cls = classMap[json.name];
@@ -87,6 +102,6 @@ for (const stepName of stepNames) {
       }
     }
 
-    return this.step(JSON.stringify({ name, prompt }));
+    return this.step({ name, args: prompt });
   }
 }

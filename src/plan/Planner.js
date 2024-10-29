@@ -1,7 +1,7 @@
 import { logger } from '../log/logger.js';
 import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
 import { stepDescriptions , classMap, BaseStep } from '../step/index.js';
-import { singleStep, combined } from './prompts.js';
+import { singleStep, combined, describe } from './prompts.js';
 import { isPlainObject } from '../util.js';
 
 export const Planner = class {
@@ -11,7 +11,19 @@ export const Planner = class {
     this.user = options.user;
   }
 
-  async plan(...args) {
+  async analyze({ steps }) {
+    logger.debug(`Analyze steps ${JSON.stringify(steps).substr(0, 120)}`);
+    const context = {
+      job: JSON.stringify(steps, null, 2),
+    };
+    const prompt = describe.render(context);
+    const answer = await this.ai.ask(prompt, { format: 'json' });
+    logger.debug(`Analyze got answer ${JSON.stringify(answer.partial)}`);
+    const { name, description } = answer.partial;
+    return { name, description };
+  }
+
+  async plan(args) {
     if (args.length == 1) {
       return this.planString(args[0]);
     } else {
@@ -20,6 +32,8 @@ export const Planner = class {
   }
 
   async planArray(stepsInput) {
+    logger.debug(`Plan from array: ${stepsInput}`);
+
     const objs = [];
     const stepsJson = [];
 
@@ -71,6 +85,8 @@ export const Planner = class {
   }
 
   async planString(allSteps) {
+    logger.debug(`Plan from string: ${allSteps}`);
+
     const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,

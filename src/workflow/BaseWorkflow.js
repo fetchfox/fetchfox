@@ -26,7 +26,7 @@ export const BaseWorkflow = class {
   }
 
   init(prompt) {
-    return this.step(JSON.stringify({ name: 'const', prompt }));
+    return this.step({ name: 'const', args: prompt });
   }
 
   parseRunArgs(args) {

@@ -43,9 +43,10 @@ describe('news.ycombinator.com', function() {
     let countPartials = 0;
     const out = await fox
       .init('https://news.ycombinator.com')
-      .crawl('find links to comment pages')
+      .crawl('find links to comment pages, format: https://news.ycombinator.com/item?id=...')
       .extract({
         topCommenter: 'What is the username of the top commenter?',
+        single: true,
       })
       .run(null, (partial) => {
         countPartials++;
