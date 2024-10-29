@@ -28,7 +28,7 @@ describe('AI', function() {
     }
   });
 
-  it('should work with ollama @run', async () => {
+  it('should work with ollama', async () => {
     const ollama = getAI('ollama:llama3.1:8b');
     const answer = await ollama.ask('Say exactly this word: "test"');
     assert.ok(answer.partial.toLowerCase().indexOf('test') != -1, 'ollama should say test');
