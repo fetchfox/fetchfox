@@ -58,9 +58,32 @@ export const publishToGoogle = async (buf, path, token) => {
   auth.setCredentials({ access_token: token });
   const drive = google.drive({ version: 'v3', auth });
 
-  const parts = path.split('/');
-  const directoryId = parts[0];
+  const parts = path.replace(/\/+/g, '/').split('/');
+  let directoryId = parts[0];
   const filename = parts.slice(1).join('/');
+
+  try {
+    await drive.files.get({ fileId: directoryId });
+  } catch (e) {
+    const resp = await drive.files.list({
+      q: `mimeType='application/vnd.google-apps.folder' and name='${directoryId}' and trashed=false`,
+      spaces: 'drive',
+    });
+
+    if (resp.data.files.length) {
+      directoryId = resp.data.files[0].id;
+    } else {
+      const folderMetadata = {
+        name: directoryId,
+        mimeType: 'application/vnd.google-apps.folder',
+      };
+      const folder = await drive.files.create({
+        resource: folderMetadata,
+        fields: 'id',
+      });
+      directoryId = folder.data.id;
+    }
+  }
 
   const fileMetadata = {
     name: filename,

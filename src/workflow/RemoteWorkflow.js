@@ -1,6 +1,7 @@
-// import fetch from 'node-fetch';
+import { logger } from '../log/logger.js';
 import { BaseStep } from '../step/BaseStep.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
+import { stepNames } from '../step/info.js';
 
 export const RemoteWorkflow = class extends BaseWorkflow {
   config(args) {
@@ -9,46 +10,130 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   host() {
-    return this.ctx?.host || 'http://localhost:9090';
+    return this.ctx?.host || 'http://127.0.0.1:9090';
   }
 
   url(endpoint) {
     return this.host() + endpoint;
   }
 
-  async plan(...args) {
-    if (args) this.parseRunArgs(args);
-    const url = this.url('/plan');
-    console.log('plan url:', url);
+  init(prompt) {
+    return this.step({ name: 'const', args: prompt });
+  }
 
-    console.log('');
-    console.log('');
-    console.log('this.steps:      ', this.steps);
-    console.log('');
-    console.log('');
-    console.log('this._stepsInput:', this._stepsInput);
-    console.log('');
-    console.log('');
+  step(data) {
+    this.steps.push(data);
+    return this;
+  }
 
-    const stepStrs = []; //[...this.steps, ...this._stepsInput];
+  load(data) {
+    this.steps = [];
+    for (const step of data.steps) {
+      this.step(step);
+    }
+    return this;
+  }
 
-    for (const input of this._stepsInput) {
-      if (input instanceof BaseStep) {
-        stepStrs.push(input.dump());
-      } else {
-        stepStrs.push(input);
+  async _initWs() {
+    if (this.WebSocket) return;
+
+    try {
+      this.WebSocket = window.WebSocket;
+    } catch(e) {
+      const wsModule = await import('ws');
+      this.WebSocket = wsModule.default;
+    }
+  }
+
+  async ws(msg, cb) {
+    await this._initWs();
+
+    const url = this.host().replace(/^http/, 'ws');
+    logger.info(`Connect to ws: ${url}`);
+    const ws = new this.WebSocket(url);
+
+    return new Promise((ok, err) => {
+      ws.onopen = () => {
+        logger.info(`Websocket open, sending ${JSON.stringify(msg)}`);
+        ws.send(JSON.stringify(msg));
       }
+
+      ws.onmessage = (msg) => {
+        const data = JSON.parse(msg.data);
+        logger.debug(`Client side websocket message: ${JSON.stringify(data).substr(0, 120)}`);
+        if (data.close) {
+          ok(data.out);
+          ws.close(1000);
+        } else {
+          cb && cb(data);
+        }
+      }
+
+      ws.onerror = (e) => {
+        logger.error(`Client side websocket error: ${e}`);
+        err(e);
+      }
+
+      ws.onclose = () => {
+        logger.info('Client side websocket connection closed');
+      }
+    });
+  }
+
+  async plan(...args) {
+    return this.ws({
+      command: 'plan',
+      prompt: args,
+    });
+  }
+
+  async sub(id, cb) {
+    if (this.id && this.id != id) {
+      throw new Error(`unexpected id ${id}`);
     }
 
-    const resp = await fetch(
-      url,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stepStrs),
-      });
-    const data = await resp.json();
-    console.log('response', data);
-    return data;
+    this.id = id;
+    try {
+      const out = await this.ws({ command: 'sub', id }, cb);
+      return out;
+    } finally {
+      this.id = null;
+    }
+  }
+
+  async stop() {
+    const out = await this.ws({ command: 'stop', id: this.id });
+    return out;
+  }
+
+  async start(args, cb) {
+    if (args?.steps) {
+      this.steps = args.steps;
+    }
+    this.id = await this.ws({
+      command: 'start',
+      context: this.ctx,
+      workflow: { steps: this.steps },
+    });
+    return this.id;
+  }
+
+  async run(args, cb) {
+    try {
+      this.id = await this.start(args, cb);
+      return await this.sub(this.id, cb);
+    } finally {
+      this.id = null;
+    }
+  }
+}
+
+for (const stepName of stepNames) {
+  RemoteWorkflow.prototype[stepName] = function(prompt) {
+    this.step({
+      name: stepName,
+      args: prompt,
+    });
+    return this;
   }
 }

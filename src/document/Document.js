@@ -1,6 +1,6 @@
 import { logger } from '../log/logger.js';
-import * as cheerio from 'cheerio';
 import { URL } from 'whatwg-url';
+import { parse } from 'node-html-parser';
 
 export const Document = class {
   constructor() {}
@@ -41,7 +41,10 @@ export const Document = class {
   async read(resp, reqUrl, reqOptions) {
     this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
     logger.info(`Loading document from response ${this.url}`);
+    const start = (new Date()).getTime();
     this.body = await resp.text();
+    const tookRead = (new Date()).getTime() - start;
+    logger.debug(`Done reading body for ${this.url}, took ${tookRead/1000} sec`);
 
     let respHeaders = {};
     if (typeof resp.headers == 'function') {
@@ -65,6 +68,8 @@ export const Document = class {
     }
 
     this.parse();
+    const took = (new Date()).getTime() - start;
+    logger.info(`Done loading for ${this.url}, took total of ${took/1000} sec`);
   }
 
   parse() {
@@ -86,33 +91,29 @@ export const Document = class {
     // TODO: This function is slow, find an alternate library
     this.requireHtml();
 
-    const $ = cheerio.load(this.html);
-    for (const tag in ['style', 'script', 'svg']) {
-      $(tag).replaceWith(`[[${tag} removed]]`);
-    }
+    const root = parse(this.html);
+    
+    // Remove unwanted tags by replacing them with placeholders
+    ['style', 'script', 'svg'].forEach(tag => {
+      root.querySelectorAll(tag).forEach(element => {
+        element.replaceWith(`[[${tag} removed]]`);
+      });
+    });
 
-    const getText = (root) => {
-      return $(root)
-        .contents()
-        .map((i, el) => {
-          if (el.type === 'text') {
-            // If there is no text in a node, cheerio sometimes includes HTML as
-            // text. I'm not sure why, but to solve this, do a second pass by
-            // wrapping the first result in <span>. This eliminates the problem.
-            // TODO: Investigave and see if there is a better solution
-            const text1 = $(el).text().trim();
-            const text2 = $(`<span>${text1}</span>`).text().trim();
-            return text2;
-          } else if (el.type === 'tag') {
-            return getText(el);
-          }
-          return '';
-        })
-        .get()
-        .join(' ');
+    // Recursive function to extract text content
+    const getText = (node) => {
+      if (node.nodeType === 3) { // Text node
+                                 const text1 = node.rawText.trim();
+        const wrapper = parse(`<span>${text1}</span>`);
+        const text2 = wrapper.structuredText.trim();
+        return text2;
+      } else if (node.nodeType === 1) { // Element node
+                                        return node.childNodes.map(getText).join(' ');
+      }
+      return '';
     };
 
-    this.text = getText($('*'));
+    this.text = getText(root);
   }
 
   parseLinks() {
@@ -120,27 +121,29 @@ export const Document = class {
 
     const links = [];
     let id = 1;
-    const $ = cheerio.load(this.html);
-    for (const a of $('a')) {
-      const html = $(a).prop('outerHTML');
-      const text = $(a).prop('innerText');
-      const href = $(a).attr('href');
+    const root = parse(this.html);
+
+    root.querySelectorAll('a').forEach(a => {
+      const html = a.outerHTML;
+      const text = a.text.trim();
+      const href = a.getAttribute('href');
 
       let url;
       try {
         url = new URL(href, this.url);
       } catch (e) {
         logger.warn(`Skipping invalid link: ${this.url} ${html}`);
-        continue;
+        return;
       }
 
       links.push({
         id: id++,
-        url: '' + new URL($(a).attr('href'), this.url),
-        html: $(a).prop('outerHTML').substr(0, 1000),
-        text: $(a).prop('innerText').substr(0, 200),
+        url: url.toString(),
+        html: html.substring(0, 1000),
+        text: text.substring(0, 200),
       });
-    }
+    });
+
     this.links = links;
   }
 

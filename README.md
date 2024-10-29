@@ -34,6 +34,10 @@ const results = await fox
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
   .run(null, (delta) => { console.log(delta.item) });
+  
+for (const result of results) {
+  console.log('Item:', result.item);
+}
 ```
 
 If you prefer, you can use the streaming style:

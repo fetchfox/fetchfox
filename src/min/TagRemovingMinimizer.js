@@ -1,4 +1,4 @@
-import * as cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 import pretty from 'pretty';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
@@ -13,21 +13,24 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
   async _min(doc) {
     logger.info(`Minimizing ${doc} with tag removing heuristics`);
 
-    let initial = doc.html
-      .replaceAll(/[ \t\n]+/g, ' ');  // remove whitespace
+    let initial = (doc.html || '').replace(/[ \t\n]+/g, ' '); // remove extra whitespace
+    const root = parse(initial);
 
-    const $ = cheerio.load(initial);
-    for (const tag of this.removeTags) {
-      $(tag).replaceWith(`[[${tag} removed]]`);
-    }
+    this.removeTags.forEach(tag => {
+      root.querySelectorAll(tag).forEach(element => {
+        element.replaceWith(`[[${tag} removed]]`);
+      });
+    });
 
     const removeAttributes = ['style'];
-    for (const attribute of removeAttributes) {
-      $('*').removeAttr(attribute); // Removes the attribute from all tags
-    }
+    root.querySelectorAll('*').forEach(element => {
+      removeAttributes.forEach(attr => {
+        element.removeAttribute(attr);
+      });
+    });
 
     const data = doc.dump();
-    const html = pretty($.html(), { ocd: true });
+    const html = pretty(root.toString(), { ocd: true });
     data.body = html;
     data.html = html;
 

@@ -1,4 +1,3 @@
-import * as cheerio from 'cheerio';
 import pretty from 'pretty';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';

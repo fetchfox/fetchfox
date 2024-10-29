@@ -1,5 +1,5 @@
 import { logger } from '../log/logger.js';
-import { classMap, stepNames } from '../step/index.js';
+import { stepNames } from '../step/info.js';
 
 export const BaseWorkflow = class {
   constructor() {
@@ -20,22 +20,13 @@ export const BaseWorkflow = class {
     return this.ctx;
   }
 
-  load(data) {
-    this.steps = [];
-    for (const step of data.steps) {
-      const cls = classMap[step.name];
-      this.steps.push(new cls(step.args));
-    }
-    return this;
-  }
-
   step(data) {
     this._stepsInput.push(data);
     return this;
   }
 
   init(prompt) {
-    return this.step(JSON.stringify({ name: 'const', prompt }));
+    return this.step({ name: 'const', args: prompt });
   }
 
   parseRunArgs(args) {
@@ -43,6 +34,10 @@ export const BaseWorkflow = class {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];
+    } else if (args.steps) {
+      this._stepsInput = args.steps;
+    } else {
+      throw new Error('Unexpected run args: ' + args);
     }
   }
 

@@ -18,6 +18,8 @@ const copyKeys = [
 
 export const Context = class {
   constructor(args) {
+    this.publishAllSteps = args?.publishAllSteps;
+
     if (args?.diskCache) {
       args.cache = new DiskCache(args?.diskCache);
     }

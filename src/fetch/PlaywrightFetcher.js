@@ -9,10 +9,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     super(options);
     this.headless = options.headless === undefined ? true : options.headless;
     this.browser = options.browser || 'chromium';
-    this.wait = options.wait || 1000;
+    this.loadWait = options.loadWait || 1000;
   }
 
   async launch() {
+    logger.debug(`Playwright launching ${this.browser}`);
     return playwright[this.browser].launch({ headless: this.headless });
   }
 
@@ -25,9 +26,17 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     try {
       browser = await this.launch();
       const page = await browser.newPage();
-      const resp = await page.goto(url);
+      let resp;
+
+      try {
+        resp = await page.goto(url);
+      } catch(e) {
+        logger.error(`Playwright could not get ${url}: ${e}`);
+        return null;
+      }
+
       logger.info(`Playwright got response: ${resp.status()} for ${resp.url()}`);
-      await new Promise(ok => setTimeout(ok, this.wait));
+      await new Promise(ok => setTimeout(ok, this.loadWait));
 
       // Get all the iframes
       const frames = await page.frames();
@@ -45,10 +54,17 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         }
       }
 
+      logger.debug(`Getting iframes on ${resp.url()}`);
       // Get the HTML inside each iframe, and insert it into the page
       for (let i = 0; i < iframes.length; i++) {
         const iframe = iframes[i];
-        const content = await iframe.content();
+        let content;
+        try {
+          content = await iframe.content();
+        } catch(e) {
+          content = '[iframe unavailable]';
+        }
+
         const result = await page.evaluate(({ index, content }) => {
           const iframes = document.querySelectorAll('iframe');
           const iframe = iframes[index];
@@ -61,6 +77,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           }
         }, { index: i, content });
       }
+
+      logger.debug(`Getting HTML on ${resp.url()}`);
       const html = await page.content();
       resp.text = () => html;
       const doc = new Document();
@@ -69,6 +87,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return doc;
     } finally {
       if (browser) {
+        logger.debug(`Closing on ${url}`);
         await browser.close();
       }
     }

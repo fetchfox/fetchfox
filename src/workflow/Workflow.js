@@ -4,7 +4,7 @@ import { Context } from '../context/Context.js';
 import { Planner } from '../plan/Planner.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
 import { isPlainObject } from '../util.js';
-import { classMap, stepNames } from '../step/index.js';
+import { classMap, stepNames, BaseStep } from '../step/index.js';
 
 export const Workflow = class extends BaseWorkflow {
   config(args) {
@@ -15,9 +15,41 @@ export const Workflow = class extends BaseWorkflow {
   async plan(...args) {
     if (args) this.parseRunArgs(args);
     const planner = new Planner(this.context());
-    this.steps = await planner.plan(...this.steps, ...this._stepsInput);
+    const steps = [...this.steps, ...this._stepsInput];
+    const stepsPlain = steps.map(step => {
+      if (step instanceof BaseStep) {
+        return step.dump();
+      } else {
+        // Assum it is plain object
+        return step;
+      }
+    });
+
+    const results = await Promise.all([
+      planner.plan(stepsPlain),
+      planner.analyze({ steps: stepsPlain }),
+    ]);
+    this.steps = results[0];
+    this.meta = results[1];
     this._stepsInput = [];
     return this;
+  }
+
+  load(data) {
+    this.steps = [];
+    for (const json of data.steps) {
+      const cls = classMap[json.name];
+      const args = Object.assign({}, json.args);
+      if (!cls) {
+        throw new Error(`Workflow cannot load: ${JSON.stringify(json)}`);
+      }
+      this.steps.push(new cls(args));
+    }
+    return this;
+  }
+
+  out(markDone) {
+    return this.cursor.out(markDone);
   }
 
   async run(args, cb) {
@@ -25,14 +57,13 @@ export const Workflow = class extends BaseWorkflow {
     await this.plan();
 
     if (this.steps.length == 0) return;
-
-    const cursor = new Cursor(this.context(), this.steps, cb);
+    this.cursor = new Cursor(this.context(), this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
-    await last.run(cursor, this.steps, this.steps.length - 1);
+    const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
 
-    return cursor.results;
+    return this.cursor.out();
   }
 }
 
@@ -54,12 +85,15 @@ for (const stepName of stepNames) {
         }
         return this.step(new cls(args));
       }
+
     } else if (name == 'crawl') {
       if (typeof prompt == 'string') {
         return this.step(new cls({ query: prompt }));
       }
+
     } else if (name == 'fetch') {
       return this.step(new cls());
+
     } else if (name == 'limit') {
       if (prompt.limit) {
         return this.step(new cls(prompt));
@@ -68,6 +102,6 @@ for (const stepName of stepNames) {
       }
     }
 
-    return this.step(JSON.stringify({ name, prompt }));
+    return this.step({ name, args: prompt });
   }
 }

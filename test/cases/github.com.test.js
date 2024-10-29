@@ -12,12 +12,18 @@ process.on('unhandledRejection', async (reason, p) => {
 describe('github.com', function() {
   this.timeout(5 * 60 * 1000);
 
-  it('should do basic scrape', async () => {
+  it('should do basic scrape @run', async () => {
     let countPartials = 0;
     const out = await fox
-      .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
+      .config({
+        diskCachex: os.tmpdir() + '/fetchfox-test-cache',
+        fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
+      })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
-      .crawl('find urls commits, limit: 10')
+      .crawl({
+        query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+        limit: 10,
+      })
       .extract({
         questions: {
           url: 'commit URL, full absolute URL',
@@ -29,46 +35,74 @@ describe('github.com', function() {
       })
       .run(null, (partial) => {
         const { item, results } = partial;
-        console.log('item -->', item);
         countPartials++;
       });
 
     // Sanity checks
     assert.equal(countPartials, 10);
-    assert.equal(out.length, 10);
+    assert.equal(out.items.length, 10);
+
     let locTotal = 0;
-    for (const item of out) {
+    for (const item of out.items) {
       assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
       let loc = parseInt(item.loc);
       if (!isNaN(loc)) {
         locTotal += loc;
       }
     }
+
     assert.ok(locTotal >= 10, 'loc total');
   });
 
-  it('should do complex scrape', async () => {
+  it('should do complex scrape @run', async () => {
     let countPartials = 0;
     const out = await fox
-      .config({ diskCache: os.tmpdir() + '/fetchfox-test-cache' })
+      .config({
+        diskCachex: os.tmpdir() + '/fetchfox-test-cache',
+        fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
+      })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
-      .crawl('find urls commits, limit: 10')
+      .crawl({
+        query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+        limit: 20,
+      })
       .extract({
         url: 'commit URL',
         hash: 'commit hash',
         author: 'commit author',
         loc: 'loc changed, NUMBER only',
+        single: true,
       })
       .filter('commits that changed at least 10 lines')
-      .crawl('get URL of the author github profile. MUST match pattern: https://github.com/[username]')
-      // .extract('get username and repos they commit to')
-      // .schema({ username: 'username', repos: ['array of repos'] })
+      .crawl({
+        query: 'get URL of the author github profile. MUST match pattern: https://github.com/[username]',
+        limit: 20,
+      })
+      .extract({
+        username: 'get username of this profile',
+        repos: 'repos they commit to. for repo, ONLY include the the last part of th repo, with no slash',
+      })
+      .schema({ username: 'username', repos: ['array of repos'] })
+      .unique('username')
+      .limit(10)
       .run(null, (partial) => {
         const { item, results } = partial;
-        console.log('item -->', item);
         countPartials++;
       });
 
-    console.log('out', out);
+    let hasBitcoin = 0;
+    const seen = [];
+    assert.ok(out.items.length <= 10);
+    assert.ok(out.items.length > 3);
+    for (let { username, repos } of out.items) {
+      if (username == '(not found)') continue;
+      assert.ok(!seen[username]);
+      assert.ok(username.match(/^[A-Za-z0-9\-_ ]+$/));
+      assert.ok(Array.isArray(repos));
+      if (repos.includes('bitcoin')) {
+        hasBitcoin++;
+      }
+    }
+    assert.ok(hasBitcoin > 2);
   });
 });

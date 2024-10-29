@@ -80,7 +80,6 @@ describe('Actor', function() {
           filename);
       }
     } finally {
-      console.log('Close actor and forks');
       await Promise.all([
         actor.finish(),
         fork1.finish(),
@@ -94,21 +93,11 @@ describe('Actor', function() {
     const actor = new Actor();
     try {
       await actor.start('https://www.testpapersfree.com/secondary/sec3/index.php?level=secondary3&year=%25&subject=Pure-Chemistry&type=%25&school=%25&Submit=Show+Test+Papers');
-      console.log('started');
 
       await actor.act('click', 'download testpaper buttons', 'input[type="submit"],button');
       const doc1 = await actor.doc();
       await new Promise(ok => setTimeout(ok, 4000));
       const doc2 = await actor.doc();
-
-      console.log('doc1 html', doc1.html);
-      console.log('');
-      console.log('');
-      console.log('');
-      console.log('');
-      console.log('');
-      console.log('');
-      console.log('doc2 html', doc2.html);
 
       // TODO: finish this test
 

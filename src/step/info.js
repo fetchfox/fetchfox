@@ -9,6 +9,7 @@ export const nameMap = {
   FilterStep: 'filter',
   LimitStep: 'limit',
   SchemaStep: 'schema',
+  UniqueStep: 'unique',
 };
 
 const combineInfo = (info) => {
@@ -104,8 +105,8 @@ export const stepDescriptionsMap = {
     },
   }),
 
-  exportUrls: combineInfo({
-    name: 'exportUrls',
+  exportURLs: combineInfo({
+    name: 'exportURLs',
     description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service`,
     args: {
       field: {
@@ -158,8 +159,8 @@ export const stepDescriptionsMap = {
     description: 'Extract data from a page.',
     args: {
       questions: {
-        description: 'A list of questions describing the data to extract from a page.',
-        format: 'dictionary',
+        description: 'A dictionary of questions describing the data to extract from a page. They keys are the field names, and the values are the questions describing what to extract.',
+        format: 'object',
         example: { username: 'What is the username of this profile?', followers: 'What is the number of followers?', bio: 'What is the bio?', url: 'What is the URL? Format: Absolute URL' },
         required: true,
       },
@@ -212,6 +213,19 @@ export const stepDescriptionsMap = {
         format: 'object',
         example: '{"title": "article title", "authors": ["list of authors..."]}',
         required: true,
+      },
+    },
+  }),
+
+  unique: combineInfo({
+    name: 'unique',
+    description: 'Keep only unique items on the basis of a praticular field, or the entire item if no field is specified',
+    args: {
+      fields: {
+        description: 'Fields to ouse for making results unique. Can be one or more. Leave blank to use all fields on every object.',
+        format: 'array',
+        example: ['username', 'subject'],
+        required: false,
       },
     },
   }),

@@ -53,7 +53,6 @@ describe('chia-anime.su', function() {
         try {
           item = JSON.parse(x);
         } catch(e) {
-          console.log(`Couldn't parse: ${x}`);
         }
         assert.ok(item.url);
         assert.ok(item.title);

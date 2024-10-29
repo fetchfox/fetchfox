@@ -10,9 +10,9 @@ Follow these important rules:
 - The entire array should be JSONL, with a single object per link
 - Do not wrap the response in an array, return individual dictionaries only per-line.
 - Do not include any markdown formatting. Only include JSONL.
-- Respond with [] if nothing matches the prompt.
 - Generally avoid links with no link text.
-- Find all the matches, and err on the side of overmatching, especially if the user prompt is short
+- Respect user filter requests, if any
+- Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
 
 Example of valid output:
 
@@ -20,7 +20,7 @@ Example of valid output:
 { "id": 18 }
 { "id": 45 }
 
-The user is looking for: {{query}}
+Find links matching the user query: {{query}}
 
 The list to find this is below:
 {{links}}`);

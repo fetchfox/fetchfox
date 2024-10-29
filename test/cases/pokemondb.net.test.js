@@ -34,4 +34,49 @@ describe('pokemondb.net', function() {
     assert.equal(all[2].name, 'Venusaur');
     assert.equal(all[2].number, '#0003');
   });
+
+  it('should crawl for pokemon', async () => {
+    const json = {
+      "steps": [
+        {
+          "name": "const",
+          "args": {
+            "items": [
+              {
+                "url": "https://pokemondb.net/pokedex/national"
+              }
+            ]
+          }
+        },
+        {
+          "name": "crawl",
+          "args": {
+            "query": "Look for links to individual Pokemon. Ignore links to advertisements and navigation links. Only Pokemon characters, no other pages.",
+            "limit": "10"
+          }
+        },
+        {
+          "name": "extract",
+          "args": {
+            "questions": {
+              "name": "What is the name of the Pokemon?",
+              "type": "What is the type of the Pokemon?",
+              "hp": "What is the HP of this Pokemon?",
+              "url": "What is the URL of the Pokemon page? Format: Absolute URL"
+            },
+            "single": "true"
+          }
+        }
+      ]
+    };
+
+    const out = await fox.run(json);
+    console.log('out', out);
+
+    const totalHp = out.items
+      .map(pokemon => parseInt(pokemon.hp))
+      .reduce((acc, x) => acc + x, 0);
+
+    assert.ok(totalHp > 200 && totalHp < 10000, 'hp sanity check');
+  });
 });

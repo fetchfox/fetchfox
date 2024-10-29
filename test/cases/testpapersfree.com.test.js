@@ -29,9 +29,8 @@ describe('testpapersfree.com', function() {
       .schema({ filename: 'the pdf filename' })
       .run(null, (partial) => {
         const { item, index } = partial.delta;
-        console.log('item-->', index, item);
       });
 
-    console.log('out', out);
+    // TODO: asserts
   });
 });

@@ -1,7 +1,7 @@
 import { logger } from '../log/logger.js';
 import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
 import { stepDescriptions , classMap, BaseStep } from '../step/index.js';
-import { singleStep, combined } from './prompts.js';
+import { singleStep, combined, describe } from './prompts.js';
 import { isPlainObject } from '../util.js';
 
 export const Planner = class {
@@ -11,7 +11,19 @@ export const Planner = class {
     this.user = options.user;
   }
 
-  async plan(...args) {
+  async analyze({ steps }) {
+    logger.debug(`Analyze steps ${JSON.stringify(steps).substr(0, 120)}`);
+    const context = {
+      job: JSON.stringify(steps, null, 2),
+    };
+    const prompt = describe.render(context);
+    const answer = await this.ai.ask(prompt, { format: 'json' });
+    logger.debug(`Analyze got answer ${JSON.stringify(answer.partial)}`);
+    const { name, description } = answer.partial;
+    return { name, description };
+  }
+
+  async plan(args) {
     if (args.length == 1) {
       return this.planString(args[0]);
     } else {
@@ -20,6 +32,8 @@ export const Planner = class {
   }
 
   async planArray(stepsInput) {
+    logger.debug(`Plan from array: ${stepsInput}`);
+
     const objs = [];
     const stepsJson = [];
 
@@ -42,9 +56,11 @@ export const Planner = class {
       if (input instanceof BaseStep) {
         logger.debug(`Planner pushing ${input} into steps`);
         objs.push(input);
+
       } else if (isPlainObject(input) && input.name) {
         logger.debug(`Planner parsing JSON input ${JSON.stringify(input)} into steps`);
         objs.push(this.fromJson(input));
+
       } else {
         const str = stringify(input);
         const stepLibrary = stepDescriptions
@@ -69,6 +85,8 @@ export const Planner = class {
   }
 
   async planString(allSteps) {
+    logger.debug(`Plan from string: ${allSteps}`);
+
     const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,
@@ -86,15 +104,48 @@ export const Planner = class {
   fromJson(json) {
     logger.debug(`Plan from JSON: ${JSON.stringify(json)}`);
     const cls = classMap[json.name];
-    const args = Object.assign({}, json.args);
+    logger.debug(`Got JSON args: ${JSON.stringify(json.args)}`);
+
+    if (json.name == 'limit') {
+      const parsed = parseInt(json.args);
+      if (!isNaN(parsed)) {
+        json.args = { limit: parsed };
+      }
+
+    } else if (json.name == 'const') {
+      let arr = [];
+      let items;
+      if (json.args.items) {
+        items = json.args.items;
+      } if (Array.isArray(json.args)) {
+        arr = json.args;
+      } else {
+        arr = [json.args];
+      }
+
+      if (!items) {
+        items = [];
+        for (const a of arr) {
+          if (typeof a == 'string') {
+            items.push({ url: a });
+          } else {
+            items.push(a);
+          }
+        }
+      }
+
+      json.args = { items };
+    }
+    logger.debug(`Cleaned JSON args: ${JSON.stringify(json.args)}`);
+
     if (!cls) {
       throw new Error(`Planner got invalid JSON: ${JSON.stringify(json)}`);
     }
-    return new cls(args);
+    return new cls(json.args);
   }
 }
 
 const userPrompt = (user) => `The user executing this prompt is below.
 - For export steps, take into account the users available platforms and folders on those platforms
-- UNLESS there is GOOD CLEAR MATCH, use the top level "/" folder
+- UNLESS there is GOOD CLEAR MATCH, use a new folder named "FetchFox"
 ${JSON.stringify(user, null, 2)}`;
