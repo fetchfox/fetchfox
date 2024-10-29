@@ -135,16 +135,13 @@ export const Planner = class {
       }
 
       json.args = { items };
-
     }
     logger.debug(`Cleaned JSON args: ${JSON.stringify(json.args)}`);
-
-    let args = Object.assign({}, json.args);
 
     if (!cls) {
       throw new Error(`Planner got invalid JSON: ${JSON.stringify(json)}`);
     }
-    return new cls(args);
+    return new cls(json.args);
   }
 }
 

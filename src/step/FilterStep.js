@@ -8,13 +8,13 @@ export const FilterStep = class extends BaseStep {
 
     let query;
     if (typeof args == 'string') {
-      this.query = args;
+      query = args;
     } else {
       query = args.query;
     }
     if (!query) throw new Error('no query');
 
-    this.query= query;
+    this.query = query;
   }
 
   async process({ cursor, item }, cb) {
