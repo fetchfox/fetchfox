@@ -16,7 +16,7 @@ describe('github.com', function() {
     let countPartials = 0;
     const out = await fox
       .config({
-        diskCache: os.tmpdir() + '/fetchfox-test-cache',
+        diskCachex: os.tmpdir() + '/fetchfox-test-cache',
         fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
@@ -58,12 +58,13 @@ describe('github.com', function() {
     let countPartials = 0;
     const out = await fox
       .config({
-        diskCache: os.tmpdir() + '/fetchfox-test-cache',
+        diskCachex: os.tmpdir() + '/fetchfox-test-cache',
         fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+        limit: 20,
       })
       .extract({
         url: 'commit URL',
@@ -75,6 +76,7 @@ describe('github.com', function() {
       .filter('commits that changed at least 10 lines')
       .crawl({
         query: 'get URL of the author github profile. MUST match pattern: https://github.com/[username]',
+        limit: 20,
       })
       .extract({
         username: 'get username of this profile',
