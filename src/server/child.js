@@ -1,8 +1,10 @@
 import { fox } from '../fox/fox.js';
+import { logger } from '../log/logger.js';
 
 let workflow = null;
 
 process.on('message', async ({ command, data }) => {
+  logger.debug(`Child got message: command=${command} data=${data}`)
   switch (command) {
     case 'start':
       if (workflow != null) {
