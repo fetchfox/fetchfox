@@ -152,12 +152,12 @@ describe('Workflow', function() {
     const workflow = await fox.load(data).plan();
 
     assert.ok(
-      workflow.meta.name.toLowerCase().indexOf('hacker') != -1 ||
-      workflow.meta.name.toLowerCase().indexOf('vuln') != -1 ||
-      workflow.meta.name.toLowerCase().indexOf('malware') != -1,
+      workflow.name.toLowerCase().indexOf('hacker') != -1 ||
+      workflow.name.toLowerCase().indexOf('vuln') != -1 ||
+      workflow.name.toLowerCase().indexOf('malware') != -1,
       'name sanity check');
     assert.ok(
-      workflow.meta.description.toLowerCase().indexOf('hacker') != -1,
+      workflow.description.toLowerCase().indexOf('hacker') != -1,
       'description sanity check');
   });
 });
