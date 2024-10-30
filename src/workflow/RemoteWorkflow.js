@@ -97,11 +97,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async sub(id, cb) {
-    if (this.id && this.id != id) {
-      throw new Error(`unexpected id ${id}`);
-    }
-
-    this.id = id;
+    this.id = id || this.id;
     try {
       const out = await this.ws({ command: 'sub', id }, cb);
       return out;
@@ -110,7 +106,8 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     }
   }
 
-  async stop() {
+  async stop(id) {
+    this.id = id || this.id;
     const out = await this.ws({ command: 'stop', id: this.id });
     return out;
   }
