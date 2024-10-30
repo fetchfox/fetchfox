@@ -38,11 +38,20 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     if (this.WebSocket) return;
 
     try {
-      this.WebSocket = window.WebSocket;
+      this.WebSocket = WebSocket;
+      return;
     } catch(e) {
-      const wsModule = await import('ws');
-      this.WebSocket = wsModule.default;
     }
+
+    try {
+      this.WebSocket = window.WebSocket;
+      return;
+    } catch(e) {
+    }
+
+    // Load it from module
+    const wsModule = await import('ws');
+    this.WebSocket = wsModule.default;
   }
 
   async ws(msg, cb) {
