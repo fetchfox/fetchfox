@@ -21,6 +21,7 @@ export const Cursor = class {
     }));
 
     if (markDone) {
+      out.forcedDone = true;
       for (const step of out.full) {
         delete step.loading;
         if (!step.done) {
