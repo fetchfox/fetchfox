@@ -14,7 +14,8 @@ export const BaseWorkflow = class {
     }
     return {
       steps,
-      meta: this.meta || {},
+      name: this.name,
+      description: this.description,
     };
   }
 
