@@ -20,7 +20,7 @@ export const Workflow = class extends BaseWorkflow {
       if (step instanceof BaseStep) {
         return step.dump();
       } else {
-        // Assum it is plain object
+        // Assume it is plain object
         return step;
       }
     });
@@ -30,7 +30,8 @@ export const Workflow = class extends BaseWorkflow {
       planner.analyze({ steps: stepsPlain }),
     ]);
     this.steps = results[0];
-    this.meta = results[1];
+    this.name = results[1].name;
+    this.description = results[1].description;
     this._stepsInput = [];
     return this;
   }
