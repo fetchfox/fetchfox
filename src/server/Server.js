@@ -4,8 +4,8 @@ import http from 'http';
 import { WebSocketServer } from 'ws';
 import { logger } from '../log/logger.js';
 import { fox } from '../fox/fox.js';
+import { Relay } from '../relay/Relay.js';
 import { Store } from './Store.js';
-import { Relay } from './Relay.js';
 
 export const Server = class {
   constructor(options) {
@@ -48,9 +48,10 @@ export const Server = class {
   }
 
   async relaySend(data, ws) {
+    logger.info(`Relay send ${JSON.stringify(data)}`);
     const { command, id, ...rest } = data;
     return new Promise((ok) => {
-      this.relay.send(id, rest);
+      this.relay.send(id, rest.data);
     });
   }
 

@@ -94,4 +94,8 @@ export const Cursor = class {
       this.cb(this.out());
     }
   }
+
+  cleanup() {
+    if (this.ctx.fetcher) this.ctx.fetcher.cleanup();
+  }
 }

@@ -2,6 +2,11 @@ import assert from 'assert';
 import os from 'os';
 import { fox } from '../../src/index.js';
 
+process.on('unhandledRejection', async (reason, p) => {
+  console.log('Unhandled Rejection at:', p, 'reason:', reason);
+  process.exit(1);
+});
+
 describe('Workflow', function() {
   this.timeout(0);
 

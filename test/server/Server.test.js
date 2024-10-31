@@ -3,8 +3,7 @@ import { fox } from '../../src/index.js';
 import { webfox } from '../../src/web.js';
 import { Server } from '../../src/server/Server.js';
 import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
-import { Receiver } from '../../src/relay/Receiver.js';
-import { Sender } from '../../src/relay/Sender.js';
+import { Client } from '../../src/relay/Client.js';
 
 process.on('unhandledRejection', async (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);
@@ -386,25 +385,19 @@ describe('Server', function() {
   it('should relay @run', async () => {
     const s = await this.launch();
 
-    const rec = new Receiver('ws://127.0.0.1:7070');
+    const rec = new Client('ws://127.0.0.1:7070');
     const id = await rec.connect();
 
-    const outputs = [];
-    rec.listen((data) => {
-      outputs.push(data);
-    });
+    rec.listen((data) => data.text + ' and reply' );
 
-    const sender = new Sender('ws://127.0.0.1:7070');
-    await sender.connect();
-    await sender.send(id, { val: 111 });
-    await sender.send(id, { val: 222 });
-    await sender.send('fake_id', { val: 333 });
+    const sender = new Client('ws://127.0.0.1:7070');
+    await sender.connect(id);
 
-    await new Promise(ok => setTimeout(ok, 100));
+    const reply = await new Promise(
+      ok => sender.send({ text: 'original' }, ok)
+    );
 
-    assert.equal(outputs.length, 2);
-    assert.equal(outputs[0].val, 111);
-    assert.equal(outputs[1].val, 222);
+    assert.equal(reply, 'original and reply');
 
     rec.close();
     sender.close();

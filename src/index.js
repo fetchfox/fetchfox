@@ -41,7 +41,6 @@ export { ExportURLsStep } from './step/ExportURLsStep.js';
 
 export { stepDescriptions } from './step/index.js';
 
-export { Receiver } from './relay/Receiver.js';
-export { Sender } from './relay/Sender.js';
+export { Client } from './relay/Client.js';
 
 export { fox } from './fox/index.js';
