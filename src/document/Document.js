@@ -6,7 +6,7 @@ export const Document = class {
   constructor() {}
 
   toString() {
-    return `[Document: ${this.url}]`;
+    return `[Document: ${this.url} ${(this.html || '').length} bytes]`;
   }
 
   dump() {
@@ -44,15 +44,17 @@ export const Document = class {
     const start = (new Date()).getTime();
     this.body = await resp.text();
     const tookRead = (new Date()).getTime() - start;
-    logger.debug(`Done reading body for ${this.url}, took ${tookRead/1000} sec`);
+    logger.debug(`Done reading body for ${this.url}, took ${tookRead/1000} sec and got ${this.body.length} bytes`);
 
     let respHeaders = {};
     if (typeof resp.headers == 'function') {
       respHeaders = resp.headers();
-    } else {
+    } else if (resp.headers?.forEach) {
       resp.headers.forEach((value, key) => {
         respHeaders[key] = value;
       });
+    } else if (typeof resp.headers == 'object') {
+      respHeaders = resp.headers;
     }
 
     this.resp = {
@@ -73,7 +75,7 @@ export const Document = class {
   }
 
   parse() {
-    const contentType = this.resp?.headers['content-type'] || 'text/plain';
+    const contentType = (this.resp?.headers || {})['content-type'] || 'text/plain';
     if (contentType.indexOf('text/html') != -1) {
       this.parseHtml();
     }
@@ -88,27 +90,24 @@ export const Document = class {
   }
 
   parseTextFromHtml() {
-    // TODO: This function is slow, find an alternate library
     this.requireHtml();
 
     const root = parse(this.html);
     
-    // Remove unwanted tags by replacing them with placeholders
     ['style', 'script', 'svg'].forEach(tag => {
       root.querySelectorAll(tag).forEach(element => {
         element.replaceWith(`[[${tag} removed]]`);
       });
     });
 
-    // Recursive function to extract text content
     const getText = (node) => {
-      if (node.nodeType === 3) { // Text node
-                                 const text1 = node.rawText.trim();
+      if (node.nodeType == 3) {
+        const text1 = node.rawText.trim();
         const wrapper = parse(`<span>${text1}</span>`);
         const text2 = wrapper.structuredText.trim();
         return text2;
-      } else if (node.nodeType === 1) { // Element node
-                                        return node.childNodes.map(getText).join(' ');
+      } else if (node.nodeType == 1) {
+        return node.childNodes.map(getText).join(' ');
       }
       return '';
     };
