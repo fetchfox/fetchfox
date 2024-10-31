@@ -2,6 +2,7 @@ import { logger } from '../log/logger.js';
 import { BaseStep } from '../step/BaseStep.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
 import { stepNames } from '../step/info.js';
+import { getWebSocket } from '../util.js';
 
 export const RemoteWorkflow = class extends BaseWorkflow {
   config(args) {
@@ -34,32 +35,12 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     return this;
   }
 
-  async _initWs() {
-    if (this.WebSocket) return;
-
-    try {
-      this.WebSocket = WebSocket;
-      return;
-    } catch(e) {
-    }
-
-    try {
-      this.WebSocket = window.WebSocket;
-      return;
-    } catch(e) {
-    }
-
-    // Load it from module
-    const wsModule = await import('ws');
-    this.WebSocket = wsModule.default;
-  }
-
   async ws(msg, cb) {
-    await this._initWs();
+    const WebSocket = await getWebSocket();
 
     const url = this.host().replace(/^http/, 'ws');
     logger.info(`Connect to ws: ${url}`);
-    const ws = new this.WebSocket(url);
+    const ws = new WebSocket(url);
 
     return new Promise((ok, err) => {
       ws.onopen = () => {

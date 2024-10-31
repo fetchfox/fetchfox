@@ -5,12 +5,14 @@ import { WebSocketServer } from 'ws';
 import { logger } from '../log/logger.js';
 import { fox } from '../fox/fox.js';
 import { Store } from './Store.js';
+import { Relay } from './Relay.js';
 
 export const Server = class {
   constructor(options) {
     options ||= {};
 
     this.store = new Store();
+    this.relay = new Relay();
     this.children = {};
     this.childPath = (
       options.childPath ||
@@ -34,12 +36,28 @@ export const Server = class {
     });
   }
 
+  async relayListen(data, ws) {
+    return new Promise((ok) => {
+      this.relay.listen(
+        data.id,
+        (r) => {
+          ws.send(JSON.stringify(r));
+        }
+      );
+    });
+  }
+
+  async relaySend(data, ws) {
+    const { command, id, ...rest } = data;
+    return new Promise((ok) => {
+      this.relay.send(id, rest);
+    });
+  }
+
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data)}`);
     const id = this.store.nextId();
-
     const child = fork(this.childPath);
-
     this.children[id] = child;
 
     child.on('message', ({ command, data }) => {
@@ -104,6 +122,12 @@ export const Server = class {
             break;
           case 'plan':
             out = await this.plan(data, ws);
+            break;
+          case 'relayListen':
+            out = await this.relayListen(data, ws);
+            break;
+          case 'relaySend':
+            out = await this.relaySend(data, ws);
             break;
         }
 

@@ -3,6 +3,8 @@ import { fox } from '../../src/index.js';
 import { webfox } from '../../src/web.js';
 import { Server } from '../../src/server/Server.js';
 import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
+import { Receiver } from '../../src/relay/Receiver.js';
+import { Sender } from '../../src/relay/Sender.js';
 
 process.on('unhandledRejection', async (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);
@@ -379,5 +381,33 @@ describe('Server', function() {
     s.close();
 
     assert.equal(count, 12);
+  });
+
+  it('should relay @run', async () => {
+    const s = await this.launch();
+
+    const rec = new Receiver('ws://127.0.0.1:7070');
+    const id = await rec.connect();
+
+    const outputs = [];
+    rec.listen((data) => {
+      outputs.push(data);
+    });
+
+    const sender = new Sender('ws://127.0.0.1:7070');
+    await sender.connect();
+    await sender.send(id, { val: 111 });
+    await sender.send(id, { val: 222 });
+    await sender.send('fake_id', { val: 333 });
+
+    await new Promise(ok => setTimeout(ok, 100));
+
+    assert.equal(outputs.length, 2);
+    assert.equal(outputs[0].val, 111);
+    assert.equal(outputs[1].val, 222);
+
+    rec.close();
+    sender.close();
+    s.close();
   });
 });
