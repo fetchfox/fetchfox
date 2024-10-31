@@ -16,7 +16,7 @@ try {
   LOG_LEVEL = process.env.FETCHFOX_LOG_LEVEL || process.env.FF_LOG || 'warn';
 } catch (e) {
   // Likely browser env
-  LOG_LEVEL = 'info';
+  LOG_LEVEL = 'debug';
 }
 
 prefix.reg(log);
