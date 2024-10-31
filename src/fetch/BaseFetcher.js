@@ -11,6 +11,10 @@ export const BaseFetcher = class {
     this.queue = [];
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async ready() {
     if (!waiting) {
       waiting = new Promise((ok) => {
@@ -92,5 +96,8 @@ export const BaseFetcher = class {
     const key = this.cacheKey(url, options);
     logger.debug(`Set fetch cache for ${url} to "${('' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'fetch');
+  }
+
+  async cleanup() {
   }
 }

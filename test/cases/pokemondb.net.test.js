@@ -79,4 +79,40 @@ describe('pokemondb.net', function() {
 
     assert.ok(totalHp > 200 && totalHp < 10000, 'hp sanity check');
   });
+
+  it('should run with playwright @run', async () => {
+    const f = await fox
+      .config({
+        fetcher: ['playwright', { headless: true, requestWait: 1000 }],
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl({
+        query: 'Find links to specific Pokemon characters',
+        limit: 5,
+      })
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+        stats: 'What are the basic stats of this pokemon?',
+        single: true,
+      })
+      .limit(5);
+
+    let count = 0;
+    const out = await f.run(
+      null,
+      (partial) => {
+        count++;
+      });
+
+    console.log('out', out);
+
+    assert.equal(count, 5);
+    assert.equal(out.items.length, 5);
+    assert.equal(
+      out.items.filter(item => item.name == 'Bulbasaur').length,
+      1,
+      'found Bulbasaur');
+  });
+
 });
