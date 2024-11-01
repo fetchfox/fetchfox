@@ -80,7 +80,7 @@ export const Client = class {
 
       ws.onclose = async () => {
         this.ws = null;
-        logger.trace(`Websocket closed`);
+        logger.trace(`Websocket closed, should reconnect? ${shouldReconnect}`);
         if (shouldReconnect) {
           await this._reconnect(10);
         }
