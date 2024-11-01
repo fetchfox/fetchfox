@@ -165,4 +165,28 @@ describe('Workflow', function() {
       workflow.description.toLowerCase().indexOf('hacker') != -1,
       'description sanity check');
   });
+
+  it('should limit number of fetch requests @run', async function() {
+    const f = await fox
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl({
+        query: 'Find links to specific Pokemon characters',
+      })
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+        stats: 'What are the basic stats of this pokemon?',
+        single: true,
+      })
+      .limit(5);
+
+    const out = await f.run();
+
+    assert.equal(out.items.length, 5);
+
+    assert.equal(
+      f.ctx.fetcher.usage.requests,
+      5 + f.steps[2].q.concurrency);
+    assert.ok(f.ctx.crawler.usage.count > 30);
+  });
 });

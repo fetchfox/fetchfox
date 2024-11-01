@@ -9,6 +9,11 @@ export const BaseFetcher = class {
     this.cache = options?.cache;
     this.requestWait = options?.requestWait || 500;
     this.queue = [];
+    this.usage = {
+      requests: 0,
+      cached: 0,
+      runtime: 0,
+    };
   }
 
   toString() {
@@ -33,35 +38,43 @@ export const BaseFetcher = class {
   }
 
   async fetch(url, options) {
-    const cached = await this.getCache(url, options);
-    if (cached) {
-      logger.debug(`Returning cached ${cached}`);
-      return cached;
-    }
-
-    logger.debug(`Start waiting for ready: ${(new Date()).getTime()}`);
-    await this.ready();
-    logger.debug(`Done waiting for ready: ${(new Date()).getTime()}`);
-
+    this.usage.requests++;
+    const start = (new Date()).getTime();
     try {
-      new URL(url);
-    } catch (e) {
-      return null;
-    }
+      const cached = await this.getCache(url, options);
+      if (cached) {
+        logger.debug(`Returning cached ${cached}`);
+        this.usage.cached++;
+        return cached;
+      }
 
-    const exclude = ['javascript:', 'mailto:'];
-    for (const e of exclude) {
-      if (url.indexOf(e) == 0) {
+      logger.debug(`Start waiting for ready: ${(new Date()).getTime()}`);
+      await this.ready();
+      logger.debug(`Done waiting for ready: ${(new Date()).getTime()}`);
+
+      try {
+        new URL(url);
+      } catch (e) {
         return null;
       }
+
+      const exclude = ['javascript:', 'mailto:'];
+      for (const e of exclude) {
+        if (url.indexOf(e) == 0) {
+          return null;
+        }
+      }
+
+      const doc = await this._fetch(url, options);
+
+      // TODO: option to cache null/bad responses
+      if (doc) this.setCache(url, options, doc.dump());
+
+      return doc;
+    } finally {
+      const took = (new Date()).getTime() - start;
+      this.usage.runtime += took;
     }
-
-    const doc = await this._fetch(url, options);
-
-    // TODO: option to cache null/bad responses
-    if (doc) this.setCache(url, options, doc.dump());
-
-    return doc;
   }
 
   cacheKey(url, options) {

@@ -48,7 +48,7 @@ export const Server = class {
   }
 
   async relaySend(data, ws) {
-    logger.info(`Relay send ${JSON.stringify(data)}`);
+    logger.info(`Relay send ${JSON.stringify(data).substr(0,200)}`);
     const { command, id, ...rest } = data;
     return new Promise((ok) => {
       this.relay.send(id, rest.data);
