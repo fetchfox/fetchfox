@@ -15,6 +15,15 @@ export const Client = class {
   }
 
   async connect(id) {
+    logger.info(`Connect relay web socket ${id}`);
+
+    if (this.connectionWaiters) {
+      logger.debug(`Connection in progres, adding to waiters ${id}`);
+      return new Promise((ok) => {
+        this.connectionWaiters.push(ok);
+      });
+    }
+
     if (this.ws) {
       throw new Error('already connected');
     }
@@ -29,24 +38,37 @@ export const Client = class {
     this.id = id;
 
     const WebSocket = await getWebSocket();
-    this.ws = new WebSocket(this.host);
+    const ws = new WebSocket(this.host);
+
+    this.connectionWaiters = [];
+
     return new Promise((ok, err) => {
-      this.ws.onopen = () => {
+
+      this.connectionWaiters.push(ok);
+
+      ws.onopen = () => {
+        this.ws = ws;
+        logger.info(`Relay web socket connected ${id}`);
         this.ws.send(JSON.stringify({ command: 'relayListen', id }));
-        ok(id);
+
+        for (const cb of this.connectionWaiters) {
+          cb(id);
+        }
+
+        this.connectionWaiters = null;
       }
 
-      this.ws.onmessage = (msg) => {
+      ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data);
         this._receive(data);
       }
 
-      this.ws.onerror = (e) => {
+      ws.onerror = (e) => {
         err(e);
       }
 
-      this.ws.onclose = () => {
-        console.log('!!! closed relay WS');
+      ws.onclose = () => {
+        logger.info(`Websocket closed`);
       }
     });
   }
@@ -110,7 +132,7 @@ export const Client = class {
       logger.debug(`Added reply ID: ${replyId}`);
     }
 
-    logger.debug(`Sending...`);
+    logger.debug(`Sending to ${this.id}...`);
 
     return this.ws.send(JSON.stringify({
       command: 'relaySend',
@@ -124,6 +146,7 @@ export const Client = class {
 
     const ws = this.ws;
     this.ws = null;
+    logger.debug(`Send close to websocket`);
     ws.close(1000);
     return new Promise((ok) => ws.onclose = ok);
   }

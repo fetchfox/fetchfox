@@ -16,16 +16,16 @@ export const RelayFetcher = class extends BaseFetcher {
   async _maybeInit() {
     if (this.client.isConnected()) return;
     logger.info(`Connecting to relay ${this.relayId} on ${this.client.host}`);
-    return this.client.connect(this.relayId);
+    const p = this.client.connect(this.relayId);
+    await p;
   }
 
   async _fetch(url, options) {
     await this._maybeInit();
-
     this._inFlight++;
 
     try {
-      logger.trace(`Relay fetcher sending message expecting reply for ${url}, inflight: ${this._inFlight}`);
+      logger.debug(`Relay fetcher sending message expecting reply for ${url}, inflight: ${this._inFlight}`);
 
       logger.debug(`Expecting reply for ${url}`);
 
