@@ -85,6 +85,8 @@ export const Client = class {
   }
 
   async send(data, replyCb) {
+    logger.debug(`Relay client send to id=${this.id} host=${this.host} ws=${this.ws}`);
+
     const msgId = 'msg_' +(new ShortUniqueId({
       length: 10,
       dictionary: 'alphanum_lower',
@@ -101,6 +103,8 @@ export const Client = class {
       data.replyId = replyId;
       this.replyCb[replyId] = replyCb;
     }
+
+    logger.debug(`Sending...`);
 
     return this.ws.send(JSON.stringify({
       command: 'relaySend',
