@@ -1,3 +1,4 @@
+import PQueue from 'p-queue';
 import { logger } from '../log/logger.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
 
@@ -5,6 +6,7 @@ export const BaseStep = class {
   constructor(args) {
     this.limit = args?.limit;
     this.callbacks = {};
+    this.q = new PQueue({ concurrency: args?.concurrency || 5 });
   }
 
   toString() {
@@ -106,6 +108,8 @@ export const BaseStep = class {
     let received = 0;
     let completed = 0;
 
+    let done = false;
+
     // The following promise resolves on one of three conditions:
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
@@ -148,25 +152,32 @@ export const BaseStep = class {
         received++;
 
         try {
-          await this.process(
-            { cursor, item, index },
-            (output) => {
-              this.results.push(output);
+          const p = this.q.add(() => {
+            if (done) return;
 
-              const hitLimit = this.limit && this.results.length >= this.limit;
-              let done = hitLimit;
+            return this.process(
+              { cursor, item, index },
+              (output) => {
+                this.results.push(output);
 
-              cursor.publish(output, index, done);
-              this.trigger('item', output);
+                const hitLimit = this.limit && this.results.length >= this.limit;
+                done ||= hitLimit;
 
-              if (done) {
-                ok();
-              } else {
-                done = maybeOk();
-              }
+                cursor.publish(output, index, done);
+                this.trigger('item', output);
 
-              return done;
-            });
+                if (done) {
+                  ok();
+                } else {
+                  done = maybeOk();
+                }
+
+                return done;
+              })
+          });
+
+          await p;
+
         } catch(e) {
           await cursor.error(e, index);
           throw e;
@@ -194,6 +205,8 @@ export const BaseStep = class {
     onNextDone && next.remove(onNextDone);
     parent.remove(onParentItem);
     parent.remove(onParentDone);
+
+    this.q.clear();
 
     this.trigger('done');
 
