@@ -60,6 +60,8 @@ export const BaseStep = class {
 
     this.callbacks[event] ||= [];
     this.callbacks[event].push(cb);
+
+    return cb;
   }
 
   trigger(event, item) {
