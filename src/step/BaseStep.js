@@ -6,7 +6,11 @@ export const BaseStep = class {
   constructor(args) {
     this.limit = args?.limit;
     this.callbacks = {};
-    this.q = new PQueue({ concurrency: args?.concurrency || 5 });
+    this.q = new PQueue({
+      concurrency: args?.concurrency || 5,
+      intervalCap: args?.intervalCap || 3,
+      interval: args?.interval || 3000,
+    });
   }
 
   toString() {
@@ -161,6 +165,9 @@ export const BaseStep = class {
                 this.results.push(output);
 
                 const hitLimit = this.limit && this.results.length >= this.limit;
+                if (hitLimit) {
+                  logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
+                }
                 done ||= hitLimit;
 
                 cursor.publish(output, index, done);

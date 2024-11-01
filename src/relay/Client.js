@@ -3,22 +3,25 @@ import { getWebSocket } from '../util.js';
 import ShortUniqueId from 'short-unique-id';
 
 export const Client = class {
-  constructor(host) {
+  constructor(host, options) {
     this.host = host || 'ws://127.0.0.1:9090';
     this.cb = null;
     this.replyCb = {};
     this.sent = {};
+    this.reconnect = options?.reconnect;
   }
 
   isConnected() {
     return !!this.ws;
   }
 
-  async connect(id) {
+  async connect(id, isReconnect) {
+    const shouldReconnect = this.reconnect && !isReconnect;
+
     logger.info(`Connect relay web socket ${id}`);
 
     if (this.connectionWaiters) {
-      logger.debug(`Connection in progres, adding to waiters ${id}`);
+      logger.debug(`Connection in progress, adding to waiters ${id}`);
       return new Promise((ok) => {
         this.connectionWaiters.push(ok);
       });
@@ -37,13 +40,20 @@ export const Client = class {
 
     this.id = id;
 
-    const WebSocket = await getWebSocket();
-    const ws = new WebSocket(this.host);
-
+    // Set `connectionWaiters` before any async calls
     this.connectionWaiters = [];
 
-    return new Promise((ok, err) => {
+    const WebSocket = await getWebSocket();
+    logger.info(`Connect to websocket on host ${this.host}`);
+    let ws;
+    try {
+      ws = new WebSocket(this.host);
+    } catch(e) {
+      logger.error(`Web socket connection error: ${e}`);
+      throw e;
+    }
 
+    return new Promise((ok, err) => {
       this.connectionWaiters.push(ok);
 
       ws.onopen = () => {
@@ -51,10 +61,9 @@ export const Client = class {
         logger.info(`Relay web socket connected ${id}`);
         this.ws.send(JSON.stringify({ command: 'relayListen', id }));
 
-        for (const cb of this.connectionWaiters) {
+        for (const cb of (this.connectionWaiters || [])) {
           cb(id);
         }
-
         this.connectionWaiters = null;
       }
 
@@ -64,13 +73,46 @@ export const Client = class {
       }
 
       ws.onerror = (e) => {
+        logger.error(`Websocket error: ${e.error}`);
+        this.connectionWaiters = null;
         err(e);
       }
 
-      ws.onclose = () => {
-        logger.info(`Websocket closed`);
+      ws.onclose = async () => {
+        this.ws = null;
+        logger.trace(`Websocket closed`);
+        if (shouldReconnect) {
+          await this._reconnect(10);
+        }
       }
     });
+  }
+
+  async _reconnect(tries) {
+    for (let i = 0; i < tries; i++) {
+      logger.info(`Try to reconnect, attempt ${i}`);
+      const result = await new Promise((ok) => {
+        setTimeout(
+          async () => {
+            try {
+              await this.connect(this.id, true);
+              ok('ok');
+            } catch (e) {
+              ok('error');
+            }
+          },
+          Math.min(10000, i * 1000));
+      });
+
+      logger.debug(`Reconnect result: ${result}`);
+
+      if (result == 'ok') {
+        logger.info(`Reconnected ${this.id}`);
+        return;
+      }
+    }
+
+    throw new Error('Could not reconnect');
   }
 
   listen(cb) {
@@ -93,6 +135,11 @@ export const Client = class {
     if (data.replyToId) {
       logger.debug(`Relay client got a reply to ${data.replyToId}: ${JSON.stringify(data).substr(0, 140)}`);
       const replyCb = this.replyCb[data.replyToId];
+      if (!replyCb) {
+        logger.warn(`Dropping extra reply to ${data.replyToId}`);
+        return;
+      }
+
       delete this.replyCb[data.replyToId];
       replyCb(data.reply);
       return;
@@ -132,7 +179,7 @@ export const Client = class {
       logger.debug(`Added reply ID: ${replyId}`);
     }
 
-    logger.debug(`Sending to ${this.id}...`);
+    logger.debug(`Sending ${msgId} to ${this.id}...`);
 
     return this.ws.send(JSON.stringify({
       command: 'relaySend',
@@ -144,6 +191,7 @@ export const Client = class {
   async close() {
     if (!this.ws) return;
 
+    this.reconnect = false;
     const ws = this.ws;
     this.ws = null;
     logger.debug(`Send close to websocket`);

@@ -403,4 +403,39 @@ describe('Server', function() {
     sender.close();
     s.close();
   });
+
+  it('should reconnect relay @run', async () => {
+    let s = await this.launch();
+    const rec = new Client('ws://127.0.0.1:7070', { reconnect: true });
+    const id = await rec.connect();
+    rec.listen((data) => data.text + ' and reply' );
+
+    for (const ws of s.conns) {
+      ws.close(1000);
+    }
+
+    s.close();
+
+    // Wait before restarting the server
+    await new Promise(ok => setTimeout(ok, 2000));
+
+    s = await this.launch();
+
+    // Give enough time for reconnection
+    // TODO: Server should buffer messages in case of reconnection
+    await new Promise(ok => setTimeout(ok, 5000));
+
+    const sender = new Client('ws://127.0.0.1:7070');
+    await sender.connect(id);
+    const reply = await new Promise(
+      ok => {
+        sender.send({ text: 'original' }, ok)
+      });
+
+    assert.equal(reply, 'original and reply');
+
+    rec.close();
+    sender.close();
+    s.close();
+  });
 });

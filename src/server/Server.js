@@ -11,6 +11,7 @@ export const Server = class {
   constructor(options) {
     options ||= {};
 
+    this.conns = new Set();
     this.store = new Store();
     this.relay = new Relay();
     this.children = {};
@@ -48,8 +49,8 @@ export const Server = class {
   }
 
   async relaySend(data, ws) {
-    logger.info(`Relay send ${JSON.stringify(data).substr(0,200)}`);
     const { command, id, ...rest } = data;
+    logger.info(`Server got relaySend ${rest.data.msgId}: ${JSON.stringify(data).substr(0,200)}`);
     return new Promise((ok) => {
       this.relay.send(id, rest.data);
     });
@@ -107,6 +108,8 @@ export const Server = class {
     this.wss = new WebSocketServer({ server: this.s });
 
     this.wss.on('connection', ws => {
+      this.conns.add(ws);
+
       ws.on('message', async (msg) => {
         const data = JSON.parse(msg);
 
@@ -135,6 +138,8 @@ export const Server = class {
         logger.info(`Server side run of ${data.command} done: ${(JSON.stringify(out) || '').substr(0, 120)}`);
         ws.send(JSON.stringify({ close: true, out }));
         ws.close(1000);
+
+        this.conns.delete(ws);
       });
     });
 

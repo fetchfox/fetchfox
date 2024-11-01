@@ -4,7 +4,7 @@ import { Document } from '../document/Document.js';
 
 export const ChromeRelayActor = class {
   constructor(host) {
-    this.client = new Client(host);
+    this.client = new Client(host, { reconnnect: true });
   }
 
   async connect(id) {
