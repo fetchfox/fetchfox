@@ -25,7 +25,7 @@ export const RelayFetcher = class extends BaseFetcher {
     this._inFlight++;
 
     try {
-      logger.debug(`Relay fetcher sending message expecting reply for ${url}, inflight: ${this._inFlight}`);
+      logger.trace(`Relay fetcher sending message expecting reply for ${url}, inflight: ${this._inFlight}`);
 
       logger.debug(`Expecting reply for ${url}`);
 

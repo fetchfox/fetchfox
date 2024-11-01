@@ -86,7 +86,7 @@ describe('pokemondb.net', function() {
 
     const f = await fox
       .config({
-        fetcher: ['playwright', { headless: true, requestWait: 1000 }],
+        fetcher: ['playwright', { headless: true, interval: 1000, intervalCap: 1 }],
       })
       .init('https://pokemondb.net/pokedex/national')
       .crawl({

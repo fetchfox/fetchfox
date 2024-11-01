@@ -1,45 +1,34 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
+import PQueue from 'p-queue';
 
 let waiting = null;
 
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
-    this.requestWait = options?.requestWait || 500;
     this.queue = [];
     this.usage = {
       requests: 0,
       cached: 0,
       runtime: 0,
     };
+    this.q = new PQueue({
+      concurrency: options?.concurrency || 5,
+      intervalCap: options?.intervalCap || 3,
+      interval: options?.interval || 3000,
+    });
   }
 
   toString() {
     return `[${this.constructor.name}]`;
   }
 
-  async ready() {
-    if (!waiting) {
-      waiting = new Promise((ok) => {
-        setTimeout(ok, this.requestWait);
-      });
-    } else {
-      const p = waiting.then(() => {
-        return new Promise((ok) => {
-          setTimeout(ok, this.requestWait);
-        });
-      });
-      waiting = p;
-    }
-
-    return waiting;
-  }
-
   async fetch(url, options) {
     this.usage.requests++;
     const start = (new Date()).getTime();
+
     try {
       const cached = await this.getCache(url, options);
       if (cached) {
@@ -47,10 +36,6 @@ export const BaseFetcher = class {
         this.usage.cached++;
         return cached;
       }
-
-      logger.debug(`Start waiting for ready: ${(new Date()).getTime()}`);
-      await this.ready();
-      logger.debug(`Done waiting for ready: ${(new Date()).getTime()}`);
 
       try {
         new URL(url);
@@ -65,7 +50,13 @@ export const BaseFetcher = class {
         }
       }
 
-      const doc = await this._fetch(url, options);
+      logger.debug(`Adding ${url} to fetch queue`);
+      const p = await this.q.add(() => {
+        logger.debug(`Queue is starting fetch of ${url}`);
+        return this._fetch(url, options);
+      });
+      logger.debug(`Fetch queue has ${this.q.size} requests`);
+      const doc = await p;
 
       // TODO: option to cache null/bad responses
       if (doc) this.setCache(url, options, doc.dump());

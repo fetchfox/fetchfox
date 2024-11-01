@@ -17,7 +17,10 @@ describe('github.com', function() {
     const out = await fox
       .config({
         diskCachex: os.tmpdir() + '/fetchfox-test-cache',
-        fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
+        fetcher: [
+          'playwright',
+          { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 },
+        ],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
@@ -59,7 +62,10 @@ describe('github.com', function() {
     const out = await fox
       .config({
         diskCachex: os.tmpdir() + '/fetchfox-test-cache',
-        fetcher: ['playwright', { headless: true, loadWait: 1000, requestWait: 1000 }],
+        fetcher: [
+          'playwright',
+          { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 },
+        ],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
