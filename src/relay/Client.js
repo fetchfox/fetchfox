@@ -44,6 +44,10 @@ export const Client = class {
       this.ws.onerror = (e) => {
         err(e);
       }
+
+      this.ws.onclose = () => {
+        console.log('!!! closed relay WS');
+      }
     });
   }
 
@@ -80,7 +84,8 @@ export const Client = class {
 
     const replyId = data.replyId;
     if (replyId) {
-      this.send({ reply: result, replyToId: replyId });
+      logger.debug(`Sending reply to ID: ${replyId}`);
+      await this.send({ reply: result, replyToId: replyId });
     }
   }
 
@@ -102,6 +107,7 @@ export const Client = class {
       })).rnd();
       data.replyId = replyId;
       this.replyCb[replyId] = replyCb;
+      logger.debug(`Added reply ID: ${replyId}`);
     }
 
     logger.debug(`Sending...`);

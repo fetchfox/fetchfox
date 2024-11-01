@@ -54,21 +54,17 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   async run(args, cb) {
-    try {
-      if (args) this.parseRunArgs(args);
-      await this.plan();
+    if (args) this.parseRunArgs(args);
+    await this.plan();
 
-      if (this.steps.length == 0) return;
-      this.cursor = new Cursor(this.context(), this.steps, cb);
-      const last = this.steps[this.steps.length - 1];
-      const rest = this.steps.slice(0, this.steps.length - 1);
+    if (this.steps.length == 0) return;
+    this.cursor = new Cursor(this.context(), this.steps, cb);
+    const last = this.steps[this.steps.length - 1];
+    const rest = this.steps.slice(0, this.steps.length - 1);
 
-      const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
+    const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
 
-      return this.cursor.out();
-    } finally {
-      this.cursor.cleanup();
-    }
+    return this.cursor.out();
   }
 }
 

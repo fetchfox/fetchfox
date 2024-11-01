@@ -176,6 +176,7 @@ export const BaseStep = class {
               })
           });
 
+          logger.debug(`Step ${this} has ${this.q.size} tasks in queue`);
           await p;
 
         } catch(e) {
@@ -206,6 +207,7 @@ export const BaseStep = class {
     parent.remove(onParentItem);
     parent.remove(onParentDone);
 
+    logger.debug(`Step ${this} done, clearing queue with ${this.q.size} tasks left`);
     this.q.clear();
 
     this.trigger('done');

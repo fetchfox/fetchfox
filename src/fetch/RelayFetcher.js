@@ -25,13 +25,37 @@ export const RelayFetcher = class extends BaseFetcher {
     this._inFlight++;
 
     try {
-      logger.debug(`Relay fetcher sending message expecting reply for ${url}`);
+      logger.debug(`Relay fetcher sending message expecting reply for ${url}, inflight: ${this._inFlight}`);
 
-      const reply = await new Promise((ok) => {
-        this.client.send(
-          { command: 'fetch', url },
-          ok
-        )});
+      logger.debug(`Expecting reply for ${url}`);
+
+      let timeout;
+
+      const reply = await Promise.race([
+        new Promise((ok) => {
+          timeout = setTimeout(
+            () => {
+              logger.error(`Timeout waiting for reply for ${url}`);
+              ok();
+            },
+            15 * 1000);
+        }),
+
+        new Promise((ok) => {
+          this.client.send(
+            { command: 'fetch', url },
+            (r) => {
+              logger.debug(`Got reply for ${url}`);
+              ok(r);
+            }
+          )}),
+      ]);
+
+      clearTimeout(timeout);
+
+      if (!reply) {
+        return;
+      }
 
       logger.debug(`Relay fetcher got reply: ${Object.keys(reply).join(', ')}`);
       logger.info(`Relay fetcher response: "${(reply?.html || '').substr(0, 140).replace(/[\n\t ]+/g, ' ')} for ${url}`);
@@ -39,19 +63,16 @@ export const RelayFetcher = class extends BaseFetcher {
       const doc = new Document();
       doc.loadData(reply);
 
-      logger.debug(`Relay fetcher loaded document: ${doc}`);
+      logger.debug(`Relay fetcher loaded document for ${url}: ${doc}`);
 
       return doc;
     } finally {
       this._inFlight--;
-
+      logger.debug(`Still inflight: ${this._inFlight}`);
       if (this._inFlight == 0) {
-        await this.cleanup();
+        logger.info(`Closing relay, in flight: ${this._inFlight}`);
+        await this.client.close();
       }
     }
-  }
-
-  async cleanup() {
-    return this.client.close();
   }
 }

@@ -97,7 +97,4 @@ export const BaseFetcher = class {
     logger.debug(`Set fetch cache for ${url} to "${('' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'fetch');
   }
-
-  async cleanup() {
-  }
 }
