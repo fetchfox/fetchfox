@@ -98,7 +98,7 @@ describe('pokemondb.net', function() {
         stats: 'What are the basic stats of this pokemon?',
         single: true,
       })
-      .limit(2);
+      .limit(5);
 
     let count = 0;
     const out = await f.run(
@@ -107,11 +107,11 @@ describe('pokemondb.net', function() {
         count++;
       });
 
-    assert.equal(count, 2);
-    assert.equal(out.items.length, 2);
+    assert.equal(count, 5);
+    assert.equal(out.items.length, 5);
     assert.equal(
       out.items.filter(item => item.name == 'Bulbasaur').length,
       1,
-      'found Bulbasaur');
+      'find Bulbasaur');
   });
 });
