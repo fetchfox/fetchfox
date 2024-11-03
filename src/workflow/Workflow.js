@@ -8,26 +8,50 @@ import { classMap, stepNames, BaseStep } from '../step/index.js';
 
 export const Workflow = class extends BaseWorkflow {
   config(args) {
-    this.ctx = new Context(args);
+    console.log('WF got args', args);
+
+    this.ctx.update(args);
+    // console.log('config', this.ctx);
     return this;
   }
 
   async plan(...args) {
+    if (args && args.length == 1 && args[0].prompt) {
+      args = args[0];
+    }
+    // console.log('args', args);
+    // console.log('pppp', args.prompt);
+
     if (args) this.parseRunArgs(args);
     const planner = new Planner(this.context());
-    const steps = [...this.steps, ...this._stepsInput];
-    const stepsPlain = steps.map(step => {
-      if (step instanceof BaseStep) {
-        return step.dump();
-      } else {
-        // Assume it is plain object
-        return step;
-      }
-    });
+
+    let planPromise
+
+    if (args.prompt) {
+      planPromise = planner.fromPrompt(
+        args.prompt,
+        {
+          url: args.url,
+          html: args.html,
+        });
+
+    } else {
+      const steps = [...this.steps, ...this._stepsInput];
+      const stepsPlain = steps.map(step => {
+        if (step instanceof BaseStep) {
+          return step.dump();
+        } else {
+          // Assume it is plain object
+          return step;
+        }
+      });
+      planPromise = planner.plan(stepsPlain);
+
+    }
 
     const results = await Promise.all([
-      planner.plan(stepsPlain),
-      planner.analyze({ steps: stepsPlain }),
+      planPromise,
+      planner.analyze({ steps: [] }),
     ]);
     this.steps = results[0];
     this.name = results[1].name;
@@ -37,6 +61,11 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   load(data) {
+    if (data.options) {
+      this.ctx.update(data.options);
+      // console.log('this.ctx->', this.ctx);
+      // console.log('data.options->', data.options);
+    }
     this.steps = [];
     for (const json of data.steps) {
       const cls = classMap[json.name];
@@ -46,6 +75,9 @@ export const Workflow = class extends BaseWorkflow {
       }
       this.steps.push(new cls(args));
     }
+
+    console.log('context:', this.ctx);
+
     return this;
   }
 
@@ -62,9 +94,23 @@ export const Workflow = class extends BaseWorkflow {
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
-    const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
+    let originalLimit = last.limit;
+    // console.log('last', last);
+    // console.log('ctx', this.ctx);
 
-    return this.cursor.out();
+    try {
+      if (this.ctx.limit) {
+        console.log('set global limit', this.ctx.limit);
+        last.limit = this.ctx.limit;
+      }
+
+      // console.log('last', last);
+
+      const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
+      return this.cursor.out();
+    } finally {
+      last.limit = originalLimit;
+    }
   }
 }
 

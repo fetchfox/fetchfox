@@ -11,20 +11,33 @@ process.on('message', async ({ command, data }) => {
         throw new Error('already started');
       }
 
-      workflow = await fox.config(data.context).plan(...(data.workflow.steps));
+      console.log('GOT CONTEXT', data.context);
+
+      workflow = await fox
+        .config(data.context)
+        .plan(...(data.workflow.steps));
+
+        // .load({
+        //   steps: data.workflow.steps,
+        //   options: data.workflow.options,
+        // });
+
       workflow.run(
         null,
         (data) => {
           process.send({ command: 'partial', data });
         })
         .then(data => {
+          console.log('FINAL', data);
           process.send({ command: 'final', data });
-          process.exit(0);
         });
       break;
 
     case 'stop':
       process.send({ command: 'stop', data: workflow.out(true) });
+      break;
+
+    case 'exit':
       process.exit(0);
       break;
   }

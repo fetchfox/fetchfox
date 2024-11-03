@@ -25,10 +25,10 @@ Make sure to ONLY return JSON, with no explanation. Your output will parsed usin
 `);
 
 export const combined = new Template(
-  ['stepLibrary', 'allSteps', 'user'],
-  `You are planning a single step in a scraping or web automation program. You will receive a series of user promps, each of which indicates one step in the automation. Then, you will provide a JSON definition of those steps.
+  ['stepLibrary', 'prompt', 'user', 'url', 'html'],
+  `You are generating a plan for a web scraping program. You will receive a user prompt, and your goal is to output a JSON definition that plans out that scrape.
 
-Your JSON definition will be based on the available steps in the scraping library, which are described below. You must select both the proper step type, as well as the arguments to the step.
+Your JSON definition will be based on the available steps in the scraping library, which are described below. You must select both the proper step type, as well as the arguments to the step. You MUST only use steps from this library.
 
 The step types, and their arguments, are listed below:
 {{stepLibrary}}
@@ -51,8 +51,12 @@ Example of valid output:
 
 {{user}}
 
-The steps are:
-{{allSteps}}
+{{url}}
+
+{{html}}
+
+The user prompt is:
+{{prompt}}
 
 Make sure to ONLY return JSON, with no explanation. Your output will parsed using JSON.parse()
 `);
@@ -76,7 +80,7 @@ Respond in JSON format:
 - Make the slug a concise ID of the name, 1-3 terms, dash connected. ONLY JSON, no markdown.
 - Do NOT mention the word "information" or "data" or similar terms in the name
 - Instead, focus on relevant topical terms in the name that are likely to uniquely identify this scraper in a list of many others
-- Uppercase the first letter of the name, uppercase proper nouns
+- Uppercase the first letter of the name, uppercase proper noun
 
 The scrape job you are describing and naming is:
 {{job}}

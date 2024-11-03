@@ -5,8 +5,13 @@ import { stepNames } from '../step/info.js';
 import { getWebSocket } from '../util.js';
 
 export const RemoteWorkflow = class extends BaseWorkflow {
+  constructor() {
+    super();
+    this.ctx = {};
+  }
+
   config(args) {
-    this.ctx = args;
+    this.ctx = { ...this.ctx, ...args };
     return this;
   }
 
@@ -28,8 +33,11 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   load(data) {
+    if (data?.options) {
+      this.ctx = this.ctx = { ...this.ctx, ...data.options };
+    }
     this.steps = [];
-    for (const step of data.steps) {
+    for (const step of (data?.steps || [])) {
       this.step(step);
     }
     return this;
@@ -96,6 +104,9 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   async start(args, cb) {
     if (args?.steps) {
       this.steps = args.steps;
+    }
+    if (args?.options) {
+      this.ctx = this.ctx = { ...this.ctx, ...args.options };
     }
     this.id = await this.ws({
       command: 'start',

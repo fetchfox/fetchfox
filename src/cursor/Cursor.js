@@ -46,6 +46,9 @@ export const Cursor = class {
   }
 
   publish(item, stepIndex, done) {
+
+    console.log('publish-->', item);
+
     let copy;
     if (item instanceof Item) {
       copy = item.copy();

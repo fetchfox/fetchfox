@@ -1,6 +1,7 @@
 import assert from 'assert';
 import os from 'os';
 import { fox } from '../../src/index.js';
+import { redditSampleHtml } from './data.js';
 
 process.on('unhandledRejection', async (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);
@@ -57,7 +58,7 @@ describe('Workflow', function() {
           }
         }
       ],
-    }
+    };
 
     const f = await fox.load(data);
 
@@ -188,5 +189,62 @@ describe('Workflow', function() {
       f.ctx.fetcher.usage.requests,
       5 + f.steps[2].q.concurrency);
     assert.ok(f.ctx.crawler.usage.count > 30);
+  });
+
+  it('should plan with html @run', async () => {
+    const workflow = await fox.plan({
+      url: 'https://www.reddit.com/r/nfl/',
+      prompt: 'scrape articles',
+      html: redditSampleHtml,
+    });
+  });
+
+  it('should use global limit @run', async function() {
+    const data = {
+      "options": {
+        "limit": 2,
+      },
+      "steps": [
+        {
+          "name": "const",
+          "args": {
+            "items": [
+              {
+                "url": "https://thehackernews.com/"
+              }
+            ]
+          }
+        },
+        {
+          "name": "crawl",
+          "args": {
+            "query": "Find links to articles about malware and other vulnerabilities",
+          }
+        },
+        {
+          "name": "extract",
+          "args": {
+            "questions": {
+              summary: "Summarize the malware/vulnerability in 5-20 words",
+              technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",
+              url: "What is the URL? Format: Absolute URL"
+            }
+          }
+        }
+      ],
+    };
+
+    const f = await fox.load(data);
+    let count = 0;
+    const out = await f.run(null, (partial) => {
+      count++;
+
+      if (count > 2) {
+        assert.ok(false, 'over limit in partials callback');
+      }
+    });
+
+    assert.equal(out.items.length, 2);
+    assert.equal(count, 2);
   });
 });

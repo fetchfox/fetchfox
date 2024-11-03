@@ -84,13 +84,15 @@ export const Planner = class {
     return objs;
   }
 
-  async planString(allSteps) {
-    logger.debug(`Plan from string: ${allSteps}`);
+  async planString(scrapePrompt) {
+    logger.debug(`Plan from string: ${scrapePrompt}`);
 
     const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,
-      allSteps,
+      prompt: scrapePrompt,
+      url: '',
+      html: ''
     };
     if (this.user) {
       context.user = userPrompt(this.user);
@@ -113,6 +115,9 @@ export const Planner = class {
       }
 
     } else if (json.name == 'const') {
+
+      console.log('json.args for const:', json.args);
+
       let arr = [];
       let items;
       if (json.args.items) {
@@ -142,6 +147,26 @@ export const Planner = class {
       throw new Error(`Planner got invalid JSON: ${JSON.stringify(json)}`);
     }
     return new cls(json.args);
+  }
+
+  async fromPrompt(scrapePrompt, args) {
+    logger.debug(`Plan from prompt=${scrapePrompt} args=${JSON.stringify(args).substr(0, 120)}`);
+
+    const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
+    const context = {
+      stepLibrary,
+      prompt: scrapePrompt,
+      url: args.url,
+      html: args.html
+    };
+    if (this.user) {
+      context.user = userPrompt(this.user);
+    }
+    const prompt = combined.render(context);
+    const answer = await this.ai.ask(prompt, { format: 'json' });
+
+    const stepsJson = answer.partial;
+    return stepsJson.map(x => this.fromJson(x));
   }
 }
 

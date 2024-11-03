@@ -3,17 +3,14 @@ import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
+import { copyKeys } from './constants.js';
 
-// Order matters
+// Order matters for `contextKeys`
 export const contextKeys = [
   ['fetcher', getFetcher, BaseFetcher],
   ['ai', getAI, BaseAI],
   ['crawler', getCrawler, BaseCrawler],
   ['extractor', getExtractor, BaseExtractor],
-];
-
-const copyKeys = [
-  ['tokens', {}],
 ];
 
 export const Context = class {
@@ -51,9 +48,10 @@ export const Context = class {
       this[key] = val;
     }
 
-    // Copy tokens
-    this.user = args?.user || null
-    this.tokens = args?.tokens || {};
+    for (const [key, initVal] of copyKeys) {
+      const val = args && args[key] ? JSON.parse(JSON.stringify(args[key])) : initVal;
+      this[key] = val;
+    }
   }
 
   update(other) {
@@ -66,11 +64,14 @@ export const Context = class {
     }
 
     // Update tokens
-    for (const key of Object.keys(other.tokens || {})) {
-      this.tokens[key] = other.tokens[key];
+    for (const [key, initVal] of copyKeys) {
+      const val = other && other[key] ? JSON.parse(JSON.stringify(other[key])) : initVal;
+      this[key] = val;
     }
-
-    if (other.user) this.user = JSON.parse(JSON.stringify(other.user));
+    // for (const key of Object.keys(other.tokens || {})) {
+    //   this.tokens[key] = other.tokens[key];
+    // }
+    // if (other.user) this.user = JSON.parse(JSON.stringify(other.user));
 
     if (other.cache) {
       this.cache = other.cache;

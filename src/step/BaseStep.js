@@ -164,12 +164,17 @@ export const BaseStep = class {
               (output) => {
                 this.results.push(output);
 
+                // if (!done) {
+                // }
+
                 const hitLimit = this.limit && this.results.length >= this.limit;
                 if (hitLimit) {
                   logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
                 }
                 done ||= hitLimit;
 
+                console.log('publish item' + this, this.results.length, this.limit);
+                console.log('publish item' + this, 'done?', done);
                 cursor.publish(output, index, done);
                 this.trigger('item', output);
 

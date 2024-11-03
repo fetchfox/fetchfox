@@ -53,6 +53,95 @@ describe('Server', function() {
     assert.equal(out.items[2].name, 'Venusaur');
   });
 
+
+  it('should handle global limit in config @run', async () => {
+    const s = await this.launch(); 
+
+    const rw = new RemoteWorkflow()
+      .config({
+        host: 'http://127.0.0.1:7070',
+        limit: 2,
+      });
+
+    const partials = [];
+    const out = await rw
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .run(
+        null,
+        (partial) => {
+          partials.push(partial.item);
+
+          if (partials.length > 2) {
+            assert.ok(false, 'partial results limit');
+          }
+        });
+
+    s.close();
+
+    assert.ok(!!out.items);
+    assert.equal(out.items.length, 2);
+    assert.equal(partials.length, 2);
+  });
+
+
+  it('should use global limit in load @run', async () => {
+    const s = await this.launch(); 
+
+    const data = {
+      "options": {
+        "limit": 3,
+      },
+      "steps": [
+        {
+          "name": "const",
+          "args": {
+            "items": [
+              {
+                "url": "https://thehackernews.com/"
+              }
+            ]
+          }
+        },
+        {
+          "name": "crawl",
+          "args": {
+            "query": "Find links to articles about malware and other vulnerabilities",
+          }
+        },
+        {
+          "name": "extract",
+          "args": {
+            "questions": {
+              summary: "Summarize the malware/vulnerability in 5-20 words",
+              technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",
+              url: "What is the URL? Format: Absolute URL"
+            }
+          }
+        }
+      ],
+    };
+
+    const wf = webfox;
+    const out = await wf
+      .config({ host: 'http://127.0.0.1:7070' })
+      .run(data, (partial) => {
+        console.log('partial ====>', partial.item);
+      });
+
+    console.log('S CLOSE');
+    s.close();
+
+    console.log('CHECK');
+    assert.equal(out.items.length, 3);
+  });
+
   it('should start and sub @run', async () => {
     const s = await this.launch(); 
 

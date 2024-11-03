@@ -1,8 +1,11 @@
 import { logger } from '../log/logger.js';
 import { stepNames } from '../step/info.js';
+import { isPlainObject } from '../util.js';
+import { Context } from '../context/Context.js';
 
 export const BaseWorkflow = class {
   constructor() {
+    this.ctx = new Context({});
     this._stepsInput = [];
     this.steps = [];
   }
@@ -34,12 +37,16 @@ export const BaseWorkflow = class {
   }
 
   parseRunArgs(args) {
+    console.log('parseRunArgs', args?.prompt);
+
     if (typeof args == 'string') {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];
     } else if (args.steps) {
       this._stepsInput = args.steps;
+    } else if (isPlainObject(args)) {
+      // pass
     } else {
       throw new Error('Unexpected run args: ' + args);
     }
