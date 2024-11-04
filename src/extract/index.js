@@ -2,6 +2,7 @@ import { logger } from '../log/logger.js';
 import { SinglePromptExtractor } from './SinglePromptExtractor.js';
 import { IterativePromptExtractor } from './IterativePromptExtractor.js';
 import { MinimizingExtractor } from './MinimizingExtractor.js';
+import { CodeGenExtractor } from './CodeGenExtractor.js';
 
 export { BaseExtractor } from './BaseExtractor.js';
 export const DefaultExtractor = SinglePromptExtractor;
@@ -22,6 +23,9 @@ export const getExtractor = (which, options) => {
     m: MinimizingExtractor,
     min: MinimizingExtractor,
     minimizing: MinimizingExtractor,
+
+    cg: CodeGenExtractor,
+    'code-gen': CodeGenExtractor,
   }[which];
 
   if (!extractorClass) {

@@ -69,4 +69,20 @@ describe('old.reddit.com nfl comments', function() {
       }
     }
   });
+
+  it('should scrape 5 comments with code gen', async () => {
+    const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html';
+    const out = await fox
+      .config({ extractor: 'code-gen' })
+      .init(url)
+      .extract({
+        username: 'user who posted comment',
+        points: 'number of points for the comment',
+        content: 'comment content',
+      })
+      .limit(5)
+      .run();
+
+    console.log(out.items);
+  });
 });

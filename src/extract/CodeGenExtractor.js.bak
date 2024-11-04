@@ -1,0 +1,111 @@
+import * as cheerio from 'cheerio';
+import { logger } from '../log/logger.js';
+import { Item } from '../item/Item.js';
+import { BaseExtractor } from './BaseExtractor.js';
+import { iterative, codeGen } from './prompts.js';
+
+
+export const CodeGenExtractor = class extends BaseExtractor {
+  constructor(options) {
+    super(options);
+    this.functions = {};
+  }
+
+  async attemptCodeGen(html, question, answer) {
+    const context = {
+      html,
+      question,
+      answer,
+    };
+
+    const prompt = codeGen.render(context);
+    const resp = await this.ai.ask(prompt, { format: 'javascript' });
+    let code;
+    if (resp.delta) {
+      code = resp.delta;
+    } else {
+      code = resp;
+    }
+
+    console.log('AI gave code:');
+    console.log('');
+    for (const line of code.split('\n')) {
+      console.log('\t' + line);
+    }
+    console.log('');
+
+    const fn = new Function('cheerio', 'html', code);
+
+    let a;
+    try {
+      a = fn(cheerio, html);
+    } catch(e) {
+      a = 'code failed to execute';
+    }
+
+    console.log(`Expected: ${answer}`);
+    console.log(`Got:      ${a}`);
+
+    if (a == answer) {
+      console.log('Correct answer! lets save the function');
+      this.functions[question] = fn;
+    }
+
+    console.log('');
+    console.log('');
+    console.log('');
+  }
+
+  async *run(target, questions, options) {
+    const { stream } = options || {};
+
+    const doc = await this.getDoc(target);
+    const chunks = this.chunks(doc);
+
+    const chunkQuestion = async (chunk, question) => {
+      const { text, html } = chunk;
+      const context = {
+        url: doc.url,
+        question,
+        text,
+        html,
+      };
+
+      const prompt = iterative.render(context);
+      const answer = await this.ai.ask(prompt, { format: 'text' });
+
+      return answer?.delta || '(not found)';
+    }
+
+    const max = Math.min(3, chunks.length);
+    const data = {};
+    logger.info(`Running iterative extractor on ${max} chunks`);
+    for (let i = 0; i < max; i++) {
+      for (const question of questions) {
+        const chunk = chunks[i];
+
+        let answer;
+        if (this.functions[question]) {
+          console.log('We have a function for this!');
+          answer = this.functions[question](cheerio, chunk.html);
+          console.log('We used the function and got:', answer);
+
+        } else {
+          if (!this.isMissing(data, question)) continue;
+          logger.info(`Asking "${question}" about ${doc}`);
+          answer = await chunkQuestion(chunk, question);
+          logger.info(`Got answer ${(answer || '').substr(0, 50)}`);
+        }
+        data[question] = answer;
+
+        await this.attemptCodeGen(chunk.html, question, answer);
+      }
+
+      if (this.countMissing(data, questions) == 0) {
+        break;
+      }
+    }
+
+    yield Promise.resolve(new Item(data, doc));
+  }
+}

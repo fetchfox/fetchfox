@@ -53,7 +53,10 @@ export const Workflow = class extends BaseWorkflow {
 
     }
 
-    const steps = await planPromise;
+    const {
+      steps,
+      itemDescription,
+    } = await planPromise;
     const desc = await planner.describe({
       steps: steps.map(s => s.dump()),
       url: args.url,
@@ -62,7 +65,10 @@ export const Workflow = class extends BaseWorkflow {
 
     this.steps = steps
     this.name = desc.name
+
     this.description = desc.description;
+    this.itemDescription = itemDescription;
+
     this._stepsInput = [];
 
     return this;

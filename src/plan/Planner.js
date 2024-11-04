@@ -90,7 +90,7 @@ export const Planner = class {
       }
     }
 
-    return objs;
+    return { steps: objs };
   }
 
   async planString(scrapePrompt) {
@@ -112,7 +112,7 @@ export const Planner = class {
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const stepsJson = answer.partial;
 
-    return stepsJson.map(x => this.fromJson(x));
+    return { steps: stepsJson.map(x => this.fromJson(x)) };
   }
 
   fromJson(json) {
@@ -194,7 +194,10 @@ export const Planner = class {
 
     logger.debug(`Guided plan answer: ${JSON.stringify(guidedAnswer, null, 2)}`);
 
-    return guidedAnswer.map(x => this.fromJson(x));
+    return {
+      steps: guidedAnswer.map(x => this.fromJson(x)),
+      itemDescription: prePlanAnswer.itemDescription,
+    }
   }
 }
 

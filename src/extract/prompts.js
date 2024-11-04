@@ -71,3 +71,23 @@ Follow these important rules:
 >>>> The user's question is:
 {{question}}
 `);
+
+export const findMultiDescription = new Template(
+  ['questions', 'url'],
+  `You are part of a scraping program. You have user questions. Your goal is to figure out a 2-10 word description of the items the user is trying to scrape.
+
+Respond in JSON format like this:
+
+{"itemDescription": "...your 2-10 word item description..."}
+
+The user defined fields for the item are below:
+{{questions}}
+
+The URL of the page is:
+{{url}}
+
+Based on the questions, what is the ITEM the user is trying to scrape? Response must be a noun.
+
+Your response MUST be valid JSON and only JSON. It will be parsed with JSON.parse()
+`
+)
