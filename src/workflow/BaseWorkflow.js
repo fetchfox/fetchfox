@@ -20,11 +20,6 @@ export const BaseWorkflow = class {
     };
   }
 
-  context() {
-    if (!this.ctx) this.config({});
-    return this.ctx;
-  }
-
   step(data) {
     this._stepsInput.push(data);
     return this;

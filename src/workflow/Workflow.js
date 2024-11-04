@@ -27,7 +27,7 @@ export const Workflow = class extends BaseWorkflow {
       args = args[0];
     }
 
-    const planner = new Planner(this.context());
+    const planner = new Planner(this.ctx);
     let planPromise
 
     if (args.prompt != undefined) {
@@ -101,14 +101,11 @@ export const Workflow = class extends BaseWorkflow {
     await this.plan();
 
     if (this.steps.length == 0) return;
-    this.cursor = new Cursor(this.context(), this.steps, cb);
+    this.cursor = new Cursor(this.ctx, this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
     let originalLimit = last.limit;
-    // console.log('last', last);
-    // console.log('ctx', this.ctx);
-
     try {
       if (this.ctx.limit) {
         console.log('set global limit', this.ctx.limit);

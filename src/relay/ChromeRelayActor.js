@@ -31,22 +31,53 @@ export const ChromeRelayActor = class {
 
     logger.debug(`Chrome relay actor got url: ${url}`);
 
-    const { tab, details } = await new Promise(ok => chrome.tabs.create(
-      { url, active: data.active },
-      (tab) => {
-        chrome.webRequest.onCompleted.addListener(
-          (details) => {
-            if (details.tabId == tab.id) {
-              ok({ tab, details });
-            }
-          },
-          { urls: [url] }
-        );
-      })
-    );
+    const [
+      activeTab,
+      tabWithUrl
+    ] = await Promise.all([
+      getActiveTab(),
+      getTabWithUrl(url),
+    ]);
+
+    let tab;
+    let status;
+    let shouldClose;
+
+    if (activeTab && activeTab.url == url) {
+      logger.debug(`Chrome relay actor found active tab ${activeTab.id}`);
+      tab = activeTab;
+      status = 200;
+      shouldClose = false;
+
+    } else if (tabWithUrl) {
+      logger.debug(`Chrome relay actor found tab with matching URL ${tabWithUrl.id}`);
+      tab = tabWithUrl;
+      status = 200;
+      shouldClose = false;
+
+    } else {
+      logger.debug(`Chrome relay actor opening new tab`);
+      const resp = await new Promise(ok => chrome.tabs.create(
+        { url, active: data.active },
+        (tab) => {
+          chrome.webRequest.onCompleted.addListener(
+            (details) => {
+              if (details.tabId == tab.id) {
+                ok({ tab, details });
+              }
+            },
+            { urls: [url] }
+          );
+        })
+      );
+
+      tab = resp.tab;
+      status = resp.details.statusCode;
+      shouldClose = true;
+    }
 
     try {
-      logger.debug(`Got details for ${tab.id}: ${JSON.stringify(details)}`);
+      logger.debug(`Got status for ${tab.id}: ${status}`);
 
       const result = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -65,16 +96,21 @@ export const ChromeRelayActor = class {
       }
 
       const data = result[0].result;
-      data.resp.status = details.statusCode;
-      data.resp.statusText = details.statusLine;
+      data.resp.status = status;
 
       const doc = new Document();
       doc.loadData(data);
       doc.parse();
+
+      logger.debug(`Loaded document ${doc}`);
+
       return doc.dump();
 
     } finally {
-      chrome.tabs.remove(tab.id);
+      if (shouldClose) {
+        logger.debug(`Chrome relay actor closing tab ${tab.id}`);
+        chrome.tabs.remove(tab.id);
+      }
     }
   }
 }
@@ -88,4 +124,30 @@ const injectFunction = async (waitTime) => {
       headers: {'content-type': 'text/html'},
     },
   };
+}
+
+const getActiveTab = async () => {
+  return new Promise((ok) => {
+    chrome.tabs.query(
+      { active: true },
+      (tabs) => ok(tabs[0] ? tabs[0] : null));
+  });
+}
+
+const getTabWithUrl = async (url) => {
+  let u = new URL(url);
+  // Query without hash
+  const noHash = url.replace(u.hash, '');
+  return new Promise((ok) => {
+    chrome.tabs.query(
+      { url: noHash },
+      (tabs) => {
+        console.log('lll got tabs after query', url, tabs);
+        // Check for hash match
+        for (let tab of (tabs || [])) {
+          if (tab.url == url) ok(tab);
+        }
+        ok(null);
+      });
+  });
 }
