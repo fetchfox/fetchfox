@@ -39,7 +39,7 @@ export { CrawlStep } from './step/CrawlStep.js';
 export { ExportItemsStep } from './step/ExportItemsStep.js';
 export { ExportURLsStep } from './step/ExportURLsStep.js';
 
-export { stepDescriptions } from './step/index.js';
+export { stepDescriptions } from './step/info.js';
 
 export { Client } from './relay/Client.js';
 
