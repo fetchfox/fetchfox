@@ -2,10 +2,16 @@ import { logger } from '../log/logger.js';
 import { BaseStep } from '../step/BaseStep.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
 import { stepNames } from '../step/info.js';
+import { getWebSocket } from '../util.js';
 
 export const RemoteWorkflow = class extends BaseWorkflow {
+  constructor() {
+    super();
+    this.ctx = {};
+  }
+
   config(args) {
-    this.ctx = args;
+    this.ctx = { ...this.ctx, ...args };
     return this;
   }
 
@@ -27,30 +33,22 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   load(data) {
+    if (data?.options) {
+      this.ctx = this.ctx = { ...this.ctx, ...data.options };
+    }
     this.steps = [];
-    for (const step of data.steps) {
+    for (const step of (data?.steps || [])) {
       this.step(step);
     }
     return this;
   }
 
-  async _initWs() {
-    if (this.WebSocket) return;
-
-    try {
-      this.WebSocket = window.WebSocket;
-    } catch(e) {
-      const wsModule = await import('ws');
-      this.WebSocket = wsModule.default;
-    }
-  }
-
   async ws(msg, cb) {
-    await this._initWs();
+    const WebSocket = await getWebSocket();
 
     const url = this.host().replace(/^http/, 'ws');
-    logger.info(`Connect to ws: ${url}`);
-    const ws = new this.WebSocket(url);
+    logger.trace(`Connect to ws: ${url}`);
+    const ws = new WebSocket(url);
 
     return new Promise((ok, err) => {
       ws.onopen = () => {
@@ -88,11 +86,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async sub(id, cb) {
-    if (this.id && this.id != id) {
-      throw new Error(`unexpected id ${id}`);
-    }
-
-    this.id = id;
+    this.id = id || this.id;
     try {
       const out = await this.ws({ command: 'sub', id }, cb);
       return out;
@@ -101,7 +95,8 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     }
   }
 
-  async stop() {
+  async stop(id) {
+    this.id = id || this.id;
     const out = await this.ws({ command: 'stop', id: this.id });
     return out;
   }
@@ -109,6 +104,9 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   async start(args, cb) {
     if (args?.steps) {
       this.steps = args.steps;
+    }
+    if (args?.options) {
+      this.ctx = this.ctx = { ...this.ctx, ...args.options };
     }
     this.id = await this.ws({
       command: 'start',

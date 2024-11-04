@@ -29,9 +29,8 @@ describe('sgtestpapersfree.com', function() {
       .schema({ filename: 'pdf filename' })
       .run(null, (partial) => {
         const { item, index } = partial.delta;
-        // if (index == 4) {
-          console.log('Item ->', item);
-        // }
       });
+
+    // TODO: verify
   });
 });

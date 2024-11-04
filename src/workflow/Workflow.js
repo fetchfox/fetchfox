@@ -7,35 +7,71 @@ import { isPlainObject } from '../util.js';
 import { classMap, stepNames, BaseStep } from '../step/index.js';
 
 export const Workflow = class extends BaseWorkflow {
+  constructor() {
+    super();
+    this.ctx = new Context({});
+  }
+
   config(args) {
-    this.ctx = new Context(args);
+    this.ctx.update(args);
     return this;
   }
 
   async plan(...args) {
-    if (args) this.parseRunArgs(args);
-    const planner = new Planner(this.context());
-    const steps = [...this.steps, ...this._stepsInput];
-    const stepsPlain = steps.map(step => {
-      if (step instanceof BaseStep) {
-        return step.dump();
-      } else {
-        // Assum it is plain object
-        return step;
-      }
+    logger.info(`Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`);
+
+    if (args && args.length == 1 && args[0].prompt != undefined) {
+      args = args[0];
+    }
+
+    const planner = new Planner(this.ctx);
+    let planPromise
+
+    if (args.prompt != undefined) {
+      logger.debug(`Plan workflow from prompt`);
+      planPromise = planner.fromPrompt(
+        args.prompt,
+        {
+          url: args.url,
+          html: args.html,
+        });
+
+    } else {
+      logger.debug(`Plan workflow from string steps`);
+
+      if (args) this.parseRunArgs(args);
+      const steps = [...this.steps, ...this._stepsInput];
+      const stepsPlain = steps.map(step => {
+        if (step instanceof BaseStep) {
+          return step.dump();
+        } else {
+          // Assume it is plain object
+          return step;
+        }
+      });
+      planPromise = planner.plan(stepsPlain);
+
+    }
+
+    const steps = await planPromise;
+    const desc = await planner.describe({
+      steps: steps.map(s => s.dump()),
+      url: args.url,
+      html: args.html,
     });
 
-    const results = await Promise.all([
-      planner.plan(stepsPlain),
-      planner.analyze({ steps: stepsPlain }),
-    ]);
-    this.steps = results[0];
-    this.meta = results[1];
+    this.steps = steps
+    this.name = desc.name
+    this.description = desc.description;
     this._stepsInput = [];
+
     return this;
   }
 
   load(data) {
+    if (data.options) {
+      this.ctx.update(data.options);
+    }
     this.steps = [];
     for (const json of data.steps) {
       const cls = classMap[json.name];
@@ -45,6 +81,7 @@ export const Workflow = class extends BaseWorkflow {
       }
       this.steps.push(new cls(args));
     }
+
     return this;
   }
 
@@ -57,13 +94,21 @@ export const Workflow = class extends BaseWorkflow {
     await this.plan();
 
     if (this.steps.length == 0) return;
-    this.cursor = new Cursor(this.context(), this.steps, cb);
+    this.cursor = new Cursor(this.ctx, this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
-    const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
+    let originalLimit = last.limit;
+    try {
+      if (this.ctx.limit) {
+        last.limit = this.ctx.limit;
+      }
 
-    return this.cursor.out();
+      const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
+      return this.cursor.out();
+    } finally {
+      last.limit = originalLimit;
+    }
   }
 }
 

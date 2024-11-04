@@ -9,6 +9,10 @@ export const BaseExtractor = class {
     this.ai = getAI(ai, { cache });
     this.fetcher = fetcher || new DefaultFetcher({ cache });
     this.hardCapTokens = hardCapTokens || 128000;
+    this.usage = {
+      requests: 0,
+      runtime: 0,
+    };
   }
 
   toString() {
@@ -79,31 +83,26 @@ export const BaseExtractor = class {
   }
 
   async *run(target, questions, options) {
-    const map = {};
-    const questionsList = [];
-    if (Array.isArray(questions)) {
-      for (const q of questions) {
-        questionsList.push(q);
-        map[q] = q;
-      }
-    } else {
-      for (const key of Object.keys(questions)) {
-        questionsList.push(questions[key] || key);
-        map[questions[key]] = key;
-      }
-    }
+    this.usage.queries++;
+    const start = (new Date()).getTime();
 
-    for await (const r of this._run(target, questionsList, options)) {
-      for (const key of Object.keys(r)) {
-        const remap = map[key];
-        if (remap) {
-          const val = r[key];
-          delete r[key];
-          r[remap] = val;
+    try {
+      const map = {};
+      for await (const r of this._run(target, questions, options)) {
+        for (const key of Object.keys(r)) {
+          const remap = map[key];
+          if (remap) {
+            const val = r[key];
+            delete r[key];
+            r[remap] = val;
+          }
         }
-      }
 
-      yield Promise.resolve(r);
+        yield Promise.resolve(r);
+      }
+    } finally {
+      const took = (new Date()).getTime() - start;
+      this.usage.runtime += took;
     }
   }
 

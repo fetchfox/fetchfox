@@ -48,6 +48,7 @@
     "node-html-parser": "^6.1.13",
     "ollama": "^0.5.9",
     "openai": "^4.58.1",
+    "p-queue": "^8.0.1",
     "papaparse": "^5.4.1",
     "playwright": "^1.48.0",
     "pretty": "^2.0.0",

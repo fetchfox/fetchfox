@@ -1,5 +1,6 @@
 import { logger } from '../log/logger.js';
 import { stepNames } from '../step/info.js';
+import { isPlainObject } from '../util.js';
 
 export const BaseWorkflow = class {
   constructor() {
@@ -12,12 +13,11 @@ export const BaseWorkflow = class {
     for (const step of this.steps) {
       steps.push(step.dump());
     }
-    return { steps };
-  }
-
-  context() {
-    if (!this.ctx) this.config({});
-    return this.ctx;
+    return {
+      steps,
+      name: this.name,
+      description: this.description,
+    };
   }
 
   step(data) {
@@ -36,6 +36,8 @@ export const BaseWorkflow = class {
       this._stepsInput = [...this._stepsInput, ...args];
     } else if (args.steps) {
       this._stepsInput = args.steps;
+    } else if (isPlainObject(args)) {
+      // pass
     } else {
       throw new Error('Unexpected run args: ' + args);
     }

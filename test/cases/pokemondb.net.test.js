@@ -71,12 +71,46 @@ describe('pokemondb.net', function() {
     };
 
     const out = await fox.run(json);
-    console.log('out', out);
 
     const totalHp = out.items
       .map(pokemon => parseInt(pokemon.hp))
       .reduce((acc, x) => acc + x, 0);
 
     assert.ok(totalHp > 200 && totalHp < 10000, 'hp sanity check');
+  });
+
+  it('should terminate with limit @run', async function() {
+    // TODO: fix timeout/do explicit verification
+    this.timeout(60 * 1000);
+
+    const f = await fox
+      .config({
+        fetcher: ['playwright', { headless: true, interval: 1000, intervalCap: 1 }],
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl({
+        query: 'Find links to specific Pokemon characters',
+      })
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+        stats: 'What are the basic stats of this pokemon?',
+        single: true,
+      })
+      .limit(5);
+
+    let count = 0;
+    const out = await f.run(
+      null,
+      (partial) => {
+        count++;
+      });
+
+    assert.equal(count, 5);
+    assert.equal(out.items.length, 5);
+    assert.equal(
+      out.items.filter(item => item.name == 'Bulbasaur').length,
+      1,
+      'find Bulbasaur');
   });
 });

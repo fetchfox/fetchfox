@@ -71,8 +71,9 @@ export const stepDescriptionsMap = {
   }),
 
   exportItems: combineInfo({
+    hideFromAI: true,
     name: 'exportItems',
-    description: 'Exports the entire item result array into a file or cloud service.',
+    description: 'Exports the entire item result array into a file or cloud service. Only include this step if an export is specifically requested.',
     args: {
       filepath: {
         description: 'Path of the output file, including filenames. For s3, this is the KEY only, and does NOT include the bucket.',
@@ -107,7 +108,7 @@ export const stepDescriptionsMap = {
 
   exportURLs: combineInfo({
     name: 'exportURLs',
-    description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service`,
+    description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service. Only include if specifically requested.`,
     args: {
       field: {
         description: `The item field containing the target URL. The value here MUST be an EXACT string from a previous 'extract' or 'schema' step`,
@@ -165,9 +166,9 @@ export const stepDescriptionsMap = {
         required: true,
       },
       single: {
-        description: 'If true, the extraction will find only one item per page. If false, it can find multiple. Should correspond to the users desired number of results per page',
+        description: 'If true, the extraction will find only one item per page. If false, it can find multiple. Typically, if there is a "crawl" step before extraction, you will want single=true, and if there is no "crawl" step you will want single=false',
         format: 'boolean',
-        example: false,
+        example: true,
         required: false,
       },
     },
@@ -196,15 +197,13 @@ export const stepDescriptionsMap = {
   }),
 
   limit: combineInfo({
-    // All steps have `limit`, so AI will not need it
-    hideFromAI: true,
-
     name: 'limit',
     description: 'Limit the number of results',
     args: {},
   }),
 
   schema: combineInfo({
+    hideFromAI: true,
     name: 'schema',
     description: 'Reformat items into a target schema',
     args: {

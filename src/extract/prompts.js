@@ -14,19 +14,21 @@ The remaining JSON objects you returns will be items. There will be one item per
 
 Follow these important rules:
 - Please make sure the response is valid JSONL. Only ONE JSON object per line. Remove any \n characters in questions and answers.
+- The VALUES of the questions dictionary is what you are looking for
 - Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
+- Pay attention to user format specifications
 
 {{extraRules}}
 
 Example of a valid response with multiple items:
 {"itemCount": 2}
-{"What is the author's name?": "Ernest Hemingway", "What is the book's name?": "The Old Man and the Sea"}
-{"What is the author's name?": "George Orwell", "What is the book's name?": "1984"}
+{"authorName": "Ernest Hemingway", "bookName": "The Old Man and the Sea"}
+{"authorName": "George Orwell", "bookName": "1984"}
 
 Example of a valid response with a single item:
 {"itemCount": 1}
-{"What is the article's title?": "New Find at the Great Wall of China", "What is the article's date in YYYY-MM-DD format?": "2024-02-04"}
+{"article_title": "New Find at the Great Wall of China", "article_date": "2024-02-04"}
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>
 

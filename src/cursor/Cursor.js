@@ -18,9 +18,11 @@ export const Cursor = class {
     const out = JSON.parse(JSON.stringify({
       items: this.items,
       full: this.full,
+      context: this.ctx.dump(),
     }));
 
     if (markDone) {
+      out.forcedDone = true;
       for (const step of out.full) {
         delete step.loading;
         if (!step.done) {

@@ -4,13 +4,16 @@ import http from 'http';
 import { WebSocketServer } from 'ws';
 import { logger } from '../log/logger.js';
 import { fox } from '../fox/fox.js';
+import { Relay } from '../relay/Relay.js';
 import { Store } from './Store.js';
 
 export const Server = class {
   constructor(options) {
     options ||= {};
 
+    this.conns = new Set();
     this.store = new Store();
+    this.relay = new Relay();
     this.children = {};
     this.childPath = (
       options.childPath ||
@@ -34,12 +37,29 @@ export const Server = class {
     });
   }
 
+  async relayListen(data, ws) {
+    return new Promise((ok) => {
+      this.relay.listen(
+        data.id,
+        (r) => {
+          ws.send(JSON.stringify(r));
+        }
+      );
+    });
+  }
+
+  async relaySend(data, ws) {
+    const { command, id, ...rest } = data;
+    logger.info(`Server got relaySend ${rest.data.msgId}: ${JSON.stringify(data).substr(0,200)}`);
+    return new Promise((ok) => {
+      this.relay.send(id, rest.data);
+    });
+  }
+
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data)}`);
     const id = this.store.nextId();
-
     const child = fork(this.childPath);
-
     this.children[id] = child;
 
     child.on('message', ({ command, data }) => {
@@ -51,6 +71,7 @@ export const Server = class {
         case 'stop':
         case 'final':
           this.store.finish(id, data);
+          child.send({ command: 'exit' });
           break;
 
         default:
@@ -75,6 +96,7 @@ export const Server = class {
   }
 
   async plan(data, ws) {
+    logger.info(`Plan based on ${JSON.stringify(data.prompt).substr(0, 200)}`);
     const f = await fox.plan(...(data.prompt));
     return f.dump();
   }
@@ -88,6 +110,8 @@ export const Server = class {
     this.wss = new WebSocketServer({ server: this.s });
 
     this.wss.on('connection', ws => {
+      this.conns.add(ws);
+
       ws.on('message', async (msg) => {
         const data = JSON.parse(msg);
 
@@ -105,11 +129,19 @@ export const Server = class {
           case 'plan':
             out = await this.plan(data, ws);
             break;
+          case 'relayListen':
+            out = await this.relayListen(data, ws);
+            break;
+          case 'relaySend':
+            out = await this.relaySend(data, ws);
+            break;
         }
 
         logger.info(`Server side run of ${data.command} done: ${(JSON.stringify(out) || '').substr(0, 120)}`);
         ws.send(JSON.stringify({ close: true, out }));
         ws.close(1000);
+
+        this.conns.delete(ws);
       });
     });
 

@@ -6,5 +6,10 @@ export const BaseCrawler = class {
     const { ai, fetcher, cache } = options || {};
     this.ai = getAI(ai, { cache });
     this.fetcher = fetcher || getFetcher(null, { cache });
+    this.usage = {
+      requests: 0,
+      count: 0,
+      runtime: 0,
+    };
   }
 }

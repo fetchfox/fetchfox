@@ -10,6 +10,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.headless = options.headless === undefined ? true : options.headless;
     this.browser = options.browser || 'chromium';
     this.loadWait = options.loadWait || 1000;
+    this.timeoutWait = options.timeoutWait || 4000;
   }
 
   async launch() {
@@ -27,64 +28,39 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       browser = await this.launch();
       const page = await browser.newPage();
       let resp;
-
+      let html;
       try {
-        resp = await page.goto(url);
+        logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
+        resp = await page.goto(url, { timeout: this.timeoutWait });
+        logger.debug(`Playwright loaded page before timeout`);
+        html = await getHtmlFromSuccess(page);
       } catch(e) {
         logger.error(`Playwright could not get ${url}: ${e}`);
-        return null;
+        logger.debug(`Trying to salvage results`);
+        html = await getHtmlFromError(page);
+        logger.warn(`Read ${html.length} bytes from failed Playwright request`);
+        resp = {
+          status: () => 500,
+          url: () => url,
+          body: () => html,
+          html: () => html,
+          text: () => html,
+          headers: {
+            'content-type': 'text/html',
+          },
+        };
       }
 
-      logger.info(`Playwright got response: ${resp.status()} for ${resp.url()}`);
-      await new Promise(ok => setTimeout(ok, this.loadWait));
-
-      // Get all the iframes
-      const frames = await page.frames();
-      const iframes = [];
-      for (const frame of frames) {
-        let el;
-        try {
-          el = await frame.frameElement();
-        } catch(e) {
-          continue;
-        }
-        const tagName = await el.evaluate(el => el.tagName);
-        if (tagName == 'IFRAME') {
-          iframes.push(frame);
-        }
-      }
-
-      logger.debug(`Getting iframes on ${resp.url()}`);
-      // Get the HTML inside each iframe, and insert it into the page
-      for (let i = 0; i < iframes.length; i++) {
-        const iframe = iframes[i];
-        let content;
-        try {
-          content = await iframe.content();
-        } catch(e) {
-          content = '[iframe unavailable]';
-        }
-
-        const result = await page.evaluate(({ index, content }) => {
-          const iframes = document.querySelectorAll('iframe');
-          const iframe = iframes[index];
-          if (iframe) {
-            const div = document.createElement('div');
-            div.innerHTML = iframe.outerHTML.replace(
-              '</iframe>',
-              content + '</iframe>');
-            iframe.replaceWith(div);
-          }
-        }, { index: i, content });
-      }
-
-      logger.debug(`Getting HTML on ${resp.url()}`);
-      const html = await page.content();
       resp.text = () => html;
       const doc = new Document();
       await doc.read(resp, url, options);
 
+      logger.info(`Playwright returning: ${doc}`);
+
       return doc;
+    } catch (e) {
+      logger.error(`Playwright error: ${e}`);
+      throw e;
     } finally {
       if (browser) {
         logger.debug(`Closing on ${url}`);
@@ -92,4 +68,59 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
     }
   }
+}
+
+const getHtmlFromSuccess = async (page, loadWait) => {
+  await new Promise(ok => setTimeout(ok, loadWait));
+
+  // Get all the iframes
+  logger.debug(`Get iframes on ${page.url()}`);
+  const frames = await page.frames();
+  const iframes = [];
+  for (const frame of frames) {
+    let el;
+    try {
+      el = await frame.frameElement();
+    } catch(e) {
+      continue;
+    }
+    const tagName = await el.evaluate(el => el.tagName);
+    if (tagName == 'IFRAME') {
+      iframes.push(frame);
+    }
+  }
+
+  // Get the HTML inside each iframe, and insert it into the page
+  logger.debug(`Get HTML inside iframes on ${page.url()}`);
+  for (let i = 0; i < iframes.length; i++) {
+    const iframe = iframes[i];
+    let content;
+    try {
+      content = await iframe.content();
+    } catch(e) {
+      content = '[iframe unavailable]';
+    }
+
+    const result = await page.evaluate(({ index, content }) => {
+      const iframes = document.querySelectorAll('iframe');
+      const iframe = iframes[index];
+      if (iframe) {
+        const div = document.createElement('div');
+        div.innerHTML = iframe.outerHTML.replace(
+          '</iframe>',
+          content + '</iframe>');
+        iframe.replaceWith(div);
+      }
+    }, { index: i, content });
+  }
+
+  logger.debug(`Get page content on ${page.url()}`);
+  const html = await page.content();
+  return html;
+}
+
+const getHtmlFromError = async (page) => {
+  logger.debug(`Get HTML from error result on ${page.url()}`);
+  const html = await page.evaluate(() => document.documentElement.outerHTML);
+  return html
 }

@@ -7,6 +7,7 @@ export const webfox = {
   start: (...args) => new RemoteWorkflow().start(...args),
   stop: (...args) => new RemoteWorkflow().stop(...args),
   run: (...args) => new RemoteWorkflow().run(...args),
+
   // stream: (...args) => new Workflow().stream(...args),
   // step: (...args) => new Workflow().step(...args),
 };
