@@ -58,7 +58,8 @@ export const ChromeRelayActor = class {
     } else {
       logger.debug(`Chrome relay actor opening new tab`);
       const resp = await new Promise(ok => chrome.tabs.create(
-        { url, active: data.active },
+        { url, active: !!data.active },
+        // { url, active: false },
         (tab) => {
           chrome.webRequest.onCompleted.addListener(
             (details) => {

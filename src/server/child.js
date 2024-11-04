@@ -11,16 +11,9 @@ process.on('message', async ({ command, data }) => {
         throw new Error('already started');
       }
 
-      console.log('GOT CONTEXT', data.context);
-
       workflow = await fox
         .config(data.context)
         .plan(...(data.workflow.steps));
-
-        // .load({
-        //   steps: data.workflow.steps,
-        //   options: data.workflow.options,
-        // });
 
       workflow.run(
         null,
@@ -28,7 +21,6 @@ process.on('message', async ({ command, data }) => {
           process.send({ command: 'partial', data });
         })
         .then(data => {
-          console.log('FINAL', data);
           process.send({ command: 'final', data });
         });
       break;

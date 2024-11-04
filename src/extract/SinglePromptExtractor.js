@@ -9,7 +9,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     super(options);
   }
 
-  async *_run(target, questionsList, options) {
+  async *_run(target, questions, options) {
     const { stream } = options || {};
 
     logger.debug(`Getting doc in ${this}`);
@@ -21,21 +21,16 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let { single } = options || {};
     if (single) single = {};
 
-    logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questionsList)}`);
+    logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     // Executes scrape on a chunk of the text + HTML
     const that = this;
     const inner = async function* (chunk) {
       const { more, text, html } = chunk;
 
-      const questionsDict = {};
-      for (const q of questionsList) {
-        questionsDict[q] = '';
-      }
-
       const context = {
         url: doc.url,
-        questions: JSON.stringify(questionsDict, null, 2),
+        questions: JSON.stringify(questions, null, 2),
         text,
         html,
         extraRules,
@@ -47,7 +42,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       };
       const prompt = scrapeOnce.render(context);
 
-      // console.log('prompt', prompt);
+      console.log('prompt', prompt);
 
       const stream = that.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {

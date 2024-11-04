@@ -28,9 +28,9 @@ describe('unitedskidtracks.com', function() {
         questions: {
           name: 'product name',
           sku: 'product sku',
-          price: 'product price. if there is a range. include both, format $XXX - $XXX, no commas, do not include cents',
-          price_low: 'product price. if there is a range, pick the low end. format: $XXX, no commas, do not include cents',
-          price_high: 'if the page has a price range, pick the high end. If no range, return empty string. format: $XXX, no commas, do not include cents',
+          price: 'product price. if there is a range, include both. format: "Number" or "Number - Number"',
+          price_low: 'product price. if there is a range, pick the low end. format: Number',
+          price_high: 'if the page has a price range, pick the high end. If no range, return empty string. format: Number',
         },
         single: true,
       })
@@ -38,16 +38,18 @@ describe('unitedskidtracks.com', function() {
 
     console.log('out', out);
 
-    assert.equal(out.items[0].name, 'Bobcat T595 Sprocket');
-    assert.equal(out.items[0].sku, 'BTT595 SP-15F15');
-    assert.equal(out.items[0].price, '$235');
-    assert.equal(out.items[0].price_low, '');
-    assert.equal(out.items[0].price_high, '');
+    const sorted = out.items.sort((a, b) => a.name.localeCompare(b.name));
 
-    assert.equal(out.items[1].name, 'Caterpillar 249D3 Track - Bar');
-    assert.equal(out.items[1].sku, '(not found)');
-    assert.equal(out.items[1].price, '$995 - $1175');
-    assert.equal(out.items[1].price_low, '$995');
-    assert.equal(out.items[1].price_high, '$1175');
+    assert.equal(sorted[0].name, 'Bobcat T595 Sprocket');
+    assert.equal(sorted[0].sku, 'BTT595 SP-15F15');
+    assert.equal(sorted[0].price, '235');
+    assert.equal(sorted[0].price_low, '235');
+    assert.equal(sorted[0].price_high, '');
+
+    assert.equal(sorted[1].name, 'Caterpillar 249D3 Track - Bar');
+    assert.equal(sorted[1].sku, '(not found)');
+    assert.equal(sorted[1].price, '995 - 1175');
+    assert.equal(sorted[1].price_low, '995');
+    assert.equal(sorted[1].price_high, '1175');
   });
 });

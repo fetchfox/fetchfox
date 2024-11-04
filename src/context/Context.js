@@ -71,7 +71,12 @@ export const Context = class {
   }
 
   dump() {
-    return JSON.parse(JSON.stringify(this.args));
+    const dump = {};
+    // TODO: stringify objects as well
+    for (const key of copyKeys) {
+      dump[key] = this[key];
+    }
+    return JSON.parse(JSON.stringify(dump));
   }
 
   update(other) {

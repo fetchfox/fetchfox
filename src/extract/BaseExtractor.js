@@ -88,20 +88,7 @@ export const BaseExtractor = class {
 
     try {
       const map = {};
-      const questionsList = [];
-      if (Array.isArray(questions)) {
-        for (const q of questions) {
-          questionsList.push(q);
-          map[q] = q;
-        }
-      } else {
-        for (const key of Object.keys(questions)) {
-          questionsList.push(questions[key] || key);
-          map[questions[key]] = key;
-        }
-      }
-
-      for await (const r of this._run(target, questionsList, options)) {
+      for await (const r of this._run(target, questions, options)) {
         for (const key of Object.keys(r)) {
           const remap = map[key];
           if (remap) {
