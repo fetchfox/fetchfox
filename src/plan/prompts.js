@@ -177,7 +177,6 @@ Your JSON definition will be based on the available steps in the scraping librar
 The step types, and their arguments, are listed below:
 {{stepLibrary}}
 
-
 Example of valid output:
 [
   {"name":"const","args":{"items":[{"url":"https://news.ycombinator.com/news"}]}},

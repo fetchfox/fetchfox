@@ -1,8 +1,16 @@
 import { logger } from '../log/logger.js';
 import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
-import { stepDescriptions , classMap, BaseStep } from '../step/index.js';
+import {
+  stepDescriptions,
+  classMap,
+  BaseStep,
+} from '../step/index.js';
 import { singleStep, combined, prePlan, describe, guided } from './prompts.js';
 import { isPlainObject } from '../util.js';
+
+const stepLibrary = stepDescriptions
+  .filter(v => !v.hideFromAI)
+  .map(v => JSON.stringify(v, null, 2)).join('\n\n');
 
 export const Planner = class {
   constructor(options) {
@@ -65,9 +73,6 @@ export const Planner = class {
 
       } else {
         const str = stringify(input);
-        const stepLibrary = stepDescriptions
-          .filter(v => !v.hideFromAI)
-          .map(v => JSON.stringify(v, null, 2)).join('\n\n');
         const context = {
           stepLibrary,
           allSteps,
@@ -91,9 +96,6 @@ export const Planner = class {
   async planString(scrapePrompt) {
     logger.debug(`Plan from string: ${scrapePrompt}`);
 
-    const stepLibrary = stepDescriptions
-      .filter(v => !v.hideFromAI)
-      .map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,
       prompt: scrapePrompt,
@@ -159,7 +161,6 @@ export const Planner = class {
   async fromPrompt(scrapePrompt, args) {
     logger.debug(`Plan from prompt: prompt=${scrapePrompt} args=${JSON.stringify(args).substr(0, 120)}`);
 
-    const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const prePlanContext = {
       stepLibrary,
       prompt: scrapePrompt,
@@ -175,6 +176,8 @@ export const Planner = class {
     const prePlanPrompt = prePlan.render(prePlanContext);
     const prePlanAnswer = (await this.ai.ask(prePlanPrompt, { format: 'json' })).partial;
 
+    console.log('prePlanAnswer', prePlanAnswer);
+
     const guidedContext = {
       stepLibrary,
       prompt: scrapePrompt,
@@ -186,6 +189,9 @@ export const Planner = class {
       url: (args.url || '').substr(0, 200),
     };
     const guidedPrompt = guided.render(guidedContext);
+
+    // console.log('guidedPrompt', guidedPrompt);
+
     const guidedAnswer = (await this.ai.ask(guidedPrompt, { format: 'json' })).partial;
     return guidedAnswer.map(x => this.fromJson(x));
   }

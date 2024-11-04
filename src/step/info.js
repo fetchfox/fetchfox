@@ -71,8 +71,9 @@ export const stepDescriptionsMap = {
   }),
 
   exportItems: combineInfo({
+    hideFromAI: true,
     name: 'exportItems',
-    description: 'Exports the entire item result array into a file or cloud service.',
+    description: 'Exports the entire item result array into a file or cloud service. Only include this step if an export is specifically requested.',
     args: {
       filepath: {
         description: 'Path of the output file, including filenames. For s3, this is the KEY only, and does NOT include the bucket.',
@@ -107,7 +108,7 @@ export const stepDescriptionsMap = {
 
   exportURLs: combineInfo({
     name: 'exportURLs',
-    description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service`,
+    description: `Get URLs from a specific field of the items, render those URLs into PDF, and export them into a file or cloud service. Only include if specifically requested.`,
     args: {
       field: {
         description: `The item field containing the target URL. The value here MUST be an EXACT string from a previous 'extract' or 'schema' step`,
@@ -202,6 +203,7 @@ export const stepDescriptionsMap = {
   }),
 
   schema: combineInfo({
+    hideFromAI: true,
     name: 'schema',
     description: 'Reformat items into a target schema',
     args: {
