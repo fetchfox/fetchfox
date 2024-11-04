@@ -7,6 +7,11 @@ import { isPlainObject } from '../util.js';
 import { classMap, stepNames, BaseStep } from '../step/index.js';
 
 export const Workflow = class extends BaseWorkflow {
+  constructor() {
+    super();
+    this.ctx = new Context({});
+  }
+
   config(args) {
     console.log('WF got args', args);
 
@@ -16,18 +21,17 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   async plan(...args) {
-    if (args && args.length == 1 && args[0].prompt) {
+    logger.info(`Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`);
+
+    if (args && args.length == 1 && args[0].prompt != undefined) {
       args = args[0];
     }
-    // console.log('args', args);
-    // console.log('pppp', args.prompt);
 
-    if (args) this.parseRunArgs(args);
     const planner = new Planner(this.context());
-
     let planPromise
 
-    if (args.prompt) {
+    if (args.prompt != undefined) {
+      logger.debug(`Plan workflow from prompt`);
       planPromise = planner.fromPrompt(
         args.prompt,
         {
@@ -36,6 +40,9 @@ export const Workflow = class extends BaseWorkflow {
         });
 
     } else {
+      logger.debug(`Plan workflow from string steps`);
+
+      if (args) this.parseRunArgs(args);
       const steps = [...this.steps, ...this._stepsInput];
       const stepsPlain = steps.map(step => {
         if (step instanceof BaseStep) {
@@ -49,14 +56,18 @@ export const Workflow = class extends BaseWorkflow {
 
     }
 
-    const results = await Promise.all([
-      planPromise,
-      planner.analyze({ steps: [] }),
-    ]);
-    this.steps = results[0];
-    this.name = results[1].name;
-    this.description = results[1].description;
+    const steps = await planPromise;
+    const desc = await planner.describe({
+      steps: steps.map(s => s.dump()),
+      url: args.url,
+      html: args.html,
+    });
+
+    this.steps = steps
+    this.name = desc.name
+    this.description = desc.description;
     this._stepsInput = [];
+
     return this;
   }
 

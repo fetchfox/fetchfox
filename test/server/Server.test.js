@@ -60,7 +60,8 @@ describe('Server', function() {
     const rw = new RemoteWorkflow()
       .config({
         host: 'http://127.0.0.1:7070',
-        limit: 2,
+        limit: 3,
+        publishAllSteps: true,
       });
 
     const partials = [];
@@ -76,18 +77,19 @@ describe('Server', function() {
       .run(
         null,
         (partial) => {
-          partials.push(partial.item);
+          if (!partial.item?.number) return;
 
-          if (partials.length > 2) {
+          partials.push(partial.item);
+          if (partials.length > 3) {
+            console.log('partials', partials);
             assert.ok(false, 'partial results limit');
           }
         });
 
     s.close();
 
-    assert.ok(!!out.items);
-    assert.equal(out.items.length, 2);
-    assert.equal(partials.length, 2);
+    assert.equal(out.items.length, 3);
+    assert.equal(partials.length, 3);
   });
 
 
@@ -525,6 +527,43 @@ describe('Server', function() {
 
     rec.close();
     sender.close();
+    s.close();
+  });
+
+
+  it('should plan with html @run', async () => {
+    const s = await this.launch(); 
+
+    const rw = new RemoteWorkflow()
+      .config({ host: 'http://127.0.0.1:7070' });
+
+    const cases = [
+      [
+        {
+          url: 'https://www.reddit.com/r/nfl/',
+          prompt: 'scrape articles',
+        },
+        'nfl',
+      ],
+      [
+        {
+          url: 'https://www.reddit.com/r/nfl/',
+          prompt: '',
+        },
+        'nfl'
+      ],
+    ]
+
+    for (const [args, expectedStr] of cases) {
+      const out = await rw.plan(args);
+      assert.ok(
+        out.name.toLowerCase().indexOf(expectedStr) != -1,
+        'name should contain nfl');
+      assert.ok(
+        out.description.toLowerCase().indexOf(expectedStr) != -1,
+        'description should contain nfl');
+    }
+
     s.close();
   });
 });

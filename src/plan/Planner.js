@@ -11,7 +11,7 @@ export const Planner = class {
     this.user = options.user;
   }
 
-  async analyze({ steps }) {
+  async describe({ steps }) {
     logger.debug(`Analyze steps ${JSON.stringify(steps).substr(0, 120)}`);
     const context = {
       job: JSON.stringify(steps, null, 2),
@@ -73,6 +73,8 @@ export const Planner = class {
         }
         if (this.user) {
           context.user = userPrompt(this.user);
+        } else {
+          context.user = '';
         }
         const prompt = singleStep.render(context);
         const answer = await this.ai.ask(prompt, { format: 'json' });
@@ -87,7 +89,9 @@ export const Planner = class {
   async planString(scrapePrompt) {
     logger.debug(`Plan from string: ${scrapePrompt}`);
 
-    const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
+    const stepLibrary = stepDescriptions
+      .filter(v => !v.hideFromAI)
+      .map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,
       prompt: scrapePrompt,
@@ -96,10 +100,24 @@ export const Planner = class {
     };
     if (this.user) {
       context.user = userPrompt(this.user);
+    } else {
+      context.user = '';
     }
     const prompt = combined.render(context);
+
+    console.log('prompt', prompt);
+
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const stepsJson = answer.partial;
+
+
+    console.log('');
+    console.log('');
+    console.log('stepsJson', stepsJson);
+    console.log('');
+    console.log('');
+
+
     return stepsJson.map(x => this.fromJson(x));
   }
 
@@ -150,20 +168,25 @@ export const Planner = class {
   }
 
   async fromPrompt(scrapePrompt, args) {
-    logger.debug(`Plan from prompt=${scrapePrompt} args=${JSON.stringify(args).substr(0, 120)}`);
+    logger.debug(`Plan from prompt: prompt=${scrapePrompt} args=${JSON.stringify(args).substr(0, 120)}`);
 
     const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
     const context = {
       stepLibrary,
       prompt: scrapePrompt,
-      url: args.url,
-      html: args.html
+      url: (args.url || '').substr(0, 200),
+      html: (args.html || '').substr(0, 10000)
     };
     if (this.user) {
       context.user = userPrompt(this.user);
+    } else {
+      context.user = '';
     }
+
     const prompt = combined.render(context);
+    console.log('prompt', prompt);
     const answer = await this.ai.ask(prompt, { format: 'json' });
+    console.log('answer', answer);
 
     const stepsJson = answer.partial;
     return stepsJson.map(x => this.fromJson(x));

@@ -18,6 +18,7 @@ export const Cursor = class {
     const out = JSON.parse(JSON.stringify({
       items: this.items,
       full: this.full,
+      context: this.ctx.dump(),
     }));
 
     if (markDone) {

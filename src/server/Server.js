@@ -97,6 +97,7 @@ export const Server = class {
   }
 
   async plan(data, ws) {
+    logger.info(`Plan based on ${JSON.stringify(data.prompt).substr(0, 200)}`);
     const f = await fox.plan(...(data.prompt));
     return f.dump();
   }

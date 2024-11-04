@@ -196,9 +196,6 @@ export const stepDescriptionsMap = {
   }),
 
   limit: combineInfo({
-    // All steps have `limit`, so AI will not need it
-    hideFromAI: true,
-
     name: 'limit',
     description: 'Limit the number of results',
     args: {},

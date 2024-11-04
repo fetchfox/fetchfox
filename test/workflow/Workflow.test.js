@@ -197,6 +197,13 @@ describe('Workflow', function() {
       prompt: 'scrape articles',
       html: redditSampleHtml,
     });
+
+    assert.ok(
+      workflow.name.toLowerCase().indexOf('nfl') != -1,
+      'name should contain nfl');
+    assert.ok(
+      workflow.description.toLowerCase().indexOf('nfl') != -1,
+      'description should contain nfl');
   });
 
   it('should use global limit @run', async function() {

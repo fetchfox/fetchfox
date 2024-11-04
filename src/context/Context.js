@@ -54,6 +54,15 @@ export const Context = class {
     }
   }
 
+  dump() {
+    const ctx = {};
+    for (const [key] of copyKeys) {
+      ctx[key] = this[key];
+    }
+    // TODO: stringify contextKeys as well
+    return ctx;
+  }
+
   update(other) {
     other = other || {};
 

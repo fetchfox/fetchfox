@@ -1,11 +1,9 @@
 import { logger } from '../log/logger.js';
 import { stepNames } from '../step/info.js';
 import { isPlainObject } from '../util.js';
-import { Context } from '../context/Context.js';
 
 export const BaseWorkflow = class {
   constructor() {
-    this.ctx = new Context({});
     this._stepsInput = [];
     this.steps = [];
   }

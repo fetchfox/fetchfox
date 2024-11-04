@@ -121,6 +121,7 @@ export const BaseStep = class {
     await new Promise(async (ok) => {
 
       const maybeOk = () => {
+        logger.debug(`Check maybe ok: parentDone=${parentDone}, received=${received}, completed=${completed}`);
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);
