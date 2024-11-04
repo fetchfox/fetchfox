@@ -193,5 +193,5 @@ export const Planner = class {
 
 const userPrompt = (user) => `The user executing this prompt is below.
 - For export steps, take into account the users available platforms and folders on those platforms
-- UNLESS there is GOOD CLEAR MATCH, use a new folder named "FetchFox"
+- UNLESS there is GOOD CLEAR MATCH, use a new folder named "FetchFox Export"
 ${JSON.stringify(user, null, 2)}`;
