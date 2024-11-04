@@ -1,14 +1,14 @@
 import { logger } from '../log/logger.js';
 import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
 import { stepDescriptions , classMap, BaseStep } from '../step/index.js';
-import { singleStep, combined, describe } from './prompts.js';
+import { singleStep, combined, prePlan, describe, guided } from './prompts.js';
 import { isPlainObject } from '../util.js';
 
 export const Planner = class {
   constructor(options) {
     const cache = options?.cache;
     this.ai = options?.ai || getAI(null, { cache });
-    this.user = options.user;
+    this.user = options?.user;
   }
 
   async describe({ steps }) {
@@ -24,7 +24,9 @@ export const Planner = class {
   }
 
   async plan(args) {
-    if (args.length == 1) {
+    if (args?.prompt !== undefined) {
+      return this.fromPrompt(args.prompt, args);
+    } else if (args.length == 1) {
       return this.planString(args[0]);
     } else {
       return this.planArray(args);
@@ -158,23 +160,34 @@ export const Planner = class {
     logger.debug(`Plan from prompt: prompt=${scrapePrompt} args=${JSON.stringify(args).substr(0, 120)}`);
 
     const stepLibrary = stepDescriptions.map(v => JSON.stringify(v, null, 2)).join('\n\n');
-    const context = {
+    const prePlanContext = {
       stepLibrary,
       prompt: scrapePrompt,
       url: (args.url || '').substr(0, 200),
-      html: (args.html || '').substr(0, 10000)
+      html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000))
     };
     if (this.user) {
-      context.user = userPrompt(this.user);
+      prePlanContext.user = userPrompt(this.user);
     } else {
-      context.user = '';
+      prePlanContext.user = '';
     }
 
-    const prompt = combined.render(context);
-    const answer = await this.ai.ask(prompt, { format: 'json' });
+    const prePlanPrompt = prePlan.render(prePlanContext);
+    const prePlanAnswer = (await this.ai.ask(prePlanPrompt, { format: 'json' })).partial;
 
-    const stepsJson = answer.partial;
-    return stepsJson.map(x => this.fromJson(x));
+    const guidedContext = {
+      stepLibrary,
+      prompt: scrapePrompt,
+      intent: prePlanAnswer.intentAnalysis,
+      itemDescription: prePlanAnswer.itemDescription,
+      shouldCrawl: (
+        prePlanAnswer.scrapeType == 'multiPage' ? 'This scrape should crawl to find more URLs' : 'This scrape should NOT have a crawl step'),
+      itemsPerPage: (prePlanAnswer.perPage == 'multiple' ? 'You are looking for MULTIPLE items in each extraction' : 'You are looking for a SINGLE item per page in extraction'),
+      url: (args.url || '').substr(0, 200),
+    };
+    const guidedPrompt = guided.render(guidedContext);
+    const guidedAnswer = (await this.ai.ask(guidedPrompt, { format: 'json' })).partial;
+    return guidedAnswer.map(x => this.fromJson(x));
   }
 }
 
