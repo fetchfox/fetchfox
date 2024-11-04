@@ -10,11 +10,6 @@ process.on('unhandledRejection', async (reason, p) => {
   process.exit(1);
 });
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('Server', function() {
   this.timeout(3 * 60 * 1000); // 3 minutes
 
