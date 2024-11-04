@@ -176,23 +176,24 @@ export const Planner = class {
     const prePlanPrompt = prePlan.render(prePlanContext);
     const prePlanAnswer = (await this.ai.ask(prePlanPrompt, { format: 'json' })).partial;
 
-    console.log('prePlanAnswer', prePlanAnswer);
+    logger.debug(`Got pre plan answer:\n${JSON.stringify(prePlanAnswer, null, 2)}`);
 
     const guidedContext = {
       stepLibrary,
       prompt: scrapePrompt,
       intent: prePlanAnswer.intentAnalysis,
       itemDescription: prePlanAnswer.itemDescription,
+      detailFields: '- ' + prePlanAnswer.detailFields.join('\n - '),
       shouldCrawl: (
         prePlanAnswer.scrapeType == 'multiPage' ? 'This scrape should crawl to find more URLs' : 'This scrape should NOT have a crawl step'),
       itemsPerPage: (prePlanAnswer.perPage == 'multiple' ? 'You are looking for MULTIPLE items in each extraction' : 'You are looking for a SINGLE item per page in extraction'),
       url: (args.url || '').substr(0, 200),
     };
     const guidedPrompt = guided.render(guidedContext);
-
-    // console.log('guidedPrompt', guidedPrompt);
-
     const guidedAnswer = (await this.ai.ask(guidedPrompt, { format: 'json' })).partial;
+
+    logger.debug(`Guided plan answer: ${JSON.stringify(guidedAnswer, null, 2)}`);
+
     return guidedAnswer.map(x => this.fromJson(x));
   }
 }

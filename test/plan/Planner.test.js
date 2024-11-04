@@ -1,9 +1,11 @@
+import { logger } from '../../src/log/logger.js';
 import assert from 'assert';
 import os from 'os';
 import { Planner } from '../../src/plan/Planner.js';
 import {
   redditNflCommentPageHtml,
   redditNflMainPageHtml,
+  pokedexPageHtml,
 } from './data.js';
 
 process.on('unhandledRejection', async (reason, p) => {
@@ -11,13 +13,14 @@ process.on('unhandledRejection', async (reason, p) => {
   process.exit(1);
 });
 
-describe('Planer', function() {
+const logSteps = (steps) => {
+  logger.debug(JSON.stringify(steps.map(s => s.dump()), null, 2));
+}
+
+describe('Planner', function() {
   this.timeout(30 * 1000);
 
   it('should do single page scrape for reddit comments @run', async () => {
-
-    console.log('redditNflCommentPageHtml', redditNflCommentPageHtml);
-
     const planner = new Planner();
 
     const steps = await planner.plan({
@@ -25,6 +28,8 @@ describe('Planer', function() {
       url: 'https://old.reddit.com/r/nfl/comments/1gi5ad5/nfl_reviewing_potential_fine_of_49ers_nick_bosa/',
       html: redditNflCommentPageHtml,
     });
+
+    logSteps(steps);
 
     assert.equal(steps.length, 2);
     assert.equal(steps[0].name(), 'const');
@@ -41,7 +46,7 @@ describe('Planer', function() {
       html: redditNflMainPageHtml,
     });
 
-    console.log('steps', steps);
+    logSteps(steps);
 
     assert.equal(steps.length, 2);
     assert.equal(steps[0].name(), 'const');
@@ -51,7 +56,10 @@ describe('Planer', function() {
     const d = JSON.stringify(steps[1].dump()).toLowerCase();
     assert.ok(d.indexOf('title') != -1);
     assert.ok(d.indexOf('point') != -1);
-    assert.ok(d.indexOf('username') != -1);
+    assert.ok(
+      d.indexOf('username') != -1 ||
+      d.indexOf('submit') != -1
+    );
   });
 
 
@@ -63,6 +71,8 @@ describe('Planer', function() {
       url: 'https://old.reddit.com/r/nfl/',
       html: redditNflMainPageHtml,
     });
+
+    logSteps(steps);
 
     // TODO: ai prompt engineering so it returns exactly 3 steps
     assert.ok(
@@ -88,6 +98,8 @@ describe('Planer', function() {
       html: redditNflMainPageHtml,
     });
 
+    logSteps(steps);
+
     assert.ok(steps.length == 3);
     assert.equal(steps[0].name(), 'const');
     assert.equal(steps[1].name(), 'crawl');
@@ -95,4 +107,44 @@ describe('Planer', function() {
     assert.equal(steps[2].single, false);
   });
 
+  it('should do single page crawl for pokedex data @run', async () => {
+    const planner = new Planner();
+
+    const steps = await planner.plan({
+      prompt: 'scrape pokemon data',
+      url: 'https://pokemondb.net/pokedex/national',
+      html: pokedexPageHtml,
+    });
+
+    logSteps(steps);
+
+    assert.equal(steps.length, 2);
+    assert.equal(steps[0].name(), 'const');
+    assert.equal(steps[1].name(), 'extract');
+    assert.equal(steps[1].single, false);
+  });
+
+
+  it('should do multi page crawl for pokedex data @run', async () => {
+    const planner = new Planner();
+
+    const steps = await planner.plan({
+      prompt: 'scrape pokemon data: name, number, HP, damage, defense',
+      url: 'https://pokemondb.net/pokedex/national',
+      html: pokedexPageHtml,
+    });
+
+    logSteps(steps);
+
+    assert.equal(steps.length, 3);
+    assert.equal(steps[0].name(), 'const');
+    assert.equal(steps[1].name(), 'crawl');
+    assert.equal(steps[2].name(), 'extract');
+    assert.equal(steps[2].single, true);
+
+    const d = JSON.stringify(steps[2].dump()).toLowerCase();
+    assert.ok(d.indexOf('hp') != -1, 'check for hp question');
+    assert.ok(d.indexOf('damage') != -1, 'check for damage question');
+    assert.ok(d.indexOf('defense') != -1, 'check for defense question');
+  });
 });

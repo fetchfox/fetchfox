@@ -52,7 +52,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
 
     return new Promise((ok, err) => {
       ws.onopen = () => {
-        logger.info(`Websocket open, sending ${JSON.stringify(msg)}`);
+        logger.info(`Websocket open, sending ${JSON.stringify(msg).substr(0, 120)}`);
         ws.send(JSON.stringify(msg));
       }
 

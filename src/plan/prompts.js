@@ -169,7 +169,16 @@ User prompt: {{prompt}}
 You MUST respond with ONLY the JSON object, no comments, no explanation. Otherwise you fail the task.`);
 
 export const guided = new Template(
-  ['stepLibrary', 'prompt', 'intent', 'itemDescription', 'url', 'shouldCrawl', 'itemsPerPage'],
+  [
+    'stepLibrary',
+    'prompt',
+    'intent',
+    'itemDescription',
+    'detailFields',
+    'url',
+    'shouldCrawl',
+    'itemsPerPage',
+  ],
   `You are generating a plan for a web scraping program. You will receive a user prompt, and your goal is to output a JSON definition that plans out that scrape.
 
 Your JSON definition will be based on the available steps in the scraping library, which are described below. You must select both the proper step type, as well as the arguments to the step. You MUST only use steps from this library.
@@ -194,6 +203,9 @@ The user top level prompt is: {{prompt}}
 The intent of this scrape is: {{intent}}
 
 The user is looking for this type of item: {{itemDescription}}
+
+The user wants to extract these fields for each item:
+{{detailFields}}
 
 Page URL is: {{url}}
 
