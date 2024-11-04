@@ -3,10 +3,6 @@ import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import PQueue from 'p-queue';
 
-let waiting = null;
-
-let waiting = null;
-
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
