@@ -105,18 +105,8 @@ export const Planner = class {
     }
     const prompt = combined.render(context);
 
-    console.log('prompt', prompt);
-
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const stepsJson = answer.partial;
-
-
-    console.log('');
-    console.log('');
-    console.log('stepsJson', stepsJson);
-    console.log('');
-    console.log('');
-
 
     return stepsJson.map(x => this.fromJson(x));
   }
@@ -133,9 +123,6 @@ export const Planner = class {
       }
 
     } else if (json.name == 'const') {
-
-      console.log('json.args for const:', json.args);
-
       let arr = [];
       let items;
       if (json.args.items) {
@@ -184,9 +171,7 @@ export const Planner = class {
     }
 
     const prompt = combined.render(context);
-    console.log('prompt', prompt);
     const answer = await this.ai.ask(prompt, { format: 'json' });
-    console.log('answer', answer);
 
     const stepsJson = answer.partial;
     return stepsJson.map(x => this.fromJson(x));

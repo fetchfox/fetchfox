@@ -30,8 +30,6 @@ export const BaseWorkflow = class {
   }
 
   parseRunArgs(args) {
-    console.log('parseRunArgs', args?.prompt);
-
     if (typeof args == 'string') {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {

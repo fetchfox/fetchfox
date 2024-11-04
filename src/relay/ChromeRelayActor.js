@@ -59,7 +59,6 @@ export const ChromeRelayActor = class {
       logger.debug(`Chrome relay actor opening new tab`);
       const resp = await new Promise(ok => chrome.tabs.create(
         { url, active: !!data.active },
-        // { url, active: false },
         (tab) => {
           chrome.webRequest.onCompleted.addListener(
             (details) => {
@@ -143,7 +142,6 @@ const getTabWithUrl = async (url) => {
     chrome.tabs.query(
       { url: noHash },
       (tabs) => {
-        console.log('lll got tabs after query', url, tabs);
         // Check for hash match
         for (let tab of (tabs || [])) {
           if (tab.url == url) ok(tab);

@@ -174,8 +174,6 @@ export const BaseStep = class {
                 }
                 done ||= hitLimit;
 
-                console.log('publish item' + this, this.results.length, this.limit);
-                console.log('publish item' + this, 'done?', done);
                 cursor.publish(output, index, done);
                 this.trigger('item', output);
 

@@ -41,9 +41,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
             : ''),
       };
       const prompt = scrapeOnce.render(context);
-
-      console.log('prompt', prompt);
-
       const stream = that.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
         if (delta.itemCount) continue;

@@ -13,10 +13,7 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   config(args) {
-    console.log('WF got args', args);
-
     this.ctx.update(args);
-    // console.log('config', this.ctx);
     return this;
   }
 
@@ -74,8 +71,6 @@ export const Workflow = class extends BaseWorkflow {
   load(data) {
     if (data.options) {
       this.ctx.update(data.options);
-      // console.log('this.ctx->', this.ctx);
-      // console.log('data.options->', data.options);
     }
     this.steps = [];
     for (const json of data.steps) {
@@ -86,8 +81,6 @@ export const Workflow = class extends BaseWorkflow {
       }
       this.steps.push(new cls(args));
     }
-
-    console.log('context:', this.ctx);
 
     return this;
   }
@@ -108,11 +101,8 @@ export const Workflow = class extends BaseWorkflow {
     let originalLimit = last.limit;
     try {
       if (this.ctx.limit) {
-        console.log('set global limit', this.ctx.limit);
         last.limit = this.ctx.limit;
       }
-
-      // console.log('last', last);
 
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
       return this.cursor.out();

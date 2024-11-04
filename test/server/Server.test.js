@@ -81,7 +81,6 @@ describe('Server', function() {
 
           partials.push(partial.item);
           if (partials.length > 3) {
-            console.log('partials', partials);
             assert.ok(false, 'partial results limit');
           }
         });
@@ -134,13 +133,10 @@ describe('Server', function() {
     const out = await wf
       .config({ host: 'http://127.0.0.1:7070' })
       .run(data, (partial) => {
-        console.log('partial ====>', partial.item);
       });
 
-    console.log('S CLOSE');
     s.close();
 
-    console.log('CHECK');
     assert.equal(out.items.length, 3);
   });
 

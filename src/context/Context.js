@@ -82,9 +82,6 @@ export const Context = class {
   update(other) {
     other = other || {};
 
-    console.log('CONTEXT UPDATE FROM OTHER:', other);
-    console.log('CONTEXT orignal args:     ', this.args);
-
     const combined = { ...this.args, ...other };
     const decoded = decodeArgs(combined);
 

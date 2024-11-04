@@ -70,7 +70,6 @@ export const Server = class {
 
         case 'stop':
         case 'final':
-          // console.log('START is final:', command, id);
           this.store.finish(id, data);
           child.send({ command: 'exit' });
           break;

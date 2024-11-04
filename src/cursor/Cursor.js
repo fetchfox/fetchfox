@@ -5,9 +5,6 @@ import { Item } from '../item/Item.js';
 export const Cursor = class {
   constructor(args, steps, cb) {
     this.ctx = new Context(args);
-
-    console.log('cursor context:', this.ctx);
-
     this.cb = cb ? cb : () => {};
     this.full = [];
     this.items = [];
@@ -50,9 +47,6 @@ export const Cursor = class {
   }
 
   publish(item, stepIndex, done) {
-
-    console.log('publish-->', item);
-
     let copy;
     if (item instanceof Item) {
       copy = item.copy();

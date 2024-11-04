@@ -36,8 +36,6 @@ describe('unitedskidtracks.com', function() {
       })
       .run();
 
-    console.log('out', out);
-
     const sorted = out.items.sort((a, b) => a.name.localeCompare(b.name));
 
     assert.equal(sorted[0].name, 'Bobcat T595 Sprocket');

@@ -13,8 +13,6 @@ describe('Context', function() {
 
     ctx.update({ fetcher: 'playwright' });
 
-    console.log('ctx', ctx);
-
     assert.equal(ctx.fetcher.constructor.name, 'PlaywrightFetcher');
     assert.equal(ctx.crawler.fetcher.constructor.name, 'PlaywrightFetcher');
     assert.equal(ctx.extractor.fetcher.constructor.name, 'PlaywrightFetcher');

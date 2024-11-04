@@ -71,7 +71,6 @@ describe('pokemondb.net', function() {
     };
 
     const out = await fox.run(json);
-    console.log('out', out);
 
     const totalHp = out.items
       .map(pokemon => parseInt(pokemon.hp))
