@@ -36,12 +36,21 @@ export const OpenAI = class extends BaseAI {
 
   async *inner(prompt, options) {
     const openai = new OpenAILib({ apiKey: this.apiKey });
+
     const args = {
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
       stream_options: { include_usage: true },
     };
+
+    const noStream = true;
+    if (noStream) {
+      delete args.stream;
+      delete args.stream_options;
+    }
+
+
     if (options.schema) {
       const toZod = (x) => {
         if (Array.isArray(x)) {
@@ -69,8 +78,13 @@ export const OpenAI = class extends BaseAI {
     }
     const completion = await openai.chat.completions.create(args);
 
-    for await (const chunk of completion) {
-      yield Promise.resolve(chunk);
+    if (noStream) {
+      const answer = await completion;
+      yield Promise.resolve(answer);
+    } else {
+      for await (const chunk of completion) {
+        yield Promise.resolve(chunk);
+      }
     }
   }
 }

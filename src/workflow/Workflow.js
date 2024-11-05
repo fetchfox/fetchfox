@@ -13,7 +13,9 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   config(args) {
+    console.log('config args', args);
     this.ctx.update(args);
+    console.log('config ctx', this.ctx);
     return this;
   }
 
@@ -98,6 +100,7 @@ export const Workflow = class extends BaseWorkflow {
   async run(args, cb) {
     if (args) this.parseRunArgs(args);
     await this.plan();
+
 
     if (this.steps.length == 0) return;
     this.cursor = new Cursor(this.ctx, this.steps, cb);

@@ -17,6 +17,7 @@ export const getAI = (which, options) => {
   let parts = which.split(':');
   const provider = parts[0];
   const model = parts.slice(1).join(':');
+  options.model = model;
   let aiClass = {
     openai: OpenAI,
     anthropic: Anthropic,

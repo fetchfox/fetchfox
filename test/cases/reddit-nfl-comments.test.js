@@ -73,7 +73,10 @@ describe('old.reddit.com nfl comments', function() {
   it('should scrape 5 comments with code gen', async () => {
     const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html';
     const out = await fox
-      .config({ extractor: 'code-gen' })
+      .config({
+        extractor: ['code-gen', { ai: 'openai:o1-mini'}],
+        // extractor: ['code-gen', { ai: 'openai:gpt-4o'}],
+      })
       .init(url)
       .extract({
         username: 'user who posted comment',
