@@ -30,8 +30,6 @@ const decodeArgs = (args, cache) => {
     let which = null;
     let options = {};
 
-    console.log('DECODE', key, args[key]);
-
     if (args && args[key]) {
       const v = args[key];
       if (typeof v == 'string') {
@@ -47,7 +45,6 @@ const decodeArgs = (args, cache) => {
 
     if (!val) {
       const useOptions = { ...decoded, cache, ...options };
-      console.log('CALLING GETTER');
       val = getter(which, useOptions);
     }
     decoded[key] = val;
@@ -86,9 +83,6 @@ export const Context = class {
     other = other || {};
 
     const combined = { ...this.args, ...other };
-
-    console.log('COMBINED-->', combined);
-
     const decoded = decodeArgs(combined);
 
     for (const key of Object.keys(decoded)) {

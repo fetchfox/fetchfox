@@ -13,9 +13,7 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   config(args) {
-    console.log('config args', args);
     this.ctx.update(args);
-    console.log('config ctx', this.ctx);
     return this;
   }
 
