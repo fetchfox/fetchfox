@@ -44,8 +44,8 @@ export const OpenAI = class extends BaseAI {
       stream_options: { include_usage: true },
     };
 
-    const noStream = true;
-    if (noStream) {
+    const canStream = this.model.indexOf('o1') == -1;
+    if (!canStream) {
       delete args.stream;
       delete args.stream_options;
     }
@@ -78,13 +78,13 @@ export const OpenAI = class extends BaseAI {
     }
     const completion = await openai.chat.completions.create(args);
 
-    if (noStream) {
-      const answer = await completion;
-      yield Promise.resolve(answer);
-    } else {
+    if (canStream) {
       for await (const chunk of completion) {
         yield Promise.resolve(chunk);
       }
+    } else {
+      const answer = await completion;
+      yield Promise.resolve(answer);
     }
   }
 }

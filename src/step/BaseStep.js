@@ -7,9 +7,9 @@ export const BaseStep = class {
     this.limit = args?.limit;
     this.callbacks = {};
     this.q = new PQueue({
-      concurrency: args?.concurrency || 5,
-      intervalCap: args?.intervalCap || 3,
-      interval: args?.interval || 3000,
+      concurrency: args?.concurrency === undefined ? 5 : args?.concurrency,
+      intervalCap: args?.intervalCap === undefined ? 3 : args?.intervalCap,
+      interval: args?.interval === undefined ? 3000 : args?.interval,
     });
   }
 
@@ -121,7 +121,7 @@ export const BaseStep = class {
     await new Promise(async (ok) => {
 
       const maybeOk = () => {
-        logger.debug(`Check maybe ok: parentDone=${parentDone}, received=${received}, completed=${completed}`);
+        logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, received=${received}, completed=${completed}`);
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);

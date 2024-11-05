@@ -9,30 +9,32 @@ export const CodeGenExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.helper = getExtractor(options?.helper);
-    console.log('code gen ai', this.ai);
   }
 
   async attemptCodeGenForMulti(doc, sample, questions) {
     const itemDescription = await this.findDescription(doc, sample, questions);
     const fn = await this.writeCode(doc, sample, questions, itemDescription);
 
-    let a;
+    let results;
     try {
-      a = fn(doc.html);
+      results = fn(doc.html);
     } catch(e) {
-      a = 'code failed to execute';
-      console.log('e', e);
+      logger.error(`Could not run AI function on ${doc}: ${e}`);
+      return;
     }
 
-    console.log('a', a);
-    console.log('a len', a.length);
+    if (!results || !Array.isArray(results) || results.length == 0) {
+      logger.warn(`AI generated code ran, but gave unusable reults: ${JSON.stringify(results).substr(0, 400)}`);
+      return;
+    }
 
-    throw 'STOP';
+    logger.debug(`Got results from AI generated code, first few: ${JSON.stringify(results.slice(0, 3), null, 2).substr(0, 1000)}`);
+
+    return results;
   }
 
   async findDescription(doc, sample, questions) {
     const chunks = this.chunks(doc);
-
     const context = {
       url: doc.url,
       html: chunks[0].html,
@@ -41,18 +43,12 @@ export const CodeGenExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
     };
     const prompt = findMultiDescription.render(context);
-
-    console.log('prompt', prompt);
-
     const answer = await this.ai.ask(prompt, { format: 'json' });
-    console.log('answer:', answer.partial);
-
     return answer.partial.itemDescription;
   }
 
   async writeCode(doc, sample, questions, itemDescription) {
     const chunks = this.chunks(doc);
-
     const context = {
       url: doc.url,
       html: chunks[0].html,
@@ -63,58 +59,66 @@ export const CodeGenExtractor = class extends BaseExtractor {
     };
     const prompt = codeGenMulti.render(context);
 
-    console.log('prompt', prompt);
-
-    console.log('writing code with', this.ai);
-
     logger.debug(`Writing code with ${this.ai}`);
-
     const start = (new Date()).getTime();
     const answer = await this.ai.ask(prompt, { format: 'text' });
     const took = (new Date()).getTime() - start;
-
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to write code`);
-
-    console.log('answer:', answer);
 
     const code = answer.partial
       .replace(/^```(javascript)?/, '')
       .replace(/```/g, '');
-    console.log('code-->', code);
-    // console.log('nodeHtmlParser', nodeHtmlParser);
-    const fn = new Function('nodeHtmlParser', 'html', code);
-    console.log('fn', fn);
 
-    return (html) => fn(nodeHtmlParser, html);
+    logger.debug(`AI wrote this code: ${code}`);
+
+    let fn;
+    try {
+      fn = new Function('nodeHtmlParser', 'html', code);
+    } catch(e) {
+      logger.error(`Could not create function from code ${code}: ${e}`);
+      return null;
+    }
+
+    const result = (html) => fn(nodeHtmlParser, html);
+
+    logger.debug(`Returning function: ${result}`);
+
+    return result;
   }
 
   async *run(target, questions, options) {
     const doc = await this.getDoc(target);
 
-    console.log('doc:' + doc);
-    console.log('helper:', this.helper);
-
-    let sample = [];
-    for await (const item of this.helper.stream(target, questions, options)) {
-      delete item.url;
-      sample.push(item);
-      break;
-
-      // if (sample.length >= 3) {
-      //   break;
-      // }
+    if (options.single) {
+      // For now, only write code for single page, multi item scrapes
+      return this.helper.run(target, questions, options);
     }
 
-    // if (sample.length == 0) {
-    //   throw 'TODO: handle no results';
-    // } else if (sample.length == 1) {
-    //   throw 'TODO: handle single result';
-    // } else {
-      // Multi result scrape
-      await this.attemptCodeGenForMulti(doc, sample, questions);
-    // }
+    const helperStream = this.helper.stream(target, questions, options);
 
-    console.log('sample:', sample);
+    let sample = [];
+    const sampleSize = 5;
 
+    for await (const item of helperStream)  {
+      const copy = JSON.parse(JSON.stringify(item));
+      sample.push(copy);
+      if (sample.length >= sampleSize) break;
+    }
+
+    const codeResults = await this.attemptCodeGenForMulti(doc, sample, questions);
+    if (codeResults) {
+      for (const item of codeResults) {
+        yield Promise.resolve(item);
+      }
+      return;
+    }
+
+    for (const item of sample) {
+      yield Promise.resolve(item);
+    }
+
+    for await (const item of helperStream) {
+      yield Promise.resolve(item);
+    }
   }
 }
