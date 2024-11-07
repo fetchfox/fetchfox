@@ -44,12 +44,23 @@ export const OpenAI = class extends BaseAI {
       stream_options: { include_usage: true },
     };
 
+    if (options.imageUrl) {
+      logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
+      const existing = args.messages[0].content;
+      args.messages[0].content = [
+        existing,
+        {
+          type: 'image_url',
+          image_url: { url:  options.imageUrl },
+        },
+      ];
+    }
+
     const canStream = this.model.indexOf('o1') == -1;
     if (!canStream) {
       delete args.stream;
       delete args.stream_options;
     }
-
 
     if (options.schema) {
       const toZod = (x) => {
