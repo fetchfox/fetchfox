@@ -51,7 +51,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     }
 
     const chunks = this.chunks(doc);
-    const max = 10;
+    const max = 50;
     let count = 0;
     for (let i = 0; i < max && i < chunks.length; i++) {
       logger.debug(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);

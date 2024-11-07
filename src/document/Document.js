@@ -1,4 +1,3 @@
-// import fetch from 'node-fetch';
 import { logger } from '../log/logger.js';
 import { URL } from 'whatwg-url';
 import { parse } from 'node-html-parser';
@@ -58,15 +57,19 @@ export const Document = class {
     }
 
     if (data.htmlUrl) {
-      logger.trace(`Loading HTML url ${data.htmlUrl}`);
+      logger.debug(`Loading HTML url ${data.htmlUrl}`);
       const resp = await fetch(data.htmlUrl);
-      await this.read(resp);
-      this.url = data.url;
+      await this.read(resp, null, null, data);
     }
   }
 
-  async read(resp, reqUrl, reqOptions) {
-    this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
+  // TODO: tech debt, refactor arguments to this method
+  async read(resp, reqUrl, reqOptions, options) {
+    if (options?.url) {
+      this.url = options?.url;
+    } else {
+      this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
+    }
     logger.info(`Loading document from response ${this.url}`);
     const start = (new Date()).getTime();
     this.body = await resp.text();
@@ -146,6 +149,7 @@ export const Document = class {
     this.requireHtml();
 
     const links = [];
+    const seen = {};
     let id = 1;
     const root = parse(this.html);
 
@@ -153,6 +157,11 @@ export const Document = class {
       const html = a.outerHTML;
       const text = a.text.trim();
       const href = a.getAttribute('href');
+
+      if (href == undefined) {
+        logger.debug(`Skipping <a> with no href ${(text || '').substr(0, 40)}`);
+        return;
+      }
 
       let url;
       try {
@@ -162,9 +171,14 @@ export const Document = class {
         return;
       }
 
+      const urlStr = url.toString();
+
+      if (seen[urlStr]) return;;
+      seen[urlStr] = true;
+
       links.push({
         id: id++,
-        url: url.toString(),
+        url: urlStr,
         html: html.substring(0, 1000),
         text: text.substring(0, 200),
       });
