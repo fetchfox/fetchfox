@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { logger } from '../log/logger.js';
 import { BaseVision } from './BaseVision.js';
+import { checkLoading, checkLoadingShort } from './prompts.js';
 
 export const Vision = class extends BaseVision {
   constructor(args) {
@@ -8,6 +9,8 @@ export const Vision = class extends BaseVision {
   }
 
   async ask(image, prompt, options) {
+    const start = (new Date()).getTime();
+
     let buf;
 
     if (typeof image === 'string') {
@@ -26,8 +29,18 @@ export const Vision = class extends BaseVision {
     const imageUrl = `data:image/jpeg;base64,${base64}`;
     const answer = await this.ai.ask(prompt, { ...options, imageUrl });
 
-    logger.info(`Got vision response: ${JSON.stringify(answer.partial).substr(0, 120)}`);
+    const took = (new Date()).getTime() - start;
+
+    logger.info(`Got vision response: ${JSON.stringify(answer.partial).substr(0, 120)}, took ${(took / 1000).toFixed(2)} secs`);
 
     return answer;
+  }
+
+  async askIsLoading(image) {
+    const prompt = checkLoading.render({});
+    const answer = await this.ask(image, prompt, { format: 'json' });
+    logger.info(`Vision loading check got: ${JSON.stringify(answer.partial)}`);
+    const { isLoading, readyState } = answer.partial;
+    return { isLoading, readyState };
   }
 }
