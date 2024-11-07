@@ -147,4 +147,19 @@ describe('Planner', function() {
     assert.ok(d.indexOf('damage') != -1, 'check for damage question');
     assert.ok(d.indexOf('defense') != -1, 'check for defense question');
   });
+
+  it('should keep google url @run', async () => {
+    const planner = new Planner();
+
+    const url = 'https://www.google.com/search?sca_esv=c263faa809bdb49e&sxsrf=ADLYWIJFw5OpqGyQgJepg4RH5DL739-wFA:1730916173269&q=adjustable+bed&udm=28&fbs=AEQNm0BglSNKPbDQcL4Et01QEIYvJ5VGsHgUL_tsKqYywhWXkknveTpaLEIQiU02u5i1FK5Aui8Lbcs6UtNG0K_ZRX5_Sfaez_nbio7ZevU-01UapIxO69dMWeVTKP_UKwkGJCi-gm4_XCwzeGcd3iWHdX18pJO4SCbD0xKKCtmS-V7RqxnCEfTZFtgpF81MF2iMynb0DJhUqRTMt9YhJKKaN0U-I1PLrg&ved=1t:220175&ictx=111&biw=1218&bih=746&dpr=2#ip=1';
+
+    const wf = await planner.plan({
+      prompt: 'scrape products',
+      url,
+      html: '',
+    });
+
+    assert.equal(wf.steps[0].items[0].url, url);
+  });
+
 });

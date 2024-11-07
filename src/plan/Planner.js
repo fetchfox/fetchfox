@@ -164,7 +164,7 @@ export const Planner = class {
     const prePlanContext = {
       stepLibrary,
       prompt: scrapePrompt,
-      url: (args.url || '').substr(0, 200),
+      url: (args.url || '').substr(0, 1000),
       html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000))
     };
     if (this.user) {
@@ -187,15 +187,22 @@ export const Planner = class {
       shouldCrawl: (
         prePlanAnswer.scrapeType == 'multiPage' ? 'This scrape should crawl to find more URLs' : 'This scrape should NOT have a crawl step'),
       itemsPerPage: (prePlanAnswer.perPage == 'multiple' ? 'You are looking for MULTIPLE items in each extraction' : 'You are looking for a SINGLE item per page in extraction'),
-      url: (args.url || '').substr(0, 200),
+      url: (args.url || '').substr(0, 1000),
     };
     const guidedPrompt = guided.render(guidedContext);
     const guidedAnswer = (await this.ai.ask(guidedPrompt, { format: 'json' })).partial;
 
     logger.debug(`Guided plan answer: ${JSON.stringify(guidedAnswer, null, 2)}`);
 
+    const steps = guidedAnswer.map(x => this.fromJson(x));
+
+    // Make sure URL is unchanged
+    if (steps[0].name() == 'const') {
+      steps[0].items[0].url = args.url;
+    }
+
     return {
-      steps: guidedAnswer.map(x => this.fromJson(x)),
+      steps,
       itemDescription: prePlanAnswer.itemDescription,
     }
   }

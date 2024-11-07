@@ -11,9 +11,9 @@ export const BaseMinimizer = class {
     return `[${this.constructor.name}]`;
   }
 
-  cacheKey(doc, options) {
+  async cacheKey(doc, options) {
     const hash = CryptoJS
-      .SHA256(JSON.stringify({ doc: doc.dump(), options }))
+      .SHA256(JSON.stringify({ doc: await doc.dump(), options }))
       .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     return `min-${this.constructor.name}-${doc.url.replace(/\//g, '-').substr(0, 100)}-${hash}`;
@@ -23,7 +23,7 @@ export const BaseMinimizer = class {
     if (!this.cache) return;
     if (!doc) return;
 
-    const key = this.cacheKey(doc, options);
+    const key = await this.cacheKey(doc, options);
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
     logger.debug(`Minimizer cache ${outcome} for ${doc}`);
@@ -39,9 +39,9 @@ export const BaseMinimizer = class {
     if (!this.cache) return;
     if (!doc) return;
 
-    const key = this.cacheKey(doc, options);
+    const key = await this.cacheKey(doc, options);
     logger.debug(`Set minimizer cache for ${doc}`);
-    return this.cache.set(key, min.dump(), 'min');
+    return this.cache.set(key, await min.dump(), 'min');
   }
 
   async min(doc) {

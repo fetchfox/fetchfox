@@ -21,9 +21,9 @@ export const ExtractusMinimizer = class extends BaseMinimizer {
     const article = await extract(doc.html);
     const out = JSON.stringify(article, null, 2);
     const min = new Document();
-    min.loadData(Object.assign(
+    await min.loadData(Object.assign(
       {},
-      doc.dump(),
+      await doc.dump(),
       {
         body: out,
         html: out,

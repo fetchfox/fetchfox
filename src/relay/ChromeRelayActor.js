@@ -27,9 +27,9 @@ export const ChromeRelayActor = class {
   }
 
   async fetch(data) {
-    const url = data.url;
+    const { url, presignedUrl } = data;
 
-    logger.debug(`Chrome relay actor got url: ${url}`);
+    logger.debug(`Chrome relay actor fetching url: ${url}`);
 
     const [
       activeTab,
@@ -42,6 +42,9 @@ export const ChromeRelayActor = class {
     let tab;
     let status;
     let shouldClose;
+
+    logger.debug(`Got active tab: ${activeTab?.url}`);
+    logger.debug(`Got tab with URL: ${tabWithUrl}`);
 
     if (activeTab && activeTab.url == url) {
       logger.debug(`Chrome relay actor found active tab ${activeTab.id}`);
@@ -57,6 +60,7 @@ export const ChromeRelayActor = class {
 
     } else {
       logger.debug(`Chrome relay actor opening new tab`);
+
       const resp = await new Promise(ok => chrome.tabs.create(
         { url, active: !!data.active },
         (tab) => {
@@ -102,9 +106,9 @@ export const ChromeRelayActor = class {
       doc.loadData(data);
       doc.parse();
 
-      logger.debug(`Loaded document ${doc}`);
+      logger.debug(`Loaded document ${doc}, presignedUrl=${presignedUrl}`);
 
-      return doc.dump();
+      return doc.dump({ presignedUrl });
 
     } finally {
       if (shouldClose) {

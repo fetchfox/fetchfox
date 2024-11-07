@@ -1,3 +1,4 @@
+// import fetch from 'node-fetch';
 import { logger } from '../log/logger.js';
 import { URL } from 'whatwg-url';
 import { parse } from 'node-html-parser';
@@ -9,7 +10,7 @@ export const Document = class {
     return `[Document: ${this.url} ${(this.html || '').length} bytes]`;
   }
 
-  dump() {
+  async dump(options) {
     const data = {
       url: this.url,
       body: this.body,
@@ -19,13 +20,32 @@ export const Document = class {
       resp: this.resp,
       contentType: this.contentType,
     };
+
+    if (options?.presignedUrl) {
+      logger.info(`Dumping to presigned URL ${options?.presignedUrl}`);
+      const htmlUrl = await this.uploadHtml(options.presignedUrl);
+      delete data.body;
+      delete data.html;
+      delete data.text;
+      delete data.links;
+      data.htmlUrl = htmlUrl;
+    }
     if (this.req) {
       data.req = this.req;
     }
     return data;
   }
 
-  loadData(data) {
+  async uploadHtml(presignedUrl) {
+    await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/html' },
+      body: this.html,
+    });
+    return presignedUrl.replace(/\?.*$/, '');
+  }
+
+  async loadData(data) {
     this.url = data.url;
     this.body = data.body;
     this.html = data.html;
@@ -35,6 +55,13 @@ export const Document = class {
     this.contentType = data.contentType;
     if (data.req) {
       this.req = data.req;
+    }
+
+    if (data.htmlUrl) {
+      logger.trace(`Loading HTML url ${data.htmlUrl}`);
+      const resp = await fetch(data.htmlUrl);
+      await this.read(resp);
+      this.url = data.url;
     }
   }
 

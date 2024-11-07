@@ -19,7 +19,7 @@ describe('pointhound.com', function() {
 
     const f = await fox
       .config({
-        fetcher: ['playwright', { headless: true, wait: 4000 } ],
+        fetcher: ['playwright', { headless: true, loadWait: 4000 } ],
       });
     const out = await f
       .init(url)
@@ -29,13 +29,15 @@ describe('pointhound.com', function() {
         airline: 'What is the airline?',
         points: 'What is the number of points for this flight?',
       })
+      .filter('find only above 10000 points')
       .limit(2)
       .run();
 
     // Sanity checks
-    for (const item of out) {
+    for (const item of out.items) {
       assert.ok(item.duration.match(/\d+ hr \d+ mins/, 'duration format'));
       assert.ok(item.points.match(/[0-9,]+ pts/, 'points format'));
     }
-  })
+  });
+
 })

@@ -4,6 +4,7 @@ import { webfox } from '../../src/web.js';
 import { Server } from '../../src/server/Server.js';
 import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
 import { Client } from '../../src/relay/Client.js';
+import { googleSearchPlanPrompt } from './data.js';
 
 process.on('unhandledRejection', async (reason, p) => {
   console.log('Unhandled Rejection at:', p, 'reason:', reason);
@@ -526,7 +527,6 @@ describe('Server', function() {
     s.close();
   });
 
-
   it('should plan with html @run', async () => {
     const s = await this.launch(); 
 
@@ -560,6 +560,47 @@ describe('Server', function() {
         'description should contain nfl');
     }
 
+    s.close();
+  });
+
+  it('should plan google shopping search @run', async () => {
+    const s = await this.launch();
+
+    const rw = new RemoteWorkflow()
+      .config({
+        host: 'http://127.0.0.1:7070',
+        publishAllSteps: true,
+      });
+
+    const wf = await rw.plan(googleSearchPlanPrompt.prompt[0]);
+
+    s.close();
+
+    assert.equal(
+      wf.steps[0].args.items[0].url,
+      googleSearchPlanPrompt.prompt[0].url);
+  });
+
+
+  it('should support s3 presigned urls @run', async () => {
+    const s = await this.launch();
+
+    const rec = new Client('ws://127.0.0.1:7070');
+    const id = await rec.connect();
+
+    rec.listen((data) => data.text + ' and reply' );
+
+    const sender = new Client('ws://127.0.0.1:7070');
+    await sender.connect(id);
+
+    const reply = await new Promise(
+      ok => sender.send({ text: 'original' }, ok)
+    );
+
+    assert.equal(reply, 'original and reply');
+
+    rec.close();
+    sender.close();
     s.close();
   });
 });

@@ -33,7 +33,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
         resp = await page.goto(url, { timeout: this.timeoutWait });
         logger.debug(`Playwright loaded page before timeout`);
-        html = await getHtmlFromSuccess(page);
+        html = await getHtmlFromSuccess(page, this.timeoutWait);
       } catch(e) {
         logger.error(`Playwright could not get ${url}: ${e}`);
         logger.debug(`Trying to salvage results`);
