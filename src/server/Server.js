@@ -56,6 +56,15 @@ export const Server = class {
     });
   }
 
+  async safeSend(child, payload) {
+    if (!child.connected) {
+      logger.warn(`Child process ${child} is no longer connected`);
+      return;
+    }
+
+    return child.send(payload);
+  }
+
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data)}`);
     const id = this.store.nextId();
@@ -71,7 +80,7 @@ export const Server = class {
         case 'stop':
         case 'final':
           this.store.finish(id, data);
-          child.send({ command: 'exit' });
+          this.safeSend(child, { command: 'exit' });
           break;
 
         default:
@@ -79,7 +88,7 @@ export const Server = class {
       }
     });
 
-    child.send({ command: 'start', id, data });
+    this.safeSend(child, { command: 'start', id, data });
     return id;
   }
 
@@ -92,7 +101,7 @@ export const Server = class {
     }
 
     const child = this.children[id];
-    child.send({ command: 'stop' });
+    this.safeSend(child, { command: 'stop' });
   }
 
   async plan(data, ws) {
