@@ -3,8 +3,9 @@ import { Client } from './Client.js';
 import { Document } from '../document/Document.js';
 
 export const ChromeRelayActor = class {
-  constructor(host) {
+  constructor(host, options) {
     this.client = new Client(host, { reconnect: true });
+    this.requestCompletedTimeout = options?.requestCompletedTimeout || 10000;
   }
 
   async connect(id) {
@@ -64,8 +65,16 @@ export const ChromeRelayActor = class {
       const resp = await new Promise(ok => chrome.tabs.create(
         { url, active: !!data.active },
         (tab) => {
+          setTimeout(
+            async () => {
+              logger.warn(`Request completed timeout hit on tab=${tab.id} url={url}`);
+              ok({ tab, details: { statusCode: 200 } });
+            },
+            this.requestCompletedTimeout);
+
           chrome.webRequest.onCompleted.addListener(
             (details) => {
+              logger.info(`Request completed success on tab=${tab.id} url={url}`);
               if (details.tabId == tab.id) {
                 ok({ tab, details });
               }
@@ -82,32 +91,8 @@ export const ChromeRelayActor = class {
 
     try {
       logger.debug(`Got status for ${tab.id}: ${status}`);
-
-      const result = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        injectImmediately: true,
-        args: [2000],
-        func: injectFunction,
-      });
-
-      if (
-        !result ||
-        !result.length ||
-        result.length == 0 ||
-        !result[0].result
-      ) {
-        return;
-      }
-
-      const data = result[0].result;
-      data.resp.status = status;
-
-      const doc = new Document();
-      doc.loadData(data);
-      doc.parse();
-
+      const doc = await getDocumentFromTab(tab.id, status);
       logger.debug(`Loaded document ${doc}, presignedUrl=${presignedUrl}`);
-
       return doc.dump({ presignedUrl });
 
     } finally {
@@ -128,6 +113,27 @@ const injectFunction = async (waitTime) => {
       headers: {'content-type': 'text/html'},
     },
   };
+}
+
+const getDocumentFromTab = async (tabId, status) => {
+  const result = await chrome.scripting.executeScript({
+    target: { tabId },
+    injectImmediately: true,
+    args: [2000],
+    func: injectFunction,
+  });
+
+  if (!result || !result.length || result.length == 0 || !result[0].result) {
+    return;
+  }
+
+  const data = result[0].result;
+  data.resp.status = status;
+
+  const doc = new Document();
+  doc.loadData(data);
+  doc.parse();
+  return doc;
 }
 
 const getActiveTab = async () => {
