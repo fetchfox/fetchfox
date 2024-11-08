@@ -1,8 +1,15 @@
 import ShortUniqueId from 'short-unique-id';
 
 export const Store = class {
-  constructor() {
-    this.jobs = {};
+  constructor(kv) {
+    if (!kv) {
+      this.data = {};
+      kv = {
+        get: (id) => this.data[id],
+        set: (id, val) => { this.data[id] = val },
+      };
+    }
+    this.kv = kv;
     this.subs = {};
   }
 
@@ -15,7 +22,7 @@ export const Store = class {
   }
 
   async sub(id, cb) {
-    const job = this.jobs[id];
+    const job = await this.kv.get(id);
     if (job) {
       cb(job);
       if (job.done) return;
@@ -33,21 +40,23 @@ export const Store = class {
   }
 
   async trigger(id) {
+    const job = await this.kv.get(id);
     if (this.subs[id]) {
       for (const cb of this.subs[id]) {
-        cb(this.jobs[id]);
+        cb(job);
       }
     }
   }
 
   async pub(id, results) {
-    this.jobs[id] = results;
+    await this.kv.set(id, results);
     this.trigger(id);
   }
 
   async finish(id, results) {
-    this.jobs[id] = results || {};
-    this.jobs[id].done = true;
+    const job = results || {};
+    job.done = true;
+    await this.kv.set(id, job);
 
     this.trigger(id);
 

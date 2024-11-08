@@ -11,8 +11,9 @@ export const Server = class {
   constructor(options) {
     options ||= {};
 
+    this.store = options?.store || new Store();
+
     this.conns = new Set();
-    this.store = new Store();
     this.relay = new Relay();
     this.children = {};
     this.childPath = (
