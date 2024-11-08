@@ -40,9 +40,10 @@ export const Store = class {
   }
 
   async trigger(id) {
-    const job = await this.kv.get(id);
     if (this.subs[id]) {
-      for (const cb of this.subs[id]) {
+      const subs = this.subs[id];  // Store subs before async call
+      const job = await this.kv.get(id);
+      for (const cb of subs) {
         cb(job);
       }
     }
@@ -58,7 +59,7 @@ export const Store = class {
     job.done = true;
     await this.kv.set(id, job);
 
-    this.trigger(id);
+    await this.trigger(id);
 
     delete this.subs[id];
   }
