@@ -15,12 +15,17 @@ export const Server = class {
 
     this.conns = new Set();
     this.relay = new Relay();
+    this.middleware = [];
     this.children = {};
     this.childPath = (
       options.childPath ||
       path.join(
         process.cwd(),
         'node_modules/fetchfox/src/server/child.js'));
+  }
+
+  pushMiddleware(mw) {
+    this.middleware.push(mw);
   }
 
   async sub(data, ws) {
@@ -123,28 +128,38 @@ export const Server = class {
       this.conns.add(ws);
 
       ws.on('message', async (msg) => {
-        const data = JSON.parse(msg);
-
+        let data = JSON.parse(msg);
         let out;
-        switch (data.command) {
-          case 'start':
-            out = await this.start(data, ws);
+
+        for (const mw of this.middleware) {
+          const result = mw(data);
+          if (result.end) {
+            out = result.end;
             break;
-          case 'stop':
-            out = await this.stop(data, ws);
-            break;
-          case 'sub':
-            out = await this.sub(data, ws);
-            break;
-          case 'plan':
-            out = await this.plan(data, ws);
-            break;
-          case 'relayListen':
-            out = await this.relayListen(data, ws);
-            break;
-          case 'relaySend':
-            out = await this.relaySend(data, ws);
-            break;
+          }
+        }
+
+        if (!out) {
+          switch (data.command) {
+            case 'start':
+              out = await this.start(data, ws);
+              break;
+            case 'stop':
+              out = await this.stop(data, ws);
+              break;
+            case 'sub':
+              out = await this.sub(data, ws);
+              break;
+            case 'plan':
+              out = await this.plan(data, ws);
+              break;
+            case 'relayListen':
+              out = await this.relayListen(data, ws);
+              break;
+            case 'relaySend':
+              out = await this.relaySend(data, ws);
+              break;
+          }
         }
 
         logger.info(`Server side run of ${data.command} done: ${(JSON.stringify(out) || '').substr(0, 120)}`);

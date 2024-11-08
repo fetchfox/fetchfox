@@ -54,7 +54,6 @@ describe('Server', function() {
     assert.equal(out.items[2].name, 'Venusaur');
   });
 
-
   it('should handle global limit in config @run', async () => {
     const s = await this.launch(); 
 
@@ -603,4 +602,38 @@ describe('Server', function() {
     sender.close();
     s.close();
   });
+
+  it('should support middleware end @run', async () => {
+    const s = await this.launch();
+
+    s.pushMiddleware((data) => {
+      return { end: 'middleware end' };
+    });
+
+    const rw = new RemoteWorkflow()
+      .config({ host: 'http://127.0.0.1:7070' });
+
+    const partials = [];
+    const out = await rw
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        questions: {
+          name: 'Pokemon name',
+          type: 'Pokemon type',
+          number: 'Pokedex number',
+        },
+        single: false })
+      .limit(3)
+      .run(
+        null,
+        (partial) => {
+          partials.push(partial.item);
+        });
+
+    s.close();
+
+    assert.equal(out, 'middleware end');
+
+  });
+
 });

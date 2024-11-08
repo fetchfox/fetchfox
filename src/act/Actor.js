@@ -1,9 +1,4 @@
 import playwright from 'playwright';
-import { DiffDOM, nodeToObj, stringToObj } from "diff-dom"
-
-import pretty from 'pretty';
-import * as diff from 'diff';
-
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getExtractor } from '../extract/index.js';
