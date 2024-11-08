@@ -40,8 +40,6 @@
     "commander": "^12.1.0",
     "crypto-js": "^4.2.0",
     "csv-stringify": "^6.5.1",
-    "diff": "^7.0.0",
-    "diff-dom": "^5.1.4",
     "dropbox": "^10.34.0",
     "googleapis": "^144.0.0",
     "groq-sdk": "^0.7.0",
