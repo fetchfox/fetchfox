@@ -8,6 +8,7 @@ export const Cursor = class {
     this.cb = cb ? cb : () => {};
     this.full = [];
     this.items = [];
+    this.deferCb = [];
     steps.map((step) => this.full.push({
       items: [],
       step: step.dump(),
@@ -90,9 +91,21 @@ export const Cursor = class {
   finish(stepIndex) {
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
-
     if (this.ctx.publishAllSteps) {
       this.cb(this.out());
+    }
+  }
+
+  defer(cb) {
+    this.deferCb.push(cb);
+  }
+
+  finishAll() {
+    if (this.ctx.actor) {
+      this.ctx.actor.finish();
+    }
+    for (const cb of this.deferCb) {
+      cb();
     }
   }
 }

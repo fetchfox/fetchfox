@@ -8,11 +8,11 @@ export const Fetcher = class extends BaseFetcher {
     super(options);
   }
 
-  async _fetch(url, options) {
+  async *_fetch(url, options) {
     const doc = new Document();
     const resp = await fetch(url, options);
     logger.info(`Got response: ${resp.status} for ${resp.url}`);
     await doc.read(resp, url, options);
-    return doc;
+    yield Promise.resolve(doc);
   }
 }

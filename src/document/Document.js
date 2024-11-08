@@ -36,22 +36,22 @@ export const Document = class {
   }
 
   async writeText(filepath) {
-    try {
-      const fs = await import('fs').then(module => module.promises);
-      await fs.writeFile(filepath, this.text, 'utf-8');
-      logger.info(`Wrote text to ${filepath}`);
-    } catch (error) {
-    }
+    // try {
+    //   const fs = await import('fs').then(module => module.promises);
+    //   await fs.writeFile(filepath, this.text, 'utf-8');
+    //   logger.info(`Wrote text to ${filepath}`);
+    // } catch (error) {
+    // }
   }
 
   async writeHtml(filepath) {
-    try {
-      const fs = await import('fs').then(module => module.promises);
-      const baseHref = `<base href="${(new URL(this.url)).origin}" />\n`;
-      await fs.writeFile(filepath, baseHref + this.html, 'utf-8');
-      logger.info(`Wrote HTML to ${filepath}`);
-    } catch (error) {
-    }
+    // try {
+    //   const fs = await import('fs').then(module => module.promises);
+    //   const baseHref = `<base href="${(new URL(this.url)).origin}" />\n`;
+    //   await fs.writeFile(filepath, baseHref + this.html, 'utf-8');
+    //   logger.info(`Wrote HTML to ${filepath}`);
+    // } catch (error) {
+    // }
   }
 
   async uploadHtml(presignedUrl) {

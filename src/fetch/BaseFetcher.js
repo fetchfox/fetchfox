@@ -23,7 +23,7 @@ export const BaseFetcher = class {
     return `[${this.constructor.name}]`;
   }
 
-  async fetch(target, options) {
+  async *fetch(target, options) {
     let url;
 
     if (typeof target == 'string') {
@@ -32,20 +32,6 @@ export const BaseFetcher = class {
       console.log('get URL field');
       url = target.url;
     }
-
-    if (target.actor) {
-      console.log('target.actor=' + target.actor);
-      console.log('target.actor=' + target.actor);
-      console.log('target.actor=' + target.actor);
-      console.log('target.actor=' + target.actor);
-    }
-
-    console.log('FETCH URL:', url);
-    console.log('FETCH URL:', url);
-    console.log('FETCH URL:', url);
-    console.log('FETCH URL:', url);
-    console.log('FETCH URL:', url);
-    console.log('FETCH URL:', url);
 
     this.usage.requests++;
     const start = (new Date()).getTime();
@@ -77,27 +63,32 @@ export const BaseFetcher = class {
         return this._fetch(url, options);
       });
       logger.debug(`Fetch queue has ${this.q.size} requests`);
-      const doc = await p;
 
-      if (options.multiple) {
-        if (Array.isArray(doc)) {
-        } else {
-          doc = [doc];
-        }
-      } else {
-        if (Array.isArray(doc)) {
-          doc = doc[0];
-        } else {
-        }
+      for await (const doc of p) {
+        yield Promise.resolve(doc);
       }
+
+      // const doc = await p;
+
+      // if (options.multiple) {
+      //   if (Array.isArray(doc)) {
+      //   } else {
+      //     doc = [doc];
+      //   }
+      // } else {
+      //   if (Array.isArray(doc)) {
+      //     doc = doc[0];
+      //   } else {
+      //   }
+      // }
 
       // TODO: option to cache null/bad responses
       // TODO: caching for multiples
-      if (doc && !Array.isArray(doc)) {
-        this.setCache(url, options, doc.dump());
-      }
+      // if (doc && !Array.isArray(doc)) {
+      //   this.setCache(url, options, doc.dump());
+      // }
 
-      return doc;
+      // return doc;
     } finally {
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;

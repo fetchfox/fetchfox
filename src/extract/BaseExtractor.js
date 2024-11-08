@@ -19,12 +19,17 @@ export const BaseExtractor = class {
     return `[${this.constructor.name}]`;
   }
 
-  async getDoc(target) {
+  async *getDoc(target) {
+
     if (target instanceof Document) {
-      return target;
+      // throw '1';
+      yield Promise.resolve(target);
+      return;
     }
     if (typeof target?.source == 'function' && target.source() instanceof Document) {
-      return target.source();
+      // throw '2';
+      yield Promise.resolve(target.source());
+      return;
     }
 
     let url;
@@ -39,7 +44,10 @@ export const BaseExtractor = class {
       return;
     }
 
-    return await this.fetcher.fetch(url);
+    for await (const doc of this.fetcher.fetch(url)) {
+      // throw '3';
+      yield Promise.resolve(doc);
+    }
   }
 
   chunks(doc) {
@@ -88,7 +96,14 @@ export const BaseExtractor = class {
 
     try {
       const map = {};
-      for await (const r of this._run(target, questions, options)) {
+
+      const docs = [];
+      for await (const doc of this.getDoc(target)) {
+        docs.push(doc);
+      }
+      // const doc = await this.getDoc(target);
+
+      for await (const r of this._run(docs[0], questions, options)) {
         for (const key of Object.keys(r)) {
           const remap = map[key];
           if (remap) {

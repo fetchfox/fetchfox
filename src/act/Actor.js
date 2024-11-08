@@ -113,10 +113,11 @@ export const Actor = class extends BaseActor {
   }
 
 
-  async *scrollForDocs(num) {
+  async *scrollForDocs(num, scrollWait) {
     for (let i = 0; i < num; i++) {
-      logger.debug(`Wait for ${this.loadWait} and then scroll and get doc`);
-      await new Promise(ok => setTimeout(ok, this.loadWait));
+      const wait = scrollWait || this.loadWait;
+      logger.debug(`Wait for ${wait} and then scroll and get doc`);
+      await new Promise(ok => setTimeout(ok, wait));
       await this.page.keyboard.press('PageDown');
       yield this.doc();
     }
@@ -233,8 +234,9 @@ export const Actor = class extends BaseActor {
   }
 
   async finish() {
-    console.log('ACTOR FINISH');
-    await this._browser.close();
-    this._browser = null;
+    if (this._browser) {
+      await this._browser.close();
+      this._browser = null;
+    }
   }
 }

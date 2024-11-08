@@ -9,7 +9,7 @@ export const ActorFetcher = class extends BaseFetcher {
     super(options);
   }
 
-  async _fetch(url, options) {
+  async *_fetch(url, options) {
     logger.info(`Actor fetch ${url} with ${options.actor}`);
     const actor = options.actor;
 
@@ -17,13 +17,18 @@ export const ActorFetcher = class extends BaseFetcher {
 
     const docs = [];
     let i = 0;
-    for await (const doc of actor.scrollForDocs(5)) {
-      await doc.writeHtml(`/Users/marcell/Desktop/out${i}.html`);
-      i++;
-      docs.push(doc);
+    const gen = actor.scrollForDocs(options?.scroll || 1, options?.scrollWait);
+    for await (const doc of gen) {
+      yield Promise.resolve(doc);
     }
 
-    return docs;
+    // for await (const doc of gen) {
+    //   await doc.writeHtml(`/Users/marcell/Desktop/out${i}.html`);
+    //   i++;
+    //   // docs.push(doc);
+    //   yield doc;
+    // }
+    // return docs;
   }
 }
 

@@ -18,11 +18,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return playwright[this.browser].launch({ headless: this.headless });
   }
 
-  async _fetch(url, options) {
+  async *_fetch(url, options) {
     logger.info(`Playwright fetch ${url} with options ${options || '(none)'}`);
-    console.log('actor?'+ options.actor);
-
-    throw 'PW STOP';
 
     const doc = new Document();
 
@@ -60,7 +57,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       logger.info(`Playwright returning: ${doc}`);
 
-      return doc;
+      yield Promise.resolve(doc);
     } catch (e) {
       logger.error(`Playwright error: ${e}`);
       throw e;

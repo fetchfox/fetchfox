@@ -29,6 +29,10 @@ export const Item = class {
       this.#source);
   }
 
+  async finish() {
+    if (this.#actor) this.#actor.finish();
+  }
+
   clean(val) {
     val = '' + val;
     val = val.trim();

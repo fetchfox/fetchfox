@@ -9,13 +9,11 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     super(options);
   }
 
-  async *_run(target, questions, options) {
+  async *_run(doc, questions, options) {
+
     const { stream } = options || {};
 
     logger.debug(`Getting doc in ${this}`);
-
-    const doc = await this.getDoc(target);
-    if (!doc) return;
 
     const { extraRules, description, limit } = options || {};
     let { single } = options || {};

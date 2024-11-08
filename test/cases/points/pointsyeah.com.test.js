@@ -26,7 +26,7 @@ describe('pointsyeah.com', function() {
         username: 'marcell.ortutay@gmail.com',
         password: '123123123aA!',
       })
-      .fetch()
+      .fetch({ scroll: 5, scrollWait: 500 })
       .extract({
         flightNumber: 'The flight number',
         airline: 'The airline hosting this flight',
@@ -37,7 +37,7 @@ describe('pointsyeah.com', function() {
       .run();
 
     console.log('out', out);
-    console.log('out', JSON.stringify(out.items, null, 2));
+    // console.log('out', JSON.stringify(out.items, null, 2));
 
   });
 

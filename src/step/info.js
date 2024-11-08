@@ -181,7 +181,20 @@ export const stepDescriptionsMap = {
 
     name: 'fetch',
     description: 'Fetch URLs from the web',
-    args: {},
+    args: {
+      scroll: {
+        description: 'Number of times to scroll down the page',
+        format: 'number',
+        example: 5,
+        required: false,
+      },
+      scrollWait: {
+        description: 'If scrolling, number of milliseconds to wait before the next scroll',
+        format: 'number',
+        example: 500,
+        required: false,
+      },
+    },
   }),
 
   filter: combineInfo({

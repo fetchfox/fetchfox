@@ -17,6 +17,8 @@ export const LoginStep = class extends BaseStep {
     await actor.start(url);
     await actor.login(this.username, this.password);
 
+    cursor.defer(() => actor.finish());
+
     cb({ ...item, actor });
   }
 }

@@ -29,6 +29,7 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
       });
     });
 
+    console.log('doc', doc);
     const data = await doc.dump();
     const html = pretty(root.toString(), { ocd: true });
     data.body = html;

@@ -116,6 +116,7 @@ export const Workflow = class extends BaseWorkflow {
       return this.cursor.out();
     } finally {
       last.limit = originalLimit;
+      this.cursor.finishAll();
     }
   }
 }
@@ -145,7 +146,8 @@ for (const stepName of stepNames) {
       }
 
     } else if (name == 'fetch') {
-      return this.step(new cls());
+      const args = prompt;
+      return this.step(new cls(args));
 
     } else if (name == 'limit') {
       if (prompt.limit) {
