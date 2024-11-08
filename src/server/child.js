@@ -30,6 +30,7 @@ process.on('message', async ({ command, data }) => {
       break;
 
     case 'exit':
+      logger.info(`Child exiting`);
       process.exit(0);
       break;
   }
