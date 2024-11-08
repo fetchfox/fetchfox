@@ -17,8 +17,6 @@ export const MinimizingExtractor = class extends BaseExtractor {
       const chunks = this.chunks(doc);
       const min = await this.minimizer.min(doc);
       for await (const result of this.extractor.run(min, questions, options)) {
-        console.log('doc' + result);
-        // throw '6';
         yield Promise.resolve(result);
       }
     }

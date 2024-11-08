@@ -14,8 +14,6 @@ import { BaseActor } from './BaseActor.js';
 
 export const Actor = class extends BaseActor {
   constructor(options) {
-    console.log('make actor from', options);
-
     super(options);
     this.ai = options?.ai || getAI();
     this.extractor = options?.extractor || getExtractor();
@@ -28,8 +26,6 @@ export const Actor = class extends BaseActor {
 
     this.history = [];
     this.index = -1;
-
-    logger.trace('???');
   }
 
   toString() {
@@ -104,8 +100,6 @@ export const Actor = class extends BaseActor {
 
     this.index = 0;
     this.history = [{ action: 'start', url }];
-
-    console.log('start done');
   }
 
   finder(query, selector) {
@@ -145,32 +139,16 @@ export const Actor = class extends BaseActor {
     }
 
     if (checkForReady) {
-      return await this._checkReady(5, 1000);
+      return await this._checkReady();
     } else {
       return true;
     }
   }
 
-  async _checkReady(maxTries, sleepTime) {
-
-    // TODO: actuall check for ready... for now just sleeping a bit
+  async _checkReady() {
+    // TODO: actually check for ready using AI. For now just sleeping a bit.
     await new Promise(ok => setTimeout(ok, 5000));
-
-    // for (let i = 0; i < maxTries; i++) {
-    //   const vReady = await this._visionCheckReady();
-    //   if (vReady) return true;
-    //   await new Promise(ok => setTimeout(ok, sleepTime));
-    // }
-    // return false;
   }
-
-  // async _visionCheckReady() {
-  //   await this.page.screenshot({ path: '/tmp/ss.png', fullPage: true });
-  //   const buf = await this.page.screenshot({ fullPage: true });
-  //   const answer = await this.vision.askIsLoading(buf);
-  //   return answer.readyState == 'fully-ready';
-  // }
-
   async login(username, password) {
     const [
       usernameLocs,
@@ -180,21 +158,12 @@ export const Actor = class extends BaseActor {
       this.finder('password field', 'input').all(),
     ]);
       
-    console.log('username', usernameLocs);
-    console.log('password', passwordLocs);
-
     await usernameLocs[0].type(username);
     await passwordLocs[0].type(password);
     await new Promise(ok => setTimeout(ok, 200));
     await passwordLocs[0].press('Enter');
 
-    const ready = await this._checkReady(5, 4000);
-
-    if (ready) {
-      logger.info(`Vision checks say page is ready`);
-    } else {
-      logger.warn(`Vision checks did not find the page ready`);
-    }
+    await this._checkReady();
 
     return ready;
   }

@@ -29,7 +29,6 @@ export const BaseFetcher = class {
     if (typeof target == 'string') {
       url = target;
     } else if (typeof target.url == 'string') {
-      console.log('get URL field');
       url = target.url;
     }
 
@@ -68,27 +67,6 @@ export const BaseFetcher = class {
         yield Promise.resolve(doc);
       }
 
-      // const doc = await p;
-
-      // if (options.multiple) {
-      //   if (Array.isArray(doc)) {
-      //   } else {
-      //     doc = [doc];
-      //   }
-      // } else {
-      //   if (Array.isArray(doc)) {
-      //     doc = doc[0];
-      //   } else {
-      //   }
-      // }
-
-      // TODO: option to cache null/bad responses
-      // TODO: caching for multiples
-      // if (doc && !Array.isArray(doc)) {
-      //   this.setCache(url, options, doc.dump());
-      // }
-
-      // return doc;
     } finally {
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;

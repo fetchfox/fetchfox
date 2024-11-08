@@ -47,7 +47,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     const WebSocket = await getWebSocket();
 
     const url = this.host().replace(/^http/, 'ws');
-    logger.trace(`Connect to ws: ${url}`);
+    logger.debug(`Connect to ws: ${url}`);
     const ws = new WebSocket(url);
 
     return new Promise((ok, err) => {
