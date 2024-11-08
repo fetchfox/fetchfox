@@ -23,7 +23,30 @@ export const BaseFetcher = class {
     return `[${this.constructor.name}]`;
   }
 
-  async fetch(url, options) {
+  async fetch(target, options) {
+    let url;
+
+    if (typeof target == 'string') {
+      url = target;
+    } else if (typeof target.url == 'string') {
+      console.log('get URL field');
+      url = target.url;
+    }
+
+    if (target.actor) {
+      console.log('target.actor=' + target.actor);
+      console.log('target.actor=' + target.actor);
+      console.log('target.actor=' + target.actor);
+      console.log('target.actor=' + target.actor);
+    }
+
+    console.log('FETCH URL:', url);
+    console.log('FETCH URL:', url);
+    console.log('FETCH URL:', url);
+    console.log('FETCH URL:', url);
+    console.log('FETCH URL:', url);
+    console.log('FETCH URL:', url);
+
     this.usage.requests++;
     const start = (new Date()).getTime();
 
@@ -48,16 +71,31 @@ export const BaseFetcher = class {
         }
       }
 
-      logger.debug(`Adding ${url} to fetch queue`);
+      logger.debug(`Adding to fetch queue: ${url}`);
       const p = await this.q.add(() => {
-        logger.debug(`Queue is starting fetch of ${url}`);
+        logger.debug(`Queue is starting fetch of: ${url}`);
         return this._fetch(url, options);
       });
       logger.debug(`Fetch queue has ${this.q.size} requests`);
       const doc = await p;
 
+      if (options.multiple) {
+        if (Array.isArray(doc)) {
+        } else {
+          doc = [doc];
+        }
+      } else {
+        if (Array.isArray(doc)) {
+          doc = doc[0];
+        } else {
+        }
+      }
+
       // TODO: option to cache null/bad responses
-      if (doc) this.setCache(url, options, doc.dump());
+      // TODO: caching for multiples
+      if (doc && !Array.isArray(doc)) {
+        this.setCache(url, options, doc.dump());
+      }
 
       return doc;
     } finally {

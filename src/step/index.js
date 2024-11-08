@@ -9,6 +9,7 @@ import { ExtractStep } from './ExtractStep.js';
 import { FetchStep } from './FetchStep.js';
 import { FilterStep } from './FilterStep.js';
 import { LimitStep } from './LimitStep.js';
+import { LoginStep } from './LoginStep.js';
 import { SchemaStep } from './SchemaStep.js';
 import { UniqueStep } from './UniqueStep.js';
 
@@ -21,6 +22,7 @@ export { ExtractStep } from './ExtractStep.js';
 export { FetchStep } from './FetchStep.js';
 export { FilterStep } from './FilterStep.js';
 export { LimitStep } from './LimitStep.js';
+export { LoginStep } from './LoginStep.js';
 export { SchemaStep } from './SchemaStep.js';
 export { UniqueStep } from './UniqueStep.js';
 
@@ -34,6 +36,7 @@ export const classMap = {
   fetch: FetchStep,
   filter: FilterStep,
   limit: LimitStep,
+  login: LoginStep,
   schema: SchemaStep,
   unique: UniqueStep,
 };

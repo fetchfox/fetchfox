@@ -20,6 +20,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async _fetch(url, options) {
     logger.info(`Playwright fetch ${url} with options ${options || '(none)'}`);
+    console.log('actor?'+ options.actor);
+
+    throw 'PW STOP';
 
     const doc = new Document();
 
@@ -33,7 +36,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
         resp = await page.goto(url, { timeout: this.timeoutWait });
         logger.debug(`Playwright loaded page before timeout`);
-        html = await getHtmlFromSuccess(page, this.timeoutWait);
+        html = await getHtmlFromSuccess(page, this.loadWait);
       } catch(e) {
         logger.error(`Playwright could not get ${url}: ${e}`);
         logger.debug(`Trying to salvage results`);
@@ -71,6 +74,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 }
 
 const getHtmlFromSuccess = async (page, loadWait) => {
+  logger.debug(`Playwright waiting ${(loadWait/1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 
   // Get all the iframes

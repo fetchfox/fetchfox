@@ -8,6 +8,7 @@ export const nameMap = {
   FetchStep: 'fetch',
   FilterStep: 'filter',
   LimitStep: 'limit',
+  LoginStep: 'login',
   SchemaStep: 'schema',
   UniqueStep: 'unique',
 };
@@ -200,6 +201,26 @@ export const stepDescriptionsMap = {
     name: 'limit',
     description: 'Limit the number of results',
     args: {},
+  }),
+
+  login: combineInfo({
+    hideFromAI: true,
+    name: 'login',
+    description: 'Log in using username and password',
+    args: {
+      username: {
+        description: 'Username to use for login.',
+        format: 'string',
+        example: 'email@example.com',
+        required: true,
+      },
+      password: {
+        description: 'Password to use for login.',
+        format: 'string',
+        example: 'password123',
+        required: true,
+      },
+    },
   }),
 
   schema: combineInfo({

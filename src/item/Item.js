@@ -15,6 +15,14 @@ export const Item = class {
     this.url = source?.url || data?.url;
   }
 
+  toString() {
+    const dump = JSON.stringify(this);
+    if (dump.length > 100) {
+      dump = dump.substr(0, 80) + '...'
+    }
+    return `[Item ${dump}]`;
+  }
+
   copy() {
     return new Item(
       JSON.parse(JSON.stringify(this)),

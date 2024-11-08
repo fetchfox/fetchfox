@@ -1,7 +1,9 @@
+import { logger } from '../log/logger.js';
 import { getAI, BaseAI } from '../ai/index.js';
 import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
+import { getActor, BaseActor } from '../act/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { copyKeys } from './constants.js';
 
@@ -11,10 +13,14 @@ export const contextKeys = [
   ['ai', getAI, BaseAI],
   ['crawler', getCrawler, BaseCrawler],
   ['extractor', getExtractor, BaseExtractor],
+  ['actor', getActor, BaseActor],
 ];
 
 
 const decodeArgs = (args, cache) => {
+  logger.trace('decodeArgs');
+  console.log('decodeArgs', args);
+
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
 
@@ -50,10 +56,15 @@ const decodeArgs = (args, cache) => {
     decoded[key] = val;
   }
 
+  console.log('decoded actor' + decoded.actor);
+
   for (const [key, initVal] of copyKeys) {
     const val = args && args[key] ? JSON.parse(JSON.stringify(args[key])) : initVal;
     decoded[key] = val;
   }
+
+  logger.trace('yy');
+  console.log('decoded actor 2' + decoded.actor);
 
   return decoded;
 }
@@ -84,12 +95,18 @@ export const Context = class {
 
     const combined = { ...this.args, ...other };
     const decoded = decodeArgs(combined);
+    console.log('decoded 3: ' + decoded.actor);
 
     for (const key of Object.keys(decoded)) {
+      console.log('context update key', key);
       this[key] = decoded[key];
     }
 
     this.args = combined;
+
+    console.log(this.args);
+    console.log('this.args.actor=' + this.args.actor);
+    console.log('this.actor=' + this.actor);
 
     return this;
   }
