@@ -17,7 +17,7 @@ describe('pointsyeah.com', function() {
       .config({
         actor: [
           'playwright',
-          { headless: false, timeoutWait: 10000, loadWait: 2000 }],
+          { headless: true, timeoutWait: 10000, loadWait: 2000 }],
         fetcher: ['actor'],
         diskCache: os.tmpdir() + '/fetchfox-test-cache',
       })
