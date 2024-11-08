@@ -164,8 +164,6 @@ export const Actor = class extends BaseActor {
     await passwordLocs[0].press('Enter');
 
     await this._checkReady();
-
-    return ready;
   }
 
   async act(action, query, selector) {
