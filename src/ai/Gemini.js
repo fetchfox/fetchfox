@@ -46,8 +46,10 @@ export const Gemini = class extends BaseAI {
     const gemini = new GoogleGenerativeAI(this.apiKey);
     const model = gemini.getGenerativeModel({ model: this.model });
     const completion = await model.generateContent([ prompt ]);
-    const ctx = { prompt, format, usage, answer, buffer, cacheHint };
-    const chunk = completion;
+
+    // const ctx = { prompt, format, usage, answer, buffer, cacheHint };
+
+    const chunk = await completion;
     return yield Promise.resolve(chunk);
   }
 }
