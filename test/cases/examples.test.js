@@ -16,6 +16,7 @@ describe('examples', function() {
 
   it('should do basic example @run', async () => {
     const results = await fox
+      .config({ ai: 'google:gemini-1.5-flash' })
       .init('https://pokemondb.net/pokedex/national')
       .extract({ name: 'Pokemon name', number: 'Pokemon number' })
       .limit(3)
