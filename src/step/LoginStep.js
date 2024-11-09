@@ -15,6 +15,7 @@ export const LoginStep = class extends BaseStep {
 
     const actor = await cursor.ctx.actor.fork();
     await actor.start(url);
+    await actor.goto(url);
     await actor.login(this.username, this.password);
 
     cursor.defer(() => actor.finish());

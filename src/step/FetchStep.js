@@ -10,7 +10,7 @@ export const FetchStep = class extends BaseStep {
   }
 
   async process({ cursor, item }, cb) {
-    logger.debug(`Fetch step for ${item} ${item.actor}`);
+    logger.info(`Fetch step for ${item} ${item.actor}`);
 
     const options = { multiple: true };
     if (this.scroll) {
@@ -19,8 +19,12 @@ export const FetchStep = class extends BaseStep {
     if (this.scrollWait) {
       options.scrollWait = this.scrollWait;
     }
-    if (item.actor) {
-      options.actor = item.actor;
+
+    if (typeof item.actor == 'function' && item.actor()) {
+      options.actor = item.actor();
+    } else {
+      options.actor = await cursor.ctx.actor.fork();
+      cursor.defer(() => options.actor.finish());
     }
 
     const stream = await cursor.ctx.fetcher.fetch(item.url, options);
@@ -28,12 +32,5 @@ export const FetchStep = class extends BaseStep {
       logger.info(`Fetch step yielding ${doc}`);
       cb(new Item({}, doc));
     }
-
-    // const docs = await cursor.ctx.fetcher.fetch(item.url, options);
-    // logger.info(`Fetch step for ${docs.length} documents`);
-    // for (const doc of docs) {
-    //   logger.info(`Fetch step yielding ${doc}`);
-    //   cb(new Item({}, doc));
-    // }
   }
 }
