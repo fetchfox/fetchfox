@@ -55,7 +55,7 @@ export const Store = class {
   }
 
   async finish(id, results) {
-    const job = results || {};
+    const job = results || (await this.kv.get(id)) || {};
     job.done = true;
     await this.kv.set(id, job);
 

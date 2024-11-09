@@ -88,6 +88,8 @@ export const BaseStep = class {
       return this._run(cursor, steps, index);
     } catch(e) {
       await cursor.error('' + e, index);
+      this.trigger('done');
+      this._finish(cursor, index)
       throw e;
     }
   }

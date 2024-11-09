@@ -99,7 +99,6 @@ export const Workflow = class extends BaseWorkflow {
     if (args) this.parseRunArgs(args);
     await this.plan();
 
-
     if (this.steps.length == 0) return;
     this.cursor = new Cursor(this.ctx, this.steps, cb);
     const last = this.steps[this.steps.length - 1];
