@@ -15,10 +15,10 @@ export const ExtractStep = class extends BaseStep {
     let questions;
     if (typeof args == 'string') {
       questions = [args];
+    } else if (args.questions) {
+      questions = args.questions;
     } else if (isPlainObject(args)) {
       questions = args;
-    } else {
-      questions = args.questions;
     }
 
     if (!questions) throw new Error('No questions for extract step');
