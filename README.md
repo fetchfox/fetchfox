@@ -21,6 +21,7 @@ Install the package and playwright:
 
 ```bash
 npm i fetchfox
+npx playwright install-deps
 npx playwright install
 ```
 
