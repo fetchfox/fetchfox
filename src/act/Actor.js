@@ -156,6 +156,7 @@ export const Actor = class extends BaseActor {
     // TODO: actually check for ready using AI. For now just sleeping a bit.
     await new Promise(ok => setTimeout(ok, 5000));
   }
+
   async login(username, password) {
     const [
       usernameLocs,
@@ -164,7 +165,6 @@ export const Actor = class extends BaseActor {
       this.finder('username/email field', 'input').all(),
       this.finder('password field', 'input').all(),
     ]);
-      
     await usernameLocs[0].type(username);
     await passwordLocs[0].type(password);
     await new Promise(ok => setTimeout(ok, 200));
