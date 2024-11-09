@@ -12,6 +12,7 @@ export const Server = class {
     options ||= {};
 
     this.store = options?.store || new Store();
+    this.onError = options?.onError;
 
     this.conns = new Set();
     this.relay = new Relay();
@@ -77,7 +78,10 @@ export const Server = class {
     const child = fork(this.childPath);
     this.children[id] = child;
 
-    child.on('message', ({ command, data }) => {
+    child.on('message', (msg) => {
+      console.log('msg', msg);
+      const { command, data } = msg;
+
       switch (command) {
         case 'partial':
           this.store.pub(id, data);
@@ -87,6 +91,13 @@ export const Server = class {
         case 'final':
           this.store.finish(id, data);
           this.safeSend(child, { command: 'exit' });
+          break;
+
+        case 'error':
+          if (this.onError) {
+            this.onError(data);
+          }
+          this.store.finish(id);
           break;
 
         default:

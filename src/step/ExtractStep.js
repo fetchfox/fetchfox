@@ -1,15 +1,21 @@
 import { logger } from '../log/logger.js';
 import { getExtractor } from '../extract/index.js';
 import { BaseStep } from './BaseStep.js';
+import { isPlainObject } from '../util.js';
 
 export const ExtractStep = class extends BaseStep {
   constructor(args) {
     super(args);
 
+    if (args?.single) {
+      this.single = !!args.single;
+      delete args.single;
+    }
+
     let questions;
     if (typeof args == 'string') {
       questions = [args];
-    } else if (Array.isArray(args)) {
+    } else if (isPlainObject(args)) {
       questions = args;
     } else {
       questions = args.questions;
@@ -18,7 +24,6 @@ export const ExtractStep = class extends BaseStep {
     if (!questions) throw new Error('No questions for extract step');
 
     this.questions = questions;
-    this.single = args?.single;
   }
 
   async process({ cursor, item }, cb) {
