@@ -3,26 +3,21 @@ import { BaseStep } from './BaseStep.js';
 
 export const UniqueStep = class extends BaseStep {
   constructor(args) {
+    if (typeof args == 'string') {
+      args = { field: args };
+    }
+    args.concurrency = 1e6;
+    args.intervalCap = 1e6;
+    args.interval = 0;
+
     super(args);
 
     this.fields = [];
-
     if (args.field) {
       this.fields.push(args.field);
     }
     if (args.fields) {
       this.fields.push(...args.fields);
-    }
-
-    if (!this.fields.length && args) {
-      if (typeof args == 'string') {
-        this.fields = [args];
-      } else if (
-        Array.isArray(args) &&
-        args.filter(x => typeof x == 'string').length == args.length)
-      {
-        this.fields = args;
-      }
     }
   }
 

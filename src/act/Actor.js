@@ -49,8 +49,10 @@ export const Actor = class extends BaseActor {
     const copy = new Actor(this);
     for (const h of this.history) {
       if (h.action == 'start') {
-        if (copy.url()) throw new Error('Unexpected double start');
-        await copy.start(h.url);
+        await copy.start(h);
+
+      } else if (h.action == 'goto') {
+        await copy.goto(h.url);
 
       } else {
         copy.index = h.index;
@@ -81,7 +83,9 @@ export const Actor = class extends BaseActor {
     return playwright[this.browser].launch({ headless: this.headless });
   }
 
-  async start(url) {
+  async start() {
+    logger.info(`Actor starting`);
+
     if (this._browser) throw new Error('Double browser launch');
 
     this._browser = await this.launch();
@@ -90,11 +94,10 @@ export const Actor = class extends BaseActor {
       this.url = p.url();
     });
 
-    this.page = await this._browser.newPage();
-    await this.goto(url);
-
     this.index = 0;
-    this.history = [{ action: 'start', url }];
+    this.history = [{ action: 'start' }];
+
+    this.page = await this._browser.newPage();
   }
 
   finder(query, selector) {
@@ -113,8 +116,17 @@ export const Actor = class extends BaseActor {
   }
 
   async goto(url, checkForReady) {
+    logger.info(`Actor goto ${url}, checkForReady=${checkForReady}`);
+
+    if (!this._browser) {
+      await this.start();
+    }
+
     if (!this._browser) throw new Error('No browser');
     if (!this.page) throw new Error('No page');
+
+    this.index++;
+    this.history.push({ action: 'goto', url });
 
     if (this.page.url() == url) {
       logger.info(`Actor page already on ${url}, not calling goto again`);
