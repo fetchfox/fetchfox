@@ -21,7 +21,7 @@ Install the package and playwright:
 
 ```bash
 npm i fetchfox
-npx install playwright
+npx playwright install
 ```
 
 Then use it. Here is the callback style:
