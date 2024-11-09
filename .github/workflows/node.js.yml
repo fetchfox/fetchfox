@@ -27,5 +27,6 @@ jobs:
     - name: Run tests
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         FF_LOG: debug
       run: npm test
