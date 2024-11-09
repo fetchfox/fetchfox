@@ -19,37 +19,24 @@ export const Gemini = class extends BaseAI {
   }
 
   normalizeChunk(chunk) {
-    let message;
-    if (chunk.response?.candidates &&
-      chunk.response.candidates[0].content?.parts) {
-
-      message = chunk.response.candidates[0].content.parts[0].text;
-    }
-
+    console.log('normalizeChunk', chunk);
+    const message = chunk.text();
+    console.log('google said:', message);
     let usage;
-    if (chunk.response?.usageMetadata) {
-      usage = {
-        input: chunk.response.usageMetadata.promptTokenCount || 0,
-        output: chunk.response.usageMetadata.candidatesTokenCount || 0,
-        total: ((chunk.response.usageMetadata.promptTokenCount || 0) +
-                (chunk.response.usageMetadata.candidatesTokenCount || 0)),
-      };
-    }
-
     return { model: this.model, message, usage };
   }
 
   async *inner(prompt, options) {
-    // TODO: Implement Gemini streaming
-
     options = Object.assign({ format: 'text' }, options);
     const gemini = new GoogleGenerativeAI(this.apiKey);
     const model = gemini.getGenerativeModel({ model: this.model });
-    const completion = await model.generateContent([ prompt ]);
 
-    // const ctx = { prompt, format, usage, answer, buffer, cacheHint };
+    const completion = await model.generateContentStream(prompt);
+    console.log('gemini sreaming completion:', completion);
 
-    const chunk = await completion;
-    return yield Promise.resolve(chunk);
+    for await (const chunk of completion.stream) {
+      console.log('got a chunk from gemini', chunk);
+      yield Promise.resolve(chunk);
+    }
   }
 }
