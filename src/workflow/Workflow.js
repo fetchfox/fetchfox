@@ -100,6 +100,7 @@ export const Workflow = class extends BaseWorkflow {
     await this.plan();
 
     if (this.steps.length == 0) return;
+
     this.cursor = new Cursor(this.ctx, this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
@@ -109,6 +110,11 @@ export const Workflow = class extends BaseWorkflow {
       if (this.ctx.limit) {
         last.limit = this.ctx.limit;
       }
+
+      const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => ''+s).join(' -> ')} `;
+      logger.info('+' + '-'.repeat(msg.length) + '+');
+      logger.info('|' + msg + '|');
+      logger.info('+' + '-'.repeat(msg.length) + '+');
 
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
       return this.cursor.out();
