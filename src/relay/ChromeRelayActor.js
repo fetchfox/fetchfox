@@ -4,6 +4,7 @@ import { Document } from '../document/Document.js';
 
 export const ChromeRelayActor = class {
   constructor(host, options) {
+    host = host.replace(/^http/, 'ws');
     this.client = new Client(host, { reconnect: true });
     this.requestCompletedTimeout = options?.requestCompletedTimeout || 5000;
   }
