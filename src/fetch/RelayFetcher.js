@@ -31,7 +31,7 @@ export const RelayFetcher = class extends BaseFetcher {
     await p;
   }
 
-  async _fetch(url, options) {
+  async *_fetch(url, options) {
     await this._maybeInit();
     this._inFlight++;
     const active = options?.active;
@@ -94,7 +94,7 @@ export const RelayFetcher = class extends BaseFetcher {
 
       logger.debug(`Relay fetcher loaded document for ${url}: ${doc}`);
 
-      return doc;
+      yield Promise.resolve(doc);
     } finally {
       this._inFlight--;
       logger.debug(`Still inflight: ${this._inFlight}`);

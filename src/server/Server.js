@@ -79,7 +79,6 @@ export const Server = class {
     this.children[id] = child;
 
     child.on('message', (msg) => {
-      console.log('msg', msg);
       const { command, data } = msg;
 
       switch (command) {

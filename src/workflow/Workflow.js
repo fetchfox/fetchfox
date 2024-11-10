@@ -112,9 +112,9 @@ export const Workflow = class extends BaseWorkflow {
       }
 
       const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => ''+s).join(' -> ')} `;
-      logger.info('+' + '-'.repeat(msg.length) + '+');
-      logger.info('|' + msg + '|');
-      logger.info('+' + '-'.repeat(msg.length) + '+');
+      logger.info('╔' + '═'.repeat(msg.length) + '╗');
+      logger.info('║' + msg + '║');
+      logger.info('╚' + '═'.repeat(msg.length) + '╝');
 
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
       return this.cursor.out();

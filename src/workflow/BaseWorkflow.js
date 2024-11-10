@@ -34,12 +34,13 @@ export const BaseWorkflow = class {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];
-    } else if (args.steps) {
-      this._stepsInput = args.steps;
-    } else if (isPlainObject(args)) {
-      // pass
     } else {
-      throw new Error('Unexpected run args: ' + args);
+      if (args.steps) {
+        this._stepsInput = args.steps;
+      }
+      if (args.options) {
+        this.ctx.update(args.options);
+      }
     }
   }
 

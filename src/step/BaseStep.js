@@ -123,7 +123,7 @@ export const BaseStep = class {
     await new Promise(async (ok) => {
 
       const maybeOk = () => {
-        logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, received=${received}, completed=${completed}`);
+        logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);
@@ -167,10 +167,8 @@ export const BaseStep = class {
               (output) => {
                 this.results.push(output);
 
-                // if (!done) {
-                // }
-
                 const hitLimit = this.limit && this.results.length >= this.limit;
+
                 if (hitLimit) {
                   logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
                 }
@@ -180,6 +178,7 @@ export const BaseStep = class {
                 this.trigger('item', output);
 
                 if (done) {
+                  logger.debug(`Received done signal inside callback for ${this}`);
                   ok();
                 } else {
                   done = maybeOk();
@@ -199,7 +198,8 @@ export const BaseStep = class {
 
         completed++;
 
-        if (completed >= this.limit) {
+        if (this.limit && completed >= this.limit) {
+          logger.debug(`Number completed in ${this} exceeds limit ${this.limit}, done`);
           ok();
         }
 
@@ -220,7 +220,7 @@ export const BaseStep = class {
     parent.remove(onParentItem);
     parent.remove(onParentDone);
 
-    logger.debug(`Step ${this} done, clearing queue with ${this.q.size} tasks left`);
+    logger.info(`Done with ${this}, clearing queue with ${this.q.size} tasks left`);
     this.q.clear();
 
     this.trigger('done');
