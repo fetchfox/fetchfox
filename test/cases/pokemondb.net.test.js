@@ -158,21 +158,15 @@ describe('pokemondb.net', function() {
       }
     };
 
-    let count = 0;
-
-    const out = await fox.run(
-      json,
-      (partial) => {
-        count++;
-        if (count >= 4) {
-          throw 'STOP';
-        }
-      });
+    const out = await fox.run(json);
 
     const fireTypes = out.items.filter(i => i.types.toLowerCase().indexOf('fire') != -1);
-
-    assert.equal(count, 3);
     assert.equal(out.items.length, 3);
     assert.equal(fireTypes.length, 3);
+
+    for (const result of out.full) {
+      assert.ok(result.done);
+      assert.ok(!result.loading);
+    }
   });
 });

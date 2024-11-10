@@ -117,7 +117,7 @@ export const Workflow = class extends BaseWorkflow {
       logger.info('╚' + '═'.repeat(msg.length) + '╝');
 
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
-      return this.cursor.out();
+      return this.cursor.out(true);
     } finally {
       last.limit = originalLimit;
       this.cursor.finishAll();
