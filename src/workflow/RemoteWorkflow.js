@@ -66,7 +66,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
           ok(data.out);
           ws.close(1000);
         } else {
-          cb && cb(data);
+          cb && cb(data, ws);
         }
       }
 
@@ -126,11 +126,6 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     } finally {
       this.id = null;
     }
-  }
-
-  async close() {
-    logger.info(`Closing websocket on client side, id=${this.id}`);
-    ws.close(1000);
   }
 }
 
