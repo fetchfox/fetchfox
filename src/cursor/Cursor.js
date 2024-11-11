@@ -89,6 +89,8 @@ export const Cursor = class {
   }
 
   finish(stepIndex) {
+    logger.info(`Finish step all in cursor ${stepIndex}`);
+
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
     if (this.ctx.publishAllSteps) {
@@ -101,6 +103,7 @@ export const Cursor = class {
   }
 
   finishAll() {
+    logger.info(`Finish all in cursor`);
     for (let i = 0; i < this.full.length; i++) {
       if (!this.full[i].done) {
         this.finish(i);
