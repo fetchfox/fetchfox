@@ -11,7 +11,11 @@ export const BaseWorkflow = class {
   dump() {
     const steps = [];
     for (const step of this.steps) {
-      steps.push(step.dump());
+      if (isPlainObject(step)) {
+        steps.push(step);
+      } else {
+        steps.push(step.dump());
+      }
     }
     return {
       steps,

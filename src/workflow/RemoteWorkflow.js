@@ -127,6 +127,11 @@ export const RemoteWorkflow = class extends BaseWorkflow {
       this.id = null;
     }
   }
+
+  async close() {
+    logger.info(`Closing websocket on client side, id=${this.id}`);
+    ws.close(1000);
+  }
 }
 
 for (const stepName of stepNames) {
