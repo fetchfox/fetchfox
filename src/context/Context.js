@@ -1,7 +1,9 @@
+import { logger } from '../log/logger.js';
 import { getAI, BaseAI } from '../ai/index.js';
 import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
+import { getActor, BaseActor } from '../act/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { copyKeys } from './constants.js';
 
@@ -11,6 +13,7 @@ export const contextKeys = [
   ['ai', getAI, BaseAI],
   ['crawler', getCrawler, BaseCrawler],
   ['extractor', getExtractor, BaseExtractor],
+  ['actor', getActor, BaseActor],
 ];
 
 

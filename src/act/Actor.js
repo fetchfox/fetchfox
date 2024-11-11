@@ -3,17 +3,29 @@ import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getExtractor } from '../extract/index.js';
 import { Document } from '../document/Document.js';
+import { Vision } from '../vision/Vision.js';
 import { Finder } from './Finder.js';
+import { BaseActor } from './BaseActor.js';
 
-export const Actor = class {
+export const Actor = class extends BaseActor {
   constructor(options) {
+    super(options);
     this.ai = options?.ai || getAI();
     this.extractor = options?.extractor || getExtractor();
+    this.vision = new Vision({ ai: this.ai });
+
+    this.headless = options?.headless === undefined ? true : options.headless;
+    this.browser = options?.browser || 'chromium';
+    this.loadWait = options?.loadWait || 1000;
+    this.timeoutWait = options?.timeoutWait || 4000;
+
+    this.history = [];
+    this.index = -1;
   }
 
   toString() {
     const url = this.url();
-    return `[Actor ${url.length > 40 ? url.substr(32) + '...' : url } ${(this.history || []).length} acts]`;
+    return `[Actor ${this.browser} loadWait=${this.loadWait}]`;
   }
 
   url() {
@@ -37,8 +49,10 @@ export const Actor = class {
     const copy = new Actor(this);
     for (const h of this.history) {
       if (h.action == 'start') {
-        if (copy.url()) throw new Error('Unexpected double start');
-        await copy.start(h.url);
+        await copy.start(h);
+
+      } else if (h.action == 'goto') {
+        await copy.goto(h.url);
 
       } else {
         copy.index = h.index;
@@ -53,6 +67,10 @@ export const Actor = class {
 
   async fork(action, query, selector) {
     const fork = await this.replay();
+    if (!query) {
+      return fork;
+    }
+
     const done = await fork.act(action, query, selector);
     this.history = JSON.parse(JSON.stringify(fork.history));
     this.history.pop();
@@ -60,24 +78,99 @@ export const Actor = class {
     return [fork, done];
   }
 
-  async start(url) {
-    if (this.browser) throw new Error('double browser');
+  async launch() {
+    logger.debug(`Actor launching ${this.browser}`);
+    return playwright[this.browser].launch({ headless: this.headless });
+  }
 
-    this.browser = await playwright.chromium.launch({ headless: true });
-    this.browser.on('page', async (p) => {
+  async start() {
+    logger.info(`Actor starting`);
+
+    if (this._browser) throw new Error('Double browser launch');
+
+    this._browser = await this.launch();
+    this._browser.on('page', async (p) => {
       await p.waitForLoadState();
       this.url = p.url();
     });
 
-    this.page = await this.browser.newPage();
-    await this.page.goto(url);
-
     this.index = 0;
-    this.history = [{ action: 'start', url }];
+    this.history = [{ action: 'start' }];
+
+    this.page = await this._browser.newPage();
   }
 
   finder(query, selector) {
     return new Finder(this.ai, this.page, query, selector);
+  }
+
+
+  async *scrollForDocs(num, scrollWait) {
+    for (let i = 0; i < num; i++) {
+      const wait = scrollWait || this.loadWait;
+      logger.debug(`Wait for ${wait} and then scroll and get doc`);
+      await new Promise(ok => setTimeout(ok, wait));
+      await this.page.keyboard.press('PageDown');
+      yield this.doc();
+    }
+  }
+
+  async goto(url, checkForReady) {
+    logger.info(`Actor goto ${url}, checkForReady=${checkForReady}`);
+
+    if (!this._browser) {
+      await this.start();
+    }
+
+    if (!this._browser) throw new Error('No browser');
+    if (!this.page) throw new Error('No page');
+
+    this.index++;
+    this.history.push({ action: 'goto', url });
+
+    if (this.page.url() == url) {
+      logger.info(`Actor page already on ${url}, not calling goto again`);
+
+    } else {
+      logger.debug(`Actor go to ${url} with timeout ${this.timeoutWait} secs`);
+      try {
+        await this.page.goto(url, { timeout: this.timeoutWait });
+      } catch (e) {
+        if (e.name != 'TimeoutError') throw e;
+        logger.warn(`Actor continuing after timeout on ${url}`);
+      }
+
+      logger.debug(`Actor waiting ${this.loadWait} secs for load`);
+      await new Promise(ok => setTimeout(ok, this.loadWait));
+      logger.debug(`Done waiting`);
+    }
+
+    if (checkForReady) {
+      return await this._checkReady();
+    } else {
+      return true;
+    }
+  }
+
+  async _checkReady() {
+    // TODO: actually check for ready using AI. For now just sleeping a bit.
+    await new Promise(ok => setTimeout(ok, 5000));
+  }
+
+  async login(username, password) {
+    const [
+      usernameLocs,
+      passwordLocs,
+    ] = await Promise.all([
+      this.finder('username/email field', 'input').all(),
+      this.finder('password field', 'input').all(),
+    ]);
+    await usernameLocs[0].type(username);
+    await passwordLocs[0].type(password);
+    await new Promise(ok => setTimeout(ok, 200));
+    await passwordLocs[0].press('Enter');
+
+    await this._checkReady();
   }
 
   async act(action, query, selector) {
@@ -104,13 +197,20 @@ export const Actor = class {
         await new Promise(ok => setTimeout(ok, 500));
 
         break;
+
+      case 'login':
+        await this.login();
+        break;
+
       default:
         throw new Error(`Unhandled action: ${action}`);
     }
   }
 
   async finish() {
-    await this.browser.close();
-    this.browser = null;
+    if (this._browser) {
+      await this._browser.close();
+      this._browser = null;
+    }
   }
 }

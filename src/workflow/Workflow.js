@@ -53,7 +53,10 @@ export const Workflow = class extends BaseWorkflow {
 
     }
 
-    const steps = await planPromise;
+    const {
+      steps,
+      itemDescription,
+    } = await planPromise;
     const desc = await planner.describe({
       steps: steps.map(s => s.dump()),
       url: args.url,
@@ -62,7 +65,10 @@ export const Workflow = class extends BaseWorkflow {
 
     this.steps = steps
     this.name = desc.name
+
     this.description = desc.description;
+    this.itemDescription = itemDescription;
+
     this._stepsInput = [];
 
     return this;
@@ -94,6 +100,7 @@ export const Workflow = class extends BaseWorkflow {
     await this.plan();
 
     if (this.steps.length == 0) return;
+
     this.cursor = new Cursor(this.ctx, this.steps, cb);
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
@@ -104,10 +111,17 @@ export const Workflow = class extends BaseWorkflow {
         last.limit = this.ctx.limit;
       }
 
+      const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
+      logger.info('╔' + '═'.repeat(msg.length) + '╗');
+      logger.info('║' + msg + '║');
+      logger.info('╚' + '═'.repeat(msg.length) + '╝');
+      logger.info(`Running with global limit=${this.ctx.limit}`);
+
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
-      return this.cursor.out();
+      return this.cursor.out(true);
     } finally {
       last.limit = originalLimit;
+      this.cursor.finishAll();
     }
   }
 }
@@ -137,7 +151,8 @@ for (const stepName of stepNames) {
       }
 
     } else if (name == 'fetch') {
-      return this.step(new cls());
+      const args = prompt;
+      return this.step(new cls(args));
 
     } else if (name == 'limit') {
       if (prompt.limit) {

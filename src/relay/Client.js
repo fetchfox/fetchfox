@@ -4,7 +4,7 @@ import ShortUniqueId from 'short-unique-id';
 
 export const Client = class {
   constructor(host, options) {
-    this.host = host || 'ws://127.0.0.1:9090';
+    this.host = (host || 'ws://127.0.0.1:9090').replace(/^http/, 'ws');
     this.cb = null;
     this.replyCb = {};
     this.sent = {};
@@ -80,7 +80,7 @@ export const Client = class {
 
       ws.onclose = async () => {
         this.ws = null;
-        logger.trace(`Websocket closed, should reconnect? ${shouldReconnect}`);
+        logger.debug(`Websocket closed, should reconnect? ${shouldReconnect}`);
         if (shouldReconnect) {
           await this._reconnect(10);
         }
@@ -179,13 +179,15 @@ export const Client = class {
       logger.debug(`Added reply ID: ${replyId}`);
     }
 
-    logger.debug(`Sending ${msgId} to ${this.id}...`);
-
-    return this.ws.send(JSON.stringify({
+    const payload = JSON.stringify({
       command: 'relaySend',
       id: this.id,
       data,
-    }));
+    });
+
+    logger.debug(`Sending ${msgId} to ${this.id}, size=${payload.length} bytes...`);
+
+    return this.ws.send(payload);
   }
 
   async close() {

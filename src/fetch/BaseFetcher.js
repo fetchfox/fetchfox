@@ -23,7 +23,15 @@ export const BaseFetcher = class {
     return `[${this.constructor.name}]`;
   }
 
-  async fetch(url, options) {
+  async *fetch(target, options) {
+    let url;
+
+    if (typeof target == 'string') {
+      url = target;
+    } else if (typeof target.url == 'string') {
+      url = target.url;
+    }
+
     this.usage.requests++;
     const start = (new Date()).getTime();
 
@@ -48,18 +56,17 @@ export const BaseFetcher = class {
         }
       }
 
-      logger.debug(`Adding ${url} to fetch queue`);
+      logger.debug(`Adding to fetch queue: ${url}`);
       const p = await this.q.add(() => {
-        logger.debug(`Queue is starting fetch of ${url}`);
+        logger.debug(`Queue is starting fetch of: ${url}`);
         return this._fetch(url, options);
       });
       logger.debug(`Fetch queue has ${this.q.size} requests`);
-      const doc = await p;
 
-      // TODO: option to cache null/bad responses
-      if (doc) this.setCache(url, options, doc.dump());
+      for await (const doc of p) {
+        yield Promise.resolve(doc);
+      }
 
-      return doc;
     } finally {
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;

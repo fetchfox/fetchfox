@@ -29,13 +29,13 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
       });
     });
 
-    const data = doc.dump();
+    const data = await doc.dump();
     const html = pretty(root.toString(), { ocd: true });
     data.body = html;
     data.html = html;
 
     const min = new Document();
-    min.loadData(data);
+    await min.loadData(data);
 
     min.parse();
 

@@ -90,7 +90,7 @@ export const Planner = class {
       }
     }
 
-    return objs;
+    return { steps: objs };
   }
 
   async planString(scrapePrompt) {
@@ -112,7 +112,7 @@ export const Planner = class {
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const stepsJson = answer.partial;
 
-    return stepsJson.map(x => this.fromJson(x));
+    return { steps: stepsJson.map(x => this.fromJson(x)) };
   }
 
   fromJson(json) {
@@ -164,7 +164,7 @@ export const Planner = class {
     const prePlanContext = {
       stepLibrary,
       prompt: scrapePrompt,
-      url: (args.url || '').substr(0, 200),
+      url: (args.url || '').substr(0, 1000),
       html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000))
     };
     if (this.user) {
@@ -176,24 +176,35 @@ export const Planner = class {
     const prePlanPrompt = prePlan.render(prePlanContext);
     const prePlanAnswer = (await this.ai.ask(prePlanPrompt, { format: 'json' })).partial;
 
-    console.log('prePlanAnswer', prePlanAnswer);
+    logger.debug(`Got pre plan answer:\n${JSON.stringify(prePlanAnswer, null, 2)}`);
 
     const guidedContext = {
       stepLibrary,
       prompt: scrapePrompt,
       intent: prePlanAnswer.intentAnalysis,
       itemDescription: prePlanAnswer.itemDescription,
+      detailFields: '- ' + prePlanAnswer.detailFields.join('\n - '),
       shouldCrawl: (
         prePlanAnswer.scrapeType == 'multiPage' ? 'This scrape should crawl to find more URLs' : 'This scrape should NOT have a crawl step'),
       itemsPerPage: (prePlanAnswer.perPage == 'multiple' ? 'You are looking for MULTIPLE items in each extraction' : 'You are looking for a SINGLE item per page in extraction'),
-      url: (args.url || '').substr(0, 200),
+      url: (args.url || '').substr(0, 1000),
     };
     const guidedPrompt = guided.render(guidedContext);
-
-    // console.log('guidedPrompt', guidedPrompt);
-
     const guidedAnswer = (await this.ai.ask(guidedPrompt, { format: 'json' })).partial;
-    return guidedAnswer.map(x => this.fromJson(x));
+
+    logger.debug(`Guided plan answer: ${JSON.stringify(guidedAnswer, null, 2)}`);
+
+    const steps = guidedAnswer.map(x => this.fromJson(x));
+
+    // Make sure URL is unchanged
+    if (steps[0].name() == 'const') {
+      steps[0].items[0].url = args.url;
+    }
+
+    return {
+      steps,
+      itemDescription: prePlanAnswer.itemDescription,
+    }
   }
 }
 

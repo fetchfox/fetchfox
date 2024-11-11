@@ -8,6 +8,7 @@ export const nameMap = {
   FetchStep: 'fetch',
   FilterStep: 'filter',
   LimitStep: 'limit',
+  LoginStep: 'login',
   SchemaStep: 'schema',
   UniqueStep: 'unique',
 };
@@ -180,7 +181,20 @@ export const stepDescriptionsMap = {
 
     name: 'fetch',
     description: 'Fetch URLs from the web',
-    args: {},
+    args: {
+      scroll: {
+        description: 'Number of times to scroll down the page',
+        format: 'number',
+        example: 5,
+        required: false,
+      },
+      scrollWait: {
+        description: 'If scrolling, number of milliseconds to wait before the next scroll',
+        format: 'number',
+        example: 500,
+        required: false,
+      },
+    },
   }),
 
   filter: combineInfo({
@@ -200,6 +214,26 @@ export const stepDescriptionsMap = {
     name: 'limit',
     description: 'Limit the number of results',
     args: {},
+  }),
+
+  login: combineInfo({
+    hideFromAI: true,
+    name: 'login',
+    description: 'Log in using username and password',
+    args: {
+      username: {
+        description: 'Username to use for login.',
+        format: 'string',
+        example: 'email@example.com',
+        required: true,
+      },
+      password: {
+        description: 'Password to use for login.',
+        format: 'string',
+        example: 'password123',
+        required: true,
+      },
+    },
   }),
 
   schema: combineInfo({

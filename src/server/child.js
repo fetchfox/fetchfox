@@ -3,6 +3,27 @@ import { logger } from '../log/logger.js';
 
 let workflow = null;
 
+process.on('unhandledRejection', async (e, p) => {
+  logger.error(`Child.js unhandled Rejection at: ${e}`);
+
+  const serialize = (e) => {
+    if (!(e instanceof Error)) {
+      return e;
+    }
+
+    return {
+      name: e.name,
+      message: e.message,
+      stack: e.stack,
+      ...(e.code && { code: e.code }),
+      ...(e.details && { details: e.details }),
+    };
+  }
+
+  await process.send({ command: 'error', data: serialize(e) });
+  process.exit(1);
+});
+
 process.on('message', async ({ command, data }) => {
   logger.debug(`Child got message: command=${command} data=${data}`)
   switch (command) {
@@ -30,6 +51,7 @@ process.on('message', async ({ command, data }) => {
       break;
 
     case 'exit':
+      logger.info(`Child exiting`);
       process.exit(0);
       break;
   }

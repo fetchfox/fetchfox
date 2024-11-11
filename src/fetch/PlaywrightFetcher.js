@@ -11,15 +11,20 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.browser = options.browser || 'chromium';
     this.loadWait = options.loadWait || 1000;
     this.timeoutWait = options.timeoutWait || 4000;
+
+    this.options = options?.options || {};
   }
 
   async launch() {
     logger.debug(`Playwright launching ${this.browser}`);
-    return playwright[this.browser].launch({ headless: this.headless });
+    return playwright[this.browser].launch({ ...this.options, headless: this.headless });
   }
 
-  async _fetch(url, options) {
+  async *_fetch(url, options) {
     logger.info(`Playwright fetch ${url} with options ${options || '(none)'}`);
+    if (this.options?.proxy?.server) {
+      logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
+    }
 
     const doc = new Document();
 
@@ -33,7 +38,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
         resp = await page.goto(url, { timeout: this.timeoutWait });
         logger.debug(`Playwright loaded page before timeout`);
-        html = await getHtmlFromSuccess(page);
+        html = await getHtmlFromSuccess(page, this.loadWait);
       } catch(e) {
         logger.error(`Playwright could not get ${url}: ${e}`);
         logger.debug(`Trying to salvage results`);
@@ -57,7 +62,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       logger.info(`Playwright returning: ${doc}`);
 
-      return doc;
+      yield Promise.resolve(doc);
     } catch (e) {
       logger.error(`Playwright error: ${e}`);
       throw e;
@@ -71,6 +76,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 }
 
 const getHtmlFromSuccess = async (page, loadWait) => {
+  logger.debug(`Playwright waiting ${(loadWait/1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 
   // Get all the iframes
@@ -105,10 +111,13 @@ const getHtmlFromSuccess = async (page, loadWait) => {
       const iframes = document.querySelectorAll('iframe');
       const iframe = iframes[index];
       if (iframe) {
+        const policy = window.trustedTypes.createPolicy('default', {
+          createHTML: (html) => html,
+        });
+
         const div = document.createElement('div');
-        div.innerHTML = iframe.outerHTML.replace(
-          '</iframe>',
-          content + '</iframe>');
+        div.innerHTML = policy.createHTML(content);
+
         iframe.replaceWith(div);
       }
     }, { index: i, content });

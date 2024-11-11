@@ -9,13 +9,11 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     super(options);
   }
 
-  async *_run(target, questions, options) {
+  async *_run(doc, questions, options) {
+
     const { stream } = options || {};
 
     logger.debug(`Getting doc in ${this}`);
-
-    const doc = await this.getDoc(target);
-    if (!doc) return;
 
     const { extraRules, description, limit } = options || {};
     let { single } = options || {};
@@ -51,7 +49,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     }
 
     const chunks = this.chunks(doc);
-    const max = 3;
+    const max = 50;
     let count = 0;
     for (let i = 0; i < max && i < chunks.length; i++) {
       logger.debug(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);

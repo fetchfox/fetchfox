@@ -2,6 +2,7 @@ import { logger } from '../log/logger.js';
 import { Fetcher } from './Fetcher.js';
 import { RelayFetcher } from './RelayFetcher.js'
 import { PlaywrightFetcher } from './PlaywrightFetcher.js';
+import { ActorFetcher } from './ActorFetcher.js';
 
 export { BaseFetcher } from './BaseFetcher.js';
 export const DefaultFetcher = Fetcher;
@@ -17,6 +18,9 @@ export const getFetcher = (which, options) => {
 
     r: RelayFetcher,
     relay: RelayFetcher,
+
+    a: ActorFetcher,
+    actor: ActorFetcher,
   }[which];
   if (!fetcherClass) {
     logger.error(`Unknown fetcher: ${which}`);

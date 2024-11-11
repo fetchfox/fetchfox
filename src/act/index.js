@@ -1,8 +1,8 @@
 import { logger } from '../log/logger.js';
 import { Actor } from './Actor.js';
 
-// export const DefaultActor = Actor;
+export { BaseActor } from './BaseActor.js';
 
-export const getActor = (which, options) => {
-  return new Actor();
+export const getActor = (unused, options) => {
+  return new Actor(options);
 }

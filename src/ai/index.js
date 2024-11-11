@@ -10,6 +10,7 @@ export { BaseAI } from './BaseAI.js';
 export const DefaultAI = OpenAI;
 
 export const getAI = (which, options) => {
+  options ||= {};
   which = which || options?.model;
   if (!which) return new DefaultAI(options);
   if (typeof which != 'string') return which;
@@ -17,6 +18,7 @@ export const getAI = (which, options) => {
   let parts = which.split(':');
   const provider = parts[0];
   const model = parts.slice(1).join(':');
+  options.model = model;
   let aiClass = {
     openai: OpenAI,
     anthropic: Anthropic,

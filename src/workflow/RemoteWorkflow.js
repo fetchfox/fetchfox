@@ -47,12 +47,15 @@ export const RemoteWorkflow = class extends BaseWorkflow {
     const WebSocket = await getWebSocket();
 
     const url = this.host().replace(/^http/, 'ws');
-    logger.trace(`Connect to ws: ${url}`);
+    logger.debug(`Connect to ws: ${url}`);
     const ws = new WebSocket(url);
 
     return new Promise((ok, err) => {
       ws.onopen = () => {
-        logger.info(`Websocket open, sending ${JSON.stringify(msg)}`);
+        logger.info(`Websocket open, sending ${JSON.stringify(msg).substr(0, 120)}`);
+        if (this.ctx.apiKey) {
+          msg.apiKey = this.ctx.apiKey;
+        }
         ws.send(JSON.stringify(msg));
       }
 
@@ -63,7 +66,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
           ok(data.out);
           ws.close(1000);
         } else {
-          cb && cb(data);
+          cb && cb(data, ws);
         }
       }
 

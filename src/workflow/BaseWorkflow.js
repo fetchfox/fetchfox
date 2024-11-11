@@ -11,7 +11,11 @@ export const BaseWorkflow = class {
   dump() {
     const steps = [];
     for (const step of this.steps) {
-      steps.push(step.dump());
+      if (isPlainObject(step)) {
+        steps.push(step);
+      } else {
+        steps.push(step.dump());
+      }
     }
     return {
       steps,
@@ -34,12 +38,13 @@ export const BaseWorkflow = class {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];
-    } else if (args.steps) {
-      this._stepsInput = args.steps;
-    } else if (isPlainObject(args)) {
-      // pass
     } else {
-      throw new Error('Unexpected run args: ' + args);
+      if (args.steps) {
+        this._stepsInput = args.steps;
+      }
+      if (args.options) {
+        this.ctx.update(args.options);
+      }
     }
   }
 

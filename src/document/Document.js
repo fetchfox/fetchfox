@@ -9,7 +9,7 @@ export const Document = class {
     return `[Document: ${this.url} ${(this.html || '').length} bytes]`;
   }
 
-  dump() {
+  async dump(options) {
     const data = {
       url: this.url,
       body: this.body,
@@ -19,13 +19,51 @@ export const Document = class {
       resp: this.resp,
       contentType: this.contentType,
     };
+
+    if (options?.presignedUrl) {
+      logger.info(`Dumping to presigned URL ${options?.presignedUrl}`);
+      const htmlUrl = await this.uploadHtml(options.presignedUrl);
+      delete data.body;
+      delete data.html;
+      delete data.text;
+      delete data.links;
+      data.htmlUrl = htmlUrl;
+    }
     if (this.req) {
       data.req = this.req;
     }
     return data;
   }
 
-  loadData(data) {
+  async writeText(filepath) {
+    // try {
+    //   const fs = await import('fs').then(module => module.promises);
+    //   await fs.writeFile(filepath, this.text, 'utf-8');
+    //   logger.info(`Wrote text to ${filepath}`);
+    // } catch (error) {
+    // }
+  }
+
+  async writeHtml(filepath) {
+    // try {
+    //   const fs = await import('fs').then(module => module.promises);
+    //   const baseHref = `<base href="${(new URL(this.url)).origin}" />\n`;
+    //   await fs.writeFile(filepath, baseHref + this.html, 'utf-8');
+    //   logger.info(`Wrote HTML to ${filepath}`);
+    // } catch (error) {
+    // }
+  }
+
+  async uploadHtml(presignedUrl) {
+    await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/html' },
+      body: this.html,
+    });
+    return presignedUrl.replace(/\?.*$/, '');
+  }
+
+  async loadData(data) {
     this.url = data.url;
     this.body = data.body;
     this.html = data.html;
@@ -36,10 +74,21 @@ export const Document = class {
     if (data.req) {
       this.req = data.req;
     }
+
+    if (data.htmlUrl) {
+      logger.debug(`Loading HTML url ${data.htmlUrl}`);
+      const resp = await fetch(data.htmlUrl);
+      await this.read(resp, null, null, data);
+    }
   }
 
-  async read(resp, reqUrl, reqOptions) {
-    this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
+  // TODO: tech debt, refactor arguments to this method
+  async read(resp, reqUrl, reqOptions, options) {
+    if (options?.url) {
+      this.url = options?.url;
+    } else {
+      this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
+    }
     logger.info(`Loading document from response ${this.url}`);
     const start = (new Date()).getTime();
     this.body = await resp.text();
@@ -119,6 +168,7 @@ export const Document = class {
     this.requireHtml();
 
     const links = [];
+    const seen = {};
     let id = 1;
     const root = parse(this.html);
 
@@ -126,6 +176,11 @@ export const Document = class {
       const html = a.outerHTML;
       const text = a.text.trim();
       const href = a.getAttribute('href');
+
+      if (href == undefined) {
+        logger.debug(`Skipping <a> with no href ${(text || '').substr(0, 40)}`);
+        return;
+      }
 
       let url;
       try {
@@ -135,9 +190,14 @@ export const Document = class {
         return;
       }
 
+      const urlStr = url.toString();
+
+      if (seen[urlStr]) return;;
+      seen[urlStr] = true;
+
       links.push({
         id: id++,
-        url: url.toString(),
+        url: urlStr,
         html: html.substring(0, 1000),
         text: text.substring(0, 200),
       });

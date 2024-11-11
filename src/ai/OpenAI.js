@@ -36,12 +36,32 @@ export const OpenAI = class extends BaseAI {
 
   async *inner(prompt, options) {
     const openai = new OpenAILib({ apiKey: this.apiKey });
+
     const args = {
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
       stream_options: { include_usage: true },
     };
+
+    if (options.imageUrl) {
+      logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
+      const existing = args.messages[0].content;
+      args.messages[0].content = [
+        existing,
+        {
+          type: 'image_url',
+          image_url: { url:  options.imageUrl },
+        },
+      ];
+    }
+
+    const canStream = this.model.indexOf('o1') == -1;
+    if (!canStream) {
+      delete args.stream;
+      delete args.stream_options;
+    }
+
     if (options.schema) {
       const toZod = (x) => {
         if (Array.isArray(x)) {
@@ -69,8 +89,13 @@ export const OpenAI = class extends BaseAI {
     }
     const completion = await openai.chat.completions.create(args);
 
-    for await (const chunk of completion) {
-      yield Promise.resolve(chunk);
+    if (canStream) {
+      for await (const chunk of completion) {
+        yield Promise.resolve(chunk);
+      }
+    } else {
+      const answer = await completion;
+      yield Promise.resolve(answer);
     }
   }
 }

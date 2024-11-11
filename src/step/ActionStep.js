@@ -16,14 +16,8 @@ export const ActionStep = class extends BaseStep {
   async process({ cursor, item }, cb) {
     const url = item.url;
 
-    let actor;
-    let base = item.actor();
-    if (base) {
-      actor = base.fork();
-    } else {
-      actor = new Actor(cursor.ctx);
-      await actor.start(url);
-    }
+    let base = item.actor() || cursor.ctx.actor;
+    actor = base.fork();
 
     while (true) {
       let [fork, done] = await actor.fork(this.action, this.query, this.selector);

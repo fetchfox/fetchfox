@@ -11,15 +11,22 @@ export const Server = class {
   constructor(options) {
     options ||= {};
 
+    this.store = options?.store || new Store();
+    this.onError = options?.onError;
+
     this.conns = new Set();
-    this.store = new Store();
     this.relay = new Relay();
+    this.middleware = [];
     this.children = {};
     this.childPath = (
       options.childPath ||
       path.join(
         process.cwd(),
         'node_modules/fetchfox/src/server/child.js'));
+  }
+
+  pushMiddleware(mw) {
+    this.middleware.push(mw);
   }
 
   async sub(data, ws) {
@@ -56,13 +63,24 @@ export const Server = class {
     });
   }
 
+  async safeSend(child, payload) {
+    if (!child.connected) {
+      logger.warn(`Child process ${child} is no longer connected`);
+      return;
+    }
+
+    return child.send(payload);
+  }
+
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data)}`);
     const id = this.store.nextId();
     const child = fork(this.childPath);
     this.children[id] = child;
 
-    child.on('message', ({ command, data }) => {
+    child.on('message', (msg) => {
+      const { command, data } = msg;
+
       switch (command) {
         case 'partial':
           this.store.pub(id, data);
@@ -71,7 +89,14 @@ export const Server = class {
         case 'stop':
         case 'final':
           this.store.finish(id, data);
-          child.send({ command: 'exit' });
+          this.safeSend(child, { command: 'exit' });
+          break;
+
+        case 'error':
+          if (this.onError) {
+            this.onError(data);
+          }
+          this.store.finish(id);
           break;
 
         default:
@@ -79,7 +104,7 @@ export const Server = class {
       }
     });
 
-    child.send({ command: 'start', id, data });
+    this.safeSend(child, { command: 'start', id, data });
     return id;
   }
 
@@ -92,7 +117,7 @@ export const Server = class {
     }
 
     const child = this.children[id];
-    child.send({ command: 'stop' });
+    this.safeSend(child, { command: 'stop' });
   }
 
   async plan(data, ws) {
@@ -113,28 +138,38 @@ export const Server = class {
       this.conns.add(ws);
 
       ws.on('message', async (msg) => {
-        const data = JSON.parse(msg);
-
+        let data = JSON.parse(msg);
         let out;
-        switch (data.command) {
-          case 'start':
-            out = await this.start(data, ws);
+
+        for (const mw of this.middleware) {
+          const result = mw(data);
+          if (result.end) {
+            out = result.end;
             break;
-          case 'stop':
-            out = await this.stop(data, ws);
-            break;
-          case 'sub':
-            out = await this.sub(data, ws);
-            break;
-          case 'plan':
-            out = await this.plan(data, ws);
-            break;
-          case 'relayListen':
-            out = await this.relayListen(data, ws);
-            break;
-          case 'relaySend':
-            out = await this.relaySend(data, ws);
-            break;
+          }
+        }
+
+        if (!out) {
+          switch (data.command) {
+            case 'start':
+              out = await this.start(data, ws);
+              break;
+            case 'stop':
+              out = await this.stop(data, ws);
+              break;
+            case 'sub':
+              out = await this.sub(data, ws);
+              break;
+            case 'plan':
+              out = await this.plan(data, ws);
+              break;
+            case 'relayListen':
+              out = await this.relayListen(data, ws);
+              break;
+            case 'relaySend':
+              out = await this.relaySend(data, ws);
+              break;
+          }
         }
 
         logger.info(`Server side run of ${data.command} done: ${(JSON.stringify(out) || '').substr(0, 120)}`);

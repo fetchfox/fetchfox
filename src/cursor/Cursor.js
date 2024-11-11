@@ -8,6 +8,7 @@ export const Cursor = class {
     this.cb = cb ? cb : () => {};
     this.full = [];
     this.items = [];
+    this.deferCb = [];
     steps.map((step) => this.full.push({
       items: [],
       step: step.dump(),
@@ -16,13 +17,13 @@ export const Cursor = class {
 
   out(markDone) {
     const out = JSON.parse(JSON.stringify({
+      done: this.done,
       items: this.items,
       full: this.full,
       context: this.ctx.dump(),
     }));
 
     if (markDone) {
-      out.forcedDone = true;
       for (const step of out.full) {
         delete step.loading;
         if (!step.done) {
@@ -88,11 +89,34 @@ export const Cursor = class {
   }
 
   finish(stepIndex) {
+    logger.info(`Finish step all in cursor ${stepIndex}`);
+
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
-
     if (this.ctx.publishAllSteps) {
       this.cb(this.out());
+    }
+  }
+
+  defer(cb) {
+    this.deferCb.push(cb);
+  }
+
+  finishAll() {
+    logger.info(`Finish all in cursor`);
+    for (let i = 0; i < this.full.length; i++) {
+      if (!this.full[i].done) {
+        this.finish(i);
+        this.full[i].forcedDone = true;
+      }
+    }
+
+    if (this.ctx.actor) {
+      this.ctx.actor.finish();
+    }
+
+    for (const cb of this.deferCb) {
+      cb();
     }
   }
 }

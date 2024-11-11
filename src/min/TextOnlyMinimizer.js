@@ -17,12 +17,12 @@ export const TextOnlyMinimizer = class extends BaseMinimizer {
     const before = JSON.stringify([doc.html, doc.text]).length;
     logger.info(`Minimizing ${doc} with text only`);
 
-    const data = doc.dump();
+    const data = await doc.dump();
     data.body = '';
     data.html = '';
 
     const min = new Document();
-    min.loadData(data);
+    await min.loadData(data);
 
     const after = JSON.stringify([min.html, min.text]).length;
     const took = (new Date()).getTime() / 1000 - start;

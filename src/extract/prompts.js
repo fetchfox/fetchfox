@@ -71,3 +71,61 @@ Follow these important rules:
 >>>> The user's question is:
 {{question}}
 `);
+
+export const findMultiDescription = new Template(
+  ['questions', 'url'],
+  `You are part of a scraping program. You have user questions. Your goal is to figure out a 2-10 word description of the items the user is trying to scrape.
+
+Respond in JSON format like this:
+
+{"itemDescription": "...your 2-10 word item description..."}
+
+The user defined fields for the item are below:
+{{questions}}
+
+The URL of the page is:
+{{url}}
+
+Based on the questions, what is the ITEM the user is trying to scrape? Response must be a noun.
+
+Your response MUST be valid JSON and only JSON. It will be parsed with JSON.parse()
+`
+);
+
+export const codeGenMulti = new Template(
+  ['html', 'itemDescription', 'questions', 'sample'],
+    `You writing Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data.
+
+Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments.
+
+You will be writing Javascript.
+
+Your goal is to write Javascript code that finds items the user is looking for, and fills in the fields the users asks for.
+
+There are multiple items on each page. Your code should return an ARRAY of all items.
+
+You will receive HTML of the page, along with the correct answer for this page. Your goal is to write a good, robust Javascript code with CSS selectors that finds the answer on other similar pages. Make sure your code generalizes well to other similar pages.
+
+Here is the HTML of the example page: {{html}}
+
+The user is looking for these items: {{itemDescription}}
+
+The user is looking for these fields on each item: {{questions}}
+
+Here is the correct example answer: {{sample}}
+
+Follow these guidelines:
+- You MUST RESPOND ONLY WITH JAVASCRIPT CODE
+- Do NOT GIVE EXAMPLE USAGE
+- You may use the node-html-parser library. It will be passed in as a parameter.
+- Make your code robust, including null checks
+- Loops and maps should have a try/catch structure so a single failed element does not break the entire execution
+
+The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
+- \`html\`: the HTML of the page
+- \`nodeHtmlParser\`: the node-html-parser library
+Use ONLY these parameters in your code
+
+Make sure to RETURN the result at the end
+
+`);

@@ -113,4 +113,60 @@ describe('pokemondb.net', function() {
       1,
       'find Bulbasaur');
   });
+
+  it('should filter for fire type pokemon @run', async () => {
+    const json= {
+      "steps": [
+        {
+          "name": "const",
+          "args": {
+            "items": [
+              {
+                "url": "https://pokemondb.net/pokedex/national"
+              }
+            ]
+          }
+        },
+        {
+          "name": "crawl",
+          "args": {
+            "query": "find links to pokemon character pages",
+            "limit": null
+          }
+        },
+        {
+          "name": "filter",
+          "args": {
+            "query": "Filter for fire type pokemon",
+            "limit": null
+          }
+        },
+        {
+          "name": "extract",
+          "args": {
+            "questions": {
+              "name": "What is the name of this Pokémon?",
+              "number": "What is the National Dex number of this Pokémon?",
+              "types": "What are the types of this Pokémon? Format: Type1 · Type2",
+              "url": "What is the URL of this Pokémon? Format: full absolute URL"
+            }
+          }
+        }
+      ],
+      "options": {
+        "limit": 3
+      }
+    };
+
+    const out = await fox.run(json);
+
+    const fireTypes = out.items.filter(i => i.types.toLowerCase().indexOf('fire') != -1);
+    assert.equal(out.items.length, 3);
+    assert.equal(fireTypes.length, 3);
+
+    for (const result of out.full) {
+      assert.ok(result.done);
+      assert.ok(!result.loading);
+    }
+  });
 });

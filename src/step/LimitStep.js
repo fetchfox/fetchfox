@@ -3,6 +3,9 @@ import { BaseStep } from './BaseStep.js';
 
 export const LimitStep = class extends BaseStep {
   constructor(args) {
+    args.concurrency = 1e6;
+    args.intervalCap = 1e6;
+    args.interval = 0;
     super(args);
   }
 
