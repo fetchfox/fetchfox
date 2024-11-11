@@ -111,7 +111,7 @@ export const Workflow = class extends BaseWorkflow {
         last.limit = this.ctx.limit;
       }
 
-      const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => ''+s).join(' -> ')} `;
+      const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
       logger.info('╔' + '═'.repeat(msg.length) + '╗');
       logger.info('║' + msg + '║');
       logger.info('╚' + '═'.repeat(msg.length) + '╝');
