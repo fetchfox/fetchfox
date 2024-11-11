@@ -106,10 +106,13 @@ const getHtmlFromSuccess = async (page, loadWait) => {
       const iframes = document.querySelectorAll('iframe');
       const iframe = iframes[index];
       if (iframe) {
+        const policy = window.trustedTypes.createPolicy('default', {
+          createHTML: (html) => html,
+        });
+
         const div = document.createElement('div');
-        div.innerHTML = iframe.outerHTML.replace(
-          '</iframe>',
-          content + '</iframe>');
+        div.innerHTML = policy.createHTML(content);
+
         iframe.replaceWith(div);
       }
     }, { index: i, content });
