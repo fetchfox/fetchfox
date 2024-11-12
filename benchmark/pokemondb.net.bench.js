@@ -107,9 +107,6 @@ async function loadGtPokemon() {
 async function analyzePokemon(predictionsJsonl, limit = 0) {
   const groundTruthJsonl = await loadGtPokemon();
 
-  console.log(predictionsJsonl);
-  console.log(groundTruthJsonl);
-
   let predictions;
   let groundTruth;
   try {
@@ -155,7 +152,6 @@ function getAccuracy(predictions, groundTruth, limit = 0) {
           const predKey = Object.keys(pred).find(
               k => k.toLowerCase() === gtKey.toLowerCase()
           );
-          console.log(gtKey, predKey, gt[gtKey], pred[predKey])
           return predKey && gt[gtKey] === pred[predKey];
       });
       
