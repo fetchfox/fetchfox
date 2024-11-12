@@ -10,7 +10,6 @@ async function scrapePokemon(modelName, limit = 10) {
     .extract({ name: 'Pokemon name', number: 'Pokemon number' })
     .limit(limit)
     .run();
-
   return results.items;
 }
 
