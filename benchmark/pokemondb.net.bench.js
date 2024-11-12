@@ -1,7 +1,7 @@
 import { fox } from '../src/index.js';
 
-import fs from 'fs/promises';
-import { parse } from 'csv-parse/sync';  // or csv-parse/sync.js
+import fs from 'fs';
+import { parse as parseCsv } from 'csv-parse/sync';
 
 // Simple statistics helper
 class Stats {
@@ -88,8 +88,8 @@ async function scrapePokemon(modelName, limit = 10) {
 async function loadGtPokemon() {
   try {
       // Load and parse CSV
-      const csvData = await fs.readFile('benchmark/data/pokemon_ground_truth.csv', 'utf-8');
-      const records = await parse(csvData, {
+      const csvData = fs.readFileSync('benchmark/data/pokemon-ground-truth.csv', 'utf-8');
+      const records = await parseCsv(csvData, {
           columns: true,
           skip_empty_lines: true
       });
@@ -106,15 +106,6 @@ async function loadGtPokemon() {
 
 async function analyzePokemon(predictionsJsonl, limit = 0) {
   const groundTruthJsonl = await loadGtPokemon();
-
-  if (!predictionsJsonl) {
-    return {
-      success: false,
-      failure: true,
-      accuracy: 0,
-      error: 'No predictions provided'
-    };
-  }
 
   console.log(predictionsJsonl);
   console.log(groundTruthJsonl);
