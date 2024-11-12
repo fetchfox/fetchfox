@@ -19,9 +19,7 @@ export const Gemini = class extends BaseAI {
   }
 
   normalizeChunk(chunk) {
-    console.log('normalizeChunk', chunk);
     const message = chunk.text();
-    console.log('google said:', message);
     let usage;
     return { model: this.model, message, usage };
   }
@@ -32,10 +30,8 @@ export const Gemini = class extends BaseAI {
     const model = gemini.getGenerativeModel({ model: this.model });
 
     const completion = await model.generateContentStream(prompt);
-    console.log('gemini sreaming completion:', completion);
 
     for await (const chunk of completion.stream) {
-      console.log('got a chunk from gemini', chunk);
       yield Promise.resolve(chunk);
     }
   }

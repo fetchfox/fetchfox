@@ -110,16 +110,16 @@ const getHtmlFromSuccess = async (page, loadWait) => {
     const result = await page.evaluate(({ index, content }) => {
       const iframes = document.querySelectorAll('iframe');
       const iframe = iframes[index];
-      if (iframe) {
-        const policy = window.trustedTypes.createPolicy('default', {
-          createHTML: (html) => html,
-        });
+      // if (iframe) {
+      //   const policy = window.trustedTypes.createPolicy('default', {
+      //     createHTML: (html) => html,
+      //   });
 
-        const div = document.createElement('div');
-        div.innerHTML = policy.createHTML(content);
+      //   const div = document.createElement('div');
+      //   div.innerHTML = policy.createHTML(content);
 
-        iframe.replaceWith(div);
-      }
+      //   iframe.replaceWith(div);
+      // }
     }, { index: i, content });
   }
 

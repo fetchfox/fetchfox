@@ -39,6 +39,7 @@
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "crypto-js": "^4.2.0",
+    "csv-parse": "^5.5.6",
     "csv-stringify": "^6.5.1",
     "dropbox": "^10.34.0",
     "googleapis": "^144.0.0",
