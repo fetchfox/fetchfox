@@ -19,7 +19,7 @@ class Stats {
   }
 }
 
-async function runBenchmark(model_name, scrape, analyze, trials = 1, limit = 20, timeoutMs = 30000) {
+async function runBenchmark(modelName, scrape, analyze, trials = 1, limit = 20, timeoutMs = 30000) {
   const results = {
       trials: 0,
       successes: 0,
@@ -33,14 +33,14 @@ async function runBenchmark(model_name, scrape, analyze, trials = 1, limit = 20,
       
       try {
           const startTime = performance.now();
-          const predictions_array = await scrape(model_name, limit);
+          const predictionsArray = await scrape(modelName, limit);
           const duration = performance.now() - startTime;
           
           // Convert array to JSONL string
-          const predictions_jsonl = predictions_array
+          const predictionsJsonl = predictionsArray
               .map(obj => JSON.stringify(obj))
               .join('\n');
-          const res = await analyze(predictions_jsonl, limit);
+          const res = await analyze(predictionsJsonl, limit);
           
           // Accumulate results
           if (res.success) {
@@ -74,18 +74,18 @@ async function runBenchmark(model_name, scrape, analyze, trials = 1, limit = 20,
     };
 }
 
-async function scrape_pokemon(model_name, limit = 10) {
+async function scrapePokemon(modelName, limit = 10) {
   const results = await fox
-  .config({ ai: model_name})
+  .config({ ai: modelName})
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(limit)
-  .run(null, (delta) => {});
+  .run();
 
   return results.items;
 }
 
-async function load_gt_pokemon() {
+async function loadGtPokemon() {
   try {
       // Load and parse CSV
       const csvData = await fs.readFile('benchmark/data/pokemon_ground_truth.csv', 'utf-8');
@@ -104,10 +104,10 @@ async function load_gt_pokemon() {
   }
 }
 
-async function analyze_pokemon(predictions_jsonl, limit = 0) {
-  const ground_truth_jsonl = await load_gt_pokemon();
+async function analyzePokemon(predictionsJsonl, limit = 0) {
+  const groundTruthJsonl = await loadGtPokemon();
 
-  if (!predictions_jsonl) {
+  if (!predictionsJsonl) {
     return {
       success: false,
       failure: true,
@@ -116,16 +116,16 @@ async function analyze_pokemon(predictions_jsonl, limit = 0) {
     };
   }
 
-  console.log(predictions_jsonl);
-  console.log(ground_truth_jsonl);
+  console.log(predictionsJsonl);
+  console.log(groundTruthJsonl);
 
   let predictions;
-  let ground_truth;
+  let groundTruth;
   try {
-    predictions = predictions_jsonl.trim()
+    predictions = predictionsJsonl.trim()
       .split('\n')
       .map(line => JSON.parse(line));
-    ground_truth = ground_truth_jsonl.trim()
+    groundTruth = groundTruthJsonl.trim()
       .split('\n')
       .map(line => JSON.parse(line));
   } catch (error) {
@@ -137,7 +137,7 @@ async function analyze_pokemon(predictions_jsonl, limit = 0) {
     };
   }
 
-  const accuracy = get_accuracy(predictions, ground_truth, limit);
+  const accuracy = getAccuracy(predictions, groundTruth, limit);
     
   return {
       success: accuracy === 1.0,
@@ -146,15 +146,15 @@ async function analyze_pokemon(predictions_jsonl, limit = 0) {
   };
 }
 
-function get_accuracy(predictions, ground_truth, limit = 0) {
+function getAccuracy(predictions, groundTruth, limit = 0) {
   // If limit is specified and > 0, only compare that many items
   const n = limit > 0 ?
-    Math.min(limit, predictions.length, ground_truth.length) :
-    Math.min(predictions.length, ground_truth.length);
+    Math.min(limit, predictions.length, groundTruth.length) :
+    Math.min(predictions.length, groundTruth.length);
   
   let correct = 0;
   for (let i = 0; i < n; i++) {
-      const gt = ground_truth[i];
+      const gt = groundTruth[i];
       const pred = predictions[i];
       
       // Get ground truth keys and make case-insensitive comparison
@@ -179,20 +179,20 @@ function get_accuracy(predictions, ground_truth, limit = 0) {
 describe('pokemondb.net', function() {
   this.timeout(5 * 60 * 1000);
 
-  const model_names = [
+  const modelNames = [
     'openai:gpt-4o-mini',
     'google:gemini-1.5-flash',
   ]
 
   console.log('benchmark');
 
-  let model_name = model_names[0];
+  let modelName = modelNames[0];
 
   it('should benchmark pokemon', async () => {
     const results = await runBenchmark(
-      model_name,
-      scrape_pokemon,
-      analyze_pokemon,
+      modelName,
+      scrapePokemon,
+      analyzePokemon,
       2,
       20,
     );
