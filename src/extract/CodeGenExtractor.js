@@ -11,7 +11,9 @@ export const CodeGenExtractor = class extends BaseExtractor {
     this.helper = getExtractor(options?.helper);
   }
 
-  async attemptCodeGenForMulti(doc, sample, questions) {
+  async attemptCodeGenForMulti(gen, sample, questions) {
+    const doc = (await gen.next()).value;
+
     const itemDescription = await this.findDescription(doc, sample, questions);
     const fn = await this.writeCode(doc, sample, questions, itemDescription);
 
@@ -87,7 +89,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
   }
 
   async *run(target, questions, options) {
-    const doc = await this.getDoc(target);
+    const gen = await this.getDoc(target);
 
     if (options.single) {
       // For now, only write code for single page, multi item scrapes
@@ -105,14 +107,16 @@ export const CodeGenExtractor = class extends BaseExtractor {
       if (sample.length >= sampleSize) break;
     }
 
-    const codeResults = await this.attemptCodeGenForMulti(doc, sample, questions);
+    const codeResults = await this.attemptCodeGenForMulti(gen, sample, questions);
     if (codeResults) {
+      logger.info(`Returning ${codeResults.length} results from code generation extraction`);
       for (const item of codeResults) {
         yield Promise.resolve(item);
       }
       return;
     }
 
+    logger.warn('Code generation failed, falling back to helper');
     for (const item of sample) {
       yield Promise.resolve(item);
     }

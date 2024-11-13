@@ -179,7 +179,6 @@ export const Document = class {
       const href = a.getAttribute('href');
 
       if (href == undefined) {
-        logger.debug(`Skipping <a> with no href ${(text || '').substr(0, 40)}`);
         return;
       }
 
