@@ -126,7 +126,8 @@ It is VERY IMPORTANT to include a comment block at the start that explains your 
 - Before writing any code, explain your reasoning in a comment block
 - Decide if you will use XPath via $x(...) or CSS selectors, or something else
 - Decide and explain which XPath or CSS selectors you will use
-- Describe and challenging parts of the extraction
+- Describe how you ensure this solution will generalize and be robust with respect to HTML and CSS quirks
+- Describe any challenging parts of the extraction
 
 The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
 - \`html\`: the HTML of the page
