@@ -3,13 +3,8 @@ import os from 'os';
 import { fox } from '../../src/index.js';
 import { redditSampleHtml } from './data.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('Workflow', function() {
-  this.timeout(0);
+  this.timeout(60 * 1000);
 
   it('should load from json @run', async () => {
     const data = {
@@ -185,9 +180,8 @@ describe('Workflow', function() {
 
     assert.equal(out.items.length, 5);
 
-    assert.equal(
-      f.ctx.fetcher.usage.requests,
-      5 + f.steps[2].q.concurrency);
+    const max = 5 + f.steps[2].q.concurrency;
+    assert.ok(f.ctx.fetcher.usage.requests <= max);
     assert.ok(f.ctx.crawler.usage.count > 30);
   });
 

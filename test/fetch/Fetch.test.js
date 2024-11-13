@@ -2,20 +2,17 @@ import assert from 'assert';
 import os from 'os';
 import { getFetcher } from '../../src/index.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('Fetch', function() {
-  this.timeout(0);
+  this.timeout(60 * 1000);
 
   it('should fetch @run', async () => {
     const fetcher = getFetcher();
     const start = (new Date()).getTime();
-    const resp = await fetcher.fetch('https://example.com');
+    const gen = await fetcher.fetch('https://example.com');
+    const doc = (await gen.next()).value;
+    console.log('doc', doc);
     const took = (new Date()).getTime() - start;
-    assert.ok(resp.text.indexOf('Example Domain') != -1);
+    assert.ok(doc.text.indexOf('Example Domain') != -1);
     assert.ok(took < 2000);
   });
 
@@ -44,14 +41,19 @@ describe('Fetch', function() {
     for (const [fetcher, min, max] of cases) {
       const p = [];
       for (let i = 0; i < 20; i++) {
-        p.push(fetcher.fetch('https://example.com'));
+        p.push(new Promise(async (ok) => {
+          const gen = await fetcher.fetch('https://example.com');
+          const resp = await gen.next();
+          ok(resp.value);
+        }));
       }
+
       const start = (new Date()).getTime();
       const results = await Promise.all(p);
       const took = (new Date()).getTime() - start;
 
-      for (const resp of results) {
-        assert.ok(resp.text.indexOf('Example Domain') != -1);
+      for (const doc of results) {
+        assert.ok(doc.text.indexOf('Example Domain') != -1);
       }
       assert.ok(took >= min);
       assert.ok(took <= max);

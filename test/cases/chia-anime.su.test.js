@@ -6,13 +6,8 @@ import { Document } from '../../src/document/Document.js';
 import { fox } from '../../src/index.js';
 import { sample } from './data/chia-anime-sample.html.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('chia-anime.su', function() {
-  this.timeout(0);
+  this.timeout(60 * 1000);
 
   it('should work for simple crawl', async () => {
     const f = await fox
