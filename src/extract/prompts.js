@@ -18,6 +18,7 @@ Follow these important rules:
 - Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
 - Pay attention to user format specifications
+- Follow schema requests, eg. return array fields if requested
 
 {{extraRules}}
 
@@ -28,7 +29,7 @@ Example of a valid response with multiple items:
 
 Example of a valid response with a single item:
 {"itemCount": 1}
-{"article_title": "New Find at the Great Wall of China", "article_date": "2024-02-04"}
+{"article_title": "New Find at the Great Wall of China", "article_date": "2024-02-04", countries: ["China", "India"]}
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>
 

@@ -20,6 +20,8 @@ export const LoginStep = class extends BaseStep {
 
     cursor.defer(() => actor.finish());
 
-    cb({ ...item, actor });
+    const out = new Item(item);
+    out.setActor(actor);
+    cb(out);
   }
 }

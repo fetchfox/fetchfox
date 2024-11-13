@@ -1,4 +1,12 @@
 import playwright from 'playwright';
+import puppeteer from 'puppeteer-core';
+
+import fs from 'fs';
+import path from 'path';
+
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getExtractor } from '../extract/index.js';
@@ -14,10 +22,13 @@ export const Actor = class extends BaseActor {
     this.extractor = options?.extractor || getExtractor();
     this.vision = new Vision({ ai: this.ai });
 
-    this.headless = options?.headless === undefined ? true : options.headless;
     this.browser = options?.browser || 'chromium';
     this.loadWait = options?.loadWait || 1000;
     this.timeoutWait = options?.timeoutWait || 4000;
+
+    this.headless = options?.headless === undefined ? true : options.headless;
+    this.cdp = options?.cdp;
+    this.options = options?.options || {};
 
     this.history = [];
     this.index = -1;
@@ -33,14 +44,30 @@ export const Actor = class extends BaseActor {
   }
 
   async doc() {
-    logger.debug(`Doc from ${this.url()}`);
+    logger.debug(`Doc from ${this.url()}, ${this.page}`);
     const doc = new Document();
+
+    const start = (new Date()).getTime();
+    const screenshot = await this.page.screenshot({ fullPage: true });
+    const took = (new Date()).getTime() - start;
+    logger.debug(`Got screenshot in ${took} msec`);
+
+    const [
+      html,
+      text,
+    ] = await Promise.all([
+      this.page.content(),
+      this.page.evaluate(() => document?.body?.innerText || ''),
+    ]);
+
     const data = {
       url: this.url(),
-      html: await this.page.content(),
-      text: await this.page.evaluate(() => document?.body?.innerText || ''),
+      screenshot,
+      html,
+      text,
       contentType: 'text/html',
     };
+
     doc.loadData(data);
     return doc;
   }
@@ -79,12 +106,75 @@ export const Actor = class extends BaseActor {
   }
 
   async launch() {
-    logger.debug(`Actor launching ${this.browser}`);
-    return playwright[this.browser].launch({ headless: this.headless });
+    logger.info(`Actor launching ${this.browser}`);
+
+    let p;
+    if (this.cdp) {
+      logger.debug(`Actor using CDP endpoint ${this.cdp}`);
+      p = chromium.connectOverCDP(this.cdp);
+    } else {
+      logger.debug(`Actor using local Chromium`);
+      p = chromium.launch({ ...this.options, headless: this.headless });
+    }
+
+    return p;
+
+    // const url = 'https://www.united.com/en/us/fsr/choose-flights?f=SJC&t=NEW%20YORK%2C%20NY%2C%20US%20(ALL%20AIRPORTS)&d=2025-01-10&tt=1&sc=7&px=1&taxng=1&newHP=True&clm=7&st=bestmatches&tqp=R';
+    // const bd = 'wss://brd-customer-hl_e9028181-zone-scraping_browser1:96m97ovmklqe@brd.superproxy.io:9222';
+    // console.log('connect bd', bd);
+
+    // let page;
+
+    // if (false) {
+    //   const browser = await puppeteer.connect({ browserWSEndpoint: bd });
+    //   page = await browser.newPage();
+    //   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // } else {
+    //   const browser = await chromium.connectOverCDP(bd);
+    //   page = await browser.newPage();
+    //   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // }
+
+    // console.log('sleep');
+    // await new Promise(ok => setTimeout(ok, 10 * 1000));
+    // console.log('done sleeping');
+
+    // console.log('screenshot');
+    // // await page.screenshot({ path: '/tmp/out.png', fullPage: true });
+    // await page.screenshot({ path: '/tmp/out.png' });
+    // const html = await page.content();
+    // console.log('html');
+    // fs.writeFileSync('/tmp/out.html', html);
+
+    // throw new Error('STOP');
+
+    // // const page = await browser.newPage();
+    // // await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    // return await playwright.chromium.connectOverCDP(bd);
+
+
+    // const proxy = {
+    //   // liveproxies.io
+    //   // server: '174.138.165.234:7383',
+    //   // username: 'LV39510938-L66tFsxSSM-40',
+    //   // password: '5XADCUQz4fTrxJSSkDEN',
+
+    //   // ninjasproxy.com
+    //   server: '109.238.174.145:13228',
+    //   username: 'ninja1358446',
+    //   password: '8zH9h5XjddNQE@',
+    // };
+
+    // return chromium.launch({
+    //   headless: false,
+    //   // proxy,
+    // });
+    // // return chromium.launch({ ...this.options, headless: this.headless });
+    // // return playwright[this.browser].launch({ ...this.options, headless: this.headless });
   }
 
   async start() {
-    logger.info(`Actor starting`);
+    logger.trace(`Actor starting`);
 
     if (this._browser) throw new Error('Double browser launch');
 
@@ -104,13 +194,13 @@ export const Actor = class extends BaseActor {
     return new Finder(this.ai, this.page, query, selector);
   }
 
-
   async *scrollForDocs(num, scrollWait) {
     for (let i = 0; i < num; i++) {
-      const wait = scrollWait || this.loadWait;
+      const wait = scrollWait || 1000;
       logger.debug(`Wait for ${wait} and then scroll and get doc`);
       await new Promise(ok => setTimeout(ok, wait));
       await this.page.keyboard.press('PageDown');
+      logger.debug(`Pressed page down, get doc on ${this.page}`);
       yield this.doc();
     }
   }
@@ -143,6 +233,16 @@ export const Actor = class extends BaseActor {
       logger.debug(`Actor waiting ${this.loadWait} secs for load`);
       await new Promise(ok => setTimeout(ok, this.loadWait));
       logger.debug(`Done waiting`);
+
+      // const html = await this.page.content();
+      // console.log('html', html);
+
+      // await this.page.screenshot({ path: '/tmp/out.png', fullPage: true });
+      await this.page.screenshot({ path: '/tmp/out.png' });
+      const html = await this.page.content();
+      fs.writeFileSync('/tmp/out.html', html);
+
+      // throw 'XYZ';
     }
 
     if (checkForReady) {

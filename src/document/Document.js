@@ -68,6 +68,7 @@ export const Document = class {
     this.body = data.body;
     this.html = data.html;
     this.text = data.text;
+    this.screenshot = data.screenshot;
     this.links = data.links || [];
     this.resp = data.resp;
     this.contentType = data.contentType;

@@ -36,7 +36,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       let html;
       try {
         logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
-        resp = await page.goto(url, { timeout: this.timeoutWait });
+        resp = await page.goto(
+          url,
+          { timeout: this.timeoutWait, waitUntil: 'domcontentloaded'  });
         logger.debug(`Playwright loaded page before timeout`);
         html = await getHtmlFromSuccess(page, this.loadWait);
       } catch(e) {
@@ -111,9 +113,14 @@ const getHtmlFromSuccess = async (page, loadWait) => {
       const iframes = document.querySelectorAll('iframe');
       const iframe = iframes[index];
       if (iframe) {
-        const policy = window.trustedTypes.createPolicy('default', {
-          createHTML: (html) => html,
-        });
+        let policy;
+        if (window.trustedTypes.defaultPolicy) {
+          policy = window.trustedTypes.defaultPolicy;
+        } else {
+          policy = window.trustedTypes.createPolicy('default', {
+            createHTML: (html) => html,
+          });
+        }
 
         const div = document.createElement('div');
         div.innerHTML = policy.createHTML(content);
