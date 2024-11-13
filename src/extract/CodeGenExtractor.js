@@ -1,6 +1,7 @@
 import { logger } from '../log/logger.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
+import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { iterative, findMultiDescription, codeGenMulti } from './prompts.js';
 import { getExtractor } from './index.js';
 import * as nodeHtmlParser from 'node-html-parser';
@@ -50,16 +51,19 @@ export const CodeGenExtractor = class extends BaseExtractor {
   }
 
   async writeCode(doc, sample, questions, itemDescription) {
-    const chunks = this.chunks(doc);
+    const minDoc = await (new TagRemovingMinimizer()).min(doc);
+    const chunks = this.chunks(minDoc);
+
     const context = {
       url: doc.url,
       html: chunks[0].html,
-      text: chunks[0].text,
       itemDescription: itemDescription,
       sample: JSON.stringify(sample, null, 2),
       questions: JSON.stringify(questions, null, 2),
     };
     const prompt = codeGenMulti.render(context);
+
+    console.log('prompt', prompt);
 
     logger.debug(`Writing code with ${this.ai}`);
     const start = (new Date()).getTime();
@@ -72,6 +76,8 @@ export const CodeGenExtractor = class extends BaseExtractor {
       .replace(/```/g, '');
 
     logger.debug(`AI wrote this code: ${code}`);
+
+    // throw 'xyz';
 
     let fn;
     try {
@@ -103,6 +109,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
     for await (const item of helperStream)  {
       const copy = JSON.parse(JSON.stringify(item));
+      if (copy.url) delete copy.url;3
       sample.push(copy);
       if (sample.length >= sampleSize) break;
     }

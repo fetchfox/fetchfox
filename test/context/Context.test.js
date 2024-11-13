@@ -31,13 +31,19 @@ describe('Context', function() {
     assert.equal(ctx.dump().ai, 'groq');
     assert.equal(ctx.dump().fetcher, 'playwright');
 
-    ctx.update({ ai: 'openai:gtp-4o' });
-    assert.equal(ctx.dump().ai, 'openai:gtp-4o');
+    ctx.update({ ai: 'openai:gpt-4o' });
+    assert.equal(ctx.dump().ai, 'openai:gpt-4o');
 
-    ctx.update({ ai: ['openai', { model: 'gpt-4o' }] });
+    ctx.update({
+      ai: ['openai', { model: 'gpt-4o' }],
+      extractor: ['code-gen', { ai: 'openai:gpt-4o'}],
+    });
     assert.equal(
       JSON.stringify(ctx.dump().ai),
       '["openai",{"model":"gpt-4o"}]');
+    assert.equal(
+      JSON.stringify(ctx.dump().extractor),
+      '["code-gen",{"ai":"openai:gpt-4o"}]');
 
     ctx.update({ fetcher: ['playwright', { cdp: 'ws://example.com/ws' }] });
     assert.equal(
