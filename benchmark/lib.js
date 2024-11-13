@@ -100,6 +100,7 @@ export const getAccuracy = (predictions, groundTruth, limit = 0) => {
 
 export const matrix = () => {
   const ais = [
+    'openai:gpt-4o',
     'openai:gpt-4o-mini',
     'google:gemini-1.5-flash',
   ];

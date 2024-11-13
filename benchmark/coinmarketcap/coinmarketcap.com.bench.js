@@ -6,44 +6,30 @@ import { matrix } from '../lib.js';
 describe('coinmarketcap.com', function() {
   this.timeout(5 * 60 * 1000);
 
-  it('should crawl for coins @bench', async () => {
-    const configs = matrix();
-    console.log('configs', configs);
+  it('should benchmark crawl'), async() => {
+    const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/coinmarketcap.html',
+    const queries = [
+      'find links to pages about coins',
+      'coins',
+      'tokens',
+      'cryptocurrencies',
+      'cryptos',
+      'find crypto token pages',
+    ];
 
-    for (const config of configs) {
-      const wf = await fox
-        .config({ 
-          diskCache: os.tmpdir() + '/fetchfox-test-cache',
-          ...config,
-        })
-        .plan({
-          url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/coinmarketcap.html',
-          prompt: 'find lnks to pages about coins, and get their basic market data, including 24 hour trading volume',
+    for (const query of queries) {
+      runCrawlBenchmark(
+        {
+          url, 
+          query,
+          include: [
+            '/currencies/bitcoin/',
+          ],
+          includePattern: new RegExp(/\/currencies\//),
+          exclude: [
+            'https://support.coinmarketcap.com/hc/en-us/articles/4412939497755/',
+          ],
         });
-
-      console.log('wf', JSON.stringify(wf.dump(), null, 2));
-
-      // Verify it goes const -> crawl -> extract, and remove extract step
-      assert.equal(wf.steps[1].name(), 'crawl');
-      assert.equal(wf.steps.length, 3);
-      wf.steps.pop();
-
-      wf.steps[1].limit = 50;
-
-      const out = await wf.run();
-      const links = out.full[1];
-
-      console.log(links);
-      for (let { url } of links.items) {
-        url = url.replace(
-          'https://ffcloud.s3.us-west-2.amazonaws.com/',
-          'https://coinmarketcap.com/');
-        console.log('Found url:', url, '\tusing', config.ai);
-      }
-
-      // somehow verify the links are correct:
-      // - in this case, they should all have format like:
-      //   https://coinmarketcap.com/currencies/...
     }
   });
 

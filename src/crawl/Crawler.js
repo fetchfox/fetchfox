@@ -37,6 +37,8 @@ export const Crawler = class extends BaseCrawler {
               2),
           });
 
+          console.log(prompt);
+
           const seen = {};
           const toLink = {};
           for (const link of doc.links) {
