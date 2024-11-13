@@ -26,12 +26,27 @@ describe('Context', function() {
     assert.equal(ctx.publishAllSteps, true);
     assert.equal(ctx.limit, 5);
 
-    // TODO: re-enable these checks once context outputs the data
-    // const dump = ctx.dump();
-    // assert.equal(dump.publishAllSteps, true);
-    // assert.equal(dump.limit, 5);
-    // assert.equal(dump.ai, 'groq');
-    // assert.equal(dump.fetcher, 'playwright');
+    assert.equal(ctx.dump().publishAllSteps, true);
+    assert.equal(ctx.dump().limit, 5);
+    assert.equal(ctx.dump().ai, 'groq');
+    assert.equal(ctx.dump().fetcher, 'playwright');
+
+    ctx.update({ ai: 'openai:gtp-4o' });
+    assert.equal(ctx.dump().ai, 'openai:gtp-4o');
+
+    ctx.update({ ai: ['openai', { model: 'gpt-4o' }] });
+    assert.equal(
+      JSON.stringify(ctx.dump().ai),
+      '["openai",{"model":"gpt-4o"}]');
+
+    ctx.update({ fetcher: ['playwright', { cdp: 'ws://example.com/ws' }] });
+    assert.equal(
+      JSON.stringify(ctx.dump().ai),
+      '["openai",{"model":"gpt-4o"}]');
+    assert.equal(
+      JSON.stringify(ctx.dump().fetcher),
+      '["playwright",{"cdp":"ws://example.com/ws"}]');
+
   });
 
 });

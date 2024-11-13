@@ -7,8 +7,8 @@ import { getActor, BaseActor } from '../act/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { copyKeys } from './constants.js';
 
-// Order matters for `contextKeys`
-export const contextKeys = [
+// Order matters for `decodeableKeys`
+export const decodeableKeys = [
   ['fetcher', getFetcher, BaseFetcher],
   ['ai', getAI, BaseAI],
   ['crawler', getCrawler, BaseCrawler],
@@ -28,7 +28,7 @@ const decodeArgs = (args, cache) => {
     decoded.cache = args.cache;
   }
 
-  for (const [key, getter, parentClass] of contextKeys) {
+  for (const [key, getter, parentClass] of decodeableKeys) {
     let val;
     let which = null;
     let options = {};
@@ -75,10 +75,17 @@ export const Context = class {
 
   dump() {
     const dump = {};
-    // TODO: stringify objects as well
-    for (const key of copyKeys) {
+
+    for (const [key] of copyKeys) {
       dump[key] = this[key];
     }
+
+    for (const [key] of decodeableKeys) {
+      if (this.args[key]) {
+        dump[key] = this.args[key];
+      }
+    }
+
     return JSON.parse(JSON.stringify(dump));
   }
 
