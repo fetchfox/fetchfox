@@ -137,3 +137,89 @@ Use ONLY these parameters in your code
 Make sure to RETURN the result at the end
 
 `);
+
+export const codeGenFeedback = new Template(
+  ['html', 'itemDescription', 'questions', 'code', 'expected', 'actual'],
+  `You are a code reviewer, and you are asked to evaluate scraping extract code. You will receive HTML of the target page for extraction, the data to be extracted, the proposed code for doing the extract, and expected and actual results.
+
+You will give feedback in JSON format on the code:
+
+{
+  "problems": "Describe problems in the actual results compared to the expected results, if any",
+
+  "accuracy": "A rating from 1 to 100 of how accurate the actual results are, compared to the expected results. Scores near 1 mean the actual output is unusable, scores near 50 mean the actual output is ok but has doesn't exactly match, scores near 90 and above mean the actual output exactly matches the expected, maybe small issues like whitespace",
+
+  "quality": "A rating from 1 to 100 of the code quality, taking into account expected breakage and future problems that could arise. Be careful not to overengineer, this is scraping code",
+
+  "suggestions": "Give suggestions on how to improve the code, if any"
+}
+
+Below is your task:
+
+>>>> Page HTML:
+{{html}}
+
+>>>> Extraction target description: {{itemDescription}}
+
+>>>> Extraction fields:
+{{questions}}
+
+>>>> Expected results:
+{{expected}}
+
+>>>> Actual results:
+{{actual}}
+
+>>>> Proposed code:
+{{code}}
+
+
+- Limit your response to 500 words total.
+- You MUST reply in JSON, your response will be fed into JSON.parse()
+`);
+
+export const codeGenIterate = new Template(
+  ['html', 'itemDescription', 'questions', 'expected', 'actual', 'code', 'feedback'],
+  `You working on Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data. Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments. You will be writing Javascript.
+
+Your goal is to write Javascript code that finds items the user is looking for, and fills in the fields the users asks for.
+
+You will be given some code that you wrote previously, along with some feedback. Take t
+he feedback, and use it to improve the code you wrote.
+
+>>>> Here is the HTML of the example page: {{html}}
+
+>>>> The user is looking for these items: {{itemDescription}}
+
+>>>> The user is looking for these fields on each item: {{questions}}
+
+>>>> Here is the correct example answer: {{expected}}
+
+>>>> Here is the actual answer from the given code: {{actual}}
+
+>>>> Here is the code you are improving:
+{{code}}
+
+>>>> Here is the feedback on this code:
+{{feedback}}
+
+Follow these guidelines:
+- You MUST RESPOND ONLY WITH JAVASCRIPT CODE and comments
+- Do NOT GIVE EXAMPLE USAGE
+- You may use the node-html-parser library. It will be passed in as a parameter.
+- Make your code robust, including null checks
+- Loops and maps should have a try/catch structure so a single failed element does not break the entire execution
+
+It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
+- If you made changes, explain the changes compared to the previous code, and why you think it will fix any issues
+- If you made no changes, say so, and say why not
+
+The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
+- \`html\`: the HTML of the page
+- \`nodeHtmlParser\`: the node-html-parser library
+Use ONLY these parameters in your code
+
+Make sure to RETURN the result at the end
+
+`
+)

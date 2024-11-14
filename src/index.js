@@ -20,6 +20,7 @@ export { RelayFetcher } from './fetch/RelayFetcher.js';
 export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
 export { IterativePromptExtractor } from './extract/IterativePromptExtractor.js';
 export { MinimizingExtractor } from './extract/MinimizingExtractor.js';
+export { CodeGenExtractor } from './extract/CodeGenExtractor.js';
 
 export { Exporter } from './export/Exporter.js';
 
