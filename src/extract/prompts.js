@@ -94,7 +94,7 @@ Your response MUST be valid JSON and only JSON. It will be parsed with JSON.pars
 );
 
 export const codeGenMulti = new Template(
-  ['html', 'itemDescription', 'questions', 'sample'],
+  ['num', 'htmls', 'itemDescription', 'questions', 'samples'],
     `You writing Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data.
 
 Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments.
@@ -105,15 +105,15 @@ Your goal is to write Javascript code that finds items the user is looking for, 
 
 There are multiple items on each page. Your code should return an ARRAY of all items.
 
-You will receive HTML of the page, along with the correct answer for this page. Your goal is to write a good, robust Javascript code with CSS selectors that finds the answer on other similar pages. Make sure your code generalizes well to other similar pages.
+You will receive {{num}} examples of HTML, along with the correct answer for each of the {{num}} pages. Your goal is to write a good, robust Javascript code with CSS selectors that finds the answer on all of these pages, and similar pages. Make sure your code generalizes well to other similar pages.
 
-Here is the HTML of the example page: {{html}}
+Here are the HTML example pages: {{htmls}}
+
+Here are the correct answers for each page: {{samples}}
 
 The user is looking for these items: {{itemDescription}}
 
 The user is looking for these fields on each item: {{questions}}
-
-Here is the correct example answer: {{sample}}
 
 Follow these guidelines:
 - You MUST RESPOND ONLY WITH JAVASCRIPT CODE and comments
@@ -139,7 +139,7 @@ Make sure to RETURN the result at the end
 `);
 
 export const codeGenFeedback = new Template(
-  ['html', 'itemDescription', 'questions', 'code', 'expected', 'actual'],
+  ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code'],
   `You are a code reviewer, and you are asked to evaluate scraping extract code. You will receive HTML of the target page for extraction, the data to be extracted, the proposed code for doing the extract, and expected and actual results.
 
 You will give feedback in JSON format on the code:
@@ -156,30 +156,30 @@ You will give feedback in JSON format on the code:
 
 Below is your task:
 
->>>> Page HTML:
-{{html}}
+>>>> Page HTML samples:
+{{htmls}}
+
+>>>> Expected results:
+{{samples}}
+
+>>>> Actual results:
+{{actuals}}
 
 >>>> Extraction target description: {{itemDescription}}
 
 >>>> Extraction fields:
 {{questions}}
 
->>>> Expected results:
-{{expected}}
-
->>>> Actual results:
-{{actual}}
-
 >>>> Proposed code:
 {{code}}
 
-
-- Limit your response to 500 words total.
+- Limit your response to around 500 words
+- In some rare cases, the expected answers may be wrong. This is unusual but it may happen.
 - You MUST reply in JSON, your response will be fed into JSON.parse()
 `);
 
 export const codeGenIterate = new Template(
-  ['html', 'itemDescription', 'questions', 'expected', 'actual', 'code', 'feedback'],
+  ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code', 'feedback'],
   `You working on Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data. Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments. You will be writing Javascript.
 
 Your goal is to write Javascript code that finds items the user is looking for, and fills in the fields the users asks for.
@@ -187,15 +187,18 @@ Your goal is to write Javascript code that finds items the user is looking for, 
 You will be given some code that you wrote previously, along with some feedback. Take t
 he feedback, and use it to improve the code you wrote.
 
->>>> Here is the HTML of the example page: {{html}}
+>>>> Page HTML samples:
+{{htmls}}
+
+>>>> Expected results:
+{{samples}}
+
+>>>> Actual results:
+{{actuals}}
 
 >>>> The user is looking for these items: {{itemDescription}}
 
 >>>> The user is looking for these fields on each item: {{questions}}
-
->>>> Here is the correct example answer: {{expected}}
-
->>>> Here is the actual answer from the given code: {{actual}}
 
 >>>> Here is the code you are improving:
 {{code}}

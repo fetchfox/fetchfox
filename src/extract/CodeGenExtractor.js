@@ -21,33 +21,33 @@ export const CodeGenExtractor = class extends BaseExtractor {
     this.state = null;
   }
 
-  async init(example, questions) {
+  async init(examples, questions) {
     if (this.state) {
       throw new Error('Double init');
     }
 
     this.state = {};
 
-    this.state.example = example;
+    this.state.examples = examples;
     this.state.questions = questions;
     this.state.feedback = { accuracy: 0 };
   }
 
-  key(example, questions) {
+  key(examples, questions) {
     const hash = CryptoJS
-      .SHA256(JSON.stringify({ example, questions }))
+      .SHA256(JSON.stringify({ examples, questions }))
       .toString(CryptoJS.enc.Hex)
       .substr(0, 32);
     const key = 'cge_' + hash;
     return key;
   }
 
-  async load(example, questions) {
+  async load(examples, questions) {
     if (this.state) {
       throw new Error('Double init via load');
     }
 
-    const key = this.key(example, questions);
+    const key = this.key(examples, questions);
     logger.info(`Load code gen state via key ${key}`);
     const r = await this.kv.get(key);
     console.log('r', r);
@@ -58,7 +58,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
     if (!this.state) {
       throw new Error('No state to save');
     }
-    const key = this.key(this.state.example, this.state.questions);
+    const key = this.key(this.state.examples, this.state.questions);
     logger.info(`Save code gen state via key ${key}`);
     this.kv.set(key, this.state);
   }
@@ -75,42 +75,77 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
     const { questions } = this.state;
 
-    const gen = await this.getDoc(this.state.example);
-    const doc = (await gen.next()).value;
+    // Use up to 3 examples
+    const num = 3;
+
+    const docs = await Promise.all(
+      this.state.examples
+        .slice(0, num)
+        .map((example) => {
+          return new Promise(async (ok) => {
+            const gen = await this.getDoc(example);
+            const doc = (await gen.next()).value;
+            const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
+            const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
+            ok(minDoc);
+          });
+        }));
+
+    console.log(docs.map(doc => ''+doc));
+
+    // const doc = docs[0];
 
     logger.debug(`Getting sample for code generation`);
-    const helperStream = this.helper.stream(doc, questions);
-    const sample = [];
     const sampleSize = 5;
-    for await (const item of helperStream)  {
-      const copy = JSON.parse(JSON.stringify(item));
-      if (copy.url) delete copy.url;
-      sample.push(copy);
-      if (sample.length >= sampleSize) break;
+    const getSample = async (doc) => {
+      const helperStream = this.helper.stream(doc, questions);
+      const sample = [];
+      for await (const item of helperStream)  {
+        const copy = JSON.parse(JSON.stringify(item));
+        if (copy.url) delete copy.url;
+        sample.push(copy);
+        if (sample.length >= sampleSize) break;
+      }
+      return sample;
     }
 
-    const itemDescription = await this.findDescription(doc, sample, questions);
+    const samples = await Promise.all(docs.map(getSample));
+    console.log('samples');
+    console.log(samples);
+
+    const combinedSample = [];
+    for (const sample of samples) {
+      combinedSample.push(...sample);
+    }
+
+    console.log('combinedSample', combinedSample);
+
+    const itemDescription = await this.findDescription(
+      docs[0], samples[0], questions);
     logger.debug(`Got item description: ${itemDescription}`);
 
-    logger.info(`Learn how to answer ${JSON.stringify(this.state.questions).substr(0, 100)} on ${this.state.example}`);
+    logger.info(`Learn how to answer ${JSON.stringify(this.state.questions).substr(0, 100)} on ${JSON.stringify(this.state.examples)}`);
 
-    const expected = sample;
-
-    let genFn = () => this.firstAttempt(doc, sample, questions);
+    let genFn = () => this.firstAttempt(docs, samples, questions);
 
     for (let i = 0; i < maxIterations; i++) {
       logger.info(`Code generation iteration ${i + 1} of ${maxIterations}, current best score is: ${this.state.feedback.accuracy}`);
 
-      const candidate = await genFn(doc, sample, questions);
-      const actual = (candidate.results || []).slice(0, expected.length);
+      const candidate = await genFn();
+      const actuals = [];
+      for (const result of candidate.results) {
+        actuals.push((result || []).slice(0, sampleSize));
+      }
+
+      console.log('actuals', actuals);
 
       const feedback = await this.feedback(
-        doc,
+        docs,
         itemDescription,
         questions,
         candidate.code,
-        expected,
-        actual);
+        samples,
+        actuals);
       candidate.feedback = feedback;
 
       logger.debug(`Got feedback: ${JSON.stringify(feedback, null, 2)}`);
@@ -122,7 +157,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
       if (feedback.accuracy <= junkAccuracy) {
         logger.debug(`Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
-        genFn = () => this.firstAttempt(doc, sample, questions);
+        genFn = () => this.firstAttempt(docs, samples, questions);
         continue;
       }
 
@@ -140,46 +175,51 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
       logger.debug(`Below targets, iterate and try again`);
       genFn = () => this.iterate(
-        doc,
+        docs,
         itemDescription,
         questions,
         this.state.code,
-        expected,
-        actual,
+        samples,
+        actuals,
         feedback);
     }
   }
 
-  async feedback(doc, itemDescription, questions, code, expected, actual) {
-    const chunks = this.chunks(doc);
+  async feedback(docs, itemDescription, questions, code, samples, actuals) {
+    const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(docs, samples, actuals);
+
     const context = {
-      html: chunks[0].html,
+      htmls: htmlsPrompt,
+      samples: samplesPrompt,
+      actuals: actualsPrompt,
       itemDescription,
       code,
-      expected: JSON.stringify(expected, null, 2),
-      actual: JSON.stringify(actual, null, 2),
       questions: JSON.stringify(questions, null, 2),
     };
     const prompt = codeGenFeedback.render(context);
+
+    // console.log('feedback prompt', prompt);
+    // console.log('feedback prompt', prompt.length);
+    // console.log('feedback prompt ~', prompt.length / 4);
 
     logger.debug(`Asking for feedback using ${this.ai}`);
     const start = (new Date()).getTime();
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const took = (new Date()).getTime() - start;
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to get feedback`);
-    logger.debug(`Feedback answer: ${answer.partial}`);
 
     return answer.partial;
   }
 
-  async iterate(doc, itemDescription, questions, code, expected, actual, feedback) {
-    const chunks = this.chunks(doc);
+  async iterate(docs, itemDescription, questions, code, samples, actuals, feedback) {
+    const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(docs, samples, actuals);
+
     const context = {
-      html: chunks[0].html,
+      htmls: htmlsPrompt,
+      samples: samplesPrompt,
+      actuals: actualsPrompt,
       itemDescription,
       code,
-      expected: JSON.stringify(expected, null, 2),
-      actual: JSON.stringify(actual, null, 2),
       questions: JSON.stringify(questions, null, 2),
       feedback: JSON.stringify(feedback, null, 2),
     };
@@ -190,16 +230,26 @@ export const CodeGenExtractor = class extends BaseExtractor {
     const answer = await this.ai.ask(prompt, { format: 'text' });
     const took = (new Date()).getTime() - start;
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to iterate on the code`);
+    logger.debug(`Code iteration gave:\n${answer.partial}`);
 
     const out = codeToFn(answer.partial);
-    const results = runFn(out.fn, doc.html);
+
+    const results = [];
+    for (const doc of docs) {
+      results.push(runFn(out.fn, doc.html));
+    }
+    return { fn: out.fn, results, code: out.code };
+    // const results = runFn(out.fn, doc.html);
     return { fn: out.fn, results, code: out.code };
   }
 
-  async firstAttempt(doc, sample, questions) {
-    const itemDescription = await this.findDescription(doc, sample, questions);
-    const { fn, code } = await this.writeCode(doc, sample, questions, itemDescription);
-    const results = runFn(fn, doc.html);
+  async firstAttempt(docs, samples, questions) {
+    const itemDescription = await this.findDescription(docs[0], samples[0], questions);
+    const { fn, code } = await this.writeCode(docs, samples, questions, itemDescription);
+    const results = [];
+    for (const doc of docs) {
+      results.push(runFn(fn, doc.html));
+    }
     return { fn, results, code };
   }
 
@@ -217,24 +267,32 @@ export const CodeGenExtractor = class extends BaseExtractor {
     return answer.partial.itemDescription;
   }
 
-  async writeCode(doc, sample, questions, itemDescription) {
-    const minDoc = await (new TagRemovingMinimizer()).min(doc);
-    const chunks = this.chunks(minDoc);
+  async writeCode(docs, samples, questions, itemDescription) {
+    const [htmlsPrompt, samplesPrompt] = toPrompt(docs, samples);
+
+    console.log('htmls:  ', htmlsPrompt);
+    console.log('samples:', samplesPrompt);
 
     const context = {
-      url: doc.url,
-      html: chunks[0].html,
       itemDescription: itemDescription,
-      sample: JSON.stringify(sample, null, 2),
       questions: JSON.stringify(questions, null, 2),
+      num: docs.length,
+      htmls: htmlsPrompt,
+      samples: samplesPrompt,
     };
     const prompt = codeGenMulti.render(context);
+
+    // console.log('prompt', prompt);
+    // console.log('prompt len', prompt.length);
+    // console.log('prompt ~tokens:', prompt.length / 4);
 
     logger.debug(`Writing code with ${this.ai}`);
     const start = (new Date()).getTime();
     const answer = await this.ai.ask(prompt, { format: 'text' });
     const took = (new Date()).getTime() - start;
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to write code`);
+
+    console.log(answer.partial);
 
     const { fn, code } = codeToFn(answer.partial);
     return { fn, code };
@@ -249,8 +307,12 @@ export const CodeGenExtractor = class extends BaseExtractor {
       throw new Error(`Question mismatch in code gen run: ${JSON.stringify(questions)} != ${JSON.stringify(this.state.questions)}`);
     }
 
+    console.log('target is:', target);
+
     const gen = await this.getDoc(target);
     const doc = (await gen.next()).value;
+
+    console.log('doc is:', doc);
 
     const { fn } = codeToFn(this.state.code);
     const results = runFn(fn, doc.html);
@@ -300,4 +362,25 @@ const runFn = (fn, html) => {
   }
 
   return results;
+}
+
+const toPrompt = (docs, samples, actuals) => {
+  const tokensPerDoc = 30000;
+  const bytesPerDoc = tokensPerDoc * 4;
+  let h = '';
+  let s = '';
+  let a = ''
+  for (let i = 0; i < docs.length; i++) {
+    const html = docs[i].html.substr(0, bytesPerDoc);
+    console.log('chunk html len:', html.length);
+    // TODO: prompt engineering: is it better to do HTML then the answers right after?
+    h += `>>>> HTML sample #${i}:\n${html}\n\n\n`;
+    const sample = JSON.stringify(samples[i], null, 2);
+    s += `>>>> Correct answers for HTML sample #${i}:\n${sample}`;
+    if (actuals) {
+      const actual = JSON.stringify(actuals[i], null, 2);
+      a += `>>>> The actual received answer for for HTML sample #${i}:\n${actual}`;
+    }
+  }
+  return [h, s, a];
 }

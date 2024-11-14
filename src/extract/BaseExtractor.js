@@ -52,8 +52,12 @@ export const BaseExtractor = class {
     }
   }
 
-  chunks(doc) {
-    const maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
+  chunks(doc, maxTokens) {
+    if (maxTokens) {
+      maxTokens = Math.min(maxTokens, this.hardCapTokens, this.ai.maxTokens);
+    } else {
+      maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
+    }
 
     let textChunkSize = maxTokens * 4 * 0.1;
     let htmlChunkSize = maxTokens * 4 * 0.25;

@@ -236,9 +236,15 @@ export const Actor = class extends BaseActor {
 
       // const html = await this.page.content();
       // console.log('html', html);
-
       // await this.page.screenshot({ path: '/tmp/out.png', fullPage: true });
       await this.page.screenshot({ path: '/tmp/out.png' });
+
+      // Extra wait...TODO..figure this out...
+      console.log('Extra wait...TODO..figure this out...');
+      await new Promise(ok => setTimeout(ok, 5000));
+
+      await this.page.screenshot({ path: '/tmp/out2.png' });
+
       const html = await this.page.content();
       fs.writeFileSync('/tmp/out.html', html);
 

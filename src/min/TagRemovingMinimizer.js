@@ -18,7 +18,7 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
 
     this.removeTags.forEach(tag => {
       root.querySelectorAll(tag).forEach(element => {
-        element.replaceWith(`[[${tag} removed]]`);
+        element.replaceWith('');
       });
     });
 
