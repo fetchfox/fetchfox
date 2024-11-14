@@ -43,6 +43,7 @@
     "dropbox": "^10.34.0",
     "googleapis": "^144.0.0",
     "groq-sdk": "^0.7.0",
+    "ioredis": "^5.4.1",
     "loglevel": "^1.9.2",
     "loglevel-plugin-prefix": "^0.8.4",
     "node-fetch": "^3.3.2",

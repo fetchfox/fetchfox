@@ -4,11 +4,13 @@ import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
 import { getActor, BaseActor } from '../act/index.js';
+import { getKV, BaseKV } from '../kv/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { copyKeys } from './constants.js';
 
 // Order matters for `decodeableKeys`
 export const decodeableKeys = [
+  ['kv', getKV, BaseKV],
   ['fetcher', getFetcher, BaseFetcher],
   ['ai', getAI, BaseAI],
   ['crawler', getCrawler, BaseCrawler],
@@ -29,6 +31,8 @@ const decodeArgs = (args, cache) => {
   }
 
   for (const [key, getter, parentClass] of decodeableKeys) {
+    console.log('decode', key);
+
     let val;
     let which = null;
     let options = {};

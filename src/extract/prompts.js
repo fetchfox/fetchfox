@@ -174,7 +174,7 @@ Below is your task:
 {{code}}
 
 - Limit your response to around 500 words
-- In some rare cases, the expected answers may be wrong. This is unusual but it may happen.
+- In some cases, the expected answers may be wrong. They are AI generated, and the AI is not perfect at doign the extraction.
 - You MUST reply in JSON, your response will be fed into JSON.parse()
 `);
 

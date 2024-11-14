@@ -93,7 +93,6 @@ describe('CodeGenExtractor', function() {
 
     assert.ok(took1 > 1000, 'code gen learning should take at least a second');
     assert.ok(took2 < 200, 'code gen execution from load should be fast');
-
   });
 
 });

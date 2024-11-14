@@ -49,9 +49,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
     const key = this.key(examples, questions);
     logger.info(`Load code gen state via key ${key}`);
-    const r = await this.kv.get(key);
-    console.log('r', r);
-    this.state = r;
+    this.state = await this.kv.get(key);
   }
 
   async save() {
@@ -66,7 +64,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
   async learn(options) {
     const maxIterations = options?.maxIterations || 5;
     const junkAccuracy = options?.junkAccuracy || 40;
-    const targetAccuracy = options?.targetAccuracy || 90
+    const targetAccuracy = options?.targetAccuracy || 80
     const targetQuality = options?.targetQuality || 60;
 
     if (!this.state) {
@@ -91,10 +89,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
           });
         }));
 
-    console.log(docs.map(doc => ''+doc));
-
-    // const doc = docs[0];
-
     logger.debug(`Getting sample for code generation`);
     const sampleSize = 5;
     const getSample = async (doc) => {
@@ -110,15 +104,11 @@ export const CodeGenExtractor = class extends BaseExtractor {
     }
 
     const samples = await Promise.all(docs.map(getSample));
-    console.log('samples');
-    console.log(samples);
 
     const combinedSample = [];
     for (const sample of samples) {
       combinedSample.push(...sample);
     }
-
-    console.log('combinedSample', combinedSample);
 
     const itemDescription = await this.findDescription(
       docs[0], samples[0], questions);
@@ -136,8 +126,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
       for (const result of candidate.results) {
         actuals.push((result || []).slice(0, sampleSize));
       }
-
-      console.log('actuals', actuals);
 
       const feedback = await this.feedback(
         docs,
@@ -197,10 +185,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
     };
     const prompt = codeGenFeedback.render(context);
-
-    // console.log('feedback prompt', prompt);
-    // console.log('feedback prompt', prompt.length);
-    // console.log('feedback prompt ~', prompt.length / 4);
 
     logger.debug(`Asking for feedback using ${this.ai}`);
     const start = (new Date()).getTime();
@@ -270,9 +254,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
   async writeCode(docs, samples, questions, itemDescription) {
     const [htmlsPrompt, samplesPrompt] = toPrompt(docs, samples);
 
-    console.log('htmls:  ', htmlsPrompt);
-    console.log('samples:', samplesPrompt);
-
     const context = {
       itemDescription: itemDescription,
       questions: JSON.stringify(questions, null, 2),
@@ -282,17 +263,11 @@ export const CodeGenExtractor = class extends BaseExtractor {
     };
     const prompt = codeGenMulti.render(context);
 
-    // console.log('prompt', prompt);
-    // console.log('prompt len', prompt.length);
-    // console.log('prompt ~tokens:', prompt.length / 4);
-
     logger.debug(`Writing code with ${this.ai}`);
     const start = (new Date()).getTime();
     const answer = await this.ai.ask(prompt, { format: 'text' });
     const took = (new Date()).getTime() - start;
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to write code`);
-
-    console.log(answer.partial);
 
     const { fn, code } = codeToFn(answer.partial);
     return { fn, code };
@@ -307,12 +282,8 @@ export const CodeGenExtractor = class extends BaseExtractor {
       throw new Error(`Question mismatch in code gen run: ${JSON.stringify(questions)} != ${JSON.stringify(this.state.questions)}`);
     }
 
-    console.log('target is:', target);
-
     const gen = await this.getDoc(target);
     const doc = (await gen.next()).value;
-
-    console.log('doc is:', doc);
 
     const { fn } = codeToFn(this.state.code);
     const results = runFn(fn, doc.html);
@@ -372,7 +343,7 @@ const toPrompt = (docs, samples, actuals) => {
   let a = ''
   for (let i = 0; i < docs.length; i++) {
     const html = docs[i].html.substr(0, bytesPerDoc);
-    console.log('chunk html len:', html.length);
+
     // TODO: prompt engineering: is it better to do HTML then the answers right after?
     h += `>>>> HTML sample #${i}:\n${html}\n\n\n`;
     const sample = JSON.stringify(samples[i], null, 2);

@@ -172,6 +172,9 @@ export const stepDescriptionsMap = {
         example: true,
         required: false,
       },
+
+      // TODO: move this elsewhere
+      examples: {}
     },
   }),
 
