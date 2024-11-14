@@ -27,6 +27,12 @@ export const BaseFetcher = class {
     return `[${this.constructor.name}]`;
   }
 
+  async first(target, options) {
+    for await (const doc of this.fetch(target, options)) {
+      return doc;
+    }
+  }
+
   async *fetch(target, options) {
     let url;
 

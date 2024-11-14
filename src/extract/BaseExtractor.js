@@ -1,12 +1,14 @@
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, cache, hardCapTokens } = options || {};
+    const { ai, kv, fetcher, cache, hardCapTokens } = options || {};
     this.ai = getAI(ai, { cache });
+    this.kv = getKV(kv);
     this.fetcher = fetcher || new DefaultFetcher({ cache });
     this.hardCapTokens = hardCapTokens || 128000;
     this.usage = {

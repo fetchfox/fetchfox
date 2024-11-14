@@ -1,4 +1,5 @@
 import { logger } from '../log/logger.js';
+import CryptoJS from 'crypto-js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
@@ -20,22 +21,52 @@ export const CodeGenExtractor = class extends BaseExtractor {
     this.state = null;
   }
 
-  async init(target, questions) {
+  async init(example, questions) {
     if (this.state) {
       throw new Error('Double init');
     }
 
     this.state = {};
 
-    this.state.target = target;
+    this.state.example = example;
     this.state.questions = questions;
     this.state.feedback = { accuracy: 0 };
+  }
+
+  key(example, questions) {
+    const hash = CryptoJS
+      .SHA256(JSON.stringify({ example, questions }))
+      .toString(CryptoJS.enc.Hex)
+      .substr(0, 32);
+    const key = 'cge_' + hash;
+    return key;
+  }
+
+  async load(example, questions) {
+    if (this.state) {
+      throw new Error('Double init via load');
+    }
+
+    const key = this.key(example, questions);
+    logger.info(`Load code gen state via key ${key}`);
+    const r = await this.kv.get(key);
+    console.log('r', r);
+    this.state = r;
+  }
+
+  async save() {
+    if (!this.state) {
+      throw new Error('No state to save');
+    }
+    const key = this.key(this.state.example, this.state.questions);
+    logger.info(`Save code gen state via key ${key}`);
+    this.kv.set(key, this.state);
   }
 
   async learn(options) {
     const maxIterations = options?.maxIterations || 5;
     const junkAccuracy = options?.junkAccuracy || 40;
-    const targetAccuracy = options?.targetAccuracy || 40;
+    const targetAccuracy = options?.targetAccuracy || 90
     const targetQuality = options?.targetQuality || 60;
 
     if (!this.state) {
@@ -44,7 +75,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
     const { questions } = this.state;
 
-    const gen = await this.getDoc(this.state.target);
+    const gen = await this.getDoc(this.state.example);
     const doc = (await gen.next()).value;
 
     logger.debug(`Getting sample for code generation`);
@@ -61,14 +92,14 @@ export const CodeGenExtractor = class extends BaseExtractor {
     const itemDescription = await this.findDescription(doc, sample, questions);
     logger.debug(`Got item description: ${itemDescription}`);
 
-    logger.info(`Learn how to answer ${JSON.stringify(this.state.questions).substr(0, 100)} on ${this.state.target}`);
+    logger.info(`Learn how to answer ${JSON.stringify(this.state.questions).substr(0, 100)} on ${this.state.example}`);
 
     const expected = sample;
 
     let genFn = () => this.firstAttempt(doc, sample, questions);
 
     for (let i = 0; i < maxIterations; i++) {
-      logger.debug(`Code generation iteration ${i + 1} of ${maxIterations}, current best score is: ${this.state.feedback.accuracy}`);
+      logger.info(`Code generation iteration ${i + 1} of ${maxIterations}, current best score is: ${this.state.feedback.accuracy}`);
 
       const candidate = await genFn(doc, sample, questions);
       const actual = (candidate.results || []).slice(0, expected.length);
@@ -82,7 +113,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
         actual);
       candidate.feedback = feedback;
 
-      logger.debug(`Got feedback: ${JSON.stringify(feedback.accuracy, null, 2)}`);
+      logger.debug(`Got feedback: ${JSON.stringify(feedback, null, 2)}`);
 
       if (feedback.accuracy < this.state.feedback.accuracy) {
         logger.debug(`Accuracy below previous best, throw away iteration`);
@@ -101,7 +132,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       this.state.feedback = feedback;
       this.fn = candidate.fn
 
-      logger.debug(`Check accuracy and quality: feedback=${feedback.accuracy}, ${feedback.quality}, targets=${targetAccuracy}, ${targetQuality}`);
+      logger.debug(`Check accuracy and quality: feedback=(${feedback.accuracy}, ${feedback.quality}), targets=(${targetAccuracy}, ${targetQuality})`);
       if (feedback.accuracy >= targetAccuracy && feedback.quality >= targetQuality) {
         logger.debug(`Hit targets, stop iteration`);
         break;
@@ -263,7 +294,7 @@ const runFn = (fn, html) => {
   }
 
   if (!results || !Array.isArray(results) || results.length == 0) {
-    logger.warn(`AI generated code ran, but gave unusable reults: ${JSON.stringify(results).substr(0, 400)}`);
+    logger.warn(`AI generated code ran, but gave unusable reults: ${JSON.stringify(results || '').substr(0, 400)}`);
   } else {
     logger.debug(`Got results from AI generated code, first few: ${JSON.stringify(results.slice(0, 5), null, 2).substr(0, 1000)}`);
   }
