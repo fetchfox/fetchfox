@@ -101,17 +101,21 @@ export const getAccuracy = (predictions, groundTruth, limit = 0) => {
 }
 
 // Expand all combinations of parameters into Objects
-export const objectCartesian = (paramSpace) => {
+export const objectCartesian = (paramSpace, fixedAttributes = {}) => {
   const keys = Object.keys(paramSpace);
   const values = Object.values(paramSpace).map(v => 
     Array.isArray(v) ? v : [v]
   );
   
-  return values.reduce((acc, arr, i) => 
+  const paramConfigs = values.reduce((acc, arr, i) => 
     acc.flatMap(obj => 
       arr.map(val => ({...obj, [keys[i]]: val}))
     ), 
     [{}]
+  );
+
+  return paramConfigs.map(
+    paramConfig => ({...fixedAttributes, ...paramConfig})
   );
 };
 
@@ -136,4 +140,38 @@ export const matrix = () => {
     configs.push({ ai });
   }
   return configs;
+}
+
+/**
+ * @typedef {Object} EvalPatterns
+ * @property {(RegExp|RegExp[]|null)} includePatterns - Pattern(s) that must match
+ * @property {(RegExp|RegExp[]|null)} excludePatterns - Pattern(s) that must not match
+ */
+
+/**
+ * Checks if a value matches patterns defined in an evaluation patterns object
+ * @param {string} value - The value to test
+ * @param {EvalPatterns} evalPatterns - Object containing include and exclude patterns
+ * @returns {boolean} True if value matches include pattern(s) and doesn't match exclude pattern(s)
+ */
+export const matchesPatterns = (value, evalPatterns = {}) => {
+  const { includePatterns = null, excludePatterns = null } = evalPatterns;
+
+  // Convert single patterns to arrays for consistent handling
+  const includes = Array.isArray(includePatterns) ? includePatterns : [includePatterns];
+  const excludes = Array.isArray(excludePatterns) ? excludePatterns : [excludePatterns];
+
+  // If no include patterns, treat as "include all"
+  if (!includePatterns) {
+    return !excludes.some(pattern => pattern?.test(value));
+  }
+
+  // Check if ANY include pattern matches (OR logic)
+  const hasIncludeMatch = includes.some(pattern => pattern?.test(value));
+  
+  // Check if ANY exclude pattern matches (OR logic)
+  const hasExcludeMatch = excludes.some(pattern => pattern?.test(value));
+
+  // Must match an include pattern AND not match any exclude patterns
+  return hasIncludeMatch && !hasExcludeMatch;
 }
