@@ -1,53 +1,76 @@
 import { fox } from '../../src/index.js';
-import { matrix } from '../lib.js';
 
-export const runCrawlBenchmark = async (testCase, options) => {
-  const configs = options?.configs || matrix();
+export const runCrawlBenchmark = async (plan, crawl, analyze, configs) => {
 
-  let results = [];
-  for (const config of configs) {
-    const wf = null; // TODO
-    // TODO run the benchmark
-    // TODO push result
-  }
+  const results = await Promise.all(configs.map(async function(config) {
+    const failure = {
+      failure: true,
+      config: config,
+    }
+
+    let res = {};
+    let planDuration = 0.0;
+    let crawlDuration = 0.0;
+    try {
+      const planStartTime = performance.now();
+      const wf = await plan(config);
+      planDuration = performance.now() - planStartTime;
+      console.log('wf', JSON.stringify(wf.dump(), null, 2));
+
+      const crawlStartTime = performance.now();
+      const preds = await crawl(wf, config);
+      crawlDuration = performance.now() - crawlStartTime;
+
+      res = await analyze(preds, config);
+    } catch (err) {
+      console.log(err);
+      return failure;
+    }
+    
+    return {
+      ...res,
+      failure: false,
+      planDuration: planDuration,
+      crawlDuration: crawlDuration,
+      config: config,
+    }
+  }));
+
   return results;
 }
 
-  // it('should crawl for coins @bench', async () => {
-  //   const configs = matrix();
-  //   console.log('configs', configs);
 
-  //   for (const config of configs) {
-  //     const wf = await fox
-  //       .config({ 
-  //         // diskCache: os.tmpdir() + '/fetchfox-test-cache',
-  //         diskCache: '/tmp/fetchfox-test-cache',
-  //         ...config,
-  //       })
-  //       .init('https://ffcloud.s3.us-west-2.amazonaws.com/testdata/coinmarketcap.html')
-  //       .crawl('find links to pages about coins')
-  //       .plan();
+/**
+ * @typedef {Object} EvalPatterns
+ * @property {(RegExp|RegExp[]|null)} includePatterns - Pattern(s) that must match
+ * @property {(RegExp|RegExp[]|null)} excludePatterns - Pattern(s) that must not match
+ */
 
-  //     assert.equal(wf.steps[1].name(), 'crawl');
-  //     wf.steps[1].limit = 50;
+/**
+ * Checks if a value matches patterns defined in an evaluation patterns object
+ * @param {string} value - The value to test
+ * @param {EvalPatterns} evalPatterns - Object containing include and exclude patterns
+ * @returns {boolean} True if value matches include pattern(s) and doesn't match exclude pattern(s)
+ */
+export const matchesPatterns = (value, evalPatterns = {}) => {
+  const { includePatterns = null, excludePatterns = null } = evalPatterns;
 
-  //     const out = await wf.run();
+  // Convert single patterns to arrays for consistent handling
+  const includes = Array.isArray(includePatterns) ? includePatterns : [includePatterns];
+  const excludes = Array.isArray(excludePatterns) ? excludePatterns : [excludePatterns];
 
-  //     console.log('full output:');
-  //     console.log(JSON.stringify(out, null, 2));
-  //     const links = out.full[1].items;
-  //     console.log(`found ${links.length} links using ${JSON.stringify(config)}`);
+  // If no include patterns, treat as "include all"
+  if (!includePatterns) {
+    return !excludes.some(pattern => pattern?.test(value));
+  }
 
-  //     // const links = out.full[1];
-  //     // for (let { url } of links.items) {
-  //     //   url = url.replace(
-  //     //     'https://ffcloud.s3.us-west-2.amazonaws.com/',
-  //     //     'https://coinmarketcap.com/');
-  //     //   console.log('Found url:', url, '\tusing', config.ai);
-  //     // }
+  // Check if ANY include pattern matches (OR logic)
+  const hasIncludeMatch = includes.some(pattern => pattern?.test(value));
+  
+  // Check if ANY exclude pattern matches (OR logic)
+  const hasExcludeMatch = excludes.some(pattern => pattern?.test(value));
 
-  //     // somehow verify the links are correct:
-  //     // - in this case, they should all have format like:
-  //     //   https://coinmarketcap.com/currencies/...
-  //   }
-  // });
+  // Must match an include pattern AND not match any exclude patterns
+  return hasIncludeMatch && !hasExcludeMatch;
+}
+

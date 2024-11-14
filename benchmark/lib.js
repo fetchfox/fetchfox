@@ -1,3 +1,5 @@
+import os from 'os';
+
 export const Stats = {
   mean: (arr) => {
     return arr.reduce((a, b) => a + b) / arr.length;
@@ -96,6 +98,30 @@ export const getAccuracy = (predictions, groundTruth, limit = 0) => {
   }
   
   return correct / n;
+}
+
+// Expand all combinations of parameters into Objects
+export const objectCartesian = (paramSpace) => {
+  const keys = Object.keys(paramSpace);
+  const values = Object.values(paramSpace).map(v => 
+    Array.isArray(v) ? v : [v]
+  );
+  
+  return values.reduce((acc, arr, i) => 
+    acc.flatMap(obj => 
+      arr.map(val => ({...obj, [keys[i]]: val}))
+    ), 
+    [{}]
+  );
+};
+
+export const benchmarkOptions = {
+  cacheDir: os.tmpdir() + '/fetchfox-test-cache',
+  ai: [
+    // 'openai:gpt-4o',
+    'openai:gpt-4o-mini',
+    'google:gemini-1.5-flash',
+  ],
 }
 
 export const matrix = () => {
