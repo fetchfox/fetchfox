@@ -213,6 +213,7 @@ Follow these guidelines:
 It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
 - If you made changes, explain the changes compared to the previous code, and why you think it will fix any issues
 - If you made no changes, say so, and say why not
+- You may disregard feedback that would make the code too complicated, more brittle, or that is too hard to integrate. Consider the feedback and use your best judgement.
 
 The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
 - \`html\`: the HTML of the page

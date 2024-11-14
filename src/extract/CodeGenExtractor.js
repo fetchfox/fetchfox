@@ -32,7 +32,12 @@ export const CodeGenExtractor = class extends BaseExtractor {
     this.state.feedback = { accuracy: 0 };
   }
 
-  async learn() {
+  async learn(options) {
+    const maxIterations = options?.maxIterations || 5;
+    const junkAccuracy = options?.junkAccuracy || 40;
+    const targetAccuracy = options?.targetAccuracy || 40;
+    const targetQuality = options?.targetQuality || 60;
+
     if (!this.state) {
       throw new Error('Need to init before learning');
     }
@@ -58,10 +63,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
     logger.info(`Learn how to answer ${JSON.stringify(this.state.questions).substr(0, 100)} on ${this.state.target}`);
 
-    const maxIterations = 5;
-    const junkAccuracy = 40;
-    const targetAccuracy = 90;
-    const targetQuality = 70;
     const expected = sample;
 
     let genFn = () => this.firstAttempt(doc, sample, questions);
@@ -129,15 +130,14 @@ export const CodeGenExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
     };
     const prompt = codeGenFeedback.render(context);
-    // console.log('prompt', prompt);
 
     logger.debug(`Asking for feedback using ${this.ai}`);
     const start = (new Date()).getTime();
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const took = (new Date()).getTime() - start;
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to get feedback`);
+    logger.debug(`Feedback answer: ${answer.partial}`);
 
-    console.log('Feedback is:', answer.partial);
     return answer.partial;
   }
 
@@ -153,7 +153,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
       feedback: JSON.stringify(feedback, null, 2),
     };
     const prompt = codeGenIterate.render(context);
-    // console.log('iter prompt', prompt);
 
     logger.debug(`Iterating on code using ${this.ai}`);
     const start = (new Date()).getTime();
@@ -161,7 +160,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
     const took = (new Date()).getTime() - start;
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to iterate on the code`);
 
-    console.log('Iteration is:', answer.partial);
     const out = codeToFn(answer.partial);
     const results = runFn(out.fn, doc.html);
     return { fn: out.fn, results, code: out.code };
@@ -200,7 +198,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
     };
     const prompt = codeGenMulti.render(context);
-    // console.log('prompt', prompt);
 
     logger.debug(`Writing code with ${this.ai}`);
     const start = (new Date()).getTime();
@@ -213,42 +210,22 @@ export const CodeGenExtractor = class extends BaseExtractor {
   }
 
   async *run(target, questions, options) {
+    if (!this.state) {
+      throw new Error('Code gen must learn a state before running');
+    }
+
+    if (JSON.stringify(questions) != JSON.stringify(this.state.questions)) {
+      throw new Error(`Question mismatch in code gen run: ${JSON.stringify(questions)} != ${JSON.stringify(this.state.questions)}`);
+    }
+
     const gen = await this.getDoc(target);
-
-    if (options.single) {
-      // For now, only write code for single page, multi item scrapes
-      return this.helper.run(target, questions, options);
-    }
-
-    const helperStream = this.helper.stream(target, questions, options);
-
-    let sample = [];
-    const sampleSize = 5;
-
-    for await (const item of helperStream)  {
-      const copy = JSON.parse(JSON.stringify(item));
-      if (copy.url) delete copy.url;
-      sample.push(copy);
-      if (sample.length >= sampleSize) break;
-    }
-
     const doc = (await gen.next()).value;
-    const { results: codeResults } = await this.firstAttempt(
-      doc, sample, questions);
-    if (codeResults) {
-      logger.info(`Returning ${codeResults.length} results from code generation extraction`);
-      for (const item of codeResults) {
-        yield Promise.resolve(item);
-      }
-      return;
-    }
 
-    logger.warn('Code generation failed, falling back to helper');
-    for (const item of sample) {
-      yield Promise.resolve(item);
-    }
+    const { fn } = codeToFn(this.state.code);
+    const results = runFn(fn, doc.html);
 
-    for await (const item of helperStream) {
+    logger.info(`Returning ${results.length} results from code gen function`);
+    for (const item of results) {
       yield Promise.resolve(item);
     }
   }
@@ -288,7 +265,7 @@ const runFn = (fn, html) => {
   if (!results || !Array.isArray(results) || results.length == 0) {
     logger.warn(`AI generated code ran, but gave unusable reults: ${JSON.stringify(results).substr(0, 400)}`);
   } else {
-    logger.debug(`Got results from AI generated code, first few: ${JSON.stringify(results.slice(0, 3), null, 2).substr(0, 1000)}`);
+    logger.debug(`Got results from AI generated code, first few: ${JSON.stringify(results.slice(0, 5), null, 2).substr(0, 1000)}`);
   }
 
   return results;
