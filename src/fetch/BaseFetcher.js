@@ -24,6 +24,8 @@ export const BaseFetcher = class {
   }
 
   async *fetch(target, options) {
+    logger.info(`Fetch ${target} with ${this}`);
+
     let url;
 
     if (typeof target == 'string') {
