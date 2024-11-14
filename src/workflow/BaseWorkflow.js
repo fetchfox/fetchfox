@@ -19,6 +19,7 @@ export const BaseWorkflow = class {
     }
     return {
       steps,
+      options: this.ctx.dump(),
       name: this.name,
       description: this.description,
     };
