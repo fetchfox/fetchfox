@@ -5,7 +5,6 @@ import fs from 'fs';
 import path from 'path';
 
 import { chromium } from 'playwright-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
@@ -118,59 +117,6 @@ export const Actor = class extends BaseActor {
     }
 
     return p;
-
-    // const url = 'https://www.united.com/en/us/fsr/choose-flights?f=SJC&t=NEW%20YORK%2C%20NY%2C%20US%20(ALL%20AIRPORTS)&d=2025-01-10&tt=1&sc=7&px=1&taxng=1&newHP=True&clm=7&st=bestmatches&tqp=R';
-    // const bd = 'wss://brd-customer-hl_e9028181-zone-scraping_browser1:96m97ovmklqe@brd.superproxy.io:9222';
-    // console.log('connect bd', bd);
-
-    // let page;
-
-    // if (false) {
-    //   const browser = await puppeteer.connect({ browserWSEndpoint: bd });
-    //   page = await browser.newPage();
-    //   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    // } else {
-    //   const browser = await chromium.connectOverCDP(bd);
-    //   page = await browser.newPage();
-    //   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    // }
-
-    // console.log('sleep');
-    // await new Promise(ok => setTimeout(ok, 10 * 1000));
-    // console.log('done sleeping');
-
-    // console.log('screenshot');
-    // // await page.screenshot({ path: '/tmp/out.png', fullPage: true });
-    // await page.screenshot({ path: '/tmp/out.png' });
-    // const html = await page.content();
-    // console.log('html');
-    // fs.writeFileSync('/tmp/out.html', html);
-
-    // throw new Error('STOP');
-
-    // // const page = await browser.newPage();
-    // // await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    // return await playwright.chromium.connectOverCDP(bd);
-
-
-    // const proxy = {
-    //   // liveproxies.io
-    //   // server: '174.138.165.234:7383',
-    //   // username: 'LV39510938-L66tFsxSSM-40',
-    //   // password: '5XADCUQz4fTrxJSSkDEN',
-
-    //   // ninjasproxy.com
-    //   server: '109.238.174.145:13228',
-    //   username: 'ninja1358446',
-    //   password: '8zH9h5XjddNQE@',
-    // };
-
-    // return chromium.launch({
-    //   headless: false,
-    //   // proxy,
-    // });
-    // // return chromium.launch({ ...this.options, headless: this.headless });
-    // // return playwright[this.browser].launch({ ...this.options, headless: this.headless });
   }
 
   async start() {
@@ -234,21 +180,8 @@ export const Actor = class extends BaseActor {
       await new Promise(ok => setTimeout(ok, this.loadWait));
       logger.debug(`Done waiting`);
 
-      // const html = await this.page.content();
-      // console.log('html', html);
-      // await this.page.screenshot({ path: '/tmp/out.png', fullPage: true });
-      await this.page.screenshot({ path: '/tmp/out.png' });
-
-      // Extra wait...TODO..figure this out...
-      console.log('Extra wait...TODO..figure this out...');
+      // Extra wait... TODO, remove
       await new Promise(ok => setTimeout(ok, 5000));
-
-      await this.page.screenshot({ path: '/tmp/out2.png' });
-
-      const html = await this.page.content();
-      fs.writeFileSync('/tmp/out.html', html);
-
-      // throw 'XYZ';
     }
 
     if (checkForReady) {

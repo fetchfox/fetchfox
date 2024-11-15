@@ -5,6 +5,7 @@ let workflow = null;
 
 process.on('unhandledRejection', async (e, p) => {
   logger.error(`Child.js unhandled Rejection at: ${e}`);
+  logger.error(`Child.js unhandled stack: ${e.stack}`);
 
   const serialize = (e) => {
     if (!(e instanceof Error)) {
