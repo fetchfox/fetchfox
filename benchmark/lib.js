@@ -161,11 +161,6 @@ export const matchesPatterns = (value, evalPatterns = {}) => {
   const includes = Array.isArray(includePatterns) ? includePatterns : [includePatterns];
   const excludes = Array.isArray(excludePatterns) ? excludePatterns : [excludePatterns];
 
-  // If no include patterns, treat as "include all"
-  if (!includePatterns) {
-    return !excludes.some(pattern => pattern?.test(value));
-  }
-
   // Check if ANY include pattern matches (OR logic)
   const hasIncludeMatch = includes.some(pattern => pattern?.test(value));
   

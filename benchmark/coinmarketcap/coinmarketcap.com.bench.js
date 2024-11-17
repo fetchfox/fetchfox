@@ -1,10 +1,10 @@
 import assert from 'assert';
 import { fox } from '../../src/index.js';
-import { benchmarkOptions, matchesPatterns, objectCartesian } from '../lib.js';
-import { runCrawlBenchmark } from '../lib/crawl.js'
-import { runPlanBenchmark } from '../lib/plan.js'
+import { benchmarkOptions, matchesPatterns } from '../lib.js';
+import { runCrawlBenchmarks } from '../lib/crawl.js'
+import { runPlanBenchmarks } from '../lib/plan.js'
 
-function runEval(preds, patternEval) {
+function runEvalScore(preds, patternEval) {
   const accuracy = preds
     .map(item => matchesPatterns(item, patternEval))
     .reduce((acc, correct) => 
@@ -22,6 +22,7 @@ function runEval(preds, patternEval) {
   const score = (plusScore - minusScore);
 
   const results = {
+    length: preds.length,
     accuracy: accuracy,
     score: score,
   }
@@ -43,7 +44,7 @@ async function planCoinmarket(config) {
   return wf;
 }
 
-async function crawlCoinmarketPlan(wf, config) {
+async function crawlPlan(wf, config) {
   // Verify it goes const -> crawl -> extract, and remove extract step
   assert.equal(wf.steps[1].name(), 'crawl');
   assert.equal(wf.steps.length, 3);
@@ -57,7 +58,7 @@ async function crawlCoinmarketPlan(wf, config) {
   return links;
 }
 
-async function crawlCoinmarketSimple(config) {
+async function crawlSimple(config) {
   const out = await fox
     .config(config)
     .init(config.url)
@@ -77,7 +78,7 @@ async function analyzeCoinmarket(links, config) {
       'https://coinmarketcap.com/')
   );
   console.log(config.ai, preds);
-  const results = runEval(preds, config.evalData);
+  const results = runEvalScore(preds, config.evalData);
   
   return results;
 }
@@ -86,7 +87,7 @@ describe('coinmarketcap.com', function() {
   this.timeout(5 * 60 * 1000);
 
   it('should crawl for coins @bench', async () => {
-    let options = benchmarkOptions // option overrides
+    let options = benchmarkOptions // option overrides, includes AIs to test
     const coinmarketOptions = {
       url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/coinmarketcap.html',
       query: [
@@ -104,20 +105,12 @@ describe('coinmarketcap.com', function() {
     }
     options = {...coinmarketOptions, ...options}
     console.log('options', options);
-    // Get all combinations of options
-    const configs = objectCartesian(options)
 
-    let results = [];
-    let result = {};
-    for (const config of configs) {
-      result = await runCrawlBenchmark(crawlCoinmarketSimple, analyzeCoinmarket, config);
-      results.push(result);
-    }
-    console.log(JSON.stringify(results, null, 2));
+    const results = await runCrawlBenchmarks(crawlSimple, analyzeCoinmarket, options);
   });
 
   it('should plan and crawl for coins @bench', async () => {
-    let options = benchmarkOptions // option overrides
+    let options = benchmarkOptions // option overrides, includes AIs to test
     const coinmarketOptions = {
       url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/coinmarketcap.html',
       query: [
@@ -125,23 +118,15 @@ describe('coinmarketcap.com', function() {
         'get cryptocurrencies',
         'crawl links to crypto',
       ],
-      eval: {
+      evalData: {
         includePatterns: new RegExp('^https://coinmarketcap.com/currencies/'),
       },
       limit: 10,
     }
     options = {...coinmarketOptions, ...options}
     console.log('options', options);
-    // Get all combinations of options
-    const configs = objectCartesian(options)
 
-    let results = [];
-    let result = {};
-    for (const config of configs) {
-      result = await runPlanBenchmark(planCoinmarket, crawlCoinmarketPlan, analyzeCoinmarket, config);
-      results.push(result);
-    }
-    console.log(JSON.stringify(results, null, 2));
+    const results = runPlanBenchmarks(planCoinmarket, crawlPlan, analyzeCoinmarket, options);
   });
 
 });

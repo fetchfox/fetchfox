@@ -1,4 +1,4 @@
-import { fox } from '../../src/index.js';
+import { objectCartesian } from '../lib.js';
 
 export const runPlanBenchmark = async (plan, crawl, analyze, config) => {
 
@@ -33,6 +33,18 @@ export const runPlanBenchmark = async (plan, crawl, analyze, config) => {
   }
 }
 
+// benchmarks plan/crawl functions with analyze function
+// will operate on all combinations of lists in options, but not fixedOptions
+export const runPlanBenchmarks = async (plan, crawl, analyze, options, fixedOptions = {}) => {
+  const configs = objectCartesian(options, fixedOptions);
 
+  let results = [];
+  let result = {};
+  for (const config of configs) {
+      result = await runPlanBenchmark(plan, crawl, analyze, config);
+      results.push(result);
+  }
 
-
+  console.log(JSON.stringify(results, null, 2));
+  return results;
+}
