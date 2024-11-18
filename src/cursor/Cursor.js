@@ -89,7 +89,7 @@ export const Cursor = class {
   }
 
   finish(stepIndex) {
-    logger.info(`Finish step all in cursor ${stepIndex}`);
+    logger.info(`Finish step ${stepIndex} in cursor`);
 
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;

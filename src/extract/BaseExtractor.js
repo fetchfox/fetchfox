@@ -1,12 +1,14 @@
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, cache, hardCapTokens } = options || {};
+    const { ai, kv, fetcher, cache, hardCapTokens } = options || {};
     this.ai = getAI(ai, { cache });
+    this.kv = getKV(kv);
     this.fetcher = fetcher || new DefaultFetcher({ cache });
     this.hardCapTokens = hardCapTokens || 128000;
     this.usage = {
@@ -50,8 +52,12 @@ export const BaseExtractor = class {
     }
   }
 
-  chunks(doc) {
-    const maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
+  chunks(doc, maxTokens) {
+    if (maxTokens) {
+      maxTokens = Math.min(maxTokens, this.hardCapTokens, this.ai.maxTokens);
+    } else {
+      maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
+    }
 
     let textChunkSize = maxTokens * 4 * 0.1;
     let htmlChunkSize = maxTokens * 4 * 0.25;
@@ -103,7 +109,9 @@ export const BaseExtractor = class {
       }
       // const doc = await this.getDoc(target);
 
-      for await (const r of this._run(docs[0], questions, options)) {
+      // TODO: Run on all docs
+      const doc = docs[0];
+      for await (const r of this._run(doc, questions, options)) {
         for (const key of Object.keys(r)) {
           const remap = map[key];
           if (remap) {
@@ -112,6 +120,9 @@ export const BaseExtractor = class {
             r[remap] = val;
           }
         }
+
+        if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+        if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
 
         yield Promise.resolve(r);
       }

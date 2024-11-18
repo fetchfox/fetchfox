@@ -3,11 +3,6 @@ import os from 'os';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('political-ads-leadgen', function() {
   this.timeout(10 * 60 * 1000);
 

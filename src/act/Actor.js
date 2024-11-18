@@ -1,4 +1,11 @@
 import playwright from 'playwright';
+import puppeteer from 'puppeteer-core';
+
+import fs from 'fs';
+import path from 'path';
+
+import { chromium } from 'playwright-extra';
+
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getExtractor } from '../extract/index.js';
@@ -14,10 +21,13 @@ export const Actor = class extends BaseActor {
     this.extractor = options?.extractor || getExtractor();
     this.vision = new Vision({ ai: this.ai });
 
-    this.headless = options?.headless === undefined ? true : options.headless;
     this.browser = options?.browser || 'chromium';
     this.loadWait = options?.loadWait || 1000;
     this.timeoutWait = options?.timeoutWait || 4000;
+
+    this.headless = options?.headless === undefined ? true : options.headless;
+    this.cdp = options?.cdp;
+    this.options = options?.options || {};
 
     this.history = [];
     this.index = -1;
@@ -33,14 +43,30 @@ export const Actor = class extends BaseActor {
   }
 
   async doc() {
-    logger.debug(`Doc from ${this.url()}`);
+    logger.debug(`Doc from ${this.url()}, ${this.page}`);
     const doc = new Document();
+
+    const start = (new Date()).getTime();
+    const screenshot = await this.page.screenshot({ fullPage: true });
+    const took = (new Date()).getTime() - start;
+    logger.debug(`Got screenshot in ${took} msec`);
+
+    const [
+      html,
+      text,
+    ] = await Promise.all([
+      this.page.content(),
+      this.page.evaluate(() => document?.body?.innerText || ''),
+    ]);
+
     const data = {
       url: this.url(),
-      html: await this.page.content(),
-      text: await this.page.evaluate(() => document?.body?.innerText || ''),
+      screenshot,
+      html,
+      text,
       contentType: 'text/html',
     };
+
     doc.loadData(data);
     return doc;
   }
@@ -79,12 +105,22 @@ export const Actor = class extends BaseActor {
   }
 
   async launch() {
-    logger.debug(`Actor launching ${this.browser}`);
-    return playwright[this.browser].launch({ headless: this.headless });
+    logger.info(`Actor launching ${this.browser}`);
+
+    let p;
+    if (this.cdp) {
+      logger.debug(`Actor using CDP endpoint ${this.cdp}`);
+      p = chromium.connectOverCDP(this.cdp);
+    } else {
+      logger.debug(`Actor using local Chromium`);
+      p = chromium.launch({ ...this.options, headless: this.headless });
+    }
+
+    return p;
   }
 
   async start() {
-    logger.info(`Actor starting`);
+    logger.trace(`Actor starting`);
 
     if (this._browser) throw new Error('Double browser launch');
 
@@ -104,13 +140,13 @@ export const Actor = class extends BaseActor {
     return new Finder(this.ai, this.page, query, selector);
   }
 
-
   async *scrollForDocs(num, scrollWait) {
     for (let i = 0; i < num; i++) {
-      const wait = scrollWait || this.loadWait;
+      const wait = scrollWait || 1000;
       logger.debug(`Wait for ${wait} and then scroll and get doc`);
       await new Promise(ok => setTimeout(ok, wait));
       await this.page.keyboard.press('PageDown');
+      logger.debug(`Pressed page down, get doc on ${this.page}`);
       yield this.doc();
     }
   }
@@ -143,6 +179,9 @@ export const Actor = class extends BaseActor {
       logger.debug(`Actor waiting ${this.loadWait} secs for load`);
       await new Promise(ok => setTimeout(ok, this.loadWait));
       logger.debug(`Done waiting`);
+
+      // Extra wait... TODO, remove
+      await new Promise(ok => setTimeout(ok, 5000));
     }
 
     if (checkForReady) {

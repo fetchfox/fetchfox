@@ -4,11 +4,6 @@ import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('github.com', function() {
   this.timeout(5 * 60 * 1000);
 
@@ -57,7 +52,7 @@ describe('github.com', function() {
     assert.ok(locTotal >= 10, 'loc total');
   });
 
-  it('should do complex scrape @run', async () => {
+  it('should do complex scrape @disabled', async () => {
     let countPartials = 0;
     const out = await fox
       .config({

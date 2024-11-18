@@ -1,6 +1,7 @@
 import { logger } from '../log/logger.js';
 import { Client } from './Client.js';
 import { Document } from '../document/Document.js';
+import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 
 export const ChromeRelayActor = class {
   constructor(host, options) {
@@ -29,9 +30,15 @@ export const ChromeRelayActor = class {
   }
 
   async fetch(data) {
-    const { url, presignedUrl } = data;
+    const {
+      url,
+      presignedUrl,
+      waitForText,
+      removeTags,
+    } = data;
+    const active = !!data.active;
 
-    logger.debug(`Chrome relay actor fetching url: ${url}`);
+    logger.debug(`Chrome relay actor fetching url: ${url}, with waitForText=${waitForText}`);
 
     const [
       activeTab,
@@ -64,7 +71,7 @@ export const ChromeRelayActor = class {
       logger.debug(`Chrome relay actor opening new tab`);
 
       const resp = await new Promise(ok => chrome.tabs.create(
-        { url, active: !!data.active },
+        { url, active },
         (tab) => {
           setTimeout(
             async () => {
@@ -91,9 +98,16 @@ export const ChromeRelayActor = class {
     }
 
     try {
-      logger.debug(`Got status for ${tab.id}: ${status}`);
-      const doc = await getDocumentFromTab(tab.id, status);
+      logger.debug(`Got status for ${tab.id}: ${status}, loading: ${waitForText}`);
+      let doc = await getDocumentFromTab(tab.id, status, 2000, waitForText);
       logger.debug(`Loaded document ${doc}, presignedUrl=${presignedUrl}`);
+
+      if (removeTags) {
+        logger.debug(`Minimize doc before returning`);
+        const minimizer = new TagRemovingMinimizer({ removeTags });
+        doc = await minimizer.min(doc);
+      }
+
       return doc.dump({ presignedUrl });
 
     } finally {
@@ -105,8 +119,32 @@ export const ChromeRelayActor = class {
   }
 }
 
-const injectFunction = async (waitTime) => {
-  await new Promise(ok => setTimeout(ok, waitTime));
+const injectFunction = async (waitTime, waitForText) => {
+  if (waitForText) {
+    const timeout = 30000;
+    const interval = 100;
+
+    await new Promise((ok) => {
+      const startTime = Date.now();
+      const id = setInterval(() => {
+        const text = document.body.innerText;
+        if (text.includes(waitForText)) {
+          clearInterval(id);
+          ok();
+          return;
+        }
+
+        if (Date.now() - startTime > timeout) {
+          clearInterval(id);
+          console.error(`Timeout waiting for text: "${waitForText}"`);
+        }
+      }, interval);
+    });
+
+  } else {
+    await new Promise(ok => setTimeout(ok, waitTime));
+  }
+
   return {
     url: document.location.href,
     body: document.documentElement.outerHTML,
@@ -116,12 +154,12 @@ const injectFunction = async (waitTime) => {
   };
 }
 
-const getDocumentFromTab = async (tabId, status) => {
+const getDocumentFromTab = async (tabId, status, waitForMsec, waitForText) => {
   const result = await chrome.scripting.executeScript({
     target: { tabId },
     injectImmediately: true,
-    args: [2000],
     func: injectFunction,
+    args: [waitForMsec, waitForText || false],
   });
 
   if (!result || !result.length || result.length == 0 || !result[0].result) {

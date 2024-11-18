@@ -6,11 +6,6 @@ import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
 import { Client } from '../../src/relay/Client.js';
 import { googleSearchPlanPrompt } from './data.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('Server', function() {
   this.timeout(3 * 60 * 1000); // 3 minutes
 

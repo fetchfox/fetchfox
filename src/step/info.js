@@ -172,6 +172,9 @@ export const stepDescriptionsMap = {
         example: true,
         required: false,
       },
+
+      // TODO: move this elsewhere
+      examples: {}
     },
   }),
 
@@ -194,6 +197,16 @@ export const stepDescriptionsMap = {
         example: 500,
         required: false,
       },
+      waitForText: {
+        description: 'Text to wait for which indicates the page is loaded',
+        format: 'string',
+        required: false,
+      },
+      active: {
+        description: 'Open URLs in active tab on Chrome',
+        format: 'boolean',
+        required: false,
+      }
     },
   }),
 

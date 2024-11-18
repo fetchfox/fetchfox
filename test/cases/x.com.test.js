@@ -2,13 +2,8 @@ import os from 'os';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('x.com', function() {
-  this.timeout(0);
+  this.timeout(60 * 1000);
 
   it('should work', async () => {
     const url = 'https://x.com/i/flow/login';

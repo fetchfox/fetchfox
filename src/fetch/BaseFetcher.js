@@ -1,6 +1,8 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
+import { publishToS3 } from '../export/publish.js';
+import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
 
 export const BaseFetcher = class {
@@ -17,10 +19,18 @@ export const BaseFetcher = class {
       intervalCap: options?.intervalCap || 3,
       interval: options?.interval || 3000,
     });
+
+    this.s3 = options?.s3;
   }
 
   toString() {
     return `[${this.constructor.name}]`;
+  }
+
+  async first(target, options) {
+    for await (const doc of this.fetch(target, options)) {
+      return doc;
+    }
   }
 
   async *fetch(target, options) {
@@ -66,6 +76,45 @@ export const BaseFetcher = class {
       logger.debug(`Fetch queue has ${this.q.size} requests`);
 
       for await (const doc of p) {
+        // TODO: Move this code into Document.js, consolidate with options?.presignedUrl
+        if (this.s3) {
+          const bucket = this.s3.bucket;
+          const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}';
+          const acl = this.s3.acl || '';
+
+          const id = new ShortUniqueId({
+            length: 10,
+            dictionary: 'alphanum_lower',
+          }).rnd();
+          const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
+          const key = keyTemplate
+            .replaceAll('{id}', id)
+            .replaceAll('{url}', cleanUrl);
+
+          const s3url = await publishToS3(
+            doc.html,
+            'text/html',
+            acl,
+            bucket,
+            key + '.html');
+
+          logger.debug(`Uploaded HTML to ${s3url}`);
+
+          doc.htmlUrl = s3url;
+
+          if (doc.screenshot) {
+            const s3ScreenshotUrl = await publishToS3(
+              doc.screenshot,
+              'image/png',
+              acl,
+              bucket,
+              key + '.png');
+
+            logger.debug(`Uploaded screenshot to ${s3ScreenshotUrl}`);
+            doc.screenshotUrl = s3ScreenshotUrl;
+          }
+        }
+
         yield Promise.resolve(doc);
       }
 
