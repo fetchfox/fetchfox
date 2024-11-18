@@ -7,10 +7,12 @@ export const FetchStep = class extends BaseStep {
     super(args);
     this.scroll = args?.scroll;
     this.scrollWait = args?.scrollWait;
+    this.waitForText = args?.waitForText;
+    this.active = args?.active;
   }
 
   async process({ cursor, item }, cb) {
-    logger.info(`Fetch step for ${item} ${item.actor}`);
+    logger.info(`Fetch step for ${item}`);
 
     const options = { multiple: true };
     if (this.scroll) {
@@ -18,6 +20,12 @@ export const FetchStep = class extends BaseStep {
     }
     if (this.scrollWait) {
       options.scrollWait = this.scrollWait;
+    }
+    if (this.waitForText) {
+      options.waitForText = this.waitForText;
+    }
+    if (this.active) {
+      options.active = this.active;
     }
 
     if (typeof item.actor == 'function' && item.actor()) {

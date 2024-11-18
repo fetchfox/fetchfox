@@ -74,7 +74,6 @@ export const BaseFetcher = class {
       logger.debug(`Fetch queue has ${this.q.size} requests`);
 
       for await (const doc of p) {
-
         // TODO: Move this code into Document.js, consolidate with options?.presignedUrl
         if (this.s3) {
           const bucket = this.s3.bucket;
@@ -97,11 +96,10 @@ export const BaseFetcher = class {
             bucket,
             key + '.html');
 
-          console.log('s3url', s3url);
+          logger.debug(`Uploaded HTML to ${s3url}`);
 
           doc.htmlUrl = s3url;
 
-          console.log('doc ss?', doc.screenshot);
           if (doc.screenshot) {
             const s3ScreenshotUrl = await publishToS3(
               doc.screenshot,
@@ -109,8 +107,8 @@ export const BaseFetcher = class {
               acl,
               bucket,
               key + '.png');
-            console.log('s3ScreenshotUrl', s3ScreenshotUrl);
 
+            logger.debug(`Uploaded screenshot to ${s3ScreenshotUrl}`);
             doc.screenshotUrl = s3ScreenshotUrl;
           }
         }

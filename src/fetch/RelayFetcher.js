@@ -35,6 +35,7 @@ export const RelayFetcher = class extends BaseFetcher {
     await this._maybeInit();
     this._inFlight++;
     const active = options?.active;
+    const waitForText = options?.waitForText;
 
     let presignedUrl;
     if (this.shouldPresignUrl) {
@@ -72,7 +73,7 @@ export const RelayFetcher = class extends BaseFetcher {
 
         new Promise((ok) => {
           this.client.send(
-            { command: 'fetch', url, presignedUrl, active },
+            { command: 'fetch', url, presignedUrl, active, waitForText },
             (r) => {
               logger.debug(`Got reply for ${url}`);
               ok(r);

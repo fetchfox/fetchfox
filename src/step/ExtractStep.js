@@ -35,14 +35,13 @@ export const ExtractStep = class extends BaseStep {
     const ex = cursor.ctx.extractor;
     if (ex instanceof CodeGenExtractor) {
       logger.info(`Code gen init`);
-      console.log(this.examples, this.questions);
 
       await ex.load(this.examples, this.questions);
 
       if (ex.state) {
-        logger.info(`Code gen loaded state, not learning`);
+        logger.info(`Code gen loaded state, NOT learning`);
       } else {
-        logger.info(`Code gen got no state, learning`);
+        logger.info(`Code gen got no state, START learning`);
         await ex.init(this.examples, this.questions);
         await ex.learn();
         await ex.save();

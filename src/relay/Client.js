@@ -15,9 +15,7 @@ export const Client = class {
     return !!this.ws;
   }
 
-  async connect(id, isReconnect) {
-    const shouldReconnect = this.reconnect && !isReconnect;
-
+  async connect(id) {
     logger.info(`Connect relay web socket ${id}`);
 
     if (this.connectionWaiters) {
@@ -80,8 +78,8 @@ export const Client = class {
 
       ws.onclose = async () => {
         this.ws = null;
-        logger.debug(`Websocket closed, should reconnect? ${shouldReconnect}`);
-        if (shouldReconnect) {
+        logger.debug(`Websocket closed, should reconnect? ${this.reconnect}`);
+        if (this.reconnect) {
           await this._reconnect(10);
         }
       }
@@ -89,27 +87,36 @@ export const Client = class {
   }
 
   async _reconnect(tries) {
-    for (let i = 0; i < tries; i++) {
-      logger.info(`Try to reconnect, attempt ${i}`);
-      const result = await new Promise((ok) => {
-        setTimeout(
-          async () => {
-            try {
-              await this.connect(this.id, true);
-              ok('ok');
-            } catch (e) {
-              ok('error');
-            }
-          },
-          Math.min(10000, i * 1000));
-      });
+    // Turn off reconnection while we are reconnecting
+    this.reconnect = false;
 
-      logger.debug(`Reconnect result: ${result}`);
+    try {
+      for (let i = 0; i < tries; i++) {
+        logger.info(`Try to reconnect, attempt ${i}`);
 
-      if (result == 'ok') {
-        logger.info(`Reconnected ${this.id}`);
-        return;
+        const result = await new Promise((ok) => {
+          setTimeout(
+            async () => {
+              try {
+                await this.connect(this.id);
+                ok('ok');
+              } catch (e) {
+                ok('error');
+              }
+            },
+            Math.min(10000, i * 1000));
+        });
+
+        logger.debug(`Reconnect result: ${result}`);
+
+        if (result == 'ok') {
+          logger.info(`Reconnected ${this.id}`);
+          return;
+        }
       }
+    } finally {
+      logger.debug(`Re-enable reconnect`);
+      this.reconnect = true;
     }
 
     throw new Error('Could not reconnect');

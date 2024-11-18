@@ -119,6 +119,10 @@ export const Document = class {
       if (reqOptions) this.req.options = reqOptions;
     }
 
+    if (resp.screenshot) {
+      this.screenshot = resp.screenshot;
+    }
+
     this.parse();
     const took = (new Date()).getTime() - start;
     logger.info(`Done loading for ${this.url}, took total of ${took/1000} sec`);

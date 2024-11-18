@@ -1,5 +1,6 @@
 import { logger } from '../log/logger.js';
 import { MemKV } from './MemKV.js';
+import { FileKV } from './FileKV.js';
 import { RedisKV } from './RedisKV.js';
 
 export { BaseKV } from './BaseKV.js';
@@ -15,6 +16,9 @@ export const getKV = (which, options) => {
     mem: MemKV,
     memory: MemKV,
 
+    f: FileKV,
+    file: FileKV,
+
     r: RedisKV,
     redis: RedisKV,
   }[which];
@@ -23,8 +27,6 @@ export const getKV = (which, options) => {
     logger.debug(`Using shared memory kv`);
     return memKv;
   }
-
-  console.log('kvClass', which, kvClass);
 
   return new kvClass(options);
 }

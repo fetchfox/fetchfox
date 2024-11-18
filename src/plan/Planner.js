@@ -26,7 +26,7 @@ export const Planner = class {
     };
     const prompt = describe.render(context);
     const answer = await this.ai.ask(prompt, { format: 'json' });
-    logger.debug(`Analyze got answer ${JSON.stringify(answer.partial)}`);
+    logger.trace(`Analyze got answer ${JSON.stringify(answer.partial)}`);
     const { name, description } = answer.partial;
     return { name, description };
   }

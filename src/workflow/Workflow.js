@@ -57,18 +57,8 @@ export const Workflow = class extends BaseWorkflow {
       steps,
       itemDescription,
     } = await planPromise;
-    const desc = await planner.describe({
-      steps: steps.map(s => s.dump()),
-      url: args.url,
-      html: args.html,
-    });
 
-    this.steps = steps
-    this.name = desc.name
-
-    this.description = desc.description;
-    this.itemDescription = itemDescription;
-
+    this.steps = steps;
     this._stepsInput = [];
 
     return this;

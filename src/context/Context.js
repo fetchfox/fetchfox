@@ -18,7 +18,6 @@ export const decodeableKeys = [
   ['actor', getActor, BaseActor],
 ];
 
-
 const decodeArgs = (args, cache) => {
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
@@ -31,8 +30,6 @@ const decodeArgs = (args, cache) => {
   }
 
   for (const [key, getter, parentClass] of decodeableKeys) {
-    console.log('decode', key);
-
     let val;
     let which = null;
     let options = {};
