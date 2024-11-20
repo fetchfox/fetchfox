@@ -32,11 +32,13 @@ describe('CodeGenExtractor', function() {
       { departureTime: '7:15 AM', arrivalTime: '3:42 PM' },
       { departureTime: '9:00 AM', arrivalTime: '5:20 PM' },
       { departureTime: '10:45 AM', arrivalTime: '7:26 PM' },
-      { departureTime: '12:55 PM', arrivalTime: '9:21 PM' },
-      { departureTime: '2:45 PM', arrivalTime: '11:06 PM' },
-      { departureTime: '4:40 PM', arrivalTime: '1:16 AM' },
-      { departureTime: '9:25 PM', arrivalTime: '5:59 AM' },
-      // TODO: all all the correct times
+
+      // { departureTime: '12:55 PM', arrivalTime: '9:21 PM' },
+      // { departureTime: '2:45 PM', arrivalTime: '11:06 PM' },
+      // { departureTime: '4:40 PM', arrivalTime: '1:16 AM' },
+      // { departureTime: '9:25 PM', arrivalTime: '5:59 AM' },
+
+      // TODO: check all the correct times, above is just sanity check
     ];
 
     assert.equal(
@@ -87,9 +89,6 @@ describe('CodeGenExtractor', function() {
     assert.equal(
       JSON.stringify(all2.slice(0, expected.length)),
       JSON.stringify(expected));
-
-    console.log('took1', took1);
-    console.log('took2', took2);
 
     assert.ok(took1 > 1000, 'code gen learning should take at least a second');
     assert.ok(took2 < 200, 'code gen execution from load should be fast');

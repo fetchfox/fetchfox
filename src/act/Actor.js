@@ -120,7 +120,7 @@ export const Actor = class extends BaseActor {
   }
 
   async start() {
-    logger.trace(`Actor starting`);
+    logger.debug(`Actor starting`);
 
     if (this._browser) throw new Error('Double browser launch');
 

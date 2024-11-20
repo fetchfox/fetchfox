@@ -35,20 +35,26 @@ export const parseAnswer = (text, format) => {
 
   const clean = text
         .replace(/```jsonl?/, '')
-        .replace('```', '')
+        .replaceAll('```', '')
         .replaceAll(/^`+|`+$/g, '');
 
   if (format == 'jsonl') {
     const lines = clean.split('\n');
     const result = [];
+    let leftover = '';
     for (const line of lines) {
+      if (leftover) {
+        leftover += line;
+        continue;
+      }
+
       try {
         result.push(trimJson(JSON.parse(line))) }
       catch(e) {
-        // Ignore
+        leftover = line;
       }
     }
-    return result;
+    return { result, leftover };
 
   } else if (format == 'json') {
     try {

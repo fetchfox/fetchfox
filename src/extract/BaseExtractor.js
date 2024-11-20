@@ -10,7 +10,7 @@ export const BaseExtractor = class {
     this.ai = getAI(ai, { cache });
     this.kv = getKV(kv);
     this.fetcher = fetcher || new DefaultFetcher({ cache });
-    this.hardCapTokens = hardCapTokens || 128000;
+    this.hardCapTokens = hardCapTokens || 1e6;
     this.usage = {
       requests: 0,
       runtime: 0,
@@ -24,12 +24,10 @@ export const BaseExtractor = class {
   async *getDoc(target) {
 
     if (target instanceof Document) {
-      // throw '1';
       yield Promise.resolve(target);
       return;
     }
     if (typeof target?.source == 'function' && target.source() instanceof Document) {
-      // throw '2';
       yield Promise.resolve(target.source());
       return;
     }
@@ -47,7 +45,6 @@ export const BaseExtractor = class {
     }
 
     for await (const doc of this.fetcher.fetch(url)) {
-      // throw '3';
       yield Promise.resolve(doc);
     }
   }
@@ -107,9 +104,10 @@ export const BaseExtractor = class {
       for await (const doc of this.getDoc(target)) {
         docs.push(doc);
       }
-      // const doc = await this.getDoc(target);
 
+      // const doc = await this.getDoc(target);
       // TODO: Run on all docs
+
       const doc = docs[0];
       for await (const r of this._run(doc, questions, options)) {
         for (const key of Object.keys(r)) {

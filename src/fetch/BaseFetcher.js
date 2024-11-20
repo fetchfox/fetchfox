@@ -21,6 +21,7 @@ export const BaseFetcher = class {
     });
 
     this.s3 = options?.s3;
+    this.css = options?.css;
   }
 
   toString() {
@@ -76,7 +77,13 @@ export const BaseFetcher = class {
       logger.debug(`Fetch queue has ${this.q.size} requests`);
 
       for await (const doc of p) {
+        logger.debug(`Should we filter for CSS? ${options?.css}`);
+        if (options?.css) {
+          doc.parseHtml(options.css);
+        }
+
         // TODO: Move this code into Document.js, consolidate with options?.presignedUrl
+        logger.debug(`Fetcher s3 config: ${JSON.stringify(this.s3)}`);
         if (this.s3) {
           const bucket = this.s3.bucket;
           const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}';
@@ -91,26 +98,15 @@ export const BaseFetcher = class {
             .replaceAll('{id}', id)
             .replaceAll('{url}', cleanUrl);
 
-          const s3url = await publishToS3(
-            doc.html,
-            'text/html',
-            acl,
-            bucket,
-            key + '.html');
-
-          logger.debug(`Uploaded HTML to ${s3url}`);
-
-          doc.htmlUrl = s3url;
+          const s3Url = await publishToS3(
+            doc.html, 'text/html', acl, bucket, key + '.html');
+          logger.debug(`Uploaded HTML to ${s3Url} acl=${acl}`);
+          doc.htmlUrl = s3Url;
 
           if (doc.screenshot) {
+            logger.debug(`Uploaded screenshot to ${s3ScreenshotUrl} acl=${acl}`);
             const s3ScreenshotUrl = await publishToS3(
-              doc.screenshot,
-              'image/png',
-              acl,
-              bucket,
-              key + '.png');
-
-            logger.debug(`Uploaded screenshot to ${s3ScreenshotUrl}`);
+              doc.screenshot, 'image/png', acl, bucket, key + '.png');
             doc.screenshotUrl = s3ScreenshotUrl;
           }
         }

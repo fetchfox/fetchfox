@@ -22,7 +22,10 @@ export const Document = class {
 
     if (options?.presignedUrl) {
       logger.info(`Dumping to presigned URL ${options?.presignedUrl}`);
+      const start = (new Date()).getTime();
       const htmlUrl = await this.uploadHtml(options.presignedUrl);
+      const took = (new Date()).getTime() - start;
+      logger.debug(`Uploaded document to presigned URL, took=${took} msec`);
       delete data.body;
       delete data.html;
       delete data.text;
@@ -135,9 +138,21 @@ export const Document = class {
     }
   }
 
-  parseHtml() {
+  parseHtml(selector) {
     this.contentType = 'text/html';
-    this.html = this.body;
+
+    let html = this.body;
+
+    if (selector) {
+      let selected = ''
+      const root = parse(html);
+      root.querySelectorAll(selector).forEach(el => {
+        selected += el.outerHTML; // Append the outer HTML of each element to selected.
+      });
+      html = selected;
+    }
+
+    this.html = html;
 
     this.parseTextFromHtml();
     this.parseLinks();
@@ -149,8 +164,8 @@ export const Document = class {
     const root = parse(this.html);
     
     ['style', 'script', 'svg'].forEach(tag => {
-      root.querySelectorAll(tag).forEach(element => {
-        element.replaceWith(`[[${tag} removed]]`);
+      root.querySelectorAll(tag).forEach(el => {
+        el.replaceWith(`[[${tag} removed]]`);
       });
     });
 
@@ -169,7 +184,7 @@ export const Document = class {
     this.text = getText(root);
   }
 
-  parseLinks() {
+  parseLinks(selector = 'a') {
     this.requireHtml();
 
     const links = [];
@@ -177,7 +192,7 @@ export const Document = class {
     let id = 1;
     const root = parse(this.html);
 
-    root.querySelectorAll('a').forEach(a => {
+    root.querySelectorAll(selector).forEach(a => {
       const html = a.outerHTML;
       const text = a.text.trim();
       const href = a.getAttribute('href');

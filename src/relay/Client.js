@@ -9,10 +9,19 @@ export const Client = class {
     this.replyCb = {};
     this.sent = {};
     this.reconnect = options?.reconnect;
+    this.name = options?.name || '...';
+    this.shouldReply = options?.shouldReply;
   }
 
   isConnected() {
     return !!this.ws;
+  }
+
+  msgId() {
+    return 'msg_' +(new ShortUniqueId({
+      length: 10,
+      dictionary: 'alphanum_lower',
+    })).rnd();
   }
 
   async connect(id) {
@@ -143,13 +152,17 @@ export const Client = class {
       logger.debug(`Relay client got a reply to ${data.replyToId}: ${JSON.stringify(data).substr(0, 140)}`);
       const replyCb = this.replyCb[data.replyToId];
       if (!replyCb) {
-        logger.warn(`Dropping extra reply to ${data.replyToId}`);
+        logger.debug(`Dropping extra reply to ${data.replyToId}`);
         return;
       }
 
       delete this.replyCb[data.replyToId];
       replyCb(data.reply);
       return;
+    }
+
+    if (data.command == 'pong') {
+      this.pingCb && this.pingCb();
     }
 
     logger.debug(`Relay client got: ${JSON.stringify(data).substr(0, 140)}`);
@@ -159,20 +172,29 @@ export const Client = class {
     }
 
     const replyId = data.replyId;
-    if (replyId) {
+    if (this.shouldReply && replyId) {
       logger.debug(`Sending reply to ID: ${replyId}`);
       await this.send({ reply: result, replyToId: replyId });
     }
   }
 
+  async ping(cb) {
+    logger.debug(`Relay client ping`);
+    const data = { command: 'ping' };
+    const msgId =  this.msgId(); 
+    data.msgId = msgId;
+    this.sent[msgId] = true;
+    this.pingCb = () => {
+      cb && cb();
+      this.pingCb = null;
+    }
+    return this.ws.send(JSON.stringify(data));
+  }
+
   async send(data, replyCb) {
     logger.debug(`Relay client send to id=${this.id} host=${this.host} ws=${this.ws}`);
 
-    const msgId = 'msg_' +(new ShortUniqueId({
-      length: 10,
-      dictionary: 'alphanum_lower',
-    })).rnd();
-
+    const msgId =  this.msgId(); 
     data.msgId = msgId;
     this.sent[msgId] = true;
 

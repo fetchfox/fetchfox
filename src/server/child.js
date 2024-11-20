@@ -1,3 +1,5 @@
+const start = (new Date()).getTime();
+
 import { fox } from '../fox/fox.js';
 import { logger } from '../log/logger.js';
 
@@ -57,3 +59,6 @@ process.on('message', async ({ command, data }) => {
       break;
   }
 });
+
+const took = (new Date()).getTime() - start;
+logger.debug(`child.js took ${took} msec to start`);

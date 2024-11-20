@@ -17,9 +17,17 @@ export const BaseWorkflow = class {
         steps.push(step.dump());
       }
     }
+
+    let options;
+    if (isPlainObject(this.ctx)) {
+      options = JSON.parse(JSON.stringify(this.ctx));
+    } else {
+      options = this.ctx.dump();
+    }
+
     return {
       steps,
-      options: this.ctx.dump(),
+      options,
       name: this.name,
       description: this.description,
     };

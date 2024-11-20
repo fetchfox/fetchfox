@@ -4,6 +4,7 @@ import { stepNames } from '../step/index.js';
 export const fox = {
   config: (...args) => new Workflow().config(...args),
   plan: (...args) => new Workflow().plan(...args),
+  describe: (data) => new Workflow().load(data).describe(),
   load: (data) => new Workflow().load(data),
   run: (...args) => new Workflow().run(...args),
   stream: (...args) => new Workflow().stream(...args),

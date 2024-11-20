@@ -17,6 +17,14 @@ export const Workflow = class extends BaseWorkflow {
     return this;
   }
 
+  async describe() {
+    const planner = new Planner(this.ctx);
+    const { name, description } = await planner.describe(this.dump());
+    this.name = name;
+    this.description = description;
+    return this;
+  }
+
   async plan(...args) {
     logger.info(`Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`);
 

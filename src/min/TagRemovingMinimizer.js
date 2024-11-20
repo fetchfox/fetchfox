@@ -7,7 +7,7 @@ import { BaseMinimizer } from './BaseMinimizer.js';
 export const TagRemovingMinimizer = class extends BaseMinimizer {
   constructor(options) {
     super(options);
-    this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg'];
+    this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg', 'symbol', 'link', 'meta'];
   }
 
   async _min(doc) {

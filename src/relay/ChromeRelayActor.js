@@ -6,13 +6,16 @@ import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 export const ChromeRelayActor = class {
   constructor(host, options) {
     host = host.replace(/^http/, 'ws');
-    this.client = new Client(host, { reconnect: true });
+    this.client = new Client(host, { reconnect: true, shouldReply: true });
     this.requestCompletedTimeout = options?.requestCompletedTimeout || 5000;
   }
 
   async connect(id) {
     this.id = await this.client.connect(id);
     this.client.listen(async (data) => {
+      if (data.command == 'pong') {
+        return;
+      }
       const reply = await this.act(data);
       logger.debug(`Actor returning reply ${JSON.stringify(reply).substr(0, 120)}`);
       return reply;
@@ -20,12 +23,23 @@ export const ChromeRelayActor = class {
     return this.id;
   }
 
-  act(data) {
-    logger.info(`Chrome relay actor got: ${JSON.stringify(data)}`);
-    if (data.command == 'fetch') {
-      return this.fetch(data);
-    } else {
-      throw new Error(`Unhandled command ${JSON.stringify(data)}`);
+  async ping(cb) {
+    this.client.ping(cb);
+  }
+
+  async act(data) {
+    const start = (new Date()).getTime();
+    try {
+      logger.info(`Chrome relay actor got: ${JSON.stringify(data)}`);
+      if (data.command == 'fetch') {
+        const out = await this.fetch(data);
+        return out;
+      } else {
+        throw new Error(`Unhandled command ${JSON.stringify(data)}`);
+      }
+    } finally {
+      const took = (new Date()).getTime() - start;
+      logger.debug(`Chrome relay actor end-to-end took ${took} msec`);
     }
   }
 
@@ -40,6 +54,7 @@ export const ChromeRelayActor = class {
 
     logger.debug(`Chrome relay actor fetching url: ${url}, with waitForText=${waitForText}`);
 
+    const start1 = (new Date()).getTime();
     const [
       activeTab,
       tabWithUrl
@@ -47,6 +62,8 @@ export const ChromeRelayActor = class {
       getActiveTab(),
       getTabWithUrl(url),
     ]);
+    const took1 = (new Date()).getTime() - start1;
+    logger.debug(`took1=${took1}`);
 
     let tab;
     let status;
@@ -70,6 +87,7 @@ export const ChromeRelayActor = class {
     } else {
       logger.debug(`Chrome relay actor opening new tab`);
 
+      const start2 = (new Date()).getTime();
       const resp = await new Promise(ok => chrome.tabs.create(
         { url, active },
         (tab) => {
@@ -91,6 +109,8 @@ export const ChromeRelayActor = class {
           );
         })
       );
+      const took2 = (new Date()).getTime() - start2;
+      logger.debug(`create took2=${took2}`);
 
       tab = resp.tab;
       status = resp.details.statusCode;
@@ -98,14 +118,19 @@ export const ChromeRelayActor = class {
     }
 
     try {
+      const start = (new Date()).getTime();
       logger.debug(`Got status for ${tab.id}: ${status}, loading: ${waitForText}`);
       let doc = await getDocumentFromTab(tab.id, status, 2000, waitForText);
-      logger.debug(`Loaded document ${doc}, presignedUrl=${presignedUrl}`);
+      const tookLoad = (new Date()).getTime() - start;
+      logger.debug(`Loaded document ${doc}, presignedUrl=${presignedUrl}, took=${tookLoad} msec`);
 
       if (removeTags) {
+        const start = (new Date()).getTime();
         logger.debug(`Minimize doc before returning`);
         const minimizer = new TagRemovingMinimizer({ removeTags });
         doc = await minimizer.min(doc);
+        const tookMin = (new Date()).getTime() - start;
+        logger.debug(`Minimized ${doc}, took=${tookMin} msec`);
       }
 
       return doc.dump({ presignedUrl });

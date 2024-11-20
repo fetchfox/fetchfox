@@ -8,7 +8,7 @@ export { BaseFetcher } from './BaseFetcher.js';
 export const DefaultFetcher = Fetcher;
 
 export const getFetcher = (which, options) => {
-  if (!which) return new DefaultFetcher(options);
+  if (!which) which = 'fetch';
   let fetcherClass = {
     f: Fetcher,
     fetch: Fetcher,

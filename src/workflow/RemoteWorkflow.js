@@ -82,10 +82,22 @@ export const RemoteWorkflow = class extends BaseWorkflow {
   }
 
   async plan(...args) {
-    return this.ws({
+    const out = await this.ws({
       command: 'plan',
       prompt: args,
     });
+    this.load(out);
+    return this;
+  }
+
+  async describe() {
+    const out = await this.ws({
+      command: 'describe',
+      workflow: this.dump(),
+    });
+    this.name = out.name;
+    this.description = out.description;
+    return this;
   }
 
   async sub(id, cb) {

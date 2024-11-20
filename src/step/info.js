@@ -35,6 +35,11 @@ export const stepDescriptionsMap = {
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
         required: true,
       },
+      css: {
+        description: 'A CSS selector that narrows which tags are considered',
+        format: 'string',
+        required: false,
+      },
     },
   }),
 
@@ -206,7 +211,12 @@ export const stepDescriptionsMap = {
         description: 'Open URLs in active tab on Chrome',
         format: 'boolean',
         required: false,
-      }
+      },
+      css: {
+        description: 'A CSS selector that narrows which part of the page to return',
+        format: 'string',
+        required: false,
+      },
     },
   }),
 

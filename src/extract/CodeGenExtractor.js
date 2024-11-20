@@ -11,13 +11,14 @@ import {
   codeGenIterate,
 } from './prompts.js';
 import { getExtractor } from './index.js';
+import { getAI } from '../ai/index.js';
 import * as nodeHtmlParser from 'node-html-parser';
 
 export const CodeGenExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.helper = getExtractor(options?.helper);
-
+    this.ai = getAI('openai:gpt-4o');
     this.state = null;
   }
 
@@ -240,7 +241,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
   async findDescription(doc, sample, questions) {
     const chunks = this.chunks(doc);
     const context = {
-      url: doc.url,
+      url: '',
       html: chunks[0].html,
       text: chunks[0].text,
       sample: JSON.stringify(sample, null, 2),

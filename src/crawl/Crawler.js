@@ -13,7 +13,11 @@ export const Crawler = class extends BaseCrawler {
       logger.info(`Crawling ${url} with for "${query}"`);
 
       for await (const doc of this.fetcher.fetch(url, fetchOptions)) {
+
+        doc.parseLinks(options.css);
         const links = doc.links;
+        doc.parseLinks();
+
         const maxBytes = this.ai.maxTokens / 2;
         const slimmer = item => ({
           id: item.id,
@@ -39,7 +43,7 @@ export const Crawler = class extends BaseCrawler {
 
           const seen = {};
           const toLink = {};
-          for (const link of doc.links) {
+          for (const link of links) {
             toLink[link.id] = link;
           }
 
