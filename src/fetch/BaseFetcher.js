@@ -45,16 +45,22 @@ export const BaseFetcher = class {
       url = target.url;
     }
 
+    const cached = await this.getCache(url, options);
+    if (cached) {
+      logger.debug(`Returning cached ${cached}`);
+      this.usage.cached++;
+      for (const doc of cached) {
+        yield Promise.resolve(doc);
+      }
+      return;
+    }
+
     this.usage.requests++;
     const start = (new Date()).getTime();
 
+    const docs = [];
+
     try {
-      const cached = await this.getCache(url, options);
-      if (cached) {
-        logger.debug(`Returning cached ${cached}`);
-        this.usage.cached++;
-        return cached;
-      }
 
       try {
         new URL(url);
@@ -111,12 +117,18 @@ export const BaseFetcher = class {
           }
         }
 
+        docs.push(doc);
         yield Promise.resolve(doc);
       }
 
     } finally {
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;
+
+      if (docs.length) {
+        const all = await Promise.all(docs.map(doc => doc.dump()));
+        this.setCache(url, options, all);
+      }
     }
   }
 
@@ -133,14 +145,19 @@ export const BaseFetcher = class {
 
     const key = this.cacheKey(url, options);
     const result = await this.cache.get(key);
-    const outcome = result ? '(hit)' : '(miss)';
+    const hit = Array.isArray(result) && result.length > 0;
+    const outcome = hit ? '(hit)' : '(miss)';
     logger.debug(`Fetch cache ${outcome} for ${url} ${result}`);
 
-    if (result) {
-      const doc = new Document();
-      doc.loadData(result);
-      logger.debug(`Fetch cache loaded ${doc}`);
-      return doc;
+    if (hit) {
+      const docs = [];
+      for (const data of result) {
+        const doc = new Document();
+        doc.loadData(data);
+        docs.push(doc);
+      }
+      logger.debug(`Fetch cache loaded ${docs.map(d => ''+d).join(', ')}`);
+      return docs;
     } else {
       return null;
     }
@@ -148,7 +165,6 @@ export const BaseFetcher = class {
 
   async setCache(url, options, val) {
     if (!this.cache) return;
-
     const key = this.cacheKey(url, options);
     logger.debug(`Set fetch cache for ${url} to "${('' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'fetch');
