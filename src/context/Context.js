@@ -21,6 +21,7 @@ export const decodeableKeys = [
 const decodeArgs = (args, cache) => {
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
+  decoded.cache = cache;
 
   if (args.diskCache) {
     args.cache = new DiskCache(args.diskCache);
@@ -48,7 +49,7 @@ const decodeArgs = (args, cache) => {
     }
 
     if (!val) {
-      const useOptions = { ...decoded, cache, ...options };
+      const useOptions = { ...decoded, cache: decoded.cache, ...options };
       val = getter(which, useOptions);
     }
     decoded[key] = val;
