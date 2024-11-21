@@ -34,6 +34,11 @@ export const ChromeRelayActor = class {
       if (data.command == 'fetch') {
         const out = await this.fetch(data);
         return out;
+
+      } else if (data.command == 'clearCookies') {
+        const out = await this.clearCookies(data);
+        return out;
+
       } else {
         throw new Error(`Unhandled command ${JSON.stringify(data)}`);
       }
@@ -54,7 +59,6 @@ export const ChromeRelayActor = class {
 
     logger.debug(`Chrome relay actor fetching url: ${url}, with waitForText=${waitForText}`);
 
-    const start1 = (new Date()).getTime();
     const [
       activeTab,
       tabWithUrl
@@ -62,8 +66,6 @@ export const ChromeRelayActor = class {
       getActiveTab(),
       getTabWithUrl(url),
     ]);
-    const took1 = (new Date()).getTime() - start1;
-    logger.debug(`took1=${took1}`);
 
     let tab;
     let status;
@@ -87,7 +89,6 @@ export const ChromeRelayActor = class {
     } else {
       logger.debug(`Chrome relay actor opening new tab`);
 
-      const start2 = (new Date()).getTime();
       const resp = await new Promise(ok => chrome.tabs.create(
         { url, active },
         (tab) => {
@@ -109,8 +110,6 @@ export const ChromeRelayActor = class {
           );
         })
       );
-      const took2 = (new Date()).getTime() - start2;
-      logger.debug(`create took2=${took2}`);
 
       tab = resp.tab;
       status = resp.details.statusCode;
@@ -141,6 +140,55 @@ export const ChromeRelayActor = class {
         chrome.tabs.remove(tab.id);
       }
     }
+  }
+
+
+  async clearCookies(data) {
+    const { domain } = data;
+
+    if (!domain) {
+      throw new Error(`Must specify domain to clear cookies`);
+    }
+
+    logger.info(`Clearing cookies on ${domain}`);
+
+    await Promise.all([
+      new Promise((ok) => {
+        chrome.browsingData.remove(
+          {
+            origins: [`https://${domain}`, `http://${domain}`],
+          },
+          {
+            localStorage: true,
+            indexedDB: true,
+            cacheStorage: true,
+            fileSystems: true,
+          },
+          () => {
+            logger.debug(`Removed storage for: ${domain}`);
+            ok();
+          })
+      }),
+
+      new Promise((ok) => {
+        chrome.cookies.getAll(
+          { domain },
+          (cookies) => {
+            cookies.forEach(
+              (cookie) => {
+                const url = `http${cookie.secure ? 's' : ''}://${cookie.domain}${cookie.path}`;
+                logger.debug(`Remove cookie name=${cookie.name} url=${url}`);
+                chrome.cookies.remove({ url, name: cookie.name });
+              },
+              (details) => {
+                logger.debug(`Removed cookie OK: name=${details.name} url=${url}`);
+              });
+          },
+          ok)
+      }),
+    ]);
+
+    return { status: 'ok' };
   }
 }
 
