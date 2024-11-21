@@ -21,6 +21,8 @@ export const RelayFetcher = class extends BaseFetcher {
     })).rnd();
     this.s3bucket = options?.s3bucket || process.env.AWS_S3_BUCKET;
 
+    this.shouldClearCookies = options?.shouldClearCookies;
+
     this._inFlight = 0;
   }
 
@@ -82,6 +84,15 @@ export const RelayFetcher = class extends BaseFetcher {
       ]);
 
       clearTimeout(timeout);
+
+      if (this.shouldClearCookies) {
+        const parts = (new URL(url)).host.split('.');
+        const domain = parts.splice(parts.length - 2).join('.');
+        logger.debug(`Clearing cookies on ${domain}`);
+        this.client.send(
+          { command: 'clearCookies', domain },
+          (r) => logger.debug(`Got reply clearing cookies on ${domain}: ${r}`));
+      }
 
       if (!reply) {
         return;
