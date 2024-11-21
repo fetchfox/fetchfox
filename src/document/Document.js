@@ -112,8 +112,8 @@ export const Document = class {
 
     this.resp = {
       url: this.url,
-      status: resp.status,
-      statusText: resp.statusText,
+      status: typeof resp.status == 'function' ? resp.status() : resp.status,
+      status: typeof resp.statusText == 'function' ? resp.statusText() : resp.statusText,
       headers: respHeaders,
     };
 
