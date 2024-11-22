@@ -74,7 +74,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.error(`Playwright could not get ${url}: ${e}`);
         logger.debug(`Trying to salvage results`);
         html = await getHtmlFromError(page);
+        if (!html) {
+          logger.warn(`Could not salvage results, give up`);
+          return;
+        }
         logger.warn(`Read ${html.length} bytes from failed Playwright request`);
+
         resp = {
           status: () => 500,
           url: () => url,
@@ -171,7 +176,12 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 }
 
 const getHtmlFromError = async (page) => {
-  logger.debug(`Get HTML from error result on ${page.url()}`);
-  const html = await page.evaluate(() => document.documentElement.outerHTML);
-  return html
+  try {
+    logger.debug(`Get HTML from error result on ${page.url()}`);
+    const html = await page.evaluate(() => document.documentElement.outerHTML);
+    return html
+  } catch(e) {
+    logger.error(`Failed to get HTML from error result, got another error: ${e}`);
+    return null;
+  }
 }

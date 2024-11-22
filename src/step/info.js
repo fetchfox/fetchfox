@@ -36,7 +36,7 @@ export const stepDescriptionsMap = {
         required: true,
       },
       css: {
-        description: 'A CSS selector that narrows which tags are considered',
+        description: 'A CSS selector, if present we will look only in this section',
         format: 'string',
         required: false,
       },
@@ -190,6 +190,13 @@ export const stepDescriptionsMap = {
     name: 'fetch',
     description: 'Fetch URLs from the web',
     args: {
+      urlFields: {
+        description: 'Which fields to use as the URL(s) we are fetching',
+        format: 'array',
+        example: ['url', 'companyUrl'],
+        required: false,
+        default: ['url'],
+      },
       scroll: {
         description: 'Number of times to scroll down the page',
         format: 'number',

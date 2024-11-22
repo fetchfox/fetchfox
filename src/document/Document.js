@@ -14,6 +14,8 @@ export const Document = class {
       url: this.url,
       body: this.body,
       html: this.html,
+      htmlUrl: this.htmlUrl,
+      screenshotUrl: this.screenshotUrl,
       text: this.text,
       links: this.links,
       resp: this.resp,
@@ -63,15 +65,18 @@ export const Document = class {
       headers: { 'Content-Type': 'text/html' },
       body: this.html,
     });
-    return presignedUrl.replace(/\?.*$/, '');
+    this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
+    logger.debug(`Uploaded HTML to ${this.htmlUrl}`);
+    return this.htmlUrl;
   }
 
   async loadData(data) {
     this.url = data.url;
     this.body = data.body;
     this.html = data.html;
+    this.htmlUrl = data.htmlUrl;
     this.text = data.text;
-    this.screenshot = data.screenshot;
+    this.screenshotUrl = data.screenshotUrl;
     this.links = data.links || [];
     this.resp = data.resp;
     this.contentType = data.contentType;
@@ -120,10 +125,6 @@ export const Document = class {
     if (reqUrl) {
       this.req = { url: reqUrl };
       if (reqOptions) this.req.options = reqOptions;
-    }
-
-    if (resp.screenshot) {
-      this.screenshot = resp.screenshot;
     }
 
     this.parse();
@@ -184,7 +185,7 @@ export const Document = class {
     this.text = getText(root);
   }
 
-  parseLinks(selector = 'a') {
+  parseLinks(css) {
     this.requireHtml();
 
     const links = [];
@@ -192,35 +193,58 @@ export const Document = class {
     let id = 1;
     const root = parse(this.html);
 
-    root.querySelectorAll(selector).forEach(a => {
-      const html = a.outerHTML;
-      const text = a.text.trim();
-      const href = a.getAttribute('href');
+    let els = [];
+    if (css) {
+      root.querySelectorAll(css).forEach(el => els.push(el));
+    } else {
+      els = [root];
+    }
 
-      if (href == undefined) {
-        return;
+    console.log('css', css);
+    console.log('els:', els);
+
+    for (const el of els) {
+      const as = [];
+      if (el.tagName == 'A') {
+        as.push(el);
       }
 
-      let url;
-      try {
-        url = new URL(href, this.url);
-      } catch (e) {
-        logger.warn(`Skipping invalid link: ${this.url} ${html}`);
-        return;
-      }
-
-      const urlStr = url.toString();
-
-      if (seen[urlStr]) return;;
-      seen[urlStr] = true;
-
-      links.push({
-        id: id++,
-        url: urlStr,
-        html: html.substring(0, 1000),
-        text: text.substring(0, 200),
+      el.querySelectorAll('a').forEach(a => {
+        as.push(a);
       });
-    });
+
+      for (const a of as) {
+        const html = a.outerHTML;
+        const text = a.text.trim();
+        const href = a.getAttribute('href');
+
+        if (href == undefined) {
+          continue;
+        }
+
+        let url;
+        try {
+          url = new URL(href, this.url);
+        } catch (e) {
+          logger.warn(`Skipping invalid link: ${this.url} ${html}`);
+          return;
+        }
+
+        const urlStr = url.toString();
+
+        if (seen[urlStr]) continue;
+        seen[urlStr] = true;
+
+        links.push({
+          id: id++,
+          url: urlStr,
+          html: html.substring(0, 1000),
+          text: text.substring(0, 200),
+        });
+      }
+    }
+
+    console.log('setting this.links', links);
 
     this.links = links;
   }

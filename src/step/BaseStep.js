@@ -7,9 +7,9 @@ export const BaseStep = class {
     this.limit = args?.limit;
     this.callbacks = {};
     this.q = new PQueue({
-      concurrency: args?.concurrency === undefined ? 5 : args?.concurrency,
-      intervalCap: args?.intervalCap === undefined ? 3 : args?.intervalCap,
-      interval: args?.interval === undefined ? 3000 : args?.interval,
+      concurrency: args?.concurrency === undefined ? 1000 : args?.concurrency,
+      intervalCap: args?.intervalCap === undefined ? 1000 : args?.intervalCap,
+      interval: args?.interval === undefined ? 1 : args?.interval,
     });
   }
 

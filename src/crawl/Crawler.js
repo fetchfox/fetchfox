@@ -14,9 +14,11 @@ export const Crawler = class extends BaseCrawler {
 
       for await (const doc of this.fetcher.fetch(url, fetchOptions)) {
 
-        doc.parseLinks(options.css);
+        doc.parseLinks(options?.css);
         const links = doc.links;
         doc.parseLinks();
+
+        console.log('links:', links);
 
         const maxBytes = this.ai.maxTokens / 2;
         const slimmer = item => ({

@@ -5,6 +5,7 @@ import { Item } from '../item/Item.js';
 export const FetchStep = class extends BaseStep {
   constructor(args) {
     super(args);
+    this.urlFields = args?.urlFields || ['url'];
     this.scroll = args?.scroll;
     this.scrollWait = args?.scrollWait;
     this.waitForText = args?.waitForText;
@@ -14,6 +15,7 @@ export const FetchStep = class extends BaseStep {
 
   async process({ cursor, item }, cb) {
     logger.info(`Fetch step for ${item}`);
+    console.log(item);
 
     const options = { multiple: true };
 
@@ -23,19 +25,19 @@ export const FetchStep = class extends BaseStep {
     if (this.active) options.active = this.active;
     if (this.css) options.css = this.css;
 
-    if (typeof item.actor == 'function' && item.actor()) {
-      logger.debug(`Get actor from item`);
-      options.actor = item.actor();
-    } else {
-      logger.debug(`Get actor from fork`);
-      options.actor = await cursor.ctx.actor.fork();
-      cursor.defer(() => options.actor.finish());
+    const streams = [];
+    for (const field of this.urlFields) {
+      const stream = await cursor.ctx.fetcher.fetch(item[field], options);
+      streams.push(stream);
     }
 
-    const stream = await cursor.ctx.fetcher.fetch(item.url, options);
-    for await (const doc of stream) {
-      logger.info(`Fetch step yielding ${doc}`);
-      cb(new Item({}, doc));
+    console.log('READING FROM STREAMS:', streams.length);
+
+    for (const stream of streams) {
+      for await (const doc of stream) {
+        logger.info(`Fetch step yielding ${doc}`);
+        cb(new Item({}, doc));
+      }
     }
   }
 }

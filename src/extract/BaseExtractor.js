@@ -22,7 +22,6 @@ export const BaseExtractor = class {
   }
 
   async *getDoc(target) {
-
     if (target instanceof Document) {
       yield Promise.resolve(target);
       return;

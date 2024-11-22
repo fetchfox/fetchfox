@@ -3,10 +3,8 @@ import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { Client } from '../relay/Client.js';
 import { BaseFetcher } from './BaseFetcher.js';
+import { presignS3 } from './util.js';
 import ShortUniqueId from 'short-unique-id';
-
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export const RelayFetcher = class extends BaseFetcher {
   constructor(options) {
@@ -41,19 +39,12 @@ export const RelayFetcher = class extends BaseFetcher {
 
     let presignedUrl;
     if (this.shouldPresignUrl) {
-      logger.debug(`Generating presigned URL`);
-      const s3 = new S3Client();
-      const key = `relay-fetcher/${this.presignId}/${url}`;
-      const command = new PutObjectCommand({
-        Bucket: this.s3bucket,
-        Key: key,
-        ContentType: 'text/html',
-        ACL: 'public-read',
+      presignedUrl = await presignS3({
+        bucket: this.s3bucket,
+        key: `relay-fetcher/${this.presignId}/${url}`,
+        contentType: 'text/html',
+        acl: 'public-read',
       });
-      presignedUrl = await getSignedUrl(
-        s3,
-        command,
-        { expiresIn: 30 * 60 });
     }
 
     try {

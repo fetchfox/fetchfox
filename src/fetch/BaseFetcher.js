@@ -1,7 +1,8 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
-import { publishToS3 } from '../export/publish.js';
+// import { publishToS3 } from '../export/publish.js';
+import { presignS3 } from './util.js';
 import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
 
@@ -45,7 +46,12 @@ export const BaseFetcher = class {
       url = target.url;
     }
 
-    const cached = await this.getCache(url, options);
+    // Pull out options that affect caching
+    const cacheOptions = {
+      css: options?.css,
+    };
+
+    const cached = await this.getCache(url, cacheOptions);
     if (cached) {
       logger.debug(`Returning cached ${cached}`);
       this.usage.cached++;
@@ -61,7 +67,6 @@ export const BaseFetcher = class {
     const docs = [];
 
     try {
-
       try {
         new URL(url);
       } catch (e) {
@@ -88,13 +93,11 @@ export const BaseFetcher = class {
           doc.parseHtml(options.css);
         }
 
-        // TODO: Move this code into Document.js, consolidate with options?.presignedUrl
         logger.debug(`Fetcher s3 config: ${JSON.stringify(this.s3)}`);
         if (this.s3) {
           const bucket = this.s3.bucket;
           const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}';
           const acl = this.s3.acl || '';
-
           const id = new ShortUniqueId({
             length: 10,
             dictionary: 'alphanum_lower',
@@ -104,17 +107,10 @@ export const BaseFetcher = class {
             .replaceAll('{id}', id)
             .replaceAll('{url}', cleanUrl);
 
-          const s3Url = await publishToS3(
-            doc.html, 'text/html', acl, bucket, key + '.html');
-          logger.debug(`Uploaded HTML to ${s3Url} acl=${acl}`);
-          doc.htmlUrl = s3Url;
+          const presignedUrl = await presignS3({
+            bucket, key, contentType: 'text/html', acl });
 
-          if (doc.screenshot) {
-            logger.debug(`Uploaded screenshot to ${s3ScreenshotUrl} acl=${acl}`);
-            const s3ScreenshotUrl = await publishToS3(
-              doc.screenshot, 'image/png', acl, bucket, key + '.png');
-            doc.screenshotUrl = s3ScreenshotUrl;
-          }
+          await doc.uploadHtml(presignedUrl);
         }
 
         docs.push(doc);
@@ -127,7 +123,7 @@ export const BaseFetcher = class {
 
       if (docs.length) {
         const all = await Promise.all(docs.map(doc => doc.dump()));
-        this.setCache(url, options, all);
+        this.setCache(url, cacheOptions, all);
       }
     }
   }
@@ -147,7 +143,7 @@ export const BaseFetcher = class {
     const result = await this.cache.get(key);
     const hit = Array.isArray(result) && result.length > 0;
     const outcome = hit ? '(hit)' : '(miss)';
-    logger.debug(`Fetch cache ${outcome} for ${url} ${result}`);
+    logger.debug(`xyz Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
 
     if (hit) {
       const docs = [];
@@ -166,7 +162,7 @@ export const BaseFetcher = class {
   async setCache(url, options, val) {
     if (!this.cache) return;
     const key = this.cacheKey(url, options);
-    logger.debug(`Set fetch cache for ${url} to "${('' + val).substr(0, 32)}..."`);
+    logger.debug(`xyz Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
 }
