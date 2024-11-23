@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 export const RedisKV = class extends BaseKV {
   constructor(options) {
     super(options);
-    this.url = options.url || 'redis://127.0.0.1:6379';
+    this.url = options?.url || process.env.REDIS_URL || 'redis://127.0.0.1:6379';
   }
 
   async get(key) {
