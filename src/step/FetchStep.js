@@ -15,8 +15,6 @@ export const FetchStep = class extends BaseStep {
 
   async process({ cursor, item }, cb) {
     logger.info(`Fetch step for ${item}`);
-    console.log(item);
-
     const options = { multiple: true };
 
     if (this.scroll) options.scroll = this.scroll;
@@ -31,8 +29,7 @@ export const FetchStep = class extends BaseStep {
       streams.push(stream);
     }
 
-    console.log('READING FROM STREAMS:', streams.length);
-
+    // TODO: race the streams instead of iterating
     for (const stream of streams) {
       for await (const doc of stream) {
         logger.info(`Fetch step yielding ${doc}`);

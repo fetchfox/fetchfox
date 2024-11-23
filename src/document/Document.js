@@ -200,9 +200,6 @@ export const Document = class {
       els = [root];
     }
 
-    console.log('css', css);
-    console.log('els:', els);
-
     for (const el of els) {
       const as = [];
       if (el.tagName == 'A') {
@@ -243,8 +240,6 @@ export const Document = class {
         });
       }
     }
-
-    console.log('setting this.links', links);
 
     this.links = links;
   }

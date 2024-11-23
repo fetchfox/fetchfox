@@ -18,8 +18,6 @@ export const Crawler = class extends BaseCrawler {
         const links = doc.links;
         doc.parseLinks();
 
-        console.log('links:', links);
-
         const maxBytes = this.ai.maxTokens / 2;
         const slimmer = item => ({
           id: item.id,

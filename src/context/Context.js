@@ -30,8 +30,6 @@ const decodeArgs = (args, cache) => {
     decoded.cache = args.cache;
   }
 
-  console.log('decoded.cache', decoded.cache);
-
   for (const [key, getter, parentClass] of decodeableKeys) {
     let val;
     let which = null;
