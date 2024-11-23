@@ -26,16 +26,24 @@ export const BaseExtractor = class {
       yield Promise.resolve(target);
       return;
     }
-    if (typeof target?.source == 'function' && target.source() instanceof Document) {
-      yield Promise.resolve(target.source());
-      return;
-    }
 
     let url;
     if (typeof target == 'string') {
       url = target;
     } else if (target?.url) {
       url = target.url;
+    }
+
+    if (!url && typeof target?.source == 'function' && target.source() instanceof Document) {
+      yield Promise.resolve(target.source());
+      return;
+    }
+
+    try {
+      new URL(url);
+    } catch(e) {
+      logger.warn(`Extractor dropping invalid url ${url}: ${e}`);
+      url = null;
     }
 
     if (!url) {
