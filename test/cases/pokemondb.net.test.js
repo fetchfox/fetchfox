@@ -74,7 +74,7 @@ describe('pokemondb.net', function() {
     assert.ok(totalHp > 200 && totalHp < 10000, 'hp sanity check');
   });
 
-  it('should terminate with limit @run', async function() {
+  it('should terminate with limit', async function() {
     // TODO: fix timeout/do explicit verification
     this.timeout(60 * 1000);
 
@@ -109,7 +109,7 @@ describe('pokemondb.net', function() {
       'find Bulbasaur');
   });
 
-  it('should filter for fire type pokemon @run', async () => {
+  it('should filter for fire type pokemon', async () => {
     const json= {
       "steps": [
         {
