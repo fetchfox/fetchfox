@@ -31,4 +31,4 @@ jobs:
         BENCH_KV: redis
         REDIS_URL: ${{ secrets.REDIS_URL }}
         FF_LOG: debug
-      run: npm bench
+      run: npm run bench
