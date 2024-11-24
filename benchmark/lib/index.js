@@ -39,19 +39,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
 
   for (const config of matrix) {
     const diskCache = process.env.DISK_CACHE;
-
     const fullConfig = { ...config, diskCache };
-    if (!fullConfig.fetcher) {
-      fullConfig.fetcher = [
-        'fetch',
-        { s3: { bucket: 'ffcloud', acl: 'public-read' } }
-      ];
-    } else if (typeof fullConfig.fetcher == 'string') {
-      fullConfig.fetcher = [
-        fullConfig.fetcher,
-        { s3: { bucket: 'ffcloud', acl: 'public-read' } }
-      ];
-    }
 
     const out = await fox
       .load(populate(json, config))

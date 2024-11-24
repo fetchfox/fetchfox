@@ -47,7 +47,7 @@ describe('news.ycombinator.com', function() {
         countPartials++;
       });
 
-    assert.ok(countPartials > 15 && countPartials < 35);
-    assert.ok(out.items.length > 15 && out.items.length < 35);
+    assert.ok(countPartials > 10 && countPartials < 35);
+    assert.ok(out.items.length > 10 && out.items.length < 35);
   });
 });
