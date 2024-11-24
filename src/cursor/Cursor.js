@@ -111,10 +111,6 @@ export const Cursor = class {
       }
     }
 
-    if (this.ctx.actor) {
-      this.ctx.actor.finish();
-    }
-
     for (const cb of this.deferCb) {
       cb();
     }

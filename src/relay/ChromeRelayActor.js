@@ -17,7 +17,7 @@ export const ChromeRelayActor = class {
         return;
       }
       const reply = await this.act(data);
-      logger.debug(`Actor returning reply ${JSON.stringify(reply).substr(0, 120)}`);
+      logger.debug(`Chrome relay actor returning reply ${JSON.stringify(reply).substr(0, 120)}`);
       return reply;
     });
     return this.id;

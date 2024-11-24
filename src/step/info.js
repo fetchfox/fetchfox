@@ -8,7 +8,6 @@ export const nameMap = {
   FetchStep: 'fetch',
   FilterStep: 'filter',
   LimitStep: 'limit',
-  LoginStep: 'login',
   SchemaStep: 'schema',
   UniqueStep: 'unique',
 };
@@ -40,26 +39,6 @@ export const stepDescriptionsMap = {
         format: 'string',
         required: false,
       },
-    },
-  }),
-
-  action: combineInfo({
-    // This step is hard for AI to configure, so don't show it for now
-    hideFromAI: true,
-
-    name: 'action',
-    description: 'Perform some action on the page, such as clicking buttons',
-    args: {
-      action: {},
-      query: {},
-      selector: {},
-
-      // actions: {
-      //   description: `A list of actions to take on the page. Each action is an array of three items. The first item is the action to take, eg. 'click'. The second item is a description of the target of this action, eg. 'all the download buttons on the page. The third item is an optional CSS selector, to narrow the range of elements searched.'`,
-      //   format: 'array',
-      //   example: ['click', 'the next page button', 'button.cta'],
-      //   required: true,
-      // },
     },
   }),
 
@@ -244,26 +223,6 @@ export const stepDescriptionsMap = {
     name: 'limit',
     description: 'Limit the number of results',
     args: {},
-  }),
-
-  login: combineInfo({
-    hideFromAI: true,
-    name: 'login',
-    description: 'Log in using username and password',
-    args: {
-      username: {
-        description: 'Username to use for login.',
-        format: 'string',
-        example: 'email@example.com',
-        required: true,
-      },
-      password: {
-        description: 'Password to use for login.',
-        format: 'string',
-        example: 'password123',
-        required: true,
-      },
-    },
   }),
 
   schema: combineInfo({

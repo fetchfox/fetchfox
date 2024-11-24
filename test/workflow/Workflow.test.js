@@ -100,7 +100,7 @@ describe('Workflow', function() {
 
     // TODO: There is a race condition where the the last couple partials
     // may not be reported. Fix this and update this test.
-    assert.ok(count >= 11 && count <= 13, 'all partials received');
+    assert.ok(count2 >= 11 && count2 <= 13, 'all partials received');
   });
 
   it('should describe @run', async () => {
