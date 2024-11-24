@@ -14,7 +14,7 @@ export const storeScores = async (scores) => {
 
     const key = `bench:${score.date}:${score.name}:${score.commit}:${hash}`;
     p.push(kv.set(key, score));
-    console.log(key);
+    // console.log(key);
   }
 
   await Promise.all(p);

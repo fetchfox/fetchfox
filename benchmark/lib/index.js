@@ -2,30 +2,35 @@ import { logger } from '../../src/log/logger.js';
 import { fox } from '../../src/index.js';
 import { storeScores } from './store.js';
 
-export const createMatrix = (configs) => {
-  let matrix = [{}];
-
-  for (const key of Object.keys(configs)) {
-    const newMatrix = [];
-    for (const val of configs[key]) {
-      for (const existing of matrix) {
-        const updated = { ...existing };
-        updated[key] = val;
-        newMatrix.push(updated);
-      }
-    }
-    matrix = newMatrix;
-  }
-
-  return matrix;
-}
-
 const populate = (json, config) => {
   let str = JSON.stringify(json);
   for (const key of Object.keys(config)) {
     str = str.replaceAll(`{{${key}}}`, config[key]);
   }
   return JSON.parse(str);
+}
+
+export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
+  for (const config of matrix) {
+    const testName = `${name} { ${Object.keys(config).map(k => k + '=' + config[k]).join('; ')} } @bench`;
+
+    it(testName, async function () {
+      console.log(testName);
+
+      this.timeout(3 * 60 * 1000); // 3 minutes
+
+      const scores = await runMatrix(
+        name,
+        json,
+        [config],
+        checks,
+        options);
+
+      if (options.shouldSave) {
+        await storeScores(scores);
+      }
+    });
+  }
 }
 
 export const runMatrix = async (name, json, matrix, checks, options) => {
@@ -68,6 +73,11 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       score,
       items: out.items,
     };
+
+    const copy = { ...s };
+    delete copy.items;
+    console.log(JSON.stringify(copy, null, 2));
+
     scores.push(s);
 
     if (options?.shouldSave) {
