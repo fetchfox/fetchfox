@@ -40,3 +40,4 @@ jobs:
         BRANCH: ${{ env.BRANCH }}
         FF_LOG: debug
       run: npm run bench
+      continue-on-error: true

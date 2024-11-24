@@ -28,6 +28,6 @@ jobs:
     - name: Run tests
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        FF_LOG: debug
+        FF_LOG: warn
       run: npm test
       continue-on-error: ${{ matrix.attempt != 3 }}
