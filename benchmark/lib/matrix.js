@@ -5,6 +5,9 @@ export const standardMatrix = (extra) => {
       'openai:gpt-4o',
       'google:gemini-1.5-flash',
       'google:gemini-1.5-pro',
+      'groq:llama-3.1-70b-versatile',
+      'groq:llama-3.2-11b-vision-preview',
+      'groq:llama-3.2-90b-vision-preview',
     ],
     fetcher: [
       'fetch',

@@ -33,6 +33,7 @@ jobs:
     - name: Run benchmarks
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         BENCH_KV: redis
         REDIS_URL: ${{ secrets.REDIS_URL }}
