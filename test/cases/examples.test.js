@@ -11,7 +11,10 @@ describe('examples', function() {
   it('should do basic example @run', async () => {
     const results = await fox
       .init('https://pokemondb.net/pokedex/national')
-      .extract({ name: 'Pokemon name', number: 'Pokemon number' })
+      .extract({
+        name: 'Pokemon name, starting with the first pokemon',
+        number: 'Pokemon number, format: #XXXX',
+      })
       .limit(3)
       .run(null, (delta) => {});
 

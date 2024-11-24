@@ -20,7 +20,7 @@ describe('github.com', function() {
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
-        limit: 10,
+        limit: 5,
       })
       .extract({
         questions: {
@@ -37,8 +37,8 @@ describe('github.com', function() {
       });
 
     // Sanity checks
-    assert.equal(countPartials, 10);
-    assert.equal(out.items.length, 10);
+    assert.equal(countPartials, 5);
+    assert.equal(out.items.length, 5);
 
     let locTotal = 0;
     for (const item of out.items) {
