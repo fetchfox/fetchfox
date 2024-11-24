@@ -33,7 +33,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
@@ -70,7 +70,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
@@ -151,7 +151,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
@@ -191,7 +191,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
@@ -238,7 +238,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
@@ -401,7 +401,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
@@ -441,7 +441,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
@@ -684,7 +684,7 @@ describe('Server', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
-          name: 'Pokemon name',
+          name: 'Pokemon name, starting with first pokemon',
           type: 'Pokemon type',
           number: 'Pokedex number',
         },
