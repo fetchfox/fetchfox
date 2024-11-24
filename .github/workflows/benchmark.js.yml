@@ -5,7 +5,7 @@ on:
     branches: [ 'master', 'dev' ]
 
 jobs:
-  build:
+  benchmark:
 
     runs-on: ubuntu-latest
 

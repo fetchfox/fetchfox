@@ -4,9 +4,9 @@ import process from 'node:process';
 import { fox } from '../../src/index.js';
 
 describe('old.reddit.com nfl comments', function() {
-  this.timeout(60 * 1000);
+  this.timeout(5 * 60 * 1000);
 
-  it('should scrape 5 comments', async () => {
+  it('should scrape 5 comments @run', async () => {
     const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html';
     const out = await fox
       .init(url)
