@@ -48,7 +48,7 @@ export const BaseStep = class {
   async _finish(cursor, index) {
     try {
       if (this.finish) {
-        await this.finish();
+        await this.finish(cursor, index);
       }
     } finally {
       if (this.start) {

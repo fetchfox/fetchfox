@@ -1,7 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
-// import { publishToS3 } from '../export/publish.js';
 import { presignS3 } from './util.js';
 import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
@@ -12,6 +11,7 @@ export const BaseFetcher = class {
     this.queue = [];
     this.usage = {
       requests: 0,
+      completed: 0,
       cached: 0,
       runtime: 0,
     };
@@ -33,6 +33,11 @@ export const BaseFetcher = class {
     for await (const doc of this.fetch(target, options)) {
       return doc;
     }
+  }
+
+  async clear() {
+    logger.info(`${this} clear fetch queue`);
+    this.q.clear();
   }
 
   async *fetch(target, options) {
@@ -82,10 +87,12 @@ export const BaseFetcher = class {
 
       logger.debug(`Adding to fetch queue: ${url}`);
       const p = await this.q.add(() => {
-        logger.debug(`Queue is starting fetch of: ${url}`);
+        logger.info(`Queue is starting fetch of: ${url}`);
         return this._fetch(url, options);
       });
       logger.debug(`Fetch queue has ${this.q.size} requests`);
+
+      this.usage.completed++;
 
       for await (const doc of p) {
         logger.debug(`Should we filter for CSS? ${options?.css}`);
@@ -143,7 +150,7 @@ export const BaseFetcher = class {
     const result = await this.cache.get(key);
     const hit = Array.isArray(result) && result.length > 0;
     const outcome = hit ? '(hit)' : '(miss)';
-    logger.debug(`xyz Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
+    logger.debug(`Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
 
     if (hit) {
       const docs = [];
@@ -162,7 +169,7 @@ export const BaseFetcher = class {
   async setCache(url, options, val) {
     if (!this.cache) return;
     const key = this.cacheKey(url, options);
-    logger.debug(`xyz Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
+    logger.debug(`Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
 }

@@ -13,6 +13,10 @@ export const FetchStep = class extends BaseStep {
     this.css = args?.css;
   }
 
+  async finish(cursor) {
+    await cursor.ctx.fetcher.clear();
+  }
+
   async process({ cursor, item }, cb) {
     logger.info(`Fetch step for ${item}`);
     const options = { multiple: true };
