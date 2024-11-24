@@ -33,7 +33,8 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
 
   const date = (new Date()).toISOString().split('T')[0];
   const timestamp = (new Date()).getTime();
-  const commit = process.env.COMMIT_HASH || 'dev';
+  const commit = process.env.COMMIT || 'local';
+  const branch = process.env.BRANCH || 'local';
 
   let i = 0;
 
@@ -61,6 +62,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       name,
       timestamp,
       date,
+      branch,
       commit,
       config: { ...config },
       score,

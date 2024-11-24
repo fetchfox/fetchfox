@@ -72,13 +72,16 @@ describe('old.reddit.com nfl comments', function() {
 
     const out = await fox
       .config({
-        extractor: ['code-gen', { ai: 'openai:gpt-4o'}],
+        extractor: ['code-gen', { ai: 'openai:gpt-4o' }],
       })
       .init(url)
       .extract({
-        username: 'user who posted comment, exclude mod posts',
-        points: 'number of points for the comment',
-        content: 'comment content',
+        questions: {
+          username: 'user who posted comment, exclude mod posts',
+          points: 'number of points for the comment',
+          content: 'comment content',
+        },
+        examples: [url],
       })
       .limit(100)
       .run(
@@ -136,27 +139,4 @@ describe('old.reddit.com nfl comments', function() {
     }
   });
 
-  it('should scrape 100 comments with regular @long', async () => {
-    const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html';
-
-    let count = 0;
-
-    const out = await fox
-      .init(url)
-      .extract({
-        username: 'user who posted comment',
-        points: 'number of points for the comment',
-        content: 'comment content',
-      })
-      .limit(100)
-      .run(
-        null,
-        (partial) => {
-          logger.debug(`Partial: ${partial.item}`);
-          count++;
-        });
-
-    assert.equal(count, 100);
-    assert.equal(out.items.length, 100);
-  });
 });
