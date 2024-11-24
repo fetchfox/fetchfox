@@ -16,6 +16,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Extract branch name
+      id: get_branch
+      run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
@@ -24,11 +28,15 @@ jobs:
     - run: npm ci
     - run: npx playwright install
     - run: npm run build --if-present
+
+
     - name: Run benchmarks
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         BENCH_KV: redis
         REDIS_URL: ${{ secrets.REDIS_URL }}
+        COMMIT: ${{ github.sha }}
+        BRANCH: ${{ env.BRANCH }}
         FF_LOG: debug
       run: npm run bench
