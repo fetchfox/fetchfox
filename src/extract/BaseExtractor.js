@@ -65,8 +65,10 @@ export const BaseExtractor = class {
 
     // let textChunkSize = maxTokens * 4 * 0.1;
     // let htmlChunkSize = maxTokens * 4 * 0.25;
+
+    // Include only HTML. Make a rough guess as to how many bytes we can include.
     let textChunkSize = 0;
-    let htmlChunkSize = maxTokens * 4 * 0.8;
+    let htmlChunkSize = maxTokens * 4 * 0.7;
 
     const text = doc?.text || '';
     const html = doc?.html || '';
