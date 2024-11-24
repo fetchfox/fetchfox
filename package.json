@@ -13,7 +13,8 @@
     "./server": "./src/server.js"
   },
   "scripts": {
-    "test": "mocha test/**/*.test.js -g @run"
+    "test": "mocha test/**/*.test.js -g @run",
+    "bench": "mocha benchmark/**/*.bench.js -g @bench"
   },
   "repository": {
     "type": "git",

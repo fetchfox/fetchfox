@@ -65,6 +65,10 @@ export const BaseExtractor = class {
 
     let textChunkSize = maxTokens * 4 * 0.1;
     let htmlChunkSize = maxTokens * 4 * 0.25;
+
+    // let textChunkSize = 0;//maxTokens * 4 * 0.1;
+    // let htmlChunkSize = maxTokens * 4 * 0.8;
+
     const text = doc?.text || '';
     const html = doc?.html || '';
 
