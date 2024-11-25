@@ -12,11 +12,20 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.browser = options.browser || 'chromium';
     this.loadWait = options.loadWait || 1000;
     this.waitForLocator = options.waitForLocator;
-    this.timeoutWait = options.timeoutWait || 4000;
+    this.timeoutWait = options.timeoutWait || 15000;
     this.pullIframes = options.pullIframes;
     this.cdp = options.cdp;
 
     this.options = options.options || {};
+  }
+
+  cacheOptions() {
+    return {
+      browser: 'chromium',
+      loadWait: this.loadWait,
+      waitForLocator: this.waitForLocator,
+      timeoutWait: this.timeoutWait,
+    };
   }
 
   async launch() {

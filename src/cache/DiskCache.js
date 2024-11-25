@@ -31,7 +31,7 @@ export const DiskCache = class {
     try {
       data = JSON.parse(file);
     } catch(e) {
-      logger.warn(`Failed to parse JSON for cache file ${filepath}:`, e);
+      logger.warn(`Failed to parse JSON for cache file ${filepath}: ${e}`);
       this.del(key);
       return null;
     }

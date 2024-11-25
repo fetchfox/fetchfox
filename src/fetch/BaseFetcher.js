@@ -135,9 +135,13 @@ export const BaseFetcher = class {
     }
   }
 
+  cacheOptions() {
+    return {};
+  }
+
   cacheKey(url, options) {
     const hash = CryptoJS
-      .SHA256(JSON.stringify({ url, options }))
+      .SHA256(JSON.stringify({ url, options, ...this.cacheOptions() }))
       .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;

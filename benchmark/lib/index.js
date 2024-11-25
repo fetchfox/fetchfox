@@ -44,8 +44,15 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
   let i = 0;
 
   for (const config of matrix) {
-    const diskCache = process.env.DISK_CACHE;
-    const fullConfig = { ...config, diskCache };
+    const fullConfig = { ...config };
+    if (process.env.S3_CACHE_BUCKET) {
+      fullConfig.s3Cache = {
+        bucket: process.env.S3_CACHE_BUCKET,
+        prefix: 'benchmarks/',
+        acl: 'public-read',
+        ttls: { base: 10 * 365 * 24 * 3600 },
+      };
+    }
 
     const out = await fox
       .load(populate(json, config))

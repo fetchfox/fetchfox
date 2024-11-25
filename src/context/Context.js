@@ -5,6 +5,7 @@ import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
 import { getKV, BaseKV } from '../kv/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
+import { S3Cache } from '../cache/S3Cache.js';
 import { copyKeys } from './constants.js';
 
 // Order matters for `decodeableKeys`
@@ -23,6 +24,9 @@ const decodeArgs = (args, cache) => {
 
   if (args.diskCache) {
     args.cache = new DiskCache(args.diskCache);
+  }
+  if (args.s3Cache) {
+    args.cache = new S3Cache(args.s3Cache);
   }
   if (args.cache) {
     decoded.cache = args.cache;
