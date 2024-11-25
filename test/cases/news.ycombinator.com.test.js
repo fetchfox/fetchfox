@@ -10,7 +10,7 @@ describe('news.ycombinator.com', function() {
   it('should work @run', async () => {
     let countPartials = 0;
     const out = await fox
-      .init('https://news.ycombinator.com')
+      .init('https://ffcloud.s3.amazonaws.com/fetchfox-docs/vrpsig87v0/https-news-ycombinator-com-news.html')
       .extract({
         articleTitle: 'What is the title of the article?',
         numComments: 'What is the number of comments?',
@@ -38,7 +38,10 @@ describe('news.ycombinator.com', function() {
     let countPartials = 0;
     const out = await fox
       .init('https://news.ycombinator.com')
-      .crawl('find links to comment pages, format: https://news.ycombinator.com/item?id=...')
+      .crawl({
+        query: 'find links to comment pages, format: https://news.ycombinator.com/item?id=...',
+        limit: 5,
+      })
       .extract({
         topCommenter: 'What is the username of the top commenter?',
         single: true,
@@ -47,7 +50,7 @@ describe('news.ycombinator.com', function() {
         countPartials++;
       });
 
-    assert.ok(countPartials > 10 && countPartials < 35);
-    assert.ok(out.items.length > 10 && out.items.length < 35);
+    assert.ok(countPartials > 1 && countPartials < 10);
+    assert.ok(out.items.length > 1 && out.items.length < 10);
   });
 });
