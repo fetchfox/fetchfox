@@ -65,7 +65,7 @@ describe('old.reddit.com nfl comments', function() {
     }
   });
 
-  it('should scrape 100 comments with code gen @run', async () => {
+  it('should scrape 100 comments with code gen @disabled', async () => {
     const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html';
 
     let count = 0;

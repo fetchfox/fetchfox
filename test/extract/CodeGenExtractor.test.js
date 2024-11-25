@@ -13,7 +13,7 @@ const flightUrls = [
 describe('CodeGenExtractor', function() {
   this.timeout(3 * 60 * 1000);
 
-  it('should learn @run', async () => {
+  it('should learn @disabled', async () => {
     const urls = flightUrls;
 
     const questions = {
@@ -47,7 +47,7 @@ describe('CodeGenExtractor', function() {
 
   });
 
-  it('should save and load @run', async () => {
+  it('should save and load @disabled', async () => {
     const urls = flightUrls;
     const fetcher = getFetcher();
 
