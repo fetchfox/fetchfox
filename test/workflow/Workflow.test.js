@@ -82,7 +82,6 @@ describe('Workflow', function() {
 
     const f2 = await fox
       .config({
-        diskCache: os.tmpdir() + '/fetchfox-test-cache',
         publishAllSteps: true,
       })
       .init('https://pokemondb.net/pokedex/national')
