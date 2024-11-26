@@ -13,7 +13,16 @@ export const Gemini = class extends BaseAI {
 
   normalizeChunk(chunk) {
     const message = chunk.text();
-    let usage;  // TODO
+    let usage;
+
+    if (chunk.usageMetadata) {
+      usage = {
+        input: chunk.usageMetadata.promptTokenCount,
+        output: chunk.usageMetadata.totalTokenCount - chunk.usageMetadata.promptTokenCount,
+        total: chunk.usageMetadata.totalTokenCount,
+      };
+    }
+
     return { model: this.model, message, usage };
   }
 

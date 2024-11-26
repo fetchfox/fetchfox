@@ -50,7 +50,7 @@ export const BaseAI = class {
     this.retryMsec = retryMsec;
     this.usage = { input: 0, output: 0, total: 0 };
     this.cost = { input: 0, output: 0, total: 0 };
-    this.elapsed = { sec: 0, msec: 0 };
+    this.runtime = { sec: 0, msec: 0 };
 
     const provider = this.constructor.name.toLowerCase();
     const data = getModelData(provider, model);
@@ -127,6 +127,8 @@ export const BaseAI = class {
     }
 
     let usage = { input: 0, output: 0, total: 0 };
+    const start = (new Date()).getTime();
+
     let answer = '';
     let buffer = '';
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
@@ -136,9 +138,7 @@ export const BaseAI = class {
     try {
       for await (const chunk of this.inner(prompt, options)) {
         const norm = this.normalizeChunk(chunk);
-        const parsed = this.parseChunk(
-          norm,
-          ctx);
+        const parsed = this.parseChunk(norm, ctx);
 
         if (!parsed) continue;
 
@@ -164,6 +164,10 @@ export const BaseAI = class {
     } catch (e) {
       err = e;
     } finally {
+      const msec = (new Date()).getTime() - start;
+      this.runtime.msec += msec;
+      this.runtime.sec += msec / 1000;
+
       if (err) {
         logger.warn(`Error during AI stream, not caching: ${err}`);
         throw err;
@@ -182,7 +186,6 @@ export const BaseAI = class {
       cost: Object.assign({}, this.cost),
     };
 
-    const start = (new Date()).getTime();
     let result;
     let retries = 3;
     const retryMsec= 5000;
@@ -208,10 +211,6 @@ export const BaseAI = class {
 
       break;
     }
-
-    const msec = (new Date()).getTime() - start;
-    this.elapsed.msec += msec;
-    this.elapsed.sec += msec / 1000;
 
     if (!result) {
       logger.warn(`Got no response for prompt ${prompt.substr(0, 100)}: ${result}`);

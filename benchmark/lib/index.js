@@ -72,6 +72,10 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       .config(fullConfig)
       .run();
 
+    console.log(JSON.stringify(out.context.ai.usage, null, 2));
+    console.log(JSON.stringify(out.context.ai.cost, null, 2));
+    console.log(JSON.stringify(out.context.ai.runtime, null, 2));
+
     logger.info(``);
     logger.info(`  Running benchmark ${++i}/${matrix.length} with config ${JSON.stringify(config)}`);
     logger.info(``);
@@ -91,6 +95,8 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       commit,
       config: { ...config },
       score,
+      tokens: out.context?.ai?.usage?.total,
+      cost: out.context?.ai?.cost?.total,
       items: out.items,
     };
 

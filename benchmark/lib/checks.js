@@ -12,9 +12,18 @@ export const checkExcludeUrls = (items, str) => {
 export const checkItemsExact = (items, expected) => {
   const score = [0, 0];
 
+  const removePrivate = (item) => {
+    const copy = {};
+    for (const key of Object.keys(item)) {
+      if (key.startsWith('_')) continue;
+      copy[key] = item[key];
+    }
+    return copy;
+  }
+
   // Un-ordered check, so sort them as JSON
-  const itemsJson = items.map(x => JSON.stringify(x)).sort();
-  const expectedJson = expected.map(x => JSON.stringify(x)).sort();
+  const itemsJson = items.map(x => JSON.stringify(removePrivate(x))).sort();
+  const expectedJson = expected.map(x => JSON.stringify(removePrivate(x))).sort();
 
   for (let i = 0; i < expectedJson.length; i++) {
     score[1]++;
