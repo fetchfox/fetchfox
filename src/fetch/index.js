@@ -4,9 +4,18 @@ import { RelayFetcher } from './RelayFetcher.js'
 import { PlaywrightFetcher } from './PlaywrightFetcher.js';
 
 export { BaseFetcher } from './BaseFetcher.js';
+import { BaseFetcher } from './BaseFetcher.js';
+
 export const DefaultFetcher = Fetcher;
 
 export const getFetcher = (which, options) => {
+
+  logger.trace(`getFetcher ${which}`);
+
+  if (which instanceof BaseFetcher) {
+    return which;
+  }
+
   if (!which) which = 'fetch';
   let fetcherClass = {
     f: Fetcher,

@@ -15,6 +15,6 @@ export const presignS3 = async ({ bucket, key, contentType, acl }) => {
     s3,
     command,
     { expiresIn: 30 * 60 });
-  logger.trace(`Generating presigned URL 2 ${url}`);
+  logger.debug(`Generating presigned URL ${url}`);
   return url;
 }

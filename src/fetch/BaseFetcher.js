@@ -103,7 +103,7 @@ export const BaseFetcher = class {
         logger.debug(`Fetcher s3 config: ${JSON.stringify(this.s3)}`);
         if (this.s3) {
           const bucket = this.s3.bucket;
-          const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}';
+          const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
           const acl = this.s3.acl || '';
           const id = new ShortUniqueId({
             length: 10,
