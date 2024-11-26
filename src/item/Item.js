@@ -11,8 +11,8 @@ export const Item = class {
       this[k] = this.clean(data[k]);
     }
     this.#source = source;
-    if (!this.url) {
-      this.url = source?.url || data?.url;
+    if (!this._sourceUrl) {
+      this._sourceUrl = source?.url || data?._sourceUrl;
     }
     if (source?.htmlUrl) this._htmlUrl = source.htmlUrl;
     if (source?.screenshotUrl) this._screenshotUrl = source.screenshotUrl;
