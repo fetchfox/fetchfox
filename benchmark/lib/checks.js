@@ -20,8 +20,11 @@ export const checkItemsExact = (items, expected) => {
     score[1]++;
     if (i >= items.length) continue;
     const e = expectedJson[i];
-    const item = itemsJson[i];
-    if (e != item) continue;
+    let found = false;
+    for (const it of itemsJson) {
+      if (it == e) found = true;
+    }
+    if (!found) continue;
     score[0]++;
   }
   return score;

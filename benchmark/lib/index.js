@@ -1,5 +1,6 @@
 import { logger } from '../../src/log/logger.js';
 import { fox } from '../../src/index.js';
+import { S3Cache } from '../../src/cache/S3Cache.js';
 import { storeScores } from './store.js';
 
 const populate = (json, config) => {
@@ -45,13 +46,25 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
 
   for (const config of matrix) {
     const fullConfig = { ...config };
+
     if (process.env.S3_CACHE_BUCKET) {
-      fullConfig.s3Cache = {
+      const params = {
         bucket: process.env.S3_CACHE_BUCKET,
         prefix: 'benchmarks/',
         acl: 'public-read',
         ttls: { base: 10 * 365 * 24 * 3600 },
       };
+      const cache = new S3Cache(params);
+
+      // Only cache in fetcher
+      if (typeof fullConfig.fetcher == 'string') {
+        fullConfig.fetcher = [
+          fullConfig.fetcher,
+          { cache }
+        ];
+      } else {
+        throw 'Unhandled: TODO';
+      }
     }
 
     const out = await fox
