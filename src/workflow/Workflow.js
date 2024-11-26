@@ -17,6 +17,14 @@ export const Workflow = class extends BaseWorkflow {
     return this;
   }
 
+  async describe() {
+    const planner = new Planner(this.ctx);
+    const { name, description } = await planner.describe(this.dump());
+    this.name = name;
+    this.description = description;
+    return this;
+  }
+
   async plan(...args) {
     logger.info(`Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`);
 
@@ -57,18 +65,8 @@ export const Workflow = class extends BaseWorkflow {
       steps,
       itemDescription,
     } = await planPromise;
-    const desc = await planner.describe({
-      steps: steps.map(s => s.dump()),
-      url: args.url,
-      html: args.html,
-    });
 
-    this.steps = steps
-    this.name = desc.name
-
-    this.description = desc.description;
-    this.itemDescription = itemDescription;
-
+    this.steps = steps;
     this._stepsInput = [];
 
     return this;

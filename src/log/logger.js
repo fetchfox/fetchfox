@@ -34,22 +34,39 @@ prefix.apply(log.getLogger('critical'), {
   },
 });
 
+const callbacks = [];
+
+const send = (level, args) => {
+  for (const cb of callbacks) {
+    cb(level, args);
+  }
+}
+
 export const logger = {
   trace: (...args) => {
     log.trace(...args);
+    send('trace', args);
   },
   debug: (...args) => {
     if (log.getLevel() <= log.levels.DEBUG) {
       log.debug(...args);
     }
+    send('debug', args);
   },
   info: (...args) => {
     log.info(...args);
+    send('info', args);
   },
   warn: (...args) => {
     log.warn(...args);
+    send('warn', args);
   },
   error: (...args) => {
     log.error(...args);
+    send('error', args);
+  },
+  listen: (cb) => {
+    console.log('listen', cb);
+    callbacks.push(cb);
   },
 };

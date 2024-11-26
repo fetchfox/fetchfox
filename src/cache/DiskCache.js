@@ -12,7 +12,7 @@ export const DiskCache = class {
 
   async set(key, val, label) {
     const filepath = path.join(this.dirname, key);
-    const ttl = this.ttls[label] || this.ttls.base || 24 * 3600;
+    const ttl = this.ttls[label] || this.ttls.base || 2 * 3600;
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
     return await fs.promises.writeFile(filepath, JSON.stringify(data), 'utf8');
   }
@@ -31,7 +31,7 @@ export const DiskCache = class {
     try {
       data = JSON.parse(file);
     } catch(e) {
-      logger.warn(`Failed to parse JSON for cache file ${filepath}:`, e);
+      logger.warn(`Failed to parse JSON for cache file ${filepath}: ${e}`);
       this.del(key);
       return null;
     }

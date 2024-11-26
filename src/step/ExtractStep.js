@@ -1,5 +1,6 @@
 import { logger } from '../log/logger.js';
 import { getExtractor } from '../extract/index.js';
+import { CodeGenExtractor } from '../extract/CodeGenExtractor.js';
 import { BaseStep } from './BaseStep.js';
 import { isPlainObject } from '../util.js';
 
@@ -24,6 +25,32 @@ export const ExtractStep = class extends BaseStep {
     if (!questions) throw new Error('No questions for extract step');
 
     this.questions = questions;
+
+    if (args?.examples) {
+      this.examples = args.examples;
+    }
+  }
+
+  async before(cursor) {
+    const ex = cursor.ctx.extractor;
+    if (ex instanceof CodeGenExtractor) {
+      logger.info(`Code gen init`);
+
+      await ex.load(this.examples, this.questions);
+
+      if (ex.state) {
+        logger.info(`Code gen loaded state, NOT learning`);
+      } else {
+        logger.info(`Code gen got no state, START learning`);
+        await ex.init(this.examples, this.questions);
+        await ex.learn();
+        await ex.save();
+      }
+    }
+  }
+
+  async finish(cursor) {
+    await cursor.ctx.extractor.clear();
   }
 
   async process({ cursor, item }, cb) {

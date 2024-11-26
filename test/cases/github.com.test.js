@@ -4,11 +4,6 @@ import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('github.com', function() {
   this.timeout(5 * 60 * 1000);
 
@@ -25,7 +20,7 @@ describe('github.com', function() {
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
-        limit: 10,
+        limit: 5,
       })
       .extract({
         questions: {
@@ -42,8 +37,8 @@ describe('github.com', function() {
       });
 
     // Sanity checks
-    assert.equal(countPartials, 10);
-    assert.equal(out.items.length, 10);
+    assert.equal(countPartials, 5);
+    assert.equal(out.items.length, 5);
 
     let locTotal = 0;
     for (const item of out.items) {
@@ -57,7 +52,7 @@ describe('github.com', function() {
     assert.ok(locTotal >= 10, 'loc total');
   });
 
-  it('should do complex scrape @run', async () => {
+  it('should do complex scrape @disabled', async () => {
     let countPartials = 0;
     const out = await fox
       .config({

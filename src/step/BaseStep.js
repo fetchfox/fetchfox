@@ -7,9 +7,9 @@ export const BaseStep = class {
     this.limit = args?.limit;
     this.callbacks = {};
     this.q = new PQueue({
-      concurrency: args?.concurrency === undefined ? 5 : args?.concurrency,
-      intervalCap: args?.intervalCap === undefined ? 3 : args?.intervalCap,
-      interval: args?.interval === undefined ? 3000 : args?.interval,
+      concurrency: args?.concurrency === undefined ? 1000 : args?.concurrency,
+      intervalCap: args?.intervalCap === undefined ? 1000 : args?.intervalCap,
+      interval: args?.interval === undefined ? 1 : args?.interval,
     });
   }
 
@@ -48,9 +48,13 @@ export const BaseStep = class {
   async _finish(cursor, index) {
     try {
       if (this.finish) {
-        await this.finish();
+        await this.finish(cursor, index);
       }
     } finally {
+      if (this.start) {
+        const took = (new Date()).getTime() - this.start.getTime();
+        logger.debug(`${this} took total of ${(took / 1000).toFixed(2)} sec`);
+      }
       cursor.finish(index);
     }
   }
@@ -98,6 +102,8 @@ export const BaseStep = class {
     // TODO: batch process items mode for steps that work better when
     // all items are available. Applies to FilterStep, SchemaStep,
     // and maybe others.
+
+    logger.info(`Run ${this}`);
 
     await this._before(cursor, index);
 
@@ -162,9 +168,19 @@ export const BaseStep = class {
           const p = this.q.add(() => {
             if (done) return;
 
+            if (!this.start) {
+              this.start = new Date();
+            }
+
             return this.process(
               { cursor, item, index },
               (output) => {
+                if (!this.firstResult) {
+                  this.firstResult = new Date();
+                  const took = this.firstResult - this.start;
+                  logger.debug(`${this} got first result after ${(took / 1000).toFixed(2)} sec`);
+                }
+
                 this.results.push(output);
 
                 const hitLimit = this.limit && this.results.length >= this.limit;

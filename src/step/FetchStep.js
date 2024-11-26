@@ -5,32 +5,40 @@ import { Item } from '../item/Item.js';
 export const FetchStep = class extends BaseStep {
   constructor(args) {
     super(args);
+    this.urlFields = args?.urlFields || ['url'];
     this.scroll = args?.scroll;
     this.scrollWait = args?.scrollWait;
+    this.waitForText = args?.waitForText;
+    this.active = args?.active;
+    this.css = args?.css;
+  }
+
+  async finish(cursor) {
+    await cursor.ctx.fetcher.clear();
   }
 
   async process({ cursor, item }, cb) {
-    logger.info(`Fetch step for ${item} ${item.actor}`);
-
+    logger.info(`Fetch step for ${item}`);
     const options = { multiple: true };
-    if (this.scroll) {
-      options.scroll = this.scroll;
-    }
-    if (this.scrollWait) {
-      options.scrollWait = this.scrollWait;
+
+    if (this.scroll) options.scroll = this.scroll;
+    if (this.scrollWait) options.scrollWait = this.scrollWait;
+    if (this.waitForText) options.waitForText = this.waitForText;
+    if (this.active) options.active = this.active;
+    if (this.css) options.css = this.css;
+
+    const streams = [];
+    for (const field of this.urlFields) {
+      const stream = await cursor.ctx.fetcher.fetch(item[field], options);
+      streams.push(stream);
     }
 
-    if (typeof item.actor == 'function' && item.actor()) {
-      options.actor = item.actor();
-    } else {
-      options.actor = await cursor.ctx.actor.fork();
-      cursor.defer(() => options.actor.finish());
-    }
-
-    const stream = await cursor.ctx.fetcher.fetch(item.url, options);
-    for await (const doc of stream) {
-      logger.info(`Fetch step yielding ${doc}`);
-      cb(new Item({}, doc));
+    // TODO: race the streams instead of iterating
+    for (const stream of streams) {
+      for await (const doc of stream) {
+        logger.info(`Fetch step yielding ${doc}`);
+        cb(new Item({}, doc));
+      }
     }
   }
 }

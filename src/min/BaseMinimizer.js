@@ -58,7 +58,7 @@ export const BaseMinimizer = class {
     const after = JSON.stringify([min.html, min.text]).length;
     const took = (new Date()).getTime() / 1000 - start;
     logger.info(`Minimizing took ${took.toFixed(2)} seconds`);
-    logger.info(`Minimized doc from ${before} bytes -> ${after} bytes`);
+    logger.info(`Minimized doc from ${(before / 1000).toFixed(1)} kB -> ${(after / 1000).toFixed(1)} kB`);
 
     this.setCache(doc, cacheOptions, min);
 

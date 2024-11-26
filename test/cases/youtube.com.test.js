@@ -4,11 +4,6 @@ import process from 'node:process';
 import { logger } from '../../src/log/logger.js';
 import { fox } from '../../src/index.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
 describe('youtube.com', function() {
   this.timeout(5 * 60 * 1000);
 

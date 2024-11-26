@@ -13,7 +13,8 @@
     "./server": "./src/server.js"
   },
   "scripts": {
-    "test": "mocha test/**/*.test.js -g @run"
+    "test": "mocha test/**/*.test.js -g @run",
+    "bench": "mocha benchmark/**/*.bench.js -g @bench"
   },
   "repository": {
     "type": "git",
@@ -43,6 +44,7 @@
     "dropbox": "^10.34.0",
     "googleapis": "^144.0.0",
     "groq-sdk": "^0.7.0",
+    "ioredis": "^5.4.1",
     "loglevel": "^1.9.2",
     "loglevel-plugin-prefix": "^0.8.4",
     "node-fetch": "^3.3.2",
@@ -52,7 +54,10 @@
     "p-queue": "^8.0.1",
     "papaparse": "^5.4.1",
     "playwright": "^1.48.0",
+    "playwright-extra": "^4.3.6",
     "pretty": "^2.0.0",
+    "puppeteer-core": "^23.7.1",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "short-unique-id": "^5.2.0",
     "url-polyfill": "^1.1.12",
     "whatwg-url": "^14.0.0",

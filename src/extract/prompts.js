@@ -18,6 +18,7 @@ Follow these important rules:
 - Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
 - Pay attention to user format specifications
+- Follow schema requests, eg. return array fields if requested
 
 {{extraRules}}
 
@@ -28,7 +29,7 @@ Example of a valid response with multiple items:
 
 Example of a valid response with a single item:
 {"itemCount": 1}
-{"article_title": "New Find at the Great Wall of China", "article_date": "2024-02-04"}
+{"article_title": "New Find at the Great Wall of China", "article_date": "2024-02-04", countries: ["China", "India"]}
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
@@ -93,7 +94,7 @@ Your response MUST be valid JSON and only JSON. It will be parsed with JSON.pars
 );
 
 export const codeGenMulti = new Template(
-  ['html', 'itemDescription', 'questions', 'sample'],
+  ['num', 'htmls', 'itemDescription', 'questions', 'samples'],
     `You writing Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data.
 
 Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments.
@@ -104,22 +105,29 @@ Your goal is to write Javascript code that finds items the user is looking for, 
 
 There are multiple items on each page. Your code should return an ARRAY of all items.
 
-You will receive HTML of the page, along with the correct answer for this page. Your goal is to write a good, robust Javascript code with CSS selectors that finds the answer on other similar pages. Make sure your code generalizes well to other similar pages.
+You will receive {{num}} examples of HTML, along with the correct answer for each of the {{num}} pages. Your goal is to write a good, robust Javascript code with CSS selectors that finds the answer on all of these pages, and similar pages. Make sure your code generalizes well to other similar pages.
 
-Here is the HTML of the example page: {{html}}
+Here are the HTML example pages: {{htmls}}
+
+Here are the correct answers for each page: {{samples}}
 
 The user is looking for these items: {{itemDescription}}
 
 The user is looking for these fields on each item: {{questions}}
 
-Here is the correct example answer: {{sample}}
-
 Follow these guidelines:
-- You MUST RESPOND ONLY WITH JAVASCRIPT CODE
+- You MUST RESPOND ONLY WITH JAVASCRIPT CODE and comments
 - Do NOT GIVE EXAMPLE USAGE
 - You may use the node-html-parser library. It will be passed in as a parameter.
 - Make your code robust, including null checks
 - Loops and maps should have a try/catch structure so a single failed element does not break the entire execution
+
+It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
+- Before writing any code, explain your reasoning in a comment block
+- Decide if you will use XPath via $x(...) or CSS selectors, or something else
+- Decide and explain which XPath or CSS selectors you will use
+- Describe how you ensure this solution will generalize and be robust with respect to HTML and CSS quirks
+- Describe any challenging parts of the extraction
 
 The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
 - \`html\`: the HTML of the page
@@ -129,3 +137,93 @@ Use ONLY these parameters in your code
 Make sure to RETURN the result at the end
 
 `);
+
+export const codeGenFeedback = new Template(
+  ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code'],
+  `You are a code reviewer, and you are asked to evaluate scraping extract code. You will receive HTML of the target page for extraction, the data to be extracted, the proposed code for doing the extract, and expected and actual results.
+
+You will give feedback in JSON format on the code:
+
+{
+  "problems": "Describe problems in the actual results compared to the expected results, if any",
+
+  "accuracy": "A rating from 1 to 100 of how accurate the actual results are, compared to the expected results. Scores near 1 mean the actual output is unusable, scores near 50 mean the actual output is ok but has doesn't exactly match, scores near 90 and above mean the actual output exactly matches the expected, maybe small issues like whitespace",
+
+  "quality": "A rating from 1 to 100 of the code quality, taking into account expected breakage and future problems that could arise. Be careful not to overengineer, this is scraping code",
+
+  "suggestions": "Give suggestions on how to improve the code, if any"
+}
+
+Below is your task:
+
+>>>> Page HTML samples:
+{{htmls}}
+
+>>>> Expected results:
+{{samples}}
+
+>>>> Actual results:
+{{actuals}}
+
+>>>> Extraction target description: {{itemDescription}}
+
+>>>> Extraction fields:
+{{questions}}
+
+>>>> Proposed code:
+{{code}}
+
+- Limit your response to around 500 words
+- In some cases, the expected answers may be wrong. They are AI generated, and the AI is not perfect at doign the extraction.
+- You MUST reply in JSON, your response will be fed into JSON.parse()
+`);
+
+export const codeGenIterate = new Template(
+  ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code', 'feedback'],
+  `You working on Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data. Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments. You will be writing Javascript.
+
+Your goal is to write Javascript code that finds items the user is looking for, and fills in the fields the users asks for.
+
+You will be given some code that you wrote previously, along with some feedback. Take t
+he feedback, and use it to improve the code you wrote.
+
+>>>> Page HTML samples:
+{{htmls}}
+
+>>>> Expected results:
+{{samples}}
+
+>>>> Actual results:
+{{actuals}}
+
+>>>> The user is looking for these items: {{itemDescription}}
+
+>>>> The user is looking for these fields on each item: {{questions}}
+
+>>>> Here is the code you are improving:
+{{code}}
+
+>>>> Here is the feedback on this code:
+{{feedback}}
+
+Follow these guidelines:
+- You MUST RESPOND ONLY WITH JAVASCRIPT CODE and comments
+- Do NOT GIVE EXAMPLE USAGE
+- You may use the node-html-parser library. It will be passed in as a parameter.
+- Make your code robust, including null checks
+- Loops and maps should have a try/catch structure so a single failed element does not break the entire execution
+
+It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
+- If you made changes, explain the changes compared to the previous code, and why you think it will fix any issues
+- If you made no changes, say so, and say why not
+- You may disregard feedback that would make the code too complicated, more brittle, or that is too hard to integrate. Consider the feedback and use your best judgement.
+
+The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
+- \`html\`: the HTML of the page
+- \`nodeHtmlParser\`: the node-html-parser library
+Use ONLY these parameters in your code
+
+Make sure to RETURN the result at the end
+
+`
+)

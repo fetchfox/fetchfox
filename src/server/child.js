@@ -1,3 +1,5 @@
+const start = (new Date()).getTime();
+
 import { fox } from '../fox/fox.js';
 import { logger } from '../log/logger.js';
 
@@ -5,6 +7,7 @@ let workflow = null;
 
 process.on('unhandledRejection', async (e, p) => {
   logger.error(`Child.js unhandled Rejection at: ${e}`);
+  logger.error(`Child.js unhandled stack: ${e.stack}`);
 
   const serialize = (e) => {
     if (!(e instanceof Error)) {
@@ -56,3 +59,6 @@ process.on('message', async ({ command, data }) => {
       break;
   }
 });
+
+const took = (new Date()).getTime() - start;
+logger.debug(`child.js took ${took} msec to start`);

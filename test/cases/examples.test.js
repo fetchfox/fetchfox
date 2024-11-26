@@ -1,23 +1,20 @@
-// Test the examples from README.md
-
 import os from 'os';
 import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
 
-process.on('unhandledRejection', async (reason, p) => {
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
-  process.exit(1);
-});
-
+// Test the examples from README.md
 describe('examples', function() {
   this.timeout(5 * 60 * 1000);
 
   it('should do basic example @run', async () => {
     const results = await fox
       .init('https://pokemondb.net/pokedex/national')
-      .extract({ name: 'Pokemon name', number: 'Pokemon number' })
+      .extract({
+        name: 'Pokemon name, starting with the first pokemon',
+        number: 'Pokemon number, format: #XXXX',
+      })
       .limit(3)
       .run(null, (delta) => {});
 

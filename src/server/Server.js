@@ -23,6 +23,9 @@ export const Server = class {
       path.join(
         process.cwd(),
         'node_modules/fetchfox/src/server/child.js'));
+
+    this.shouldPrefork = options?.shouldPrefork;
+    this.shouldPrefork && this.prefork();
   }
 
   pushMiddleware(mw) {
@@ -72,11 +75,46 @@ export const Server = class {
     return child.send(payload);
   }
 
-  async start(data, ws) {
-    logger.info(`Server start ${JSON.stringify(data)}`);
+  prefork() {
     const id = this.store.nextId();
     const child = fork(this.childPath);
     this.children[id] = child;
+    this.nextForkId = id;
+  }
+
+  fork() {
+    if (!this.nextForkId) {
+      this.prefork();
+    }
+
+    if (!this.nextForkId) {
+      logger.error(`No next fork ID after prefork`);
+      return;
+    }
+
+    const id = this.nextForkId;
+    const child = this.children[id];
+    this.nextForkId = null;
+
+    setTimeout(
+      () => { this.shouldPrefork && this.prefork() },
+      1);
+
+    return { id, child };
+  }
+
+  async ping(data, ws) {
+    // logger.info(`Server start ${JSON.stringify(data)}`);
+    return { command: 'pong' };
+  }
+
+  async start(data, ws) {
+    logger.info(`Server start ${JSON.stringify(data)}`);
+
+    const start = (new Date()).getTime();
+    const { id, child } = this.fork();
+    const took = (new Date()).getTime() - start;
+    logger.debug(`Start took ${took} msec to fork`);
 
     child.on('message', (msg) => {
       const { command, data } = msg;
@@ -126,6 +164,12 @@ export const Server = class {
     return f.dump();
   }
 
+  async describe(data, ws) {
+    logger.info(`Describe based on ${JSON.stringify(data.workflow).substr(0, 200)}`);
+    const f = await fox.describe(data.workflow);
+    return f.dump();
+  }
+
   listen(port, cb) {
     this.s = http.createServer((req, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -151,6 +195,9 @@ export const Server = class {
 
         if (!out) {
           switch (data.command) {
+            case 'ping':
+              out = await this.ping(data, ws);
+              break;
             case 'start':
               out = await this.start(data, ws);
               break;
@@ -163,6 +210,9 @@ export const Server = class {
             case 'plan':
               out = await this.plan(data, ws);
               break;
+            case 'describe':
+              out = await this.describe(data, ws);
+              break;
             case 'relayListen':
               out = await this.relayListen(data, ws);
               break;
@@ -172,8 +222,13 @@ export const Server = class {
           }
         }
 
-        logger.info(`Server side run of ${data.command} done: ${(JSON.stringify(out) || '').substr(0, 120)}`);
-        ws.send(JSON.stringify({ close: true, out }));
+        if (data.command != 'ping') {
+          logger.info(`Server side run of ${data.command} done: ${(JSON.stringify(out) || '').substr(0, 120)}`);
+        }
+
+        // TODO: Keep connection alive in general, instead of closing on each command
+        const command = out?.command;
+        ws.send(JSON.stringify({ command, out, close: true }));
         ws.close(1000);
 
         this.conns.delete(ws);

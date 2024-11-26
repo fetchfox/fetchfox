@@ -14,14 +14,18 @@ export const CrawlStep = class extends BaseStep {
     if (!query) throw new Error('no query');
 
     this.query= query;
+    this.css = args?.css;
   }
 
   async process({ cursor, item }, cb) {
     const crawler = cursor.ctx.crawler;
     const start = (new Date()).getTime();
 
+    const options = {};
+    if (this.css) options.css = this.css;
+
     const url = item.url || item.source().url;
-    for await (const output of crawler.run(url, this.query)) {
+    for await (const output of crawler.run(url, this.query, options)) {
       if (!output.url) {
         logger.error(`No URL found for item ${item}`);
         continue;

@@ -1,0 +1,47 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [ 'master', 'dev' ]
+
+jobs:
+  benchmark:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract branch name
+      id: get_branch
+      run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm ci
+    - run: npx playwright install
+    - run: npm run build --if-present
+
+
+    - name: Run benchmarks
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        S3_CACHE: ffcloud
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        BENCH_KV: redis
+        REDIS_URL: ${{ secrets.REDIS_URL }}
+        COMMIT: ${{ github.sha }}
+        BRANCH: ${{ env.BRANCH }}
+        FF_LOG: debug
+      run: npm run bench
+      continue-on-error: true

@@ -1,14 +1,16 @@
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, cache, hardCapTokens } = options || {};
+    const { ai, kv, fetcher, cache, hardCapTokens } = options || {};
     this.ai = getAI(ai, { cache });
+    this.kv = getKV(kv);
     this.fetcher = fetcher || new DefaultFetcher({ cache });
-    this.hardCapTokens = hardCapTokens || 128000;
+    this.hardCapTokens = hardCapTokens || 1e6;
     this.usage = {
       requests: 0,
       runtime: 0,
@@ -19,16 +21,14 @@ export const BaseExtractor = class {
     return `[${this.constructor.name}]`;
   }
 
-  async *getDoc(target) {
+  async clear() {
+    logger.info(`${this} clear associated fetch queue`);
+    this.fetcher.clear();
+  }
 
+  async *getDoc(target) {
     if (target instanceof Document) {
-      // throw '1';
       yield Promise.resolve(target);
-      return;
-    }
-    if (typeof target?.source == 'function' && target.source() instanceof Document) {
-      // throw '2';
-      yield Promise.resolve(target.source());
       return;
     }
 
@@ -39,22 +39,42 @@ export const BaseExtractor = class {
       url = target.url;
     }
 
+    if (!url && typeof target?.source == 'function' && target.source() instanceof Document) {
+      yield Promise.resolve(target.source());
+      return;
+    }
+
+    try {
+      new URL(url);
+    } catch(e) {
+      logger.warn(`Extractor dropping invalid url ${url}: ${e}`);
+      url = null;
+    }
+
     if (!url) {
       logger.warn(`Could not find extraction target in ${target}`);
       return;
     }
 
     for await (const doc of this.fetcher.fetch(url)) {
-      // throw '3';
       yield Promise.resolve(doc);
     }
   }
 
-  chunks(doc) {
-    const maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
+  chunks(doc, maxTokens) {
+    if (maxTokens) {
+      maxTokens = Math.min(maxTokens, this.hardCapTokens, this.ai.maxTokens);
+    } else {
+      maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
+    }
 
-    let textChunkSize = maxTokens * 4 * 0.1;
-    let htmlChunkSize = maxTokens * 4 * 0.25;
+    // let textChunkSize = maxTokens * 4 * 0.1;
+    // let htmlChunkSize = maxTokens * 4 * 0.25;
+
+    // Include only HTML. Make a rough guess as to how many bytes we can include.
+    let textChunkSize = 0;
+    let htmlChunkSize = maxTokens * 4 * 0.7;
+
     const text = doc?.text || '';
     const html = doc?.html || '';
 
@@ -101,9 +121,12 @@ export const BaseExtractor = class {
       for await (const doc of this.getDoc(target)) {
         docs.push(doc);
       }
-      // const doc = await this.getDoc(target);
 
-      for await (const r of this._run(docs[0], questions, options)) {
+      // const doc = await this.getDoc(target);
+      // TODO: Run on all docs
+
+      const doc = docs[0];
+      for await (const r of this._run(doc, questions, options)) {
         for (const key of Object.keys(r)) {
           const remap = map[key];
           if (remap) {
@@ -112,6 +135,9 @@ export const BaseExtractor = class {
             r[remap] = val;
           }
         }
+
+        if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+        if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
 
         yield Promise.resolve(r);
       }

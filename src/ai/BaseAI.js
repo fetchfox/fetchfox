@@ -111,6 +111,8 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
+    logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes`);
+
     const { format, cacheHint, schema } = Object.assign({ format: 'text' }, options);
     const cached = await this.getCache(prompt, options);
     if (cached) {
@@ -133,8 +135,9 @@ export const BaseAI = class {
     let result;
     try {
       for await (const chunk of this.inner(prompt, options)) {
+        const norm = this.normalizeChunk(chunk);
         const parsed = this.parseChunk(
-          this.normalizeChunk(chunk),
+          norm,
           ctx);
 
         if (!parsed) continue;
@@ -172,6 +175,8 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
+    logger.debug(`Asking ${this} for prompt with ${prompt.length} bytes`);
+
     const before = {
       usage: Object.assign({}, this.usage),
       cost: Object.assign({}, this.cost),
@@ -253,14 +258,14 @@ export const BaseAI = class {
     ctx.buffer += delta;
 
     if (ctx.format == 'jsonl') {
-      const parsed = parseAnswer(ctx.buffer, ctx.format);
-      if (parsed.length) {
-        ctx.buffer = '';
+      const { result, leftover } = parseAnswer(ctx.buffer, ctx.format);
+      if (result.length) {
+        ctx.buffer = leftover;
         return {
-          delta: parsed,
+          delta: result,
           partial: parseAnswer(ctx.answer, ctx.format),
           usage: ctx.usage,
-        };
+        };a
       }
     } else {
       const parsed = parseAnswer('' + ctx.buffer, ctx.format);

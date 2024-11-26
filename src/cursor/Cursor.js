@@ -89,7 +89,7 @@ export const Cursor = class {
   }
 
   finish(stepIndex) {
-    logger.info(`Finish step all in cursor ${stepIndex}`);
+    logger.info(`Finish step ${stepIndex} in cursor`);
 
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
@@ -109,10 +109,6 @@ export const Cursor = class {
         this.finish(i);
         this.full[i].forcedDone = true;
       }
-    }
-
-    if (this.ctx.actor) {
-      this.ctx.actor.finish();
     }
 
     for (const cb of this.deferCb) {

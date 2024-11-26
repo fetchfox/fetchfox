@@ -8,7 +8,6 @@ export const nameMap = {
   FetchStep: 'fetch',
   FilterStep: 'filter',
   LimitStep: 'limit',
-  LoginStep: 'login',
   SchemaStep: 'schema',
   UniqueStep: 'unique',
 };
@@ -35,26 +34,11 @@ export const stepDescriptionsMap = {
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
         required: true,
       },
-    },
-  }),
-
-  action: combineInfo({
-    // This step is hard for AI to configure, so don't show it for now
-    hideFromAI: true,
-
-    name: 'action',
-    description: 'Perform some action on the page, such as clicking buttons',
-    args: {
-      action: {},
-      query: {},
-      selector: {},
-
-      // actions: {
-      //   description: `A list of actions to take on the page. Each action is an array of three items. The first item is the action to take, eg. 'click'. The second item is a description of the target of this action, eg. 'all the download buttons on the page. The third item is an optional CSS selector, to narrow the range of elements searched.'`,
-      //   format: 'array',
-      //   example: ['click', 'the next page button', 'button.cta'],
-      //   required: true,
-      // },
+      css: {
+        description: 'A CSS selector, if present we will look only in this section',
+        format: 'string',
+        required: false,
+      },
     },
   }),
 
@@ -172,6 +156,9 @@ export const stepDescriptionsMap = {
         example: true,
         required: false,
       },
+
+      // TODO: move this elsewhere
+      examples: {}
     },
   }),
 
@@ -182,6 +169,13 @@ export const stepDescriptionsMap = {
     name: 'fetch',
     description: 'Fetch URLs from the web',
     args: {
+      urlFields: {
+        description: 'Which fields to use as the URL(s) we are fetching',
+        format: 'array',
+        example: ['url', 'companyUrl'],
+        required: false,
+        default: ['url'],
+      },
       scroll: {
         description: 'Number of times to scroll down the page',
         format: 'number',
@@ -192,6 +186,21 @@ export const stepDescriptionsMap = {
         description: 'If scrolling, number of milliseconds to wait before the next scroll',
         format: 'number',
         example: 500,
+        required: false,
+      },
+      waitForText: {
+        description: 'Text to wait for which indicates the page is loaded',
+        format: 'string',
+        required: false,
+      },
+      active: {
+        description: 'Open URLs in active tab on Chrome',
+        format: 'boolean',
+        required: false,
+      },
+      css: {
+        description: 'A CSS selector that narrows which part of the page to return',
+        format: 'string',
         required: false,
       },
     },
@@ -214,26 +223,6 @@ export const stepDescriptionsMap = {
     name: 'limit',
     description: 'Limit the number of results',
     args: {},
-  }),
-
-  login: combineInfo({
-    hideFromAI: true,
-    name: 'login',
-    description: 'Log in using username and password',
-    args: {
-      username: {
-        description: 'Username to use for login.',
-        format: 'string',
-        example: 'email@example.com',
-        required: true,
-      },
-      password: {
-        description: 'Password to use for login.',
-        format: 'string',
-        example: 'password123',
-        required: true,
-      },
-    },
   }),
 
   schema: combineInfo({

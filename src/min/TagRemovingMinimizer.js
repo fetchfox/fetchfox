@@ -7,18 +7,24 @@ import { BaseMinimizer } from './BaseMinimizer.js';
 export const TagRemovingMinimizer = class extends BaseMinimizer {
   constructor(options) {
     super(options);
-    this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg'];
+    this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg', 'symbol', 'link', 'meta'];
   }
 
   async _min(doc) {
-    logger.info(`Minimizing ${doc} with tag removing heuristics`);
+    let removeTags = this.removeTags;
+    if (doc.url.indexOf('youtube.com') != -1) {
+      logger.debug(`Not removing <script> on youtube.com`);
+      removeTags = removeTags.filter(t => t != 'script');
+    }
+
+    logger.info(`Minimizing ${doc} by removing tags: ${removeTags.join(', ')}`);
 
     let initial = (doc.html || '').replace(/[ \t\n]+/g, ' '); // remove extra whitespace
     const root = parse(initial);
 
-    this.removeTags.forEach(tag => {
+    removeTags.forEach(tag => {
       root.querySelectorAll(tag).forEach(element => {
-        element.replaceWith(`[[${tag} removed]]`);
+        element.replaceWith('');
       });
     });
 

@@ -3,32 +3,36 @@ import { getAI, BaseAI } from '../ai/index.js';
 import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
-import { getActor, BaseActor } from '../act/index.js';
+import { getKV, BaseKV } from '../kv/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
+import { S3Cache } from '../cache/S3Cache.js';
 import { copyKeys } from './constants.js';
 
-// Order matters for `contextKeys`
-export const contextKeys = [
+// Order matters for `decodeableKeys`
+export const decodeableKeys = [
+  ['kv', getKV, BaseKV],
   ['fetcher', getFetcher, BaseFetcher],
   ['ai', getAI, BaseAI],
   ['crawler', getCrawler, BaseCrawler],
   ['extractor', getExtractor, BaseExtractor],
-  ['actor', getActor, BaseActor],
 ];
-
 
 const decodeArgs = (args, cache) => {
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
+  decoded.cache = cache;
 
   if (args.diskCache) {
     args.cache = new DiskCache(args.diskCache);
+  }
+  if (args.s3Cache) {
+    args.cache = new S3Cache(args.s3Cache);
   }
   if (args.cache) {
     decoded.cache = args.cache;
   }
 
-  for (const [key, getter, parentClass] of contextKeys) {
+  for (const [key, getter, parentClass] of decodeableKeys) {
     let val;
     let which = null;
     let options = {};
@@ -47,7 +51,7 @@ const decodeArgs = (args, cache) => {
     }
 
     if (!val) {
-      const useOptions = { ...decoded, cache, ...options };
+      const useOptions = { ...decoded, cache: decoded.cache, ...options };
       val = getter(which, useOptions);
     }
     decoded[key] = val;
@@ -75,10 +79,17 @@ export const Context = class {
 
   dump() {
     const dump = {};
-    // TODO: stringify objects as well
-    for (const key of copyKeys) {
+
+    for (const [key] of copyKeys) {
       dump[key] = this[key];
     }
+
+    for (const [key] of decodeableKeys) {
+      if (this.args[key]) {
+        dump[key] = this.args[key];
+      }
+    }
+
     return JSON.parse(JSON.stringify(dump));
   }
 

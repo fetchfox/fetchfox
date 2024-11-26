@@ -14,6 +14,8 @@ export const Document = class {
       url: this.url,
       body: this.body,
       html: this.html,
+      htmlUrl: this.htmlUrl,
+      screenshotUrl: this.screenshotUrl,
       text: this.text,
       links: this.links,
       resp: this.resp,
@@ -22,7 +24,10 @@ export const Document = class {
 
     if (options?.presignedUrl) {
       logger.info(`Dumping to presigned URL ${options?.presignedUrl}`);
+      const start = (new Date()).getTime();
       const htmlUrl = await this.uploadHtml(options.presignedUrl);
+      const took = (new Date()).getTime() - start;
+      logger.debug(`Uploaded document to presigned URL, took=${took} msec`);
       delete data.body;
       delete data.html;
       delete data.text;
@@ -60,14 +65,18 @@ export const Document = class {
       headers: { 'Content-Type': 'text/html' },
       body: this.html,
     });
-    return presignedUrl.replace(/\?.*$/, '');
+    this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
+    logger.debug(`Uploaded HTML to ${this.htmlUrl}`);
+    return this.htmlUrl;
   }
 
   async loadData(data) {
     this.url = data.url;
     this.body = data.body;
     this.html = data.html;
+    this.htmlUrl = data.htmlUrl;
     this.text = data.text;
+    this.screenshotUrl = data.screenshotUrl;
     this.links = data.links || [];
     this.resp = data.resp;
     this.contentType = data.contentType;
@@ -108,8 +117,8 @@ export const Document = class {
 
     this.resp = {
       url: this.url,
-      status: resp.status,
-      statusText: resp.statusText,
+      status: typeof resp.status == 'function' ? resp.status() : resp.status,
+      status: typeof resp.statusText == 'function' ? resp.statusText() : resp.statusText,
       headers: respHeaders,
     };
 
@@ -130,9 +139,21 @@ export const Document = class {
     }
   }
 
-  parseHtml() {
+  parseHtml(selector) {
     this.contentType = 'text/html';
-    this.html = this.body;
+
+    let html = this.body;
+
+    if (selector) {
+      let selected = ''
+      const root = parse(html);
+      root.querySelectorAll(selector).forEach(el => {
+        selected += el.outerHTML; // Append the outer HTML of each element to selected.
+      });
+      html = selected;
+    }
+
+    this.html = html;
 
     this.parseTextFromHtml();
     this.parseLinks();
@@ -144,8 +165,8 @@ export const Document = class {
     const root = parse(this.html);
     
     ['style', 'script', 'svg'].forEach(tag => {
-      root.querySelectorAll(tag).forEach(element => {
-        element.replaceWith(`[[${tag} removed]]`);
+      root.querySelectorAll(tag).forEach(el => {
+        el.replaceWith(`[[${tag} removed]]`);
       });
     });
 
@@ -164,7 +185,7 @@ export const Document = class {
     this.text = getText(root);
   }
 
-  parseLinks() {
+  parseLinks(css) {
     this.requireHtml();
 
     const links = [];
@@ -172,36 +193,53 @@ export const Document = class {
     let id = 1;
     const root = parse(this.html);
 
-    root.querySelectorAll('a').forEach(a => {
-      const html = a.outerHTML;
-      const text = a.text.trim();
-      const href = a.getAttribute('href');
+    let els = [];
+    if (css) {
+      root.querySelectorAll(css).forEach(el => els.push(el));
+    } else {
+      els = [root];
+    }
 
-      if (href == undefined) {
-        logger.debug(`Skipping <a> with no href ${(text || '').substr(0, 40)}`);
-        return;
+    for (const el of els) {
+      const as = [];
+      if (el.tagName == 'A') {
+        as.push(el);
       }
 
-      let url;
-      try {
-        url = new URL(href, this.url);
-      } catch (e) {
-        logger.warn(`Skipping invalid link: ${this.url} ${html}`);
-        return;
-      }
-
-      const urlStr = url.toString();
-
-      if (seen[urlStr]) return;;
-      seen[urlStr] = true;
-
-      links.push({
-        id: id++,
-        url: urlStr,
-        html: html.substring(0, 1000),
-        text: text.substring(0, 200),
+      el.querySelectorAll('a').forEach(a => {
+        as.push(a);
       });
-    });
+
+      for (const a of as) {
+        const html = a.outerHTML;
+        const text = a.text.trim();
+        const href = a.getAttribute('href');
+
+        if (href == undefined) {
+          continue;
+        }
+
+        let url;
+        try {
+          url = new URL(href, this.url);
+        } catch (e) {
+          logger.warn(`Skipping invalid link: ${this.url} ${html}`);
+          return;
+        }
+
+        const urlStr = url.toString();
+
+        if (seen[urlStr]) continue;
+        seen[urlStr] = true;
+
+        links.push({
+          id: id++,
+          url: urlStr,
+          html: html.substring(0, 1000),
+          text: text.substring(0, 200),
+        });
+      }
+    }
 
     this.links = links;
   }
