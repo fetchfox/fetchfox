@@ -30,8 +30,8 @@ describe('examples', function() {
   it('should do streaming example @run', async () => {
     const stream = fox
       .init('https://pokemondb.net/pokedex/national')
-      .extract({ name: 'Pokemon name', number: 'Pokemon number' })
-      .limit(3) // TODO: https://github.com/fetchfox/fetchfox/issues/16
+      .extract({ name: 'Pokemon name', number: 'Pokemon number, format: #XXXX' })
+      .limit(3)
       .stream();
 
     const results = [];
