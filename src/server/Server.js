@@ -149,13 +149,11 @@ export const Server = class {
   async stop(data) {
     logger.info(`Server stop ${JSON.stringify(data)}`);
     const id = data.id;
-    if (!this.children[id]) {
-      logger.warn(`No child process to stop ${id}`);
-      return;
+    if (this.children[id]) {
+      const child = this.children[id];
+      this.safeSend(child, { command: 'stop' });
     }
-
-    const child = this.children[id];
-    this.safeSend(child, { command: 'stop' });
+    this.store.finish(id);
   }
 
   async plan(data, ws) {
@@ -193,6 +191,8 @@ export const Server = class {
           }
         }
 
+        const original = JSON.parse(JSON.stringify(data));
+
         if (!out) {
           switch (data.command) {
             case 'ping':
@@ -228,7 +228,17 @@ export const Server = class {
 
         // TODO: Keep connection alive in general, instead of closing on each command
         const command = out?.command;
-        ws.send(JSON.stringify({ command, out, close: true }));
+
+        let resp = {
+          request: original,
+          command,
+          out,
+          close: true,
+        };
+        for (const mw of this.middleware) {
+          resp = mw(resp);
+        }
+        ws.send(JSON.stringify(resp));
         ws.close(1000);
 
         this.conns.delete(ws);
