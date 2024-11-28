@@ -26,7 +26,7 @@ export const BaseExtractor = class {
     this.fetcher.clear();
   }
 
-  async *getDoc(target) {
+  async *getDoc(target, questions) {
     if (target instanceof Document) {
       yield Promise.resolve(target);
       return;
@@ -56,7 +56,7 @@ export const BaseExtractor = class {
       return;
     }
 
-    for await (const doc of this.fetcher.fetch(url)) {
+    for await (const doc of this.fetcher.fetch(url, { questions })) {
       yield Promise.resolve(doc);
     }
   }
@@ -115,28 +115,22 @@ export const BaseExtractor = class {
       const map = {};
 
       const docs = [];
-      for await (const doc of this.getDoc(target)) {
-        docs.push(doc);
-      }
-
-      // const doc = await this.getDoc(target);
-      // TODO: Run on all docs
-
-      const doc = docs[0];
-      for await (const r of this._run(doc, questions, options)) {
-        for (const key of Object.keys(r)) {
-          const remap = map[key];
-          if (remap) {
-            const val = r[key];
-            delete r[key];
-            r[remap] = val;
+      for await (const doc of this.getDoc(target, questions)) {
+        for await (const r of this._run(doc, questions, options)) {
+          for (const key of Object.keys(r)) {
+            const remap = map[key];
+            if (remap) {
+              const val = r[key];
+              delete r[key];
+              r[remap] = val;
+            }
           }
+
+          if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+          if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
+
+          yield Promise.resolve(r);
         }
-
-        if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
-        if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
-
-        yield Promise.resolve(r);
       }
     } finally {
       const took = (new Date()).getTime() - start;

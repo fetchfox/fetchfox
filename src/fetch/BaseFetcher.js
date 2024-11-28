@@ -1,13 +1,17 @@
 import CryptoJS from 'crypto-js';
+import { getAI } from '../index.js';
 import { logger } from '../log/logger.js';
+import { linkChunks, decodeLinks } from '../crawl/util.js';
 import { Document } from '../document/Document.js';
 import { presignS3 } from './util.js';
+import { pages } from './prompts.js';
 import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
 
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
+    this.ai = options?.ai || getAI(null, options);
     this.queue = [];
     this.usage = {
       requests: 0,
@@ -175,5 +179,47 @@ export const BaseFetcher = class {
     const key = this.cacheKey(url, options);
     logger.debug(`Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
+  }
+
+  async getPageUrls(doc, options) {
+    const { questions } = options || {};
+    logger.info(`${this} get pagination on ${doc}`);
+
+    const maxBytes = this.ai.maxTokens * .75;
+    const chunks = linkChunks(doc, maxBytes);
+
+    const findPagination = async (chunk) => {
+      // TODO: token optimization, only request ID in return results
+      chunk = chunk.map(l => {
+        return {
+          url: l.url,
+          text: l.text,
+        }
+      });
+      const prompt = pages.render({
+        questions: JSON.stringify(questions, null, 2),
+        links: JSON.stringify(chunk, null, 2),
+      });
+
+      const results = [];
+      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+      for await (const r of stream) {
+        logger.debug(`Pagination candidate: ${JSON.stringify(r.delta)}`);
+        results.push(r.delta);
+      }
+      return results;
+    }
+
+    const candidates = [];
+    for (let chunk of chunks) {
+      const partial = await findPagination(chunk);
+      candidates.push(...partial);
+    }
+
+    logger.debug(`${this} first pass of pagination gave ${candidates.length} candidates`);
+    const finalized = await findPagination(candidates);
+    logger.info(`${this} finalized pagination gave ${finalized.length} results`);
+
+    return finalized.map(x => x.url);
   }
 }

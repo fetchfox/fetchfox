@@ -13,7 +13,7 @@ export const MinimizingExtractor = class extends BaseExtractor {
   }
 
   async *run(target, questions, options) {
-    for await (const doc of this.getDoc(target)) {
+    for await (const doc of this.getDoc(target, questions)) {
       const chunks = this.chunks(doc);
       const min = await this.minimizer.min(doc);
       for await (const result of this.extractor.run(min, questions, options)) {

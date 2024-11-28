@@ -49,65 +49,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
     }
 
-    const doc = new Document();
-
-    let browser;
+    const browser = await this.launch();
+    const page = await browser.newPage();
     try {
-      browser = await this.launch();
-      const page = await browser.newPage();
-      let resp;
-      let html;
-      try {
-        logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
-        resp = await page.goto(
-          url,
-          {
-            timeout: this.timeoutWait,
-            // waitUntil: 'domcontentloaded',
-          });
-
-        if (this.waitForLocator) {
-          logger.debug(`Wait for locator ${this.waitForLocator}`);
-          const locator = page.locator(this.waitForLocator);
-          await locator.waitFor();
-        }
-
-        logger.debug(`Playwright loaded page before timeout`);
-        const r = await getHtmlFromSuccess(
-          page, {
-            loadWait: this.loadWait,
-            pullIframes: this.pullIframes,
-          });
-        html = r.html;
-      } catch(e) {
-        logger.error(`Playwright could not get ${url}: ${e}`);
-        logger.debug(`Trying to salvage results`);
-        html = await getHtmlFromError(page);
-        if (!html) {
-          logger.warn(`Could not salvage results, give up`);
-          return;
-        }
-        logger.warn(`Read ${html.length} bytes from failed Playwright request`);
-
-        resp = {
-          status: () => 500,
-          url: () => url,
-          body: () => html,
-          html: () => html,
-          text: () => html,
-          headers: {
-            'content-type': 'text/html',
-          },
-        };
-      }
-
-      resp.text = () => html;
-      const doc = new Document();
-      await doc.read(resp, url, options);
-
-      logger.info(`Playwright returning: ${doc}`);
-
+      const doc = await this._docFromUrl(url, page, options);
+      logger.info(`${this} yielding main ${doc}`);
       yield Promise.resolve(doc);
+
+      const urls = await this.getPageUrls(doc, options);
+      for (const pageUrl of urls) {
+        const pageDoc = await this._docFromUrl(pageUrl, page, options);
+        logger.info(`${this} yielding page ${pageDoc}`);
+        yield Promise.resolve(pageDoc);
+      }
     } catch (e) {
       logger.error(`Playwright error: ${e}`);
       throw e;
@@ -117,6 +71,66 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         await browser.close();
       }
     }
+  }
+
+  async _docFromUrl(url, page, options) {
+    let resp;
+    let html;
+    try {
+      logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
+      resp = await page.goto(
+        url,
+        {
+          timeout: this.timeoutWait,
+          waitUntil: 'domcontentloaded',
+        });
+
+      if (this.waitForLocator) {
+        logger.debug(`Wait for locator ${this.waitForLocator}`);
+        const locator = page.locator(this.waitForLocator);
+        await locator.waitFor();
+      }
+
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      await page.evaluate(() => {
+        window.scrollTo(0, 0);
+      });
+
+      logger.debug(`Playwright loaded page before timeout`);
+      const r = await getHtmlFromSuccess(
+        page, {
+          loadWait: this.loadWait,
+          pullIframes: this.pullIframes,
+        });
+      html = r.html;
+    } catch(e) {
+      logger.error(`Playwright could not get ${url}: ${e}`);
+      logger.debug(`Trying to salvage results`);
+      html = await getHtmlFromError(page);
+      if (!html) {
+        logger.warn(`Could not salvage results, give up`);
+        return;
+      }
+      logger.warn(`Read ${html.length} bytes from failed Playwright request`);
+
+      resp = {
+        status: () => 500,
+        url: () => url,
+        body: () => html,
+        html: () => html,
+        text: () => html,
+        headers: {
+          'content-type': 'text/html',
+        },
+      };
+    }
+
+    resp.text = () => html;
+    const doc = new Document();
+    await doc.read(resp, url, options);
+    return doc;
   }
 }
 

@@ -18,7 +18,7 @@ Follow these important rules:
 - Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
 - Pay attention to user format specifications
-- Follow schema requests, eg. return array fields if requested
+- Generally avoid returning results with many (not found) fields
 
 {{extraRules}}
 

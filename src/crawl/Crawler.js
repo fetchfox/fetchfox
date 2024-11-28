@@ -1,4 +1,5 @@
 import { logger } from '../log/logger.js';
+import { validate } from './util.js';
 import { shuffle, chunkList } from '../util.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
@@ -124,8 +125,4 @@ const cleanLinks = (l) => {
     clean.push(item);
   }
   return clean;
-}
-
-export const validate = (url) => {
-  return url.indexOf('javascript:') != 0;
 }
