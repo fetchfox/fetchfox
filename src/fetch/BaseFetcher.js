@@ -1,5 +1,5 @@
 import CryptoJS from 'crypto-js';
-import { getAI } from '../index.js';
+import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
 import { linkChunks, decodeLinks } from '../crawl/util.js';
 import { Document } from '../document/Document.js';
@@ -11,7 +11,7 @@ import PQueue from 'p-queue';
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
-    this.ai = options?.ai || getAI(null, options);
+    this.ai = options?.ai || getAI();
     this.queue = [];
     this.usage = {
       requests: 0,
@@ -181,7 +181,7 @@ export const BaseFetcher = class {
     return this.cache.set(key, val, 'fetch');
   }
 
-  async getPageUrls(doc, options) {
+  async getPaginationUrls(doc, options) {
     const { questions } = options || {};
     logger.info(`${this} get pagination on ${doc}`);
 
@@ -196,10 +196,13 @@ export const BaseFetcher = class {
           text: l.text,
         }
       });
+
       const prompt = pages.render({
-        questions: JSON.stringify(questions, null, 2),
+        // questions: JSON.stringify(questions, null, 2),
         links: JSON.stringify(chunk, null, 2),
       });
+
+      console.log('prompt', prompt);
 
       const results = [];
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
@@ -220,6 +223,9 @@ export const BaseFetcher = class {
     const finalized = await findPagination(candidates);
     logger.info(`${this} finalized pagination gave ${finalized.length} results`);
 
-    return finalized.map(x => x.url);
+    console.log(finalized);
+
+    const maxPages = 20;
+    return finalized.map(x => x.url).slice(0, maxPages);
   }
 }

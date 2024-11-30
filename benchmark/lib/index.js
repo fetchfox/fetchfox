@@ -13,7 +13,10 @@ const populate = (json, config) => {
 
 export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
   for (const config of matrix) {
-    const testName = `${name} { ${Object.keys(config).map(k => k + '=' + config[k]).join('; ')} } @bench`;
+
+    console.log('Running benchmark matrix', name, matrix);
+
+    const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
 
     it(testName, async function () {
       console.log(testName);
@@ -62,9 +65,15 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
           fullConfig.fetcher,
           { cache }
         ];
+      } else if (Array.isArray(fullConfig.fetcher)) {
+        fullConfig.fetcher[1].cache = cache;
       } else {
         throw 'Unhandled: TODO';
       }
+    }
+
+    if (options.noCache && fullConfig.cache) {
+      delete fullConfig.cache;
     }
 
     const out = await fox
@@ -83,6 +92,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     const score = [0, 0];
     for (const check of checks) {
       const s = await check(out.items);
+      if (!s) continue;
       score[0] += s[0];
       score[1] += s[1];
     }

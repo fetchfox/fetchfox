@@ -13,6 +13,10 @@ export const Item = class {
     this.#source = source;
     if (!this._sourceUrl) {
       this._sourceUrl = source?.url || data?._sourceUrl;
+
+      if (source?.html?.length) {
+        this._sourceSize = source.html.length;
+      }
     }
     if (source?.htmlUrl) this._htmlUrl = source.htmlUrl;
     if (source?.screenshotUrl) this._screenshotUrl = source.screenshotUrl;

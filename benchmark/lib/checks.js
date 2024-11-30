@@ -9,15 +9,23 @@ export const checkExcludeUrls = (items, str) => {
   return score;
 }
 
-export const checkItemsExact = (items, expected) => {
+export const checkItemsExact = (items, expected, fields) => {
   const score = [0, 0];
 
   const removePrivate = (item) => {
     const copy = {};
     for (const key of Object.keys(item)) {
-      if (key.startsWith('_')) continue;
+      if (!fields) {
+        if (key.startsWith('_')) continue;
+        copy[key] = item[key];
+
+        continue;
+      }
+
+      if (!fields.includes(key)) continue;
       copy[key] = item[key];
     }
+
     return copy;
   }
 
@@ -25,6 +33,7 @@ export const checkItemsExact = (items, expected) => {
   const itemsJson = items.map(x => JSON.stringify(removePrivate(x))).sort();
   const expectedJson = expected.map(x => JSON.stringify(removePrivate(x))).sort();
 
+  // Check that all expected are found
   for (let i = 0; i < expectedJson.length; i++) {
     score[1]++;
     if (i >= items.length) continue;
@@ -36,5 +45,17 @@ export const checkItemsExact = (items, expected) => {
     if (!found) continue;
     score[0]++;
   }
+
+  // Check for extras
+  for (let i = 0; i < itemsJson.length; i++) {
+    const it = itemsJson[i];
+    let found = false;
+    for (const e of expectedJson) {
+      if (it == e) found = true;
+    }
+    if (found) continue;
+    score[1]++;
+  }
+
   return score;
 }
