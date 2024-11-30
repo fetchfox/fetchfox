@@ -6,8 +6,7 @@ import { storeScores } from '../lib/store.js';
 
 describe('paginate danbooru.donmai.us', async function() {
   const matrix = standardMatrix({
-    fetcher: ['playwright'],
-    // fetcher: [['playwright', { headless: false }]],
+    fetcher: [['playwright', { headless: false }]],  // This page only loads with headful
   });
 
   const expected = [
