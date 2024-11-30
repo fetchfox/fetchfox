@@ -35,7 +35,6 @@ describe('paginate github.com', async function() {
           if (url.indexOf(first) == -1) continue;
           const m = url.match(/after=[a-f0-9]+\+([0-9]+)/);
           if (!m) continue;
-          console.log(m);
           const num = parseInt(m[1]);
           if (num > last) {
             last = num;
