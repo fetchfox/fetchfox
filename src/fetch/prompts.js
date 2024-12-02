@@ -24,36 +24,16 @@ Each field should be filled as follows:
 - "paginationJavascript": Javascript code that can be executed on the page to go to the next page
 
 Follow these important rules:
-- Make sure your paginationJavascript is re-usable for multilple iterations, so do not hard code a specific URL
+- Make sure your paginationJavascript is re-usable for multilple iterations. Do NOT hardode references to specific pages numbers, specific URLs that only work on the first page
+- Make your code robust, and do not paginate if it is not possible
 - If the page has pagination, you must always include paginationJavascript
 - Keep CSS selectors simple as possible
+
+IMPORTANT:
+- "paginationJavascript"  will be a parameter to new Function(). Therefore, do NOT give a function signature.
 
 >>>> Analyze this HTML:
 {{html}}
 
 Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse()
-`);
-
-
-export const pages = new Template(
-  ['links'],
-  `You have a list of URLs and their link texts. Return JSONL (line by line) of ONLY the ones that are pagination links. Pagination links are ones that link to additiional pages of data on the same topic as this page.
-
->>>> Links to filter for pagination links:
-{{links}}
-`);
-
-export const pages_old = new Template(
-  ['links', 'questions'],
-  `You have a list of URLs and their link texts. Return JSONL (line by line) of ONLY the ones that are pagination links relted to these questions. Pagination links are ones that link to additiional pages of results related to the user questions.
-
-Do NOT return links to individual items, only pagination links.
-
-Return results in order of page and relevance.
-
->>>> Questions:
-{{questions}}
-
->>>> Links to filter:
-{{links}}
 `);

@@ -163,8 +163,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     for (let i = 1; i < iterations; i++) {
       const fn = fns[fnIndex];
       logger.debug(`${this} running ${fn} on pagination iteration #${i}`);
+      let done
       try {
-        await page.evaluate(fn);
+        done = await page.evaluate(fn);
       } catch (e) {
         if (fnIndex >= fns.length) {
           logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
@@ -177,12 +178,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
 
       // TODO: intelligent wait for pagination completion
-      logger.debug(`${this} waiting ${this.loadWait} msec for pagination #${i}`);
+      logger.debug(`${this} waiting ${this.loadWait} msec for pagination #${i}, got done=${done}`);
       await new Promise(ok => setTimeout(ok, this.loadWait));
 
       const doc = await this._docFromPage(page, options);
       logger.info(`${this} yielding page #${i} ${doc}`);
       yield Promise.resolve(doc);
+
+      if (done) break;
     }
   }
 }
