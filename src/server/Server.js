@@ -181,19 +181,20 @@ export const Server = class {
 
       ws.on('message', async (msg) => {
         let data = JSON.parse(msg);
+        let end;
         let out;
 
         for (const mw of this.middleware) {
           const result = mw(data);
           if (result.end) {
-            out = result.end;
+            end = result.end;
             break;
           }
         }
 
         const original = JSON.parse(JSON.stringify(data));
 
-        if (!out) {
+        if (!end) {
           switch (data.command) {
             case 'ping':
               out = await this.ping(data, ws);
@@ -229,15 +230,23 @@ export const Server = class {
         // TODO: Keep connection alive in general, instead of closing on each command
         const command = out?.command;
 
+        if (end) {
+          out = end;
+        }
+
         let resp = {
           request: original,
           command,
           out,
           close: true,
         };
-        for (const mw of this.middleware) {
-          resp = mw(resp);
+
+        if (!end) {
+          for (const mw of this.middleware) {
+            resp = mw(resp);
+          }
         }
+
         ws.send(JSON.stringify(resp));
         ws.close(1000);
 
