@@ -153,7 +153,6 @@ export const Server = class {
       const child = this.children[id];
       this.safeSend(child, { command: 'stop' });
     }
-    this.store.finish(id);
   }
 
   async plan(data, ws) {
