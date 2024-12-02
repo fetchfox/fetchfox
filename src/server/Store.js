@@ -50,13 +50,16 @@ export const Store = class {
   }
 
   async pub(id, results) {
-    await this.kv.set(id, results);
+    const updatedAt = Math.floor((new Date()).getTime() / 1000);
+    await this.kv.set(id, { ...results, updatedAt });
     this.trigger(id);
   }
 
   async finish(id, results) {
+    const finishedAt = Math.floor((new Date()).getTime() / 1000);
     const job = results || (await this.kv.get(id)) || {};
     job.done = true;
+    job.finishedAt = finishedAt;
     await this.kv.set(id, job);
 
     await this.trigger(id);
