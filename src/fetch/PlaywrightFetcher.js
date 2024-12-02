@@ -129,7 +129,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     logger.info(`${this} yielding first page ${doc}`);
     yield Promise.resolve(doc);
 
-    const iterations = options.pages;
+    const iterations = options?.pages;
     if (!iterations) {
       logger.info(`${this} not paginating, return`);
       return;
