@@ -26,7 +26,6 @@ describe('CodeGenExtractor', function() {
 
     const all = await cge.all(urls[0], questions);
 
-    console.log(all);
 
     const expected = [
       { departureTime: '7:15 AM', arrivalTime: '3:42 PM' },

@@ -8,8 +8,6 @@ describe('youtube.com', function() {
   this.timeout(5 * 60 * 1000);
 
   it('should work', async () => {
-    console.log('youtube.com');
-
     const url = 'https://www.youtube.com/watch?v=u6aEYuemt0M';
 
     let count = 0;
@@ -37,9 +35,6 @@ describe('youtube.com', function() {
           count++;
           console.log(`Item ${count}:`, partial.item);
         });
-
-    console.log('out', out);
-    console.log('out', JSON.stringify(out.items, null, 2));
   });
 
 });

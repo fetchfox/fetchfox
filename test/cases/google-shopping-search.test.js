@@ -22,8 +22,6 @@ describe('google.com shopping search', function() {
       .exportItems({ filepath: '/tmp/out.csv', format: 'csv' })
       .run();
 
-    console.log('out', out);
-
     // TODO: verify results
   });
 });

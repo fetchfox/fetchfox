@@ -10,7 +10,6 @@ describe('Fetch', function() {
     const start = (new Date()).getTime();
     const gen = await fetcher.fetch('https://example.com');
     const doc = (await gen.next()).value;
-    console.log('doc', doc);
     const took = (new Date()).getTime() - start;
     assert.ok(doc.text.indexOf('Example Domain') != -1);
     assert.ok(took < 2000);

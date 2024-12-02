@@ -18,8 +18,6 @@ describe('old.reddit.com nfl comments', function() {
       .limit(5)
       .run();
 
-    console.log(out.items);
-
     const expected = [
       {
         username: 'NFL_Warning',
