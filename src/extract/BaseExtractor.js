@@ -70,7 +70,7 @@ export const BaseExtractor = class {
 
     // Include only HTML. Make a rough guess as to how many bytes we can include.
     let textChunkSize = 0;
-    let htmlChunkSize = maxTokens * 4 * 0.6;
+    let htmlChunkSize = maxTokens * 2.5 * 0.6;
 
     const text = doc?.text || '';
     const html = doc?.html || '';
