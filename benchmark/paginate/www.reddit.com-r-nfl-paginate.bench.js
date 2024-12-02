@@ -4,19 +4,23 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate ycombinator.com/companies', async function() {
-  const matrix = standardMatrix({
-    fetcher: ['playwright'],
-  });
+describe('paginate www.reddit.com/r/nfl/', async function() {
+  const matrix = standardMatrix(
+    {
+      fetcher: [['playwright', { headless: false }]],
+    },
+    {
+      useCdp: false,
+    });
 
   const wf = await fox
-    .init('https://www.ycombinator.com/companies')
+    .init('https://www.reddit.com/r/nfl/')
     .fetch({ pages: 5 })
     .plan();
 
   return itRunMatrix(
     it,
-    'paginate ycombinator.com/companies',
+    'paginate www.reddit.com/r/nfl/', 
     wf.dump(),
     matrix,
     [

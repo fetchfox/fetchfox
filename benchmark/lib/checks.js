@@ -59,3 +59,18 @@ export const checkItemsExact = (items, expected, fields) => {
 
   return score;
 }
+
+export const checkIncreasingSize = (items, minIncrease = 1000) => {
+  const score = [1, 5];
+
+  let last = parseInt(items[0]._sourceSize);
+  for (let i = 1; i < items.length; i++) {
+    const size = parseInt(items[i]._sourceSize);
+    if (size > last + minIncrease) {
+      last = size;
+      score[0]++;
+    }
+  }
+
+  return score;
+}

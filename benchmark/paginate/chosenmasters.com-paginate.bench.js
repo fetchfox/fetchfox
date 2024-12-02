@@ -4,19 +4,19 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate ycombinator.com/companies', async function() {
+describe('paginate chosenmasters.com/charts', async function() {
   const matrix = standardMatrix({
     fetcher: ['playwright'],
   });
 
   const wf = await fox
-    .init('https://www.ycombinator.com/companies')
+    .init('https://chosenmasters.com/charts')
     .fetch({ pages: 5 })
     .plan();
 
   return itRunMatrix(
     it,
-    'paginate ycombinator.com/companies',
+    'paginate chosenmasters.com/charts',
     wf.dump(),
     matrix,
     [
