@@ -46,6 +46,7 @@ export const Document = class {
     for (let i = 0; i < this.html.length; i += size) {
       chunks.push(this.html.substr(i, i + size));
     }
+    logger.debug(`Split ${this.html.length} byte document into ${chunks.length} chunks`);
     return chunks;
   }
 
