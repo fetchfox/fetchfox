@@ -1,5 +1,7 @@
 import CryptoJS from 'crypto-js';
+import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
+import { linkChunks, decodeLinks } from '../crawl/util.js';
 import { Document } from '../document/Document.js';
 import { presignS3 } from './util.js';
 import ShortUniqueId from 'short-unique-id';
@@ -8,6 +10,7 @@ import PQueue from 'p-queue';
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
+    this.ai = options?.ai || getAI();
     this.queue = [];
     this.usage = {
       requests: 0,
@@ -176,4 +179,5 @@ export const BaseFetcher = class {
     logger.debug(`Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
+
 }

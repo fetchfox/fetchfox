@@ -1,4 +1,4 @@
-export const standardMatrix = (extra) => {
+export const standardMatrix = (extra, options) => {
   return createMatrix({
     ai: [
       'openai:gpt-4o-mini',
@@ -16,18 +16,30 @@ export const standardMatrix = (extra) => {
       'playwright',
     ],
     ...extra,
-  });
+  }, options);
 }
 
-export const createMatrix = (configs) => {
+export const createMatrix = (configs, options) => {
+  const cdp = process.env.CDP_URL;
+
   let matrix = [{}];
 
   for (const key of Object.keys(configs)) {
     const newMatrix = [];
-    for (const val of configs[key]) {
+    for (let val of configs[key]) {
+      if (!Array.isArray(val)) {
+        val = [val];
+      }
+      if (val.length == 1) {
+        val.push({});
+      }
+
       for (const existing of matrix) {
         const updated = { ...existing };
         updated[key] = val;
+        if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
+          val[1].cdp = cdp;
+        }
         newMatrix.push(updated);
       }
     }

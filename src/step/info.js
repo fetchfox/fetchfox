@@ -176,17 +176,11 @@ export const stepDescriptionsMap = {
         required: false,
         default: ['url'],
       },
-      scroll: {
-        description: 'Number of times to scroll down the page',
+      pages: {
+        description: 'Max number of pages to fetch',
         format: 'number',
-        example: 5,
         required: false,
-      },
-      scrollWait: {
-        description: 'If scrolling, number of milliseconds to wait before the next scroll',
-        format: 'number',
-        example: 500,
-        required: false,
+        default: 5,
       },
       waitForText: {
         description: 'Text to wait for which indicates the page is loaded',

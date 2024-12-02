@@ -3,18 +3,21 @@ import playwright from 'playwright';
 import { chromium } from 'playwright-extra';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
+import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { BaseFetcher } from './BaseFetcher.js';
+import { analyzePagination } from './prompts.js';
 
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
     this.headless = options.headless === undefined ? true : options.headless;
     this.browser = options.browser || 'chromium';
-    this.loadWait = options.loadWait || 1000;
-    this.waitForLocator = options.waitForLocator;
+    this.cdp = options.cdp;
+
+    // TODO: these options should be passed in in `fetch`
+    this.loadWait = options.loadWait || 4000;
     this.timeoutWait = options.timeoutWait || 15000;
     this.pullIframes = options.pullIframes;
-    this.cdp = options.cdp;
 
     this.options = options.options || {};
   }
@@ -23,8 +26,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return {
       browser: 'chromium',
       loadWait: this.loadWait,
-      waitForLocator: this.waitForLocator,
       timeoutWait: this.timeoutWait,
+      waitForText: this.waitForText,
     };
   }
 
@@ -49,65 +52,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
     }
 
-    const doc = new Document();
-
-    let browser;
+    const browser = await this.launch();
+    const page = await browser.newPage();
     try {
-      browser = await this.launch();
-      const page = await browser.newPage();
-      let resp;
-      let html;
-      try {
-        logger.debug(`Playwright go to ${url} with timeout ${this.timeoutWait}`);
-        resp = await page.goto(
-          url,
-          {
-            timeout: this.timeoutWait,
-            // waitUntil: 'domcontentloaded',
-          });
-
-        if (this.waitForLocator) {
-          logger.debug(`Wait for locator ${this.waitForLocator}`);
-          const locator = page.locator(this.waitForLocator);
-          await locator.waitFor();
-        }
-
-        logger.debug(`Playwright loaded page before timeout`);
-        const r = await getHtmlFromSuccess(
-          page, {
-            loadWait: this.loadWait,
-            pullIframes: this.pullIframes,
-          });
-        html = r.html;
-      } catch(e) {
-        logger.error(`Playwright could not get ${url}: ${e}`);
-        logger.debug(`Trying to salvage results`);
-        html = await getHtmlFromError(page);
-        if (!html) {
-          logger.warn(`Could not salvage results, give up`);
-          return;
-        }
-        logger.warn(`Read ${html.length} bytes from failed Playwright request`);
-
-        resp = {
-          status: () => 500,
-          url: () => url,
-          body: () => html,
-          html: () => html,
-          text: () => html,
-          headers: {
-            'content-type': 'text/html',
-          },
-        };
+      const gen = this.paginate(url, page, options);
+      for await (const doc of gen) {
+        yield Promise.resolve(doc);
       }
-
-      resp.text = () => html;
-      const doc = new Document();
-      await doc.read(resp, url, options);
-
-      logger.info(`Playwright returning: ${doc}`);
-
-      yield Promise.resolve(doc);
     } catch (e) {
       logger.error(`Playwright error: ${e}`);
       throw e;
@@ -116,6 +67,125 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`Closing on ${url}`);
         await browser.close();
       }
+    }
+  }
+
+  async _docFromPage(page, options) {
+    let html;
+    let status;
+    try {
+      logger.debug(`${this} wait for DOM content with timeout ${this.timeoutWait}`)
+      await page.waitForLoadState('domcontentloaded', { timeout: this.timeoutWait });
+      logger.debug(`${this} loaded page before timeout`);
+
+      if (options?.waitForText) {
+        logger.debug(`Wait for text ${options.waitForText}`);
+        const locator = page.locator(`text=${options.waitForText}`);
+        await locator.waitFor();
+      }
+
+      const r = await getHtmlFromSuccess(
+        page,
+        {
+          loadWait: this.loadWait,
+          pullIframes: this.pullIframes,
+        });
+      status = 200;
+      html = r.html;
+    } catch(e) {
+      logger.error(`Playwright could not get ${url}: ${e}`);
+      logger.debug(`Trying to salvage results`);
+      html = await getHtmlFromError(page);
+      if (!html) {
+        logger.warn(`Could not salvage results, give up`);
+        return;
+      }
+      logger.warn(`Read ${html.length} bytes from failed Playwright request`);
+      status = 500;
+    }
+
+    const url = page.url();
+    const resp = {
+      status: () => status,
+      url: () => url,
+      body: () => html,
+      html: () => html,
+      text: () => html,
+      headers: {
+        'content-type': 'text/html',
+      },
+    };
+
+    const doc = new Document();
+    await doc.read(resp, url, options);
+    return doc;
+  }
+
+  async *paginate(url, page, options) {
+    // Initial load
+    logger.debug(`Playwright go to ${url}`);
+    await page.goto(url);
+    const doc = await this._docFromPage(page, options);
+    logger.info(`${this} yielding first page ${doc}`);
+    yield Promise.resolve(doc);
+
+    const iterations = options.pages;
+    if (!iterations) {
+      logger.info(`${this} not paginating, return`);
+      return;
+    }
+
+    const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
+    const minDoc = await min.min(doc);
+    const chunks = minDoc.htmlChunks(this.ai.maxTokens);
+    const fns = [];
+
+    for (const html of chunks) {
+      const prompt = analyzePagination.render({ html });
+      const answer = await this.ai.ask(prompt, { format: 'json' });
+      logger.debug(`${this} got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
+      if (answer.partial.hasPagination &&
+        answer.partial.paginationJavascript
+      ) {
+        fns.push(new Function(answer.partial.paginationJavascript));
+      }
+    }
+
+    if (!fns.length) {
+      logger.warn(`${this} didn't find a way to paginate, bailing`);
+      return;
+    }
+
+    // TODO: pick the best one?
+    let fnIndex = 0;
+
+    // Start on i = 1 to account for first page already yielded
+    for (let i = 1; i < iterations; i++) {
+      const fn = fns[fnIndex];
+      logger.debug(`${this} running ${fn} on pagination iteration #${i}`);
+      let done
+      try {
+        done = await page.evaluate(fn);
+      } catch (e) {
+        if (fnIndex >= fns.length) {
+          logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
+          break;
+        }
+
+        fnIndex++;
+        logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
+        continue;
+      }
+
+      // TODO: intelligent wait for pagination completion
+      logger.debug(`${this} waiting ${this.loadWait} msec for pagination #${i}, got done=${done}`);
+      await new Promise(ok => setTimeout(ok, this.loadWait));
+
+      const doc = await this._docFromPage(page, options);
+      logger.info(`${this} yielding page #${i} ${doc}`);
+      yield Promise.resolve(doc);
+
+      if (done) break;
     }
   }
 }
