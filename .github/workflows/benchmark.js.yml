@@ -42,7 +42,6 @@ jobs:
         COMMIT: ${{ github.sha }}
         BRANCH: ${{ env.BRANCH }}
         FF_LOG: debug
-        S3_CACHE: ffcloud
         BENCH_KV: redis
         BENCH_USE_CDP: true
       run: npm run bench
