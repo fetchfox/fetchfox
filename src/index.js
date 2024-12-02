@@ -12,7 +12,6 @@ export { Context } from './context/Context.js';
 export { Document } from './document/Document.js';
 
 export { Crawler } from './crawl/Crawler.js';
-export { DeepCrawler } from './crawl/DeepCrawler.js';
 
 export { Fetcher } from './fetch/Fetcher.js';
 export { BaseFetcher } from './fetch/BaseFetcher.js';
