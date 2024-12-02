@@ -37,7 +37,7 @@ export const createMatrix = (configs, options) => {
       for (const existing of matrix) {
         const updated = { ...existing };
         updated[key] = val;
-        if (options?.useCdp) {
+        if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
           val[1].cdp = cdp;
         }
         newMatrix.push(updated);
