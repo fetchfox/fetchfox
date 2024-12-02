@@ -19,17 +19,20 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
     it(testName, async function () {
       console.log(testName);
 
-      this.timeout(3 * 60 * 1000); // 3 minutes
+      try {
+        this.timeout(3 * 60 * 1000); // 3 minutes
+        const scores = await runMatrix(
+          name,
+          json,
+          [config],
+          checks,
+          options);
 
-      const scores = await runMatrix(
-        name,
-        json,
-        [config],
-        checks,
-        options);
-
-      if (options.shouldSave) {
-        await storeScores(scores);
+        if (options.shouldSave) {
+          await storeScores(scores);
+        }
+      } catch (e) {
+        logger.error(`Benchmark ${testName} had an error: ${e}`);
       }
     });
   }
