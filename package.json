@@ -4,9 +4,6 @@
   "description": "AI based web scraping library",
   "main": "src/index.js",
   "type": "module",
-  "bin": {
-    "fetchfox": "./src/cli/index.js"
-  },
   "exports": {
     ".": "./src/index.js",
     "./web": "./src/web.js",
