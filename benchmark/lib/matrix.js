@@ -27,7 +27,7 @@ export const createMatrix = (configs, options) => {
   for (const key of Object.keys(configs)) {
     const newMatrix = [];
     for (let val of configs[key]) {
-      if (key in ['ai', 'fetcher']) {
+      if (['ai', 'fetcher'].includes(key)) {
         if (!Array.isArray(val)) {
           val = [val];
         }
