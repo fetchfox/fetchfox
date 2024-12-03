@@ -1,6 +1,11 @@
 export const standardMatrix = (extra, options) => {
-  return createMatrix({
-    ai: [
+  let ai;
+
+  let fetcher;
+  if (process.env.BENCH_MATRIX_AI) {
+    ai = process.env.BENCH_MATRIX_AI.split(',');
+  } else {
+    ai = [
       'openai:gpt-4o-mini',
       'openai:gpt-4o',
       'google:gemini-1.5-flash',
@@ -10,11 +15,20 @@ export const standardMatrix = (extra, options) => {
       // 'groq:llama-3.1-70b-versatile',
       // 'groq:llama-3.2-11b-vision-preview',
       // 'groq:llama-3.2-90b-vision-preview',
-    ],
-    fetcher: [
-      // 'fetch',
+    ];
+  }
+
+  if (process.env.BENCH_MATRIX_FETCHER) {
+    fetcher = process.env.BENCH_MATRIX_FETCHER.split(',');
+  } else {
+    fetcher = [
       'playwright',
-    ],
+    ];
+  }
+
+  return createMatrix({
+    ai,
+    fetcher,
     ...extra,
   }, options);
 }
