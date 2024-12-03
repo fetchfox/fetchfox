@@ -6,7 +6,7 @@ import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { analyzePagination } from './prompts.js';
-import { createChannel } from '../.util.js';
+import { createChannel } from '../util.js';
 
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
