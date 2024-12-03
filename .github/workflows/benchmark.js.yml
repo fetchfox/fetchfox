@@ -12,6 +12,14 @@ jobs:
     strategy:
       matrix:
         node-version: [22.x]
+        ai:
+          - openai:gpt-4o-mini
+          - openai:gpt-4o
+          - google:gemini-1.5-pro
+          - google:gemini-1.5-flash
+          - groq:llama-3.1-70b-versatile
+          - groq:llama-3.2-11b-vision-preview
+          - groq:llama-3.2-90b-vision-preview
 
     steps:
     - uses: actions/checkout@v4
@@ -44,5 +52,6 @@ jobs:
         FF_LOG: debug
         BENCH_KV: redis
         BENCH_USE_CDP: true
+        BENCH_MATRIX_AI: ${{ matrix.ai }}
       run: npm run bench
       continue-on-error: true
