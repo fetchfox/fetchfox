@@ -11,7 +11,8 @@ export const standardMatrix = (extra, options) => {
       'google:gemini-1.5-flash',
       'google:gemini-1.5-pro',
 
-      // Disabled due to rate limits on our account
+      // 'anthropic:claude-3-5-sonnet-latest',
+      // 'anthropic:claude-3-5-haiku-latest',
       // 'groq:llama-3.1-70b-versatile',
       // 'groq:llama-3.2-11b-vision-preview',
       // 'groq:llama-3.2-90b-vision-preview',
