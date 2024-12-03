@@ -68,7 +68,8 @@ export const ExtractStep = class extends BaseStep {
       const took = (new Date()).getTime() - start;
       logger.debug(`Extract took ${took/1000} sec so far`);
 
-      const done = cb(output);
+      const combined = { ...item, ...output };
+      const done = cb(combined);
       if (done) break;
       if (this.single) break;
     }
