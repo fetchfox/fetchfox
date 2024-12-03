@@ -38,7 +38,20 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let p;
     if (this.cdp) {
       logger.debug(`Playwright using CDP endpoint ${this.cdp}`);
-      p = chromium.connectOverCDP(this.cdp);
+
+      for (let i = 0; i < 3; i++) {
+        try {
+          p = chromium.connectOverCDP(this.cdp);
+          break;
+        } catch(e) {
+          logger.warn(`Could not connect to CDP: ${e}`);
+          await new Promise(ok => setTimeout(ok, 5 * 1000));
+        }
+
+        if (!p) {
+          throw new Error('Could not connet to CDP, giving up');
+        }
+      }
     } else {
       logger.debug(`Playwright using local Chromium`);
       p = chromium.launch({ ...this.options, headless: this.headless });
@@ -124,9 +137,17 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async *paginate(url, page, options) {
     // Initial load
-    await page.goto(url);
+    try {
+      await page.goto(url);
+    } catch (e) {
+      logger.warn(`Goto gave error, but continuing anyways: ${e}`)
+    }
+
     const doc = await this._docFromPage(page, options);
-    logger.info(`${this} yielding first page ${doc}`);
+    if (!doc) {
+      logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
+      return;
+    }
 
     const iterations = options?.maxPages || 0;
 
@@ -140,18 +161,27 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
       const minDoc = await min.min(doc);
-      const chunks = minDoc.htmlChunks(this.ai.maxTokens);
+      const chunks = minDoc.htmlChunks(this.ai.maxTokens - 10000);
       const fns = [];
 
       logger.debug(`${this} analyze chunks for pagination`);
       for (const html of chunks) {
+        logger.debug(`${this} pagination HTML is ${html.length} bytes`);
         const prompt = analyzePagination.render({ html });
         const answer = await this.ai.ask(prompt, { format: 'json' });
         logger.debug(`${this} got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
-        if (answer.partial.hasPagination &&
-          answer.partial.paginationJavascript
+        if (answer?.partial?.hasPagination &&
+          answer?.partial?.paginationJavascript
         ) {
-          fns.push(new Function(answer.partial.paginationJavascript));
+          let fn;
+          try {
+            fn = new Function(answer.partial.paginationJavascript);
+          } catch(e) {
+            logger.warn(`${this} got invalid pagination function ${answer.partial.paginationJavascript}, dropping it`);
+          }
+          if (fn) {
+            fns.push(fn);
+          }
         }
       }
 
@@ -191,6 +221,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       ok();
     });
 
+    logger.info(`${this} yielding first page ${doc}`);
     yield Promise.resolve(doc);
 
     for await (const val of channel.receive()) {
