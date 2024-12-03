@@ -3,6 +3,7 @@ import { logger } from '../log/logger.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { scrapeOnce } from './prompts.js';
+import { AIError } from '../ai/AIError.js';
 
 export const SinglePromptExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -20,19 +21,13 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     if (single) single = {};
 
     logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
-
-    // Executes scrape on a chunk of the text + HTML
     const that = this;
-    const inner = async function* (chunk) {
-      const { more, text, html } = chunk;
-
+    const inner = async function* (html) {
       const context = {
         url: doc.url,
         questions: JSON.stringify(questions, null, 2),
-        text,
         html,
         extraRules,
-        limit: limit || 'No limit',
         description: (
           description
             ? `You are looking for this type of item(s):\n\n${description}`
@@ -49,7 +44,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       }
     }
 
-    const chunks = this.chunks(doc);
+    const chunks = doc.htmlChunks(this.ai.maxTokens - 20000);
     const max = 50;
     let count = 0;
     for (let i = 0; i < max && i < chunks.length; i++) {

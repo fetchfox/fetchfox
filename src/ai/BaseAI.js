@@ -1,6 +1,7 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { parseAnswer, getModelData, sleep } from './util.js';
+import { AIError } from './AIError.js';
 
 export const BaseAI = class {
   constructor(options) {
@@ -169,8 +170,13 @@ export const BaseAI = class {
       this.runtime.sec += msec / 1000;
 
       if (err) {
-        logger.warn(`Error during AI stream, not caching: ${err}`);
-        throw err;
+        logger.warn(`Error during AI stream, not caching`);
+
+        if (options.strict) {
+          throw new AIError(err);
+        } else {
+          logger.error(`${this} not in strict mode, continuing error in stream: ${err}`);
+        }
         return;
       } else {
         this.setCache(prompt, options, result);
@@ -179,7 +185,7 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
-    logger.debug(`Asking ${this} for prompt with ${prompt.length} bytes`);
+    logger.info(`Asking ${this} for prompt with ${prompt.length} bytes`);
 
     const before = {
       usage: Object.assign({}, this.usage),
@@ -198,11 +204,12 @@ export const BaseAI = class {
       } catch(e) {
         logger.error(`Caught ${this} error: ${e}`);
 
-        if (!e.status) {
-          throw e;
-        }
-        if (--retries <= 0) {
-          throw e;
+        if (!e.status || --retries <= 0) {
+          if (options.strict) {
+            throw new AIError(e);
+          } else {
+            logger.error(`${this} not in strict mode, continuing error in ask: ${err}`);
+          }
         }
 
         logger.debug(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);

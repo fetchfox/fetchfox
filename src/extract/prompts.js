@@ -1,8 +1,8 @@
 import { Template } from '../template/Template.js';
 
 export const scrapeOnce = new Template(
-  ['extraRules', 'limit', 'description', 'questions', 'url', 'text', 'html', 'count'],
-  `You are a web scraping extraction program. You will receive webpage content including text and HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar. 
+  ['extraRules', 'description', 'questions', 'url', 'html'],
+  `You are a web scraping extraction program. You will receive webpage content including HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar. 
 
 If you're unable to answer a question fill in the value "(not found)", but make your best guess. Prefer to give an answer if one seems plausible.
 
@@ -34,16 +34,10 @@ Example of a valid response with a single item:
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
->>>> Limit to this many item(s):
-{{limit}}
-
 >>>> The URL of the website:
 {{url}}
 
->>>> Raw text from innerText of the page:
-{{text}}
-
->>>> HTML text from innerHTML of the page (first {{count}} characters):
+>>>> HTML text from innerHTML of the page:
 {{html}}
 
 >>>> {{description}}

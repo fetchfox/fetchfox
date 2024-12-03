@@ -3,6 +3,7 @@ import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
+import { AIError } from '../ai/AIError.js';
 
 export const BaseExtractor = class {
   constructor(options) {
@@ -67,44 +68,7 @@ export const BaseExtractor = class {
     } else {
       maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
     }
-
-    // Include only HTML. Make a rough guess as to how many bytes we can include.
-    let textChunkSize = 0;
-    let htmlChunkSize = maxTokens * 2.5 * 0.6;
-
-    const text = doc?.text || '';
-    const html = doc?.html || '';
-
-    if (html.length <= 100) {
-      textChunkSize += htmlChunkSize;
-      htmlChunkSize = 0;
-    }
-
-    const result = [];
-
-    for (let i = 0; ; i++) {
-      const textPart = text.slice(
-        i * textChunkSize,
-        (i + 1) * textChunkSize);
-
-      const htmlPart = html.slice(
-        i * htmlChunkSize,
-        (i + 1) * htmlChunkSize);
-
-      if (!textPart && !htmlPart) break;
-
-      result.push({
-        offset: i,
-        text: textPart,
-        html: htmlPart,
-      });
-    }
-
-    for (let i = 0; i < result.length; i++) {
-      result[i].more = i + 1 < result.length;
-    }
-
-    return result;
+    return doc.htmlChunks(this.ai.maxTokens - 20000);
   }
 
   async *run(target, questions, options) {
@@ -116,7 +80,8 @@ export const BaseExtractor = class {
 
       const docs = [];
       // TODO: process multiple docs concurrently
-      for await (const doc of this.getDocs(target, { questions, maxPages: options?.maxPages })) {
+      const docsOptions = { questions, maxPages: options?.maxPages };
+      for await (const doc of this.getDocs(target, docsOptions)) {
         for await (const r of this._run(doc, questions, options)) {
           for (const key of Object.keys(r)) {
             const remap = map[key];
@@ -132,6 +97,12 @@ export const BaseExtractor = class {
 
           yield Promise.resolve(r);
         }
+      }
+    } catch (e) {
+      if (e instanceof AIError) {
+        logger.error(`${this} Got AI error, bailing: ${e}`);
+        return;
+      } else {
       }
     } finally {
       const took = (new Date()).getTime() - start;

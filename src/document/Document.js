@@ -42,7 +42,11 @@ export const Document = class {
 
   htmlChunks(maxTokens) {
     const chunks = [];
-    const size = maxTokens * 2.5;
+
+    // TODO: need a better way to estimate number of tokens. This often
+    // gets it wrong, and we have to be overly conservative in the amount
+    // of data we send per-request
+    const size = maxTokens * 2.2;
     for (let i = 0; i < this.html.length; i += size) {
       chunks.push(this.html.substr(i, i + size));
     }
