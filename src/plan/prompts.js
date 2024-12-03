@@ -103,11 +103,11 @@ You will return a JSON object with the following fields, in this order:
 - For "detailFields", follow these guidelines:
   - For URLs and links, that detail field SHOULD SPECIFY absolute URL format
 
-- "dataAvailability": For each item in "detailFields", say whether it is likely present on the current page ("currentPage"), or a page LINKED from the current page ("linkedPage")
+- "dataAvailability": For each item in "detailFields", decide whether it is available on current page. True = available on current page, false = available on a linked page
 
 - "scrapeTypeGuess": Either "singlePage" or "multiPage". Respond with "singlePage" if the current page has all the items, and all the DETAILS the user wants to scrape. Respond with "multiPage" if these items are LINKED from the current page, and the LINKED pages are needed to get ALL the details the user is looking for. This is your first guess, which you will have a chance to revise.
 
-- "scrapeTypeReason": Explain in 5-15 words why you made your guess in "scrapeTypeGuess".
+- "scrapeTypeReason": Explain in 3-8 words why you made your guess in "scrapeTypeGuess".
 
 - "scrapeType": Your FINAL answer for the scrape type, either "singlePage" or "multiPage". Change only if you need to after thinking about it in "scrapeTypeReason"
 
@@ -126,12 +126,12 @@ Example output 1:
     "What is the URL of this product? Format: full absolute URL",
     "What is the price of this product? Format: $XX.XX"
   ],
-  "dataAvailability": {
-    "What is the name of this product?": "currentPage",
-    "What is the rating of this product? Format: X.X/X": "linkedPage",
-    "Who made this product?": "currentPage",
-    "What is the price of this product? Format: $XX.XX": "linkedPage"
-  },
+  "dataAvailability": [
+    true,
+    false,
+    true,
+    false,
+  ],
   "scrapeTypeGuess": "multiPage",
   "scrapeTypeReason": "The product rating and price are only available on the indivdiual pages",
   "scrapeType": "multiPage",
@@ -148,12 +148,12 @@ Example output 2:
     "What is this peerson's current job title?",
     "What is the full URL of their profile?"
   ],
-  "dataAvailability": {
-    "What is the name of this person?": "currentPage",
-    "What is this person's current employer?": "currentPage",
-    "What is this peerson's current job title?": "currentPage",
-    "What is the full URL of their profile?": "currentPage"
-  },
+  "dataAvailability": [
+    true,
+    true,
+    true,
+    true,
+  ],
   "scrapeTypeGuess": "singlePage",
   "scrapeTypeReason": "All the data is available on the current page, so I don't need to load extra pages",
   "scrapeType": "singlePage",
