@@ -27,18 +27,22 @@ export const createMatrix = (configs, options) => {
   for (const key of Object.keys(configs)) {
     const newMatrix = [];
     for (let val of configs[key]) {
-      if (!Array.isArray(val)) {
-        val = [val];
-      }
-      if (val.length == 1) {
-        val.push({});
+      if (key in ['ai', 'fetcher']) {
+        if (!Array.isArray(val)) {
+          val = [val];
+        }
+        if (val.length == 1) {
+          val.push({});
+        }
       }
 
       for (const existing of matrix) {
         const updated = { ...existing };
         updated[key] = val;
-        if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
-          val[1].cdp = cdp;
+        if (key == 'fetcher') {
+          if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
+            val[1].cdp = cdp;
+          }
         }
         newMatrix.push(updated);
       }
