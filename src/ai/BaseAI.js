@@ -172,7 +172,7 @@ export const BaseAI = class {
       if (err) {
         logger.warn(`Error during AI stream, not caching`);
 
-        if (options.strict || isCritical(e)) {
+        if (options.strict || isCritical(err)) {
           throw new AIError(err);
         } else {
           logger.error(`${this} not in strict mode, continuing error in stream: ${err}`);
@@ -271,7 +271,7 @@ export const BaseAI = class {
           delta: result,
           partial: parseAnswer(ctx.answer, ctx.format),
           usage: ctx.usage,
-        };a
+        };
       }
     } else {
       const parsed = parseAnswer('' + ctx.buffer, ctx.format);
