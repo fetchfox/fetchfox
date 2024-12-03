@@ -172,7 +172,7 @@ export const BaseAI = class {
       if (err) {
         logger.warn(`Error during AI stream, not caching`);
 
-        if (options.strict) {
+        if (options.strict || isCritical(e)) {
           throw new AIError(err);
         } else {
           logger.error(`${this} not in strict mode, continuing error in stream: ${err}`);
@@ -205,7 +205,7 @@ export const BaseAI = class {
         logger.error(`Caught ${this} error: ${e}`);
 
         if (!e.status || --retries <= 0) {
-          if (options.strict) {
+          if (options.strict || isCritical(e)) {
             throw new AIError(e);
           } else {
             logger.error(`${this} not in strict mode, continuing error in ask: ${err}`);
@@ -283,4 +283,10 @@ export const BaseAI = class {
       };
     }
   }
+}
+
+const isCritical = (e) => {
+  // Quick hacky check to see if it is about token length
+  const str = ('' + e).toLowerCase();
+  return !(str.include('tokens') && str.include('max'));
 }
