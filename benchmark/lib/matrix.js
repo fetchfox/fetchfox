@@ -12,7 +12,7 @@ export const standardMatrix = (extra, options) => {
       // 'groq:llama-3.2-90b-vision-preview',
     ],
     fetcher: [
-      'fetch',
+      // 'fetch',
       'playwright',
     ],
     ...extra,
