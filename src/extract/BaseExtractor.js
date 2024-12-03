@@ -26,7 +26,7 @@ export const BaseExtractor = class {
     this.fetcher.clear();
   }
 
-  async *getDoc(target, questions) {
+  async *getDocs(target, options) {
     if (target instanceof Document) {
       yield Promise.resolve(target);
       return;
@@ -56,7 +56,7 @@ export const BaseExtractor = class {
       return;
     }
 
-    for await (const doc of this.fetcher.fetch(url, { questions })) {
+    for await (const doc of this.fetcher.fetch(url, options)) {
       yield Promise.resolve(doc);
     }
   }
@@ -115,7 +115,8 @@ export const BaseExtractor = class {
       const map = {};
 
       const docs = [];
-      for await (const doc of this.getDoc(target, questions)) {
+      // TODO: process multiple docs concurrently
+      for await (const doc of this.getDocs(target, { questions, maxPages: options?.maxPages })) {
         for await (const r of this._run(doc, questions, options)) {
           for (const key of Object.keys(r)) {
             const remap = map[key];

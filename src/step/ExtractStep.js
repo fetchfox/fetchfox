@@ -26,9 +26,7 @@ export const ExtractStep = class extends BaseStep {
 
     this.questions = questions;
 
-    if (args?.examples) {
-      this.examples = args.examples;
-    }
+    if (args?.examples) this.examples = args.examples;
   }
 
   async before(cursor) {
@@ -61,7 +59,10 @@ export const ExtractStep = class extends BaseStep {
     const stream = ex.stream(
       item,
       this.questions,
-      { single: this.single });
+      {
+        single: this.single,
+        maxPages: this.maxPages,
+      });
 
     for await (const output of stream) {
       const took = (new Date()).getTime() - start;

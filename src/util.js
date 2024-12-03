@@ -51,3 +51,31 @@ export async function getWebSocket() {
   _WebSocket = wsModule.default;
   return _WebSocket;
 }
+
+export const createChannel = () => {
+  const messages = [];
+  const resolvers = [];
+
+  return {
+    send(value) {
+      if (resolvers.length > 0) {
+        const resolve = resolvers.shift();
+        resolve(value);
+      } else {
+        messages.push(value);
+      }
+    },
+    async *receive() {
+      while (true) {
+        if (messages.length > 0) {
+          yield messages.shift();
+        } else {
+          const promise = new Promise((resolve) => {
+            resolvers.push(resolve);
+          });
+          yield await promise;
+        }
+      }
+    }
+  };
+}

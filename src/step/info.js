@@ -20,6 +20,16 @@ const combineInfo = (info) => {
     example: 5,
     required: false,
   };
+
+  // TODO: This is used by multiple steps, but not all. We should
+  // find a way to specify which steps receive this common arg.
+  combined.args.maxPages = {
+    description: 'Max number of pages to fetch from source URLs',
+    format: 'number',
+    required: false,
+    default: 10,
+  };
+
   return combined;
 };
 
@@ -175,12 +185,6 @@ export const stepDescriptionsMap = {
         example: ['url', 'companyUrl'],
         required: false,
         default: ['url'],
-      },
-      pages: {
-        description: 'Max number of pages to fetch',
-        format: 'number',
-        required: false,
-        default: 5,
       },
       waitForText: {
         description: 'Text to wait for which indicates the page is loaded',

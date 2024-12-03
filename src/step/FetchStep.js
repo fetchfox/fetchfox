@@ -9,7 +9,7 @@ export const FetchStep = class extends BaseStep {
     this.waitForText = args?.waitForText;
     this.active = args?.active;
     this.css = args?.css;
-    this.pages = args?.pages || 5;
+    this.maxPages = args?.maxPages || 5;
   }
 
   async finish(cursor) {
@@ -21,7 +21,7 @@ export const FetchStep = class extends BaseStep {
     const options = { multiple: true };
 
     if (this.waitForText) options.waitForText = this.waitForText;
-    if (this.pages) options.pages = this.pages;
+    if (this.maxPages) options.maxPages = this.maxPages;
     if (this.active) options.active = this.active;
     if (this.css) options.css = this.css;
 

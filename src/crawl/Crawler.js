@@ -10,11 +10,11 @@ export const Crawler = class extends BaseCrawler {
     const start = (new Date()).getTime();
 
     try {
-      const { fetchOptions, limit, stream } = options || {};
       logger.info(`Crawling ${url} with for "${query}"`);
 
-      for await (const doc of this.fetcher.fetch(url, fetchOptions)) {
+      const maxPages = options?.maxPages;
 
+      for await (const doc of this.fetcher.fetch(url, { maxPages })) {
         doc.parseLinks(options?.css);
         const links = doc.links;
         doc.parseLinks();
@@ -48,7 +48,7 @@ export const Crawler = class extends BaseCrawler {
             toLink[link.id] = link;
           }
 
-          const stream = this.ai.stream(prompt, { format: 'jsonl', cacheHint: limit });
+          const stream = this.ai.stream(prompt, { format: 'jsonl' });
           for await (const { delta, usage } of stream) {
             if (!toLink[delta.id]) {
               logger.warn(`Could not find link with id ${delta.id}`);
@@ -63,12 +63,9 @@ export const Crawler = class extends BaseCrawler {
 
             logger.info(`Found link ${link.url} in response to "${query}"`);
 
-            if (count++ >= limit) break;
             this.usage.count++;
             yield Promise.resolve(link);
           }
-
-          if (limit && count >= limit) return;
         }
       }
     } finally {

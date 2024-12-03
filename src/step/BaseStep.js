@@ -5,6 +5,9 @@ import { stepDescriptionsMap, nameMap } from './info.js';
 export const BaseStep = class {
   constructor(args) {
     this.limit = args?.limit;
+    // TODO: pull defaults from info
+    this.maxPages = args?.maxPages || 10;
+
     this.callbacks = {};
     this.q = new PQueue({
       concurrency: args?.concurrency === undefined ? 1000 : args?.concurrency,

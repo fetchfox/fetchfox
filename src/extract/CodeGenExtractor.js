@@ -82,7 +82,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
         .slice(0, num)
         .map((example) => {
           return new Promise(async (ok) => {
-            const gen = await this.getDoc(example);
+            const gen = await this.getDocs(example);
             const doc = (await gen.next()).value;
             const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
             const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
@@ -283,7 +283,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       throw new Error(`Question mismatch in code gen run: ${JSON.stringify(questions)} != ${JSON.stringify(this.state.questions)}`);
     }
 
-    const gen = await this.getDoc(target);
+    const gen = await this.getDocs(target);
     const doc = (await gen.next()).value;
 
     const { fn } = codeToFn(this.state.code);

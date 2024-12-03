@@ -9,9 +9,6 @@ import { BaseFetcher } from './BaseFetcher.js';
 export const DefaultFetcher = Fetcher;
 
 export const getFetcher = (which, options) => {
-
-  logger.trace(`getFetcher ${which}`);
-
   if (which instanceof BaseFetcher) {
     return which;
   }

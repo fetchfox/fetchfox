@@ -6,6 +6,7 @@ import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { analyzePagination } from './prompts.js';
+import { createChannel } from '../.util.js';
 
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
@@ -93,7 +94,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       status = 200;
       html = r.html;
     } catch(e) {
-      logger.error(`Playwright could not get ${url}: ${e}`);
+      logger.error(`Playwright could not get from ${page}: ${e}`);
       logger.debug(`Trying to salvage results`);
       html = await getHtmlFromError(page);
       if (!html) {
@@ -123,69 +124,78 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async *paginate(url, page, options) {
     // Initial load
-    logger.debug(`Playwright go to ${url}`);
     await page.goto(url);
     const doc = await this._docFromPage(page, options);
     logger.info(`${this} yielding first page ${doc}`);
+
+    const iterations = options?.maxPages || 0;
+
+    // Kick off job for pages 2+
+    const channel = createChannel();
+    const pagesPromise = new Promise(async (ok) => {
+      if (!iterations) {
+        logger.info(`${this} not paginating, return`);
+        ok();
+      }
+
+      const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
+      const minDoc = await min.min(doc);
+      const chunks = minDoc.htmlChunks(this.ai.maxTokens);
+      const fns = [];
+
+      logger.debug(`${this} analyze chunks for pagination`);
+      for (const html of chunks) {
+        const prompt = analyzePagination.render({ html });
+        const answer = await this.ai.ask(prompt, { format: 'json' });
+        logger.debug(`${this} got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
+        if (answer.partial.hasPagination &&
+          answer.partial.paginationJavascript
+        ) {
+          fns.push(new Function(answer.partial.paginationJavascript));
+        }
+      }
+
+      if (!fns.length) {
+        logger.warn(`${this} didn't find a way to paginate, bailing`);
+        ok();
+      }
+
+      const docs = [];
+      let fnIndex = 0;
+      for (let i = 1; i < iterations; i++) {
+        const fn = fns[fnIndex];
+        logger.debug(`${this} running ${fn} on pagination iteration #${i}`);
+        try {
+          await page.evaluate(fn);
+        } catch (e) {
+          if (fnIndex >= fns.length) {
+            logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
+            break;
+          }
+
+          fnIndex++;
+          logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
+          continue;
+        }
+        await new Promise(ok => setTimeout(ok, this.loadWait));
+        const doc = await this._docFromPage(page, options);
+
+        logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
+        if (doc) {
+          channel.send(doc);
+          // docs.push(doc);
+        }
+      }
+
+      channel.send({ end: true });
+      ok();
+    });
+
     yield Promise.resolve(doc);
 
-    const iterations = options?.pages;
-    if (!iterations) {
-      logger.info(`${this} not paginating, return`);
-      return;
-    }
-
-    const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
-    const minDoc = await min.min(doc);
-    const chunks = minDoc.htmlChunks(this.ai.maxTokens);
-    const fns = [];
-
-    for (const html of chunks) {
-      const prompt = analyzePagination.render({ html });
-      const answer = await this.ai.ask(prompt, { format: 'json' });
-      logger.debug(`${this} got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
-      if (answer.partial.hasPagination &&
-        answer.partial.paginationJavascript
-      ) {
-        fns.push(new Function(answer.partial.paginationJavascript));
-      }
-    }
-
-    if (!fns.length) {
-      logger.warn(`${this} didn't find a way to paginate, bailing`);
-      return;
-    }
-
-    // TODO: pick the best one?
-    let fnIndex = 0;
-
-    // Start on i = 1 to account for first page already yielded
-    for (let i = 1; i < iterations; i++) {
-      const fn = fns[fnIndex];
-      logger.debug(`${this} running ${fn} on pagination iteration #${i}`);
-      let done
-      try {
-        done = await page.evaluate(fn);
-      } catch (e) {
-        if (fnIndex >= fns.length) {
-          logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
-          break;
-        }
-
-        fnIndex++;
-        logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
-        continue;
-      }
-
-      // TODO: intelligent wait for pagination completion
-      logger.debug(`${this} waiting ${this.loadWait} msec for pagination #${i}, got done=${done}`);
-      await new Promise(ok => setTimeout(ok, this.loadWait));
-
-      const doc = await this._docFromPage(page, options);
-      logger.info(`${this} yielding page #${i} ${doc}`);
-      yield Promise.resolve(doc);
-
-      if (done) break;
+    for await (const val of channel.receive()) {
+      if (val.end) break;
+      yield Promise.resolve(val);
     }
   }
 }

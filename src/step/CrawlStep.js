@@ -21,10 +21,14 @@ export const CrawlStep = class extends BaseStep {
     const crawler = cursor.ctx.crawler;
     const start = (new Date()).getTime();
 
-    const options = {};
-    if (this.css) options.css = this.css;
+    const options = {
+      css: this.css,
+      maxPages: this.maxPages,
+    };
 
+    // TODO: modular/intelligent selection of URL field
     const url = item.url || item.source().url;
+
     for await (const output of crawler.run(url, this.query, options)) {
       if (!output.url) {
         logger.error(`No URL found for item ${item}`);
