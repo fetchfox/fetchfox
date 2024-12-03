@@ -16,14 +16,16 @@ describe('Workflow', function() {
               {
                 "url": "https://thehackernews.com/"
               }
-            ]
+            ],
+            "maxPages": "10"
           }
         },
         {
           "name": "crawl",
           "args": {
             "query": "Find links to articles about malware and other vulnerabilities",
-            "limit": "5"
+            "limit": "5",
+            "maxPages": "10"
           }
         },
         {
@@ -33,13 +35,15 @@ describe('Workflow', function() {
               summary: "Summarize the malware/vulnerability in 5-20 words",
               technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",
               url: "What is the URL? Format: Absolute URL"
-            }
+            },
+            "maxPages": "10"
           }
         },
         {
           "name": "limit",
           "args": {
-            "limit": "2"
+            "limit": "2",
+            "maxPages": "10"
           }
         },
         {
@@ -49,7 +53,8 @@ describe('Workflow', function() {
             "format": "pdf",
             "destination": "google",
             "filename": "a-{url}.pdf",
-            "directory": "1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb"
+            "directory": "1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb",
+            "maxPages": "10"
           }
         }
       ],
