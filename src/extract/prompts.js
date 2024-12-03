@@ -19,6 +19,7 @@ Follow these important rules:
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
 - Pay attention to user format specifications
 - Generally avoid returning results with many (not found) fields
+- For URL, always include the FULL ABSOLUTE URL
 
 {{extraRules}}
 
