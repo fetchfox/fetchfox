@@ -184,7 +184,7 @@ export const Server = class {
         let out;
 
         for (const mw of this.middleware) {
-          const result = mw(data);
+          const result = await mw(data);
           if (result.end) {
             end = result.end;
             break;
@@ -242,7 +242,7 @@ export const Server = class {
 
         if (!end) {
           for (const mw of this.middleware) {
-            resp = mw(resp);
+            resp = await mw(resp);
           }
         }
 
