@@ -9,6 +9,14 @@ export const checkExcludeUrls = (items, str) => {
   return score;
 }
 
+export const checkAtLeast = (items, num) => {
+  console.log('checkAtLeast', items);
+  return [
+    Math.min(num, (items || []).length),
+    num
+  ];
+}
+
 export const checkItemsExact = (items, expected, fields) => {
   const score = [0, 0];
 

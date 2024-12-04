@@ -167,7 +167,17 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`${this} analyze chunks for pagination`);
       for (const html of chunks) {
         logger.debug(`${this} pagination HTML is ${html.length} bytes`);
-        const prompt = analyzePagination.render({ html });
+
+        const hostname = (new URL(url)).hostname;
+        let domainSpecific = {
+          'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+        }[hostname] || '';
+        if (domainSpecific) {
+          domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
+        }
+        console.log('domainSpecific', domainSpecific);
+        const prompt = analyzePagination.render({ html, domainSpecific });
+
         const answer = await this.ai.ask(prompt, { format: 'json' });
         logger.debug(`${this} got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
         if (answer?.partial?.hasPagination &&

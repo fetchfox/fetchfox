@@ -2,7 +2,7 @@ import { Template } from '../template/Template.js';
 
 
 export const analyzePagination = new Template(
-  ['html'],
+  ['html', 'domainSpecific'],
   `You are part of a web scraping program. You are given some HTML, and your goal is to analyze the pagination style of this page.
 
 Response with JSON as follows:
@@ -28,6 +28,8 @@ Follow these important rules:
 - Make your code robust, and do not paginate if it is not possible
 - If the page has pagination, you must always include paginationJavascript
 - Keep CSS selectors simple as possible
+
+{{domainSpecific}}
 
 IMPORTANT:
 - "paginationJavascript"  will be a parameter to new Function(). Therefore, do NOT give a function signature.
