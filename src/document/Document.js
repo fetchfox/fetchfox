@@ -50,9 +50,7 @@ export const Document = class {
     }
 
     tokensPerByte *= 1.1;
-
     const bytesPerChunk = Math.floor(maxTokens / tokensPerByte);
-
     logger.debug(`Guessing ${tokensPerByte.toFixed(2)} tokens/byte -> ${bytesPerChunk} bytes/chunk`);
 
     const chunks = [];
