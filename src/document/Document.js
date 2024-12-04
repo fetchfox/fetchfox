@@ -40,17 +40,28 @@ export const Document = class {
     return data;
   }
 
-  htmlChunks(maxTokens) {
-    const chunks = [];
+  htmlChunks(countFn, maxTokens) {
+    let index = 0;
+    let tokensPerByte = 0;
 
-    // TODO: need a better way to estimate number of tokens. This often
-    // gets it wrong, and we have to be overly conservative in the amount
-    // of data we send per-request
-    const size = maxTokens * 2.2;
-    for (let i = 0; i < this.html.length; i += size) {
-      chunks.push(this.html.substr(i, i + size));
+    for (const bytes of [1000, 4000, 16000, 32000]) {
+      const tokens = countFn(this.html.substr(0, bytes));
+      tokensPerByte = Math.max(tokensPerByte, tokens / bytes);
     }
-    logger.debug(`Split ${this.html.length} byte document into ${chunks.length} chunks`);
+
+    tokensPerByte *= 1.1;
+
+    const bytesPerChunk = Math.floor(maxTokens / tokensPerByte);
+
+    logger.debug(`Guessing ${tokensPerByte.toFixed(2)} tokens/byte -> ${bytesPerChunk} bytes/chunk`);
+
+    const chunks = [];
+    for (let i = 0; i < this.html.length; i += bytesPerChunk) {
+      chunks.push(this.html.slice(i, i + bytesPerChunk));
+    }
+
+    logger.debug(`Divided ${this} into ${chunks.length} chunks`);
+
     return chunks;
   }
 

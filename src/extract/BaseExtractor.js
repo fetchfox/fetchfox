@@ -68,7 +68,7 @@ export const BaseExtractor = class {
     } else {
       maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
     }
-    return doc.htmlChunks(this.ai.maxTokens - 20000);
+    return doc.htmlChunks((str) => this.ai.countTokens(str), this.ai.maxTokens - 20000);
   }
 
   async *run(target, questions, options) {

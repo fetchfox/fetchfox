@@ -44,7 +44,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       }
     }
 
-    const chunks = doc.htmlChunks(this.ai.maxTokens - 20000);
+    const chunks = doc.htmlChunks((str) => this.ai.countTokens(str), this.ai.maxTokens - 20000);
     const max = 50;
     let count = 0;
     for (let i = 0; i < max && i < chunks.length; i++) {
