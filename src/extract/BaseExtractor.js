@@ -109,41 +109,43 @@ export const BaseExtractor = class {
       let count = 0;
 
       // Get documents, and start extraction worker for each
-      for await (const val of docsChannel.receive()) {
-        if (val.end) break;
+      (async () => {
+        for await (const val of docsChannel.receive()) {
+          if (val.end) break;
 
-        const doc = val.doc;
-        logger.info(`${this} starting new worker on ${doc} (${++count})`);
+          const doc = val.doc;
+          logger.info(`${this} starting new worker on ${doc} (${++count})`);
 
-        // Start an extraction worker
-        (async (ok) => {
-          for await (const r of this._run(doc, questions, options)) {
-            const ser = JSON.stringify(r.publicOnly());
-            if (seen[ser]) {
-              logger.debug(`${this} dropping duplicate result: ${ser}`);
-              continue;
-            }
-            seen[ser] = true;
-
-            for (const key of Object.keys(r)) {
-              const remap = map[key];
-              if (remap) {
-                const val = r[key];
-                delete r[key];
-                r[remap] = val;
+          // Start an extraction worker
+          (async () => {
+            for await (const r of this._run(doc, questions, options)) {
+              const ser = JSON.stringify(r.publicOnly());
+              if (seen[ser]) {
+                logger.debug(`${this} dropping duplicate result: ${ser}`);
+                continue;
               }
+              seen[ser] = true;
+
+              for (const key of Object.keys(r)) {
+                const remap = map[key];
+                if (remap) {
+                  const val = r[key];
+                  delete r[key];
+                  r[remap] = val;
+                }
+              }
+
+              if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+              if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
+
+              logger.debug(`${this} sending result ${r} onto channel`);
+              resultsChannel.send({ result: r });
             }
 
-            if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
-            if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
-
-            logger.debug(`${this} sending result ${r} onto channel`);
-            resultsChannel.send({ result: r });
-          }
-
-          resultsChannel.send({ end: true });
-        })();
-      }
+            resultsChannel.send({ end: true });
+          })();
+        }
+      })();
 
       for await (const val of resultsChannel.receive()) {
         if (val.end) break;
