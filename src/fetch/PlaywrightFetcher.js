@@ -177,12 +177,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         }[hostname] || '';
         if (domainSpecific) {
           domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
+          logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
         }
-        console.log('domainSpecific', domainSpecific);
         const prompt = analyzePagination.render({ html, domainSpecific });
 
         const answer = await this.ai.ask(prompt, { format: 'json' });
         logger.debug(`${this} got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
+
         if (answer?.partial?.hasPagination &&
           answer?.partial?.paginationJavascript
         ) {
@@ -224,8 +225,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
         logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
         if (doc) {
-          channel.send(doc);
-          // docs.push(doc);
+          channel.send({ doc });
         }
       }
 
@@ -238,7 +238,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     for await (const val of channel.receive()) {
       if (val.end) break;
-      yield Promise.resolve(val);
+      yield Promise.resolve(val.doc);
     }
   }
 }
