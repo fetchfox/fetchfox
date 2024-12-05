@@ -11,8 +11,8 @@ export const DefaultAI = OpenAI;
 
 export const getAI = (which, options) => {
   options ||= {};
-  which = which || options?.model;
-  if (!which) return new DefaultAI(options);
+  which = which || options?.model || process.env.AI;
+  if (!which) which = 'openai:gpt-4o-mini';
   if (typeof which != 'string') return which;
 
   let parts = which.split(':');

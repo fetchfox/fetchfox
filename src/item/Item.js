@@ -36,6 +36,16 @@ export const Item = class {
       this.#source);
   }
 
+  publicOnly() {
+    const copy = { ...this };
+    for (const key of Object.keys(this)) {
+      if (key.startsWith('_')) {
+        delete copy[key];
+      }
+    }
+    return copy;
+  }
+
   async finish() {
   }
 

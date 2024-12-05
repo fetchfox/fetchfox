@@ -52,7 +52,7 @@ export const ExtractStep = class extends BaseStep {
   }
 
   async process({ cursor, item }, cb) {
-    logger.debug(`Extract step getting ${JSON.stringify(this.questions)} from ${item}`);
+    logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
     const start = (new Date()).getTime();
     const ex = cursor.ctx.extractor;
 
@@ -66,10 +66,9 @@ export const ExtractStep = class extends BaseStep {
 
     for await (const output of stream) {
       const took = (new Date()).getTime() - start;
-      logger.debug(`Extract took ${took/1000} sec so far`);
-
+      logger.debug(`${this } Extract took ${(took/1000).toFixed(1)} sec so far`);
       const combined = { ...item, ...output };
-      logger.debug(`${this} yielding ${JSON.stringify(combined).substr(0, 360)}`);
+      logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
       const done = cb(combined);
       if (done) break;
       if (this.single) break;
