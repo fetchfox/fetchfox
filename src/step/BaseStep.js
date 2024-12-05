@@ -6,7 +6,7 @@ export const BaseStep = class {
   constructor(args) {
     this.limit = args?.limit;
     // TODO: pull defaults from info
-    this.maxPages = args?.maxPages || 10;
+    this.maxPages = args?.maxPages || 5;
 
     this.callbacks = {};
     this.q = new PQueue({
