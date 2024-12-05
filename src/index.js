@@ -18,7 +18,6 @@ export { BaseFetcher } from './fetch/BaseFetcher.js';
 export { RelayFetcher } from './fetch/RelayFetcher.js';
 
 export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
-export { MinimizingExtractor } from './extract/MinimizingExtractor.js';
 export { CodeGenExtractor } from './extract/CodeGenExtractor.js';
 
 export { Exporter } from './export/Exporter.js';

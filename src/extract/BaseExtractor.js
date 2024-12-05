@@ -1,16 +1,20 @@
 import { logger } from '../log/logger.js';
-import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
+import { getAI } from '../ai/index.js';
+import { getFetcher } from '../fetch/index.js';
+import { getMinimizer } from '../min/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
 import { AIError } from '../ai/AIError.js';
+import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, kv, fetcher, cache, hardCapTokens } = options || {};
-    this.ai = getAI(ai, { cache });
-    this.kv = getKV(kv);
-    this.fetcher = fetcher || new DefaultFetcher({ cache });
+    const { kv, ai, fetcher, minimizer, cache, hardCapTokens } = options || {};
+    this.kv = kv || getKV(kv);
+    this.ai = ai || getAI(ai, { cache });
+    this.fetcher = fetcher || getFetcher(fetcher, { cache });
+    this.minimizer = minimizer || getMinimizer(minimizer, { cache });
     this.hardCapTokens = hardCapTokens || 1e6;
     this.usage = {
       requests: 0,
@@ -38,6 +42,8 @@ export const BaseExtractor = class {
       url = target;
     } else if (target?.url) {
       url = target.url;
+    } else if (target?._url) {
+      url = target._url;
     }
 
     if (!url && typeof target?.source == 'function' && target.source() instanceof Document) {
@@ -48,16 +54,19 @@ export const BaseExtractor = class {
     try {
       new URL(url);
     } catch(e) {
-      logger.warn(`Extractor dropping invalid url ${url}: ${e}`);
+      logger.warn(`${this} Extractor dropping invalid url ${url}: ${e}`);
       url = null;
     }
 
     if (!url) {
-      logger.warn(`Could not find extraction target in ${target}`);
+      logger.warn(`${this} Could not find extraction target in ${target}`);
       return;
     }
 
-    for await (const doc of this.fetcher.fetch(url, options)) {
+    for await (let doc of this.fetcher.fetch(url, options)) {
+      if (this.minimizer) {
+        doc = await this.minimizer.min(doc);
+      }
       yield Promise.resolve(doc);
     }
   }
@@ -75,35 +84,78 @@ export const BaseExtractor = class {
     this.usage.queries++;
     const start = (new Date()).getTime();
 
+    const seen = {};
+
     try {
       const map = {};
-
       const docs = [];
-      // TODO: process multiple docs concurrently
       const docsOptions = { questions, maxPages: options?.maxPages };
-      for await (const doc of this.getDocs(target, docsOptions)) {
-        for await (const r of this._run(doc, questions, options)) {
-          for (const key of Object.keys(r)) {
-            const remap = map[key];
-            if (remap) {
-              const val = r[key];
-              delete r[key];
-              r[remap] = val;
+
+      const docsChannel = createChannel();
+      const resultsChannel = createChannel();
+
+      // Start documents worker
+      (async (ok) => {
+        logger.info(`${this} started pagination docs worker`);
+        const gen = this.getDocs(target, docsOptions);
+
+        for await (const doc of gen) {
+          logger.debug(`${this} sending doc ${doc} onto channel`);
+          docsChannel.send({ doc });
+        }
+        docsChannel.send({ end: true });
+      })();
+
+      let count = 0;
+
+      // Get documents, and start extraction worker for each
+      for await (const val of docsChannel.receive()) {
+        if (val.end) break;
+
+        const doc = val.doc;
+        logger.info(`${this} starting new worker on ${doc} (${++count})`);
+
+        // Start an extraction worker
+        (async (ok) => {
+          for await (const r of this._run(doc, questions, options)) {
+            const ser = JSON.stringify(r.publicOnly());
+            if (seen[ser]) {
+              logger.debug(`${this} dropping duplicate result: ${ser}`);
+              continue;
             }
+            seen[ser] = true;
+
+            for (const key of Object.keys(r)) {
+              const remap = map[key];
+              if (remap) {
+                const val = r[key];
+                delete r[key];
+                r[remap] = val;
+              }
+            }
+
+            if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+            if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
+
+            logger.debug(`${this} sending result ${r} onto channel`);
+            resultsChannel.send({ result: r });
           }
 
-          if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
-          if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
-
-          yield Promise.resolve(r);
-        }
+          resultsChannel.send({ end: true });
+        })();
       }
+
+      for await (const val of resultsChannel.receive()) {
+        if (val.end) break;
+        yield Promise.resolve(val.result);
+      }
+
     } catch (e) {
       if (e instanceof AIError) {
         logger.error(`${this} Got AI error, bailing: ${e}`);
         return;
-      } else {
       }
+
     } finally {
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;

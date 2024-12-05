@@ -20,7 +20,12 @@ export const ConstStep = class extends BaseStep {
 
   async run(cursor, parent, index) {
     for (const data of this.items) {
-      const output = new Item(data);
+      const copy = { ...data };
+      if (copy.url) {
+        copy._url = copy.url;
+        delete copy.url;
+      }
+      const output = new Item(copy);
       cursor.publish(output, index);
       this.trigger('item', output);
     }
