@@ -19,9 +19,9 @@ export const BaseFetcher = class {
       runtime: 0,
     };
     this.q = new PQueue({
-      concurrency: options?.concurrency || 5,
-      intervalCap: options?.intervalCap || 3,
-      interval: options?.interval || 3000,
+      concurrency: options?.concurrency || 32,
+      intervalCap: options?.intervalCap || 32,
+      interval: options?.interval || 5000,
     });
 
     this.s3 = options?.s3;
@@ -120,7 +120,11 @@ export const BaseFetcher = class {
           const presignedUrl = await presignS3({
             bucket, key, contentType: 'text/html', acl });
 
-          await doc.uploadHtml(presignedUrl);
+          try {
+            await doc.uploadHtml(presignedUrl);
+          } catch(e) {
+            logger.error(`Failed to upload: ${e}`);
+          }
         }
 
         docs.push(doc);

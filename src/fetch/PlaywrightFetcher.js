@@ -67,6 +67,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     const browser = await this.launch();
+
+    logger.debug(`${this} got browser`);
+
     const page = await browser.newPage();
     try {
       const gen = this.paginate(url, page, options);
@@ -217,7 +220,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
           continue;
         }
-        await new Promise(ok => setTimeout(ok, this.loadWait));
         const doc = await this._docFromPage(page, options);
 
         logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
