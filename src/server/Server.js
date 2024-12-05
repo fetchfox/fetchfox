@@ -13,6 +13,7 @@ export const Server = class {
 
     this.store = options?.store || new Store();
     this.onError = options?.onError;
+    this.context = options?.context || {};
 
     this.conns = new Set();
     this.relay = new Relay();
@@ -157,14 +158,19 @@ export const Server = class {
 
   async plan(data, ws) {
     logger.info(`Plan based on ${JSON.stringify(data.prompt).substr(0, 200)}`);
-    const f = await fox.plan(...(data.prompt));
+    const f = await fox
+      .config(this.context)
+      .plan(...(data.prompt));
     return f.dump();
   }
 
   async describe(data, ws) {
     logger.info(`Describe based on ${JSON.stringify(data.workflow).substr(0, 200)}`);
-    const f = await fox.describe(data.workflow);
-    return f.dump();
+    const out = await fox
+      .config(this.context)
+      .load({ steps: data.workflow.steps })
+      .describe();
+    return out.dump();
   }
 
   listen(port, cb) {
