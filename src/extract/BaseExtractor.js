@@ -154,8 +154,8 @@ export const BaseExtractor = class {
       if (e instanceof AIError) {
         logger.error(`${this} Got AI error, bailing: ${e}`);
         return;
-      } else {
       }
+
     } finally {
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;
