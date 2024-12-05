@@ -10,7 +10,7 @@ export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
 
-  countTokens(str) {
+  async countTokens(str) {
     const enc = encoding_for_model(this.model);
     return enc.encode(str).length;
   }

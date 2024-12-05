@@ -93,4 +93,22 @@ describe('CodeGenExtractor', function() {
     assert.ok(took2 < 200, 'code gen execution from load should be fast');
   });
 
+  it('should learn oyl @disabled', async () => {
+    const urls = ['https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/irpyrvx78l/https-ownyourlabs-com-shop-oyl-.html'];
+
+    const questions = {
+      product_name: 'What is the name of this product?',
+      price: 'What is the price of this product? Format: $XX.XX'
+    };
+    const cge = new CodeGenExtractor({ ai: 'openai:gpt-4o' });
+    await cge.init(urls, questions);
+    await cge.learn();
+
+    const all = await cge.all(urls[0], questions);
+
+    console.log('all', all);
+    console.log('all len', all.length);
+
+  });
+
 });

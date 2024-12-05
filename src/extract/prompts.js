@@ -113,15 +113,15 @@ The user is looking for these fields on each item: {{questions}}
 Follow these guidelines:
 - You MUST RESPOND ONLY WITH JAVASCRIPT CODE and comments
 - Do NOT GIVE EXAMPLE USAGE
+- Use SHORT CONCISE variable names
 - You may use the node-html-parser library. It will be passed in as a parameter.
 - Make your code robust, including null checks
 - Loops and maps should have a try/catch structure so a single failed element does not break the entire execution
 
 It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
-- Before writing any code, explain your reasoning in a comment block
-- Decide if you will use XPath via $x(...) or CSS selectors, or something else
+- Before writing any code, explain your reasoning in a comment block in 10-100 words
+- Decide if you will use XPath or CSS selectors, or something else
 - Decide and explain which XPath or CSS selectors you will use
-- Describe how you ensure this solution will generalize and be robust with respect to HTML and CSS quirks
 - Describe any challenging parts of the extraction
 
 The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:

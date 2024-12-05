@@ -11,6 +11,12 @@ export const Gemini = class extends BaseAI {
     super(options);
   }
 
+  async countTokens(str) {
+    const gemini = new GoogleGenerativeAI(this.apiKey);
+    const model = gemini.getGenerativeModel({ model: this.model });
+    return model.countTokens(str);
+  }
+
   normalizeChunk(chunk) {
     const message = chunk.text();
     let usage;

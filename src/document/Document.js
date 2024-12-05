@@ -40,12 +40,12 @@ export const Document = class {
     return data;
   }
 
-  htmlChunks(countFn, maxTokens) {
+  async htmlChunks(countFn, maxTokens) {
     let index = 0;
     let tokensPerByte = 0;
 
     for (const bytes of [1000, 4000, 16000, 32000]) {
-      const tokens = countFn(this.html.substr(0, bytes));
+      const tokens = await countFn(this.html.substr(0, bytes));
       tokensPerByte = Math.max(tokensPerByte, tokens / bytes);
     }
 

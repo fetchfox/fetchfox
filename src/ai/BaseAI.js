@@ -70,7 +70,7 @@ export const BaseAI = class {
     return `[${this.constructor.name} ${this.model}]`;
   }
 
-  countTokens(str) {
+  async countTokens(str) {
     // Override this in derived classes
     return str.length / 2.5;
   }
@@ -117,7 +117,7 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
-    const tokens = this.countTokens(prompt);
+    const tokens = await this.countTokens(prompt);
     logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const { format, cacheHint, schema } = Object.assign({ format: 'text' }, options);
@@ -191,7 +191,7 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
-    const tokens = this.countTokens(prompt);
+    const tokens = await this.countTokens(prompt);
     logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const before = {

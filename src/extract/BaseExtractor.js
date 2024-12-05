@@ -15,7 +15,7 @@ export const BaseExtractor = class {
     this.ai = ai || getAI(ai, { cache });
     this.fetcher = fetcher || getFetcher(fetcher, { cache });
     this.minimizer = minimizer || getMinimizer(minimizer, { cache });
-    this.hardCapTokens = hardCapTokens || 1e6;
+    this.hardCapTokens = hardCapTokens || 1e7;
     this.usage = {
       requests: 0,
       runtime: 0,
@@ -71,7 +71,7 @@ export const BaseExtractor = class {
     }
   }
 
-  chunks(doc, maxTokens) {
+  async chunks(doc, maxTokens) {
     if (maxTokens) {
       maxTokens = Math.min(maxTokens, this.hardCapTokens, this.ai.maxTokens);
     } else {
@@ -85,6 +85,8 @@ export const BaseExtractor = class {
     const start = (new Date()).getTime();
 
     const seen = {};
+
+    let done = false;
 
     try {
       const map = {};
@@ -100,6 +102,8 @@ export const BaseExtractor = class {
         const gen = this.getDocs(target, docsOptions);
 
         for await (const doc of gen) {
+          if (done) break;
+
           logger.debug(`${this} sending doc ${doc} onto channel`);
           docsChannel.send({ doc });
         }
@@ -119,6 +123,8 @@ export const BaseExtractor = class {
           // Start an extraction worker
           (async () => {
             for await (const r of this._run(doc, questions, options)) {
+              if (done) break;
+
               const ser = JSON.stringify(r.publicOnly());
               if (seen[ser]) {
                 logger.debug(`${this} dropping duplicate result: ${ser}`);
@@ -148,6 +154,8 @@ export const BaseExtractor = class {
       })();
 
       for await (const val of resultsChannel.receive()) {
+        if (done) break;
+
         if (val.end) break;
         yield Promise.resolve(val.result);
       }
@@ -159,6 +167,8 @@ export const BaseExtractor = class {
       }
 
     } finally {
+      done = true;
+
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;
     }

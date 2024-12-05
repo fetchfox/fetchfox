@@ -84,6 +84,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
           return new Promise(async (ok) => {
             const gen = await this.getDocs(example);
             const doc = (await gen.next()).value;
+            gen.return();
             const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
             const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
             ok(minDoc);
@@ -95,12 +96,13 @@ export const CodeGenExtractor = class extends BaseExtractor {
     const getSample = async (doc) => {
       const helperStream = this.helper.stream(doc, questions);
       const sample = [];
-      for await (const item of helperStream)  {
-        const copy = JSON.parse(JSON.stringify(item));
-        if (copy.url) delete copy.url;
-        sample.push(copy);
+      for await (const result of helperStream)  {
+        // const copy = JSON.parse(JSON.stringify(item));
+        const copy = new Item(result);
+        sample.push(copy.publicOnly());
         if (sample.length >= sampleSize) break;
       }
+      // helperStream.return();
       return sample;
     }
 
@@ -128,24 +130,46 @@ export const CodeGenExtractor = class extends BaseExtractor {
         actuals.push((result || []).slice(0, sampleSize));
       }
 
-      const feedback = await this.feedback(
-        docs,
-        itemDescription,
-        questions,
-        candidate.code,
-        samples,
-        actuals);
-      candidate.feedback = feedback;
+      const ser = (arr) => {
+        return JSON.stringify(
+          arr.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+        );
+      }
 
-      logger.debug(`Got feedback: ${JSON.stringify(feedback, null, 2)}`);
+      logger.debug(`${this} Actuals: ${ser(actuals)}`);
+      logger.debug(`${this} Samples: ${ser(samples)}`);
+
+      const equal = ser(actuals) == ser(samples);
+
+      let feedback;
+      if (equal) {
+        logger.debug(`${this} Exact match, not getting AI feedback`);
+        feedback = {
+          accuracy: 100,
+          quality: 100,
+        };
+      } else {
+        logger.debug(`${this} Code gen and samples differ, getting feedback`);
+        const start = (new Date()).getTime();
+        feedback = await this.feedback(
+          docs,
+          itemDescription,
+          questions,
+          candidate.code,
+          samples,
+          actuals);
+        candidate.feedback = feedback;
+        const took = (new Date()).getTime() - start;
+        logger.debug(`${this} Got feedback (${took} msec): ${JSON.stringify(feedback, null, 2)}`);
+      }
 
       if (feedback.accuracy < this.state.feedback.accuracy) {
-        logger.debug(`Accuracy below previous best, throw away iteration`);
+        logger.debug(`${this} Accuracy below previous best, throw away iteration`);
         continue;
       }
 
       if (feedback.accuracy <= junkAccuracy) {
-        logger.debug(`Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
+        logger.debug(`${this} Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
         genFn = () => this.firstAttempt(docs, samples, questions);
         continue;
       }
@@ -156,13 +180,13 @@ export const CodeGenExtractor = class extends BaseExtractor {
       this.state.feedback = feedback;
       this.fn = candidate.fn
 
-      logger.debug(`Check accuracy and quality: feedback=(${feedback.accuracy}, ${feedback.quality}), targets=(${targetAccuracy}, ${targetQuality})`);
+      logger.debug(`${this} Check accuracy and quality: feedback=(${feedback.accuracy}, ${feedback.quality}), targets=(${targetAccuracy}, ${targetQuality})`);
       if (feedback.accuracy >= targetAccuracy && feedback.quality >= targetQuality) {
-        logger.debug(`Hit targets, stop iteration`);
+        logger.debug(`${this} Hit targets, stop iteration`);
         break;
       }
 
-      logger.debug(`Below targets, iterate and try again`);
+      logger.debug(`${this} Below targets, iterate and try again`);
       genFn = () => this.iterate(
         docs,
         itemDescription,
@@ -239,7 +263,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
   }
 
   async findDescription(doc, sample, questions) {
-    const chunks = this.chunks(doc);
+    const chunks = await this.chunks(doc);
     const context = {
       url: '',
       html: chunks[0].html,
@@ -268,7 +292,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
     const start = (new Date()).getTime();
     const answer = await this.ai.ask(prompt, { format: 'text' });
     const took = (new Date()).getTime() - start;
-    logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to write code`);
+    logger.debug(`Took ${took} msec to write code`);
 
     const { fn, code } = codeToFn(answer.partial);
     return { fn, code };

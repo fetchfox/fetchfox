@@ -164,7 +164,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
       const minDoc = await min.min(doc);
-      const chunks = minDoc.htmlChunks((str) => this.ai.countTokens(str), this.ai.maxTokens - 10000);
+      const chunks = await minDoc.htmlChunks((str) => this.ai.countTokens(str), this.ai.maxTokens - 10000);
       const fns = [];
 
       logger.debug(`${this} analyze chunks for pagination`);
