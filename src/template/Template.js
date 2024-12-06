@@ -44,7 +44,7 @@ export const Template = class {
 
   async renderCapped(context, flexField, ai, cache) {
     const maxTokens = ai.maxTokens || 128000;
-    const countFn = (str) => ai.countTokens(str);
+    const countFn = async (str) => ai.countTokens(str);
     const accuracy = 8000;
 
     let key;
@@ -87,7 +87,7 @@ export const Template = class {
     for (let i = 0; i < 10; i++) {
     // while (upperBound - lowerBound > accuracy) {
       prompt = render(guess);
-      tokens = countFn(prompt);
+      tokens = await countFn(prompt);
 
       if (tokens < maxTokens && maxTokens - tokens < accuracy) {
         lowerBound = guess;
@@ -108,7 +108,7 @@ export const Template = class {
     }
 
     prompt = render(lowerBound);
-    const final = countFn(prompt);
+    const final = await countFn(prompt);
     console.log('final', final);
 
     const took = (new Date()).getTime() - start;

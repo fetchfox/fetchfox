@@ -40,6 +40,9 @@ export const ExtractStep = class extends BaseStep {
         logger.info(`Code gen loaded state, NOT learning`);
       } else {
         logger.info(`Code gen got no state, START learning`);
+
+        console.log(cursor);
+
         await ex.init(this.examples, this.questions);
         await ex.learn();
         await ex.save();

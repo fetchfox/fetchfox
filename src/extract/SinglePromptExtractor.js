@@ -49,7 +49,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let count = 0;
     for (let i = 0; i < max && i < chunks.length; i++) {
       console.log('chunk', i, max, chunks.length);
-      console.log('tokens:', this.ai.countTokens(doc.html));
+      console.log('tokens:', await this.ai.countTokens(doc.html));
 
       logger.debug(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
       for await (const result of inner(chunks[i])) {

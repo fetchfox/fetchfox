@@ -1,5 +1,6 @@
 import assert from 'assert';
 import os from 'os';
+import { fox } from '../../src/index.js';
 import { getFetcher, CodeGenExtractor } from '../../src/index.js';
 
 const flightUrls = [
@@ -93,22 +94,35 @@ describe('CodeGenExtractor', function() {
     assert.ok(took2 < 200, 'code gen execution from load should be fast');
   });
 
-  it('should learn oyl @disabled', async () => {
+  it('should learn oyl @run', async () => {
     const urls = ['https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/irpyrvx78l/https-ownyourlabs-com-shop-oyl-.html'];
 
     const questions = {
       product_name: 'What is the name of this product?',
       price: 'What is the price of this product? Format: $XX.XX'
     };
-    const cge = new CodeGenExtractor({ ai: 'openai:gpt-4o' });
+    const cge = new CodeGenExtractor();
     await cge.init(urls, questions);
     await cge.learn();
 
-    const all = await cge.all(urls[0], questions);
+    const out = await cge.all(urls[0], questions);
+    assert.equal(out.length, 161);
+  });
 
-    console.log('all', all);
-    console.log('all len', all.length);
+  it('should run workflow with code gen oyl @run', async () => {
+    const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/irpyrvx78l/https-ownyourlabs-com-shop-oyl-.html';
+    const wf = await fox
+      .config({
+        extractor: 'code-gen',
+      })
+      .init(url)
+      .extract({
+        product_name: 'What is the name of this product?',
+        price: 'What is the price of this product? Format: $XX.XX',
+      });
 
+    const out = await wf.run();
+    assert.equal(out.items.length, 161);
   });
 
 });

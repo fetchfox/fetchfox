@@ -103,7 +103,27 @@ export const Workflow = class extends BaseWorkflow {
     const last = this.steps[this.steps.length - 1];
     const rest = this.steps.slice(0, this.steps.length - 1);
 
+    const examples = [];
+    for (let i = 0; i < this.steps.length; i++) {
+      const step = this.steps[i];
+      if (i == 0 && step.name() == 'const') {
+        for (const item of (step.args().items || [])) {
+          // TODO: only need one of these once code is cleaned up
+          if (item.url) examples.push(item.url);
+          if (item._url) examples.push(item._url);
+        }
+      }
+
+      if (i > 0 && Object.keys(step.args()).includes('examples')) {
+        logger.debug(`${this} Adding examples to step #${i}: ${examples.join(', ')}`);
+        if ((step.args().examples || []).length == 0) {
+          step.examples = examples;
+        }
+      }
+    }
+
     let originalLimit = last.limit;
+
     try {
       if (this.ctx.limit) {
         last.limit = this.ctx.limit;
@@ -117,6 +137,7 @@ export const Workflow = class extends BaseWorkflow {
 
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
       return this.cursor.out(true);
+
     } finally {
       last.limit = originalLimit;
       this.cursor.finishAll();

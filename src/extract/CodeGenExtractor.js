@@ -18,7 +18,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.helper = getExtractor(options?.helper);
-    this.ai = getAI('openai:gpt-4o');
     this.state = null;
   }
 
