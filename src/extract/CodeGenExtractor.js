@@ -13,6 +13,7 @@ import {
 import { getExtractor } from './index.js';
 import { getAI } from '../ai/index.js';
 import * as nodeHtmlParser from 'node-html-parser';
+import { createBlocker } from '../util.js';
 
 export const CodeGenExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -21,7 +22,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
     this.state = null;
   }
 
-  async init(examples, questions) {
+  async init(examples, { questions, single }) {
     if (this.state) {
       throw new Error('Double init');
     }
@@ -30,6 +31,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
     this.state.examples = examples;
     this.state.questions = questions;
+    this.state.single = single;
     this.state.feedback = { accuracy: 0 };
   }
 
@@ -61,7 +63,25 @@ export const CodeGenExtractor = class extends BaseExtractor {
     this.kv.set(key, this.state);
   }
 
+  async ready() {
+    if (this.isReady) {
+      return;
+    } else {
+      if (!this.readyBlocker) {
+        this.readyBlocker = createBlocker();
+      }
+
+      console.log('wait for ready blocker');
+      await this.readyBlocker.wait();
+      console.log('ready blocker ok');
+    }
+  }
+
   async learn(options) {
+    if (!this.readyBlocker) {
+      this.readyBlocker = createBlocker();
+    }
+
     const maxIterations = options?.maxIterations || 5;
     const junkAccuracy = options?.junkAccuracy || 40;
     const targetAccuracy = options?.targetAccuracy || 80
@@ -71,7 +91,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       throw new Error('Need to init before learning');
     }
 
-    const { questions } = this.state;
+    const { questions, single } = this.state;
 
     // Use up to 3 examples
     const num = 3;
@@ -93,7 +113,9 @@ export const CodeGenExtractor = class extends BaseExtractor {
     logger.debug(`Getting sample for code generation`);
     const sampleSize = 5;
     const getSample = async (doc) => {
-      const helperStream = this.helper.stream(doc, questions);
+      console.log('doc url'+doc);
+      console.log('single?', single);
+      const helperStream = this.helper.stream(doc, questions, { single });
       const sample = [];
       for await (const result of helperStream)  {
         // const copy = JSON.parse(JSON.stringify(item));
@@ -111,6 +133,11 @@ export const CodeGenExtractor = class extends BaseExtractor {
     for (const sample of samples) {
       combinedSample.push(...sample);
     }
+
+    console.log(this.state.examples.map(x => ''+x));
+    console.log('single?', single);
+    console.log('samples', samples);
+    console.log('combinedSample', combinedSample);
 
     const itemDescription = await this.findDescription(
       docs[0], samples[0], questions);
@@ -131,7 +158,9 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
       const ser = (arr) => {
         return JSON.stringify(
-          arr.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+          arr.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+          null,
+          2
         );
       }
 
@@ -162,16 +191,16 @@ export const CodeGenExtractor = class extends BaseExtractor {
         logger.debug(`${this} Got feedback (${took} msec): ${JSON.stringify(feedback, null, 2)}`);
       }
 
-      if (feedback.accuracy < this.state.feedback.accuracy) {
-        logger.debug(`${this} Accuracy below previous best, throw away iteration`);
-        continue;
-      }
+      // if (feedback.accuracy < this.state.feedback.accuracy) {
+      //   logger.debug(`${this} Accuracy below previous best, throw away iteration`);
+      //   continue;
+      // }
 
-      if (feedback.accuracy <= junkAccuracy) {
-        logger.debug(`${this} Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
-        genFn = () => this.firstAttempt(docs, samples, questions);
-        continue;
-      }
+      // if (feedback.accuracy <= junkAccuracy) {
+      //   logger.debug(`${this} Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
+      //   genFn = () => this.firstAttempt(docs, samples, questions);
+      //   continue;
+      // }
 
       // Update our state to the candidate
       this.state.results = candidate.results;
@@ -194,7 +223,11 @@ export const CodeGenExtractor = class extends BaseExtractor {
         samples,
         actuals,
         feedback);
+
     }
+
+    this.isReady = true;
+    this.readyBlocker.done();
   }
 
   async feedback(docs, itemDescription, questions, code, samples, actuals) {

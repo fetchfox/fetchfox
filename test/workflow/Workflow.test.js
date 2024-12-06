@@ -258,4 +258,5 @@ describe('Workflow', function() {
     assert.equal(out.items.length, 2);
     assert.equal(count, 2);
   });
+
 });

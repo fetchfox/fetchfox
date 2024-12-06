@@ -29,35 +29,55 @@ export const ExtractStep = class extends BaseStep {
     if (args?.examples) this.examples = args.examples;
   }
 
-  async before(cursor) {
+  async finish(cursor) {
+    await cursor.ctx.extractor.clear();
+  }
+
+  async process({ cursor, item, batch }, cb) {
+    logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
+    const start = (new Date()).getTime();
+
     const ex = cursor.ctx.extractor;
     if (ex instanceof CodeGenExtractor) {
       logger.info(`Code gen init`);
 
-      await ex.load(this.examples, this.questions);
+      if (!this.examples) {
+        logger.info(`${this} Code gen taking examples from batch`);
+
+        this.examples = [];
+        for (const item of batch) {
+          // TODO: put this code somewhere better
+          if (item.url) {
+            this.examples.push(item.url);
+          } else if (item._url) {
+            this.examples.push(item._url);
+          }
+        }
+
+        if (!this.examples.length) {
+          throw new Error('no examples');
+        }
+      }
+
+      // await ex.load(this.examples, this.questions);
 
       if (ex.state) {
         logger.info(`Code gen loaded state, NOT learning`);
       } else {
         logger.info(`Code gen got no state, START learning`);
-
-        console.log(cursor);
-
-        await ex.init(this.examples, this.questions);
+        await ex.init(
+          this.examples,
+          {
+            questions: this.questions,
+            single: this.single,
+          });
         await ex.learn();
         await ex.save();
       }
+
+      console.log('wait for ready');
+      await ex.ready();
     }
-  }
-
-  async finish(cursor) {
-    await cursor.ctx.extractor.clear();
-  }
-
-  async process({ cursor, item }, cb) {
-    logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
-    const start = (new Date()).getTime();
-    const ex = cursor.ctx.extractor;
 
     const stream = ex.stream(
       item,

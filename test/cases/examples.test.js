@@ -18,6 +18,8 @@ describe('examples', function() {
       .limit(3)
       .run(null, (delta) => {});
 
+    console.log('results.items', results.items);
+
     assert.equal(results.items.length, 3);
     assert.equal(results.items[0].name, 'Bulbasaur');
     assert.equal(results.items[0].number, '#0001');
@@ -39,7 +41,7 @@ describe('examples', function() {
       results.push(delta.item);
     }
 
-    stream.return();
+    // stream.return();
 
     assert.equal(results.length, 3);
     assert.equal(results[0].name, 'Bulbasaur');

@@ -52,6 +52,32 @@ export async function getWebSocket() {
   return _WebSocket;
 }
 
+export const createBlocker = () => {
+  let doneResolvers = [];
+  let isDone = false;
+
+  return {
+    wait() {
+      if (isDone) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        doneResolvers.push(resolve);
+      });
+    },
+    done() {
+      isDone = true;
+      while (doneResolvers.length > 0) {
+        const resolve = doneResolvers.shift();
+        resolve();
+      }
+    },
+    reset() {
+      isDone = false;
+    },
+  };
+}
+
 export const createChannel = () => {
   const messages = [];
   const resolvers = [];

@@ -27,10 +27,10 @@ export const CrawlStep = class extends BaseStep {
     };
 
     // TODO: modular/intelligent selection of URL field
-    const url = item.url || item.source().url;
+    const url = item._url || (item.source() && item.source().url);
 
     for await (const output of crawler.run(url, this.query, options)) {
-      if (!output.url) {
+      if (!output._url) {
         logger.error(`No URL found for item ${item}`);
         continue;
       }

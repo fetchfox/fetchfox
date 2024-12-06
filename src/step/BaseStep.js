@@ -2,10 +2,13 @@ import { logger } from '../log/logger.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
 
 export const BaseStep = class {
+  static batchSize = 10;
+
   constructor(args) {
     this.limit = args?.limit;
     // TODO: pull defaults from info
     this.maxPages = args?.maxPages || 5;
+
 
     this.callbacks = {};
   }
@@ -84,28 +87,6 @@ export const BaseStep = class {
     }
   }
 
-  async processBatch({ cursor, items, index }, cb) {
-    const results = [];
-    for (const item of items) {
-      await this.process({ cursor, item }, (r) => {
-        console.log('r', r);
-        results.push(r);
-      });
-      // for await (const r of gen) {
-      //   console.log('--->', r);
-      //   results.push(r);
-      // }
-      // for await (const output of
-      // const p = new Promise((ok) => {
-      //   this.process({ cursor, item, index });
-      // });
-      // promises.push(p);
-    }
-    // const outputs = await Promise.all(promises);
-    // cb(outputs);
-    cb(results);
-  }
-
   async run(cursor, steps, index) {
     try {
       return this._run(cursor, steps, index);
@@ -129,6 +110,9 @@ export const BaseStep = class {
     await this._before(cursor, index);
 
     const parent = steps[index - 1];
+
+    console.log('PARENT', parent);
+
     // const rest = upstream.slice(0, upstream.length - 1);
     const next = index + 1 >= steps.length ? null : steps[index + 1];
 
@@ -148,53 +132,76 @@ export const BaseStep = class {
     // 2) Parent is done, and all its outputs are completed
     // 3) There is a next step, and next step is done (regardless 
     await new Promise(async (ok) => {
-      const batchSize = 3;
       let batch = [];
+      const batchSize = BaseStep.batchSize;
 
       const processBatch = async () => {
-        const items = batch;
+        console.log('processBatch:', batch);
+
+        const b = [...batch];
         batch = [];
 
-        try {
-          await this.processBatch(
-            { cursor, items, index },
-            (outputs) => {
-              console.log('outputs', outputs);
-              for (const output of outputs) {
-                this.results.push(output);
+        received += b.length;
 
+        try {
+          const all = [];
+
+          for (const item of b) {
+            const p = this.process(
+              { cursor, item, index, batch: b },
+              (output) => {
+                console.log('got output ===>' + this, output);
+
+                this.results.push(output);
                 const hitLimit = this.limit && this.results.length >= this.limit;
 
+                console.log('limit? ===>' + this, this.results.length, this.limit);
+
                 if (hitLimit) {
+                  console.log('HIT LIMIT');
                   logger.info(`${this} Hit limit with ${this.results.length} results`);
                 }
-                done ||= hitLimit;
 
-                cursor.publish(output, index, done);
-                this.trigger('item', output);
+                if (!done) {
+                  cursor.publish(output, index, done);
+                  this.trigger('item', output);
+                }
+
+                done ||= hitLimit;
 
                 if (done) {
                   logger.debug(`${this} Received done signal inside callback`);
                   ok();
+                } else {
+                  done = maybeOk();
                 }
 
-                if (done) break;
+                return done;
               }
-            });
+            );
+            all.push(p);
+          }
+
+          await Promise.all(all);
+
+          // const doneOnBatch = await this.processBatch(
+          //   { cursor, items: b, index },
+          //   maybeOk);
+          // done ||= doneOnBatch;
+          // console.log('DONE?' + this, done);
 
         } catch(e) {
           await cursor.error(e, index);
           throw e;
         }
 
-        completed++;
-        done ||= maybeOk();
+        completed += b.length;
 
-        // if (this.limit && completed >= this.limit) {
-        //   logger.debug(`Number completed in ${this} exceeds limit ${this.limit}, done`);
-        //   ok();
-        // }
-        // maybeOk();
+        if (done) {
+          ok();
+        } else {
+          done ||= maybeOk();
+        }
       };
 
       const maybeOk = () => {
@@ -211,28 +218,32 @@ export const BaseStep = class {
       onNextDone = next && next.on(
         'done',
         () => {
+          console.log('!!! NEXT done' + this);
           nextDone = true;
           maybeOk();
+          // throw 'STOP';
         });
 
       onParentDone = parent.on(
         'done',
         () => {
+          console.log('!!! parent done' + this);
           parentDone = true;
           processBatch();
           maybeOk();
+          // throw 'xyz';
         });
 
       onParentItem = parent.on('item', async (item) => {
+        console.log('Got parent item'+this, item);
         if (
           this.limit !== null &&
           this.limit !== undefined &&
           received >= this.limit)
         {
+          console.log('Ignore parent item due to:' + this, received);
           return;
         }
-
-        received++;
 
         logger.debug(`${this} Pushing onto batch, current=${batch.length}, limit=${batchSize}`);
         batch.push(item);
@@ -244,6 +255,7 @@ export const BaseStep = class {
       });
 
       if (parent) {
+        console.log('RUN PARENT', parent.name());
         parent.run(cursor, steps, index - 1);
       } else {
         await this.process(cursor, [], (output) => cursor.publish(output, index));
@@ -257,7 +269,9 @@ export const BaseStep = class {
     parent.remove(onParentItem);
     parent.remove(onParentDone);
 
+    console.log('TRIGGER DONE' + this);
     this.trigger('done');
+    // throw 'DONE';
 
     return this.results;
   }

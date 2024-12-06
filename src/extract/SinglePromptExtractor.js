@@ -16,9 +16,13 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     logger.debug(`Getting doc in ${this}`);
 
-    const { extraRules, description, limit } = options || {};
-    let { single } = options || {};
-    if (single) single = {};
+    let { description, limit, single } = options || {};
+
+    let extraRules = '';
+    if (single) {
+      extraRules = `These rules OVERRIDE previous instructions:
+- You must find ONLY ONE result`;
+    }
 
     logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
     const that = this;

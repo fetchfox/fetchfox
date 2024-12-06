@@ -125,4 +125,27 @@ describe('CodeGenExtractor', function() {
     assert.equal(out.items.length, 161);
   });
 
+
+  it('should run workflow with crawl and code gen pokemon @run', async () => {
+    const wf = await fox
+      .config({
+        extractor: 'code-gen',
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl({
+        query: 'Find links to pages of individual Pokemon. Do NOT find the /all, the /national page, the /type pages, etc.',
+        limit: 20,
+      })
+      .extract({
+        name: 'What is the name of this pokemon?',
+        hp: 'What is the HP of this pokemon?',
+        single: true,
+      });
+
+    const out = await wf.run();
+
+    // assert.equal(out.items.length, 161);
+  });
+
+
 });

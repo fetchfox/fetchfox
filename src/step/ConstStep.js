@@ -19,6 +19,8 @@ export const ConstStep = class extends BaseStep {
   }
 
   async run(cursor, parent, index) {
+    logger.debug(`${this} Run const special case`);
+
     for (const data of this.items) {
       const copy = { ...data };
       if (copy.url) {
@@ -29,6 +31,7 @@ export const ConstStep = class extends BaseStep {
       cursor.publish(output, index);
       this.trigger('item', output);
     }
+    console.log('const run done');
     cursor.finish(index);
     this.trigger('done');
   }

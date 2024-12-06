@@ -21,8 +21,6 @@ Follow these important rules:
 - Generally avoid returning results with many (not found) fields
 - For URL, always include the FULL ABSOLUTE URL
 
-{{extraRules}}
-
 Example of a valid response with multiple items:
 {"itemCount": 2}
 {"authorName": "Ernest Hemingway", "bookName": "The Old Man and the Sea"}
@@ -44,6 +42,8 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
 >>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS:
 {{questions}}
+
+{{extraRules}}
 `);
 
 export const iterative = new Template(
@@ -210,8 +210,8 @@ Follow these guidelines:
 
 It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
 - If you made changes, explain the changes compared to the previous code, and why you think it will fix any issues
-- If you made no changes, say so, and say why not
 - You may disregard feedback that would make the code too complicated, more brittle, or that is too hard to integrate. Consider the feedback and use your best judgement.
+- If the feedback accuracy score is LOW, you can MOSTLY IGNORE the previous iteation
 
 The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
 - \`html\`: the HTML of the page
