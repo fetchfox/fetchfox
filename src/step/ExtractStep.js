@@ -39,7 +39,7 @@ export const ExtractStep = class extends BaseStep {
 
     const ex = cursor.ctx.extractor;
     if (ex instanceof CodeGenExtractor) {
-      logger.info(`Code gen init`);
+      logger.info(`${this} Code gen init`);
 
       if (!this.examples) {
         logger.info(`${this} Code gen taking examples from batch`);
@@ -59,23 +59,18 @@ export const ExtractStep = class extends BaseStep {
         }
       }
 
-      // await ex.load(this.examples, this.questions);
-
       if (ex.state) {
-        logger.info(`Code gen loaded state, NOT learning`);
+        logger.info(`${this} Code gen loaded state, NOT learning`);
       } else {
-        logger.info(`Code gen got no state, START learning`);
-        await ex.init(
+        logger.info(`${this} Code gen got no state, START learning`);
+        await ex.learn(
           this.examples,
           {
             questions: this.questions,
             single: this.single,
           });
-        await ex.learn();
-        await ex.save();
       }
 
-      console.log('wait for ready');
       await ex.ready();
     }
 

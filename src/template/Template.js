@@ -65,8 +65,6 @@ export const Template = class {
         return result;
       }
     }
-    console.log('cache', cache);
-    console.log('key  ', key);
 
     const start = (new Date()).getTime();
 
@@ -76,8 +74,6 @@ export const Template = class {
     let lowerBound = 0;
     let upperBound = Math.min(context[flexField].length, maxTokens * 8);
 
-    console.log('guess, lb, ub', guess, lowerBound, upperBound, accuracy);
-
     const render = (size) => {
       const copy = { ...context };
       copy[flexField] = context[flexField].substr(0, size);
@@ -85,7 +81,6 @@ export const Template = class {
     }
 
     for (let i = 0; i < 10; i++) {
-    // while (upperBound - lowerBound > accuracy) {
       prompt = render(guess);
       tokens = await countFn(prompt);
 
@@ -94,7 +89,6 @@ export const Template = class {
         break;
       }
 
-      console.log('tokens, max\t', tokens, '\t', maxTokens);
 
       if (tokens > maxTokens) {
         upperBound = guess;
@@ -103,16 +97,13 @@ export const Template = class {
       }
 
       guess = (lowerBound + upperBound) / 2;
-
-      console.log('guess, lb, ub', guess, lowerBound, upperBound);
     }
 
     prompt = render(lowerBound);
     const final = await countFn(prompt);
-    console.log('final', final);
 
     const took = (new Date()).getTime() - start;
-    logger.debug(`Capped render took ${took} msec`);
+    logger.debug(`Capped render took ${took} msec, gave ${final} tokens`);
 
     if (cache) {
       cache.set(key, prompt);

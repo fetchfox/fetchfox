@@ -47,53 +47,6 @@ describe('CodeGenExtractor', function() {
 
   });
 
-  it('should save and load @disabled', async () => {
-    const urls = flightUrls;
-    const fetcher = getFetcher();
-
-    const start1 = (new Date()).getTime();
-    const questions = {
-      departureTime: 'Time that the flight is departing. Format: H:MM AM/PM',
-      arrivalTime: 'Time that the flight is arriving. Format: H:MM AM/PM',
-    };
-    const cge1 = new CodeGenExtractor({ kv: 'memory', ai: 'openai:gpt-4o' });
-    await cge1.init(urls, questions);
-    await cge1.learn();
-    const all1 = await cge1.all(urls[0], questions);
-    const took1 = (new Date()).getTime() - start1;
-
-    await cge1.save();
-    const doc = await fetcher.first(urls[0]);
-
-    const start2 = (new Date()).getTime();
-    const cge2 = new CodeGenExtractor({ kv: 'memory', ai: 'openai:gpt-4o' });
-    await cge2.load(urls, questions);
-    const all2 = await cge2.all(doc, questions);
-    const took2 = (new Date()).getTime() - start2;
-
-    const expected = [
-      { departureTime: '7:15 AM', arrivalTime: '3:42 PM' },
-      { departureTime: '9:00 AM', arrivalTime: '5:20 PM' },
-      { departureTime: '10:45 AM', arrivalTime: '7:26 PM' },
-      { departureTime: '12:55 PM', arrivalTime: '9:21 PM' },
-      { departureTime: '2:45 PM', arrivalTime: '11:06 PM' },
-      { departureTime: '4:40 PM', arrivalTime: '1:16 AM' },
-      { departureTime: '9:25 PM', arrivalTime: '5:59 AM' },
-      // TODO: all all the correct times
-    ];
-
-    assert.equal(
-      JSON.stringify(all1.slice(0, expected.length)),
-      JSON.stringify(expected));
-
-    assert.equal(
-      JSON.stringify(all2.slice(0, expected.length)),
-      JSON.stringify(expected));
-
-    assert.ok(took1 > 1000, 'code gen learning should take at least a second');
-    assert.ok(took2 < 200, 'code gen execution from load should be fast');
-  });
-
   it('should learn oyl @run', async () => {
     const urls = ['https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/irpyrvx78l/https-ownyourlabs-com-shop-oyl-.html'];
 
@@ -122,6 +75,7 @@ describe('CodeGenExtractor', function() {
       });
 
     const out = await wf.run();
+
     assert.equal(out.items.length, 161);
   });
 
@@ -144,7 +98,8 @@ describe('CodeGenExtractor', function() {
 
     const out = await wf.run();
 
-    // assert.equal(out.items.length, 161);
+    assert.equal(out.items.length, 20);
+    // TODO: verify
   });
 
 

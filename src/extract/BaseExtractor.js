@@ -167,6 +167,9 @@ export const BaseExtractor = class {
       }
 
     } finally {
+
+      logger.info(`${this} done extracting ${target}`);
+
       done = true;
 
       const took = (new Date()).getTime() - start;

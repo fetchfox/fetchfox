@@ -31,7 +31,6 @@ export const ConstStep = class extends BaseStep {
       cursor.publish(output, index);
       this.trigger('item', output);
     }
-    console.log('const run done');
     cursor.finish(index);
     this.trigger('done');
   }
