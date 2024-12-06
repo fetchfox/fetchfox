@@ -84,6 +84,28 @@ export const BaseStep = class {
     }
   }
 
+  async processBatch({ cursor, items, index }, cb) {
+    const results = [];
+    for (const item of items) {
+      await this.process({ cursor, item }, (r) => {
+        console.log('r', r);
+        results.push(r);
+      });
+      // for await (const r of gen) {
+      //   console.log('--->', r);
+      //   results.push(r);
+      // }
+      // for await (const output of
+      // const p = new Promise((ok) => {
+      //   this.process({ cursor, item, index });
+      // });
+      // promises.push(p);
+    }
+    // const outputs = await Promise.all(promises);
+    // cb(outputs);
+    cb(results);
+  }
+
   async run(cursor, steps, index) {
     try {
       return this._run(cursor, steps, index);
@@ -101,6 +123,8 @@ export const BaseStep = class {
     // and maybe others.
 
     logger.info(`Run ${this}`);
+
+    this.start = new Date();
 
     await this._before(cursor, index);
 
@@ -124,36 +148,25 @@ export const BaseStep = class {
     // 2) Parent is done, and all its outputs are completed
     // 3) There is a next step, and next step is done (regardless 
     await new Promise(async (ok) => {
-      const batchSize = 10;
+      const batchSize = 3;
       let batch = [];
 
       const processBatch = async () => {
-        const b = batch;
+        const items = batch;
         batch = [];
 
-        for (const item of b) {
-          try {
-            if (done) continue;
-
-            if (!this.start) {
-              this.start = new Date();
-            }
-
-            await this.process(
-              { cursor, item, index },
-              (output) => {
-                if (!this.firstResult) {
-                  this.firstResult = new Date();
-                  const took = this.firstResult - this.start;
-                  logger.debug(`${this} got first result after ${(took).toFixed(1)} msec`);
-                }
-
+        try {
+          await this.processBatch(
+            { cursor, items, index },
+            (outputs) => {
+              console.log('outputs', outputs);
+              for (const output of outputs) {
                 this.results.push(output);
 
                 const hitLimit = this.limit && this.results.length >= this.limit;
 
                 if (hitLimit) {
-                  logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
+                  logger.info(`${this} Hit limit with ${this.results.length} results`);
                 }
                 done ||= hitLimit;
 
@@ -161,29 +174,27 @@ export const BaseStep = class {
                 this.trigger('item', output);
 
                 if (done) {
-                  logger.debug(`Received done signal inside callback for ${this}`);
+                  logger.debug(`${this} Received done signal inside callback`);
                   ok();
-                } else {
-                  done = maybeOk();
                 }
 
-                return done;
-              });
+                if (done) break;
+              }
+            });
 
-          } catch(e) {
-            await cursor.error(e, index);
-            throw e;
-          }
-
-          completed++;
+        } catch(e) {
+          await cursor.error(e, index);
+          throw e;
         }
 
-        if (this.limit && completed >= this.limit) {
-          logger.debug(`Number completed in ${this} exceeds limit ${this.limit}, done`);
-          ok();
-        }
+        completed++;
+        done ||= maybeOk();
 
-        maybeOk();
+        // if (this.limit && completed >= this.limit) {
+        //   logger.debug(`Number completed in ${this} exceeds limit ${this.limit}, done`);
+        //   ok();
+        // }
+        // maybeOk();
       };
 
       const maybeOk = () => {
@@ -223,8 +234,11 @@ export const BaseStep = class {
 
         received++;
 
+        logger.debug(`${this} Pushing onto batch, current=${batch.length}, limit=${batchSize}`);
         batch.push(item);
+
         if (batch.length >= batchSize) {
+          logger.debug(`${this} Process batch`);
           processBatch();
         }
       });
