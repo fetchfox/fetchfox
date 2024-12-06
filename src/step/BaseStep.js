@@ -130,6 +130,72 @@ export const BaseStep = class {
     // 2) Parent is done, and all its outputs are completed
     // 3) There is a next step, and next step is done (regardless 
     await new Promise(async (ok) => {
+      const batchSize = 10;
+      let batch = [];
+
+      const processBatch = async () => {
+        const b = batch;
+        batch = [];
+
+        for (const item of b) {
+          try {
+            const p = this.q.add(() => {
+              if (done) return;
+
+              if (!this.start) {
+                this.start = new Date();
+              }
+
+              return this.process(
+                { cursor, item, index },
+                (output) => {
+                  if (!this.firstResult) {
+                    this.firstResult = new Date();
+                    const took = this.firstResult - this.start;
+                    logger.debug(`${this} got first result after ${(took / 1000).toFixed(2)} sec`);
+                  }
+
+                  this.results.push(output);
+
+                  const hitLimit = this.limit && this.results.length >= this.limit;
+
+                  if (hitLimit) {
+                    logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
+                  }
+                  done ||= hitLimit;
+
+                  cursor.publish(output, index, done);
+                  this.trigger('item', output);
+
+                  if (done) {
+                    logger.debug(`Received done signal inside callback for ${this}`);
+                    ok();
+                  } else {
+                    done = maybeOk();
+                  }
+
+                  return done;
+                })
+            });
+
+            logger.debug(`Step ${this} has ${this.q.size} tasks in queue`);
+            await p;
+
+          } catch(e) {
+            await cursor.error(e, index);
+            throw e;
+          }
+
+          completed++;
+        }
+
+        if (this.limit && completed >= this.limit) {
+          logger.debug(`Number completed in ${this} exceeds limit ${this.limit}, done`);
+          ok();
+        }
+
+        maybeOk();
+      };
 
       const maybeOk = () => {
         logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
@@ -153,6 +219,7 @@ export const BaseStep = class {
         'done',
         () => {
           parentDone = true;
+          processBatch();
           maybeOk();
         });
 
@@ -167,62 +234,10 @@ export const BaseStep = class {
 
         received++;
 
-        try {
-          const p = this.q.add(() => {
-            if (done) return;
-
-            if (!this.start) {
-              this.start = new Date();
-            }
-
-            return this.process(
-              { cursor, item, index },
-              (output) => {
-                if (!this.firstResult) {
-                  this.firstResult = new Date();
-                  const took = this.firstResult - this.start;
-                  logger.debug(`${this} got first result after ${(took / 1000).toFixed(2)} sec`);
-                }
-
-                this.results.push(output);
-
-                const hitLimit = this.limit && this.results.length >= this.limit;
-
-                if (hitLimit) {
-                  logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
-                }
-                done ||= hitLimit;
-
-                cursor.publish(output, index, done);
-                this.trigger('item', output);
-
-                if (done) {
-                  logger.debug(`Received done signal inside callback for ${this}`);
-                  ok();
-                } else {
-                  done = maybeOk();
-                }
-
-                return done;
-              })
-          });
-
-          logger.debug(`Step ${this} has ${this.q.size} tasks in queue`);
-          await p;
-
-        } catch(e) {
-          await cursor.error(e, index);
-          throw e;
+        batch.push(item);
+        if (batch.length >= batchSize) {
+          processBatch();
         }
-
-        completed++;
-
-        if (this.limit && completed >= this.limit) {
-          logger.debug(`Number completed in ${this} exceeds limit ${this.limit}, done`);
-          ok();
-        }
-
-        maybeOk();
       });
 
       if (parent) {
