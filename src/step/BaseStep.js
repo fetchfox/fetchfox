@@ -1,4 +1,3 @@
-import PQueue from 'p-queue';
 import { logger } from '../log/logger.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
 
@@ -9,11 +8,6 @@ export const BaseStep = class {
     this.maxPages = args?.maxPages || 5;
 
     this.callbacks = {};
-    this.q = new PQueue({
-      concurrency: args?.concurrency === undefined ? 1000 : args?.concurrency,
-      intervalCap: args?.intervalCap === undefined ? 1000 : args?.intervalCap,
-      interval: args?.interval === undefined ? 1 : args?.interval,
-    });
   }
 
   toString() {
@@ -139,47 +133,42 @@ export const BaseStep = class {
 
         for (const item of b) {
           try {
-            const p = this.q.add(() => {
-              if (done) return;
+            if (done) continue;
 
-              if (!this.start) {
-                this.start = new Date();
-              }
+            if (!this.start) {
+              this.start = new Date();
+            }
 
-              return this.process(
-                { cursor, item, index },
-                (output) => {
-                  if (!this.firstResult) {
-                    this.firstResult = new Date();
-                    const took = this.firstResult - this.start;
-                    logger.debug(`${this} got first result after ${(took / 1000).toFixed(2)} sec`);
-                  }
+            await this.process(
+              { cursor, item, index },
+              (output) => {
+                if (!this.firstResult) {
+                  this.firstResult = new Date();
+                  const took = this.firstResult - this.start;
+                  logger.debug(`${this} got first result after ${(took).toFixed(1)} msec`);
+                }
 
-                  this.results.push(output);
+                this.results.push(output);
 
-                  const hitLimit = this.limit && this.results.length >= this.limit;
+                const hitLimit = this.limit && this.results.length >= this.limit;
 
-                  if (hitLimit) {
-                    logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
-                  }
-                  done ||= hitLimit;
+                if (hitLimit) {
+                  logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
+                }
+                done ||= hitLimit;
 
-                  cursor.publish(output, index, done);
-                  this.trigger('item', output);
+                cursor.publish(output, index, done);
+                this.trigger('item', output);
 
-                  if (done) {
-                    logger.debug(`Received done signal inside callback for ${this}`);
-                    ok();
-                  } else {
-                    done = maybeOk();
-                  }
+                if (done) {
+                  logger.debug(`Received done signal inside callback for ${this}`);
+                  ok();
+                } else {
+                  done = maybeOk();
+                }
 
-                  return done;
-                })
-            });
-
-            logger.debug(`Step ${this} has ${this.q.size} tasks in queue`);
-            await p;
+                return done;
+              });
 
           } catch(e) {
             await cursor.error(e, index);
@@ -253,9 +242,6 @@ export const BaseStep = class {
     onNextDone && next.remove(onNextDone);
     parent.remove(onParentItem);
     parent.remove(onParentDone);
-
-    logger.info(`Done with ${this}, clearing queue with ${this.q.size} tasks left`);
-    this.q.clear();
 
     this.trigger('done');
 
