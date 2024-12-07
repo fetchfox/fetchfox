@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import ShortUniqueId from 'short-unique-id';
 
 export const Store = class {
@@ -11,6 +12,7 @@ export const Store = class {
     }
     this.kv = kv;
     this.subs = {};
+    this.q = Promise.resolve();
   }
 
   nextId() {
@@ -49,9 +51,17 @@ export const Store = class {
     }
   }
 
+  async _set(key, val) {
+    this.q = this.q.then(async () => {
+      return await this.kv.set(key, val);
+    });
+    return this.q;
+  }
+
   async pub(id, results) {
     const updatedAt = Math.floor((new Date()).getTime() / 1000);
-    await this.kv.set(id, { ...results, updatedAt });
+    logger.debug(`${this} Pub set ${id}`);
+    await this._set(id, { ...results, updatedAt })
     this.trigger(id);
   }
 
@@ -60,8 +70,9 @@ export const Store = class {
     const job = results || (await this.kv.get(id)) || {};
     job.done = true;
     job.finishedAt = finishedAt;
-    await this.kv.set(id, job);
 
+    logger.debug(`${this} Finish set ${id}`);
+    await this._set(id, job);
     await this.trigger(id);
 
     delete this.subs[id];
