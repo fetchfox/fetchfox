@@ -177,13 +177,7 @@ export const BaseAI = class {
 
       if (err) {
         logger.warn(`Error during AI stream, not caching`);
-
-        if (options.strict || isCritical(err)) {
-          throw new AIError(err);
-        } else {
-          logger.error(`${this} not in strict mode, continuing error in stream: ${err}`);
-        }
-        return;
+        throw new AIError(err);
       } else {
         this.setCache(prompt, options, result);
       }
@@ -212,11 +206,7 @@ export const BaseAI = class {
         logger.error(`Caught ${this} error: ${e}`);
 
         if (!e.status || --retries <= 0) {
-          if (options.strict || isCritical(e)) {
-            throw new AIError(e);
-          } else {
-            logger.error(`${this} not in strict mode, continuing error in ask: ${err}`);
-          }
+          throw new AIError(e);
         }
 
         logger.debug(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
