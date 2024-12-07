@@ -158,7 +158,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     const channel = createChannel();
     const pagesPromise = new Promise(async (ok) => {
       if (!iterations) {
-        logger.info(`${this} not paginating, return`);
+        logger.info(`${this} Not paginating, return`);
         ok();
       }
 
@@ -182,7 +182,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         const prompt = analyzePagination.render({ html, domainSpecific });
 
         const answer = await this.ai.ask(prompt, { format: 'json' });
-        logger.debug(`${this} got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
+        logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
         if (answer?.partial?.hasPagination &&
           answer?.partial?.paginationJavascript
@@ -191,7 +191,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           try {
             fn = new Function(answer.partial.paginationJavascript);
           } catch(e) {
-            logger.warn(`${this} got invalid pagination function ${answer.partial.paginationJavascript}, dropping it`);
+            logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it`);
           }
           if (fn) {
             fns.push(fn);
@@ -200,7 +200,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
 
       if (!fns.length) {
-        logger.warn(`${this} didn't find a way to paginate, bailing`);
+        logger.warn(`${this} Didn't find a way to paginate, bailing`);
         ok();
       }
 
@@ -208,7 +208,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       let fnIndex = 0;
       for (let i = 1; i < iterations; i++) {
         const fn = fns[fnIndex];
-        logger.debug(`${this} running ${fn} on pagination iteration #${i}`);
+        logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
         try {
           await page.evaluate(fn);
         } catch (e) {
