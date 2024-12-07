@@ -90,7 +90,7 @@ export const Document = class {
 
     if (data.htmlUrl) {
       logger.debug(`Loading HTML url ${data.htmlUrl}`);
-      const resp = await fetch(data.htmlUrl);
+      const resp = await fetchRetry(data.htmlUrl);
       await this.read(resp, null, null, data);
     }
   }
@@ -259,4 +259,23 @@ export const Document = class {
       return;
     }
   }
+}
+
+async function fetchRetry(url, options={}, retries=3, delay=5000) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+      return resp;
+    } catch (e) {
+      lastError = e;
+      if (attempt < retries) {
+        console.log(`Retrying... attempt ${attempt + 1}`);
+        await new Promise((ok) => setTimeout(ok, delay));
+      }
+    }
+  }
+
+  throw new Error(`Failed after ${retries + 1} attempts: ${lastError.message}`);
 }
