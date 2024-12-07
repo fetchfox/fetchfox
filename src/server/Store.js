@@ -12,6 +12,11 @@ export const Store = class {
     }
     this.kv = kv;
     this.subs = {};
+
+    // TODO: pul out reusable debounce function/component
+    this.debounceSet = {};
+    this.debounceTrigger = {};
+
     this.q = Promise.resolve();
   }
 
@@ -42,26 +47,69 @@ export const Store = class {
   }
 
   async trigger(id) {
-    if (this.subs[id]) {
-      const subs = this.subs[id];  // Store subs before async call
-      const job = await this.kv.get(id);
-      for (const cb of subs) {
-        cb(job);
-      }
+    if (!this.debounceTrigger[id]) {
+      this.debounceTrigger[id] = {
+        q: Promise.resolve(),
+        seq: 0,
+      };
     }
+
+    this.debounceTrigger[id].seq++;
+    const mySeq = this.debounceTrigger[id].seq;
+
+    this.debounceTrigger[id].q.then(async () => {
+      await new Promise((ok) => setTimeout(ok, 100));
+
+      if (mySeq != this.debounceTrigger[id].seq) {
+        return Promise.resolve();
+
+      } else {
+        return new Promise(async (ok) => {
+          if (this.subs[id]) {
+            const subs = this.subs[id];  // Store subs before async call
+            const job = await this.kv.get(id);
+            for (const cb of subs) {
+              cb(job);
+            }
+          }
+          ok();
+        });
+      }
+    });
+
+    return this.debounceTrigger[id].q;
   }
 
-  async _set(key, val) {
-    this.q = this.q.then(async () => {
-      return await this.kv.set(key, val);
+  async _set(id, val) {
+    if (!this.debounceSet[id]) {
+      this.debounceSet[id] = {
+        q: Promise.resolve(),
+        seq: 0,
+      };
+    }
+
+    this.debounceSet[id].seq++;
+    const mySeq = this.debounceSet[id].seq;
+
+    this.debounceSet[id].q.then(async () => {
+      await new Promise(ok => setTimeout(ok, 100));
+
+      if (mySeq != this.debounceSet[id].seq) {
+        return Promise.resolve();
+
+      } else {
+        val.seq = mySeq;
+        return await this.kv.set(id, val);
+      }
     });
-    return this.q;
+
+    return this.debounceSet[id].q;
   }
 
   async pub(id, results) {
     const updatedAt = Math.floor((new Date()).getTime() / 1000);
     logger.debug(`${this} Pub set ${id}`);
-    await this._set(id, { ...results, updatedAt })
+    await this._set(id, { ...results, updatedAt });
     this.trigger(id);
   }
 
