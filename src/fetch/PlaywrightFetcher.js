@@ -156,31 +156,34 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     // Kick off job for pages 2+
     const channel = createChannel();
-    const pagesPromise = new Promise(async (ok) => {
-      if (!iterations) {
+    (async () => {
+      if (!iterations || iterations == 1) {
         logger.info(`${this} Not paginating, return`);
-        ok();
+        channel.end();
+        return;
       }
 
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
       const minDoc = await min.min(doc);
-      const chunks = await minDoc.htmlChunks((str) => this.ai.countTokens(str), this.ai.maxTokens - 10000);
       const fns = [];
 
-      logger.debug(`${this} analyze chunks for pagination`);
-      for (const html of chunks) {
-        logger.debug(`${this} pagination HTML is ${html.length} bytes`);
+      const hostname = (new URL(url)).hostname;
+      let domainSpecific = {
+        'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+      }[hostname] || '';
+      if (domainSpecific) {
+        domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
+        logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
+      }
+      const context = {
+        html: minDoc.html,
+        domainSpecific,
+      };
+      const prompts = await analyzePagination.renderMulti(
+        context, 'html', this.ai, this.cache);
 
-        const hostname = (new URL(url)).hostname;
-        let domainSpecific = {
-          'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
-        }[hostname] || '';
-        if (domainSpecific) {
-          domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
-          logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
-        }
-        const prompt = analyzePagination.render({ html, domainSpecific });
-
+      logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
+      for (const prompt of prompts) {
         const answer = await this.ai.ask(prompt, { format: 'json' });
         logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
@@ -201,7 +204,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       if (!fns.length) {
         logger.warn(`${this} Didn't find a way to paginate, bailing`);
-        ok();
+        channel.end();
+        return;
       }
 
       const docs = [];
@@ -229,9 +233,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         }
       }
 
-      channel.send({ end: true });
-      ok();
-    });
+      channel.end();
+    })();
 
     logger.info(`${this} yielding first page ${doc}`);
     yield Promise.resolve(doc);

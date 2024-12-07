@@ -81,8 +81,16 @@ export const createBlocker = () => {
 export const createChannel = () => {
   const messages = [];
   const resolvers = [];
+  let done = false;
 
   return {
+    end() {
+      done = true;
+      while (resolvers.length > 0) {
+        const resolve = resolvers.shift();
+        resolve(Promise.resolve({ end: true }));
+      }
+    },
     send(value) {
       if (resolvers.length > 0) {
         const resolve = resolvers.shift();
@@ -93,6 +101,10 @@ export const createChannel = () => {
     },
     async *receive() {
       while (true) {
+        if (done) {
+          yield Promise.resolve({ end: true });
+        }
+
         if (messages.length > 0) {
           yield messages.shift();
         } else {

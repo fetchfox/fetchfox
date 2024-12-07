@@ -99,7 +99,6 @@ export const BaseExtractor = class {
       (async () => {
         logger.info(`${this} Started pagination docs worker`);
         const gen = this.getDocs(target, docsOptions);
-
         for await (const doc of gen) {
           if (done) break;
           logger.debug(`${this} Sending doc ${doc} onto channel`);
@@ -107,7 +106,7 @@ export const BaseExtractor = class {
         }
 
         logger.debug(`${this} Done with docs worker`);
-        docsChannel.send({ end: true });
+        docsChannel.end();
       })();
 
       // Get documents, and start extraction worker for each
@@ -116,10 +115,13 @@ export const BaseExtractor = class {
 
         // Get documents from channel and start worker for each
         for await (const val of docsChannel.receive()) {
-          if (val.end) break;
+          if (val.end) {
+            break;
+          }
 
           const doc = val.doc;
-          logger.info(`${this} Starting new worker on ${doc} (${workerPromises.length})`);
+          const myIndex = workerPromises.length;
+          logger.info(`${this} Starting new worker on ${doc} (${myIndex})`);
 
           // Start an extraction worker
           workerPromises.push(
@@ -141,7 +143,7 @@ export const BaseExtractor = class {
                 resultsChannel.send({ result: r });
               }
 
-              logger.debug(`${this} Extraction worker done`);
+              logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
               ok();
             }));
         }
@@ -150,12 +152,15 @@ export const BaseExtractor = class {
         logger.debug(`${this} Wait for extraction workers`);
         await Promise.all(workerPromises);
         logger.debug(`${this} All extraction workers done`);
-        resultsChannel.send({ end: true });
+        resultsChannel.end();
       })();
+
+      let count = 0;
 
       for await (const val of resultsChannel.receive()) {
         if (done) break;
         if (val.end) break;
+        logger.debug(`${this} Found ${++count} items so far`);
         yield Promise.resolve(val.result);
       }
 

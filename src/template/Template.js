@@ -42,6 +42,22 @@ export const Template = class {
     return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`
   }
 
+  async renderMulti(context, flexField, ai, cache) {
+    const copy = { ...context };
+    const prompts = [];
+    const offset = 0;
+    while (true) {
+      const { prompt, bytesUsed, done } = await this.renderCapped(
+        copy, flexField, ai, cache);
+      prompts.push(prompt);
+      if (done) {
+        break;
+      }
+      copy[flexField] = copy[flexField].substr(bytesUsed);
+    }
+    return prompts;
+  }
+
   async renderCapped(context, flexField, ai, cache) {
     const maxTokens = ai.maxTokens || 128000;
     const countFn = async (str) => ai.countTokens(str);
@@ -89,7 +105,6 @@ export const Template = class {
         break;
       }
 
-
       if (tokens > maxTokens) {
         upperBound = guess;
       } else {
@@ -99,7 +114,8 @@ export const Template = class {
       guess = (lowerBound + upperBound) / 2;
     }
 
-    prompt = render(lowerBound);
+    const bytesUsed = lowerBound;
+    prompt = render(bytesUsed);
     const final = await countFn(prompt);
 
     const took = (new Date()).getTime() - start;
@@ -109,6 +125,6 @@ export const Template = class {
       cache.set(key, prompt);
     }
 
-    return prompt;
+    return { prompt, bytesUsed, done: bytesUsed == context[flexField].length };
   }
 }
