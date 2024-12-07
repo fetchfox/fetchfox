@@ -89,7 +89,6 @@ export const BaseExtractor = class {
     let done = false;
 
     try {
-      const map = {};
       const docs = [];
       const docsOptions = { questions, maxPages: options?.maxPages };
 
@@ -97,65 +96,65 @@ export const BaseExtractor = class {
       const resultsChannel = createChannel();
 
       // Start documents worker
-      (async (ok) => {
-        logger.info(`${this} started pagination docs worker`);
+      (async () => {
+        logger.info(`${this} Started pagination docs worker`);
         const gen = this.getDocs(target, docsOptions);
 
         for await (const doc of gen) {
           if (done) break;
-
-          logger.debug(`${this} sending doc ${doc} onto channel`);
+          logger.debug(`${this} Sending doc ${doc} onto channel`);
           docsChannel.send({ doc });
         }
+
+        logger.debug(`${this} Done with docs worker`);
         docsChannel.send({ end: true });
       })();
 
-      let count = 0;
-
       // Get documents, and start extraction worker for each
       (async () => {
+        const workerPromises = [];
+
+        // Get documents from channel and start worker for each
         for await (const val of docsChannel.receive()) {
           if (val.end) break;
 
           const doc = val.doc;
-          logger.info(`${this} starting new worker on ${doc} (${++count})`);
+          logger.info(`${this} Starting new worker on ${doc} (${workerPromises.length})`);
 
           // Start an extraction worker
-          (async () => {
-            for await (const r of this._run(doc, questions, options)) {
-              if (done) break;
+          workerPromises.push(
+            new Promise(async (ok) => {
+              for await (const r of this._run(doc, questions, options)) {
+                if (done) break;
 
-              const ser = JSON.stringify(r.publicOnly());
-              if (seen[ser]) {
-                logger.debug(`${this} dropping duplicate result: ${ser}`);
-                continue;
-              }
-              seen[ser] = true;
-
-              for (const key of Object.keys(r)) {
-                const remap = map[key];
-                if (remap) {
-                  const val = r[key];
-                  delete r[key];
-                  r[remap] = val;
+                const ser = JSON.stringify(r.publicOnly());
+                if (seen[ser]) {
+                  logger.debug(`${this} Dropping duplicate result: ${ser}`);
+                  continue;
                 }
+                seen[ser] = true;
+
+                if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+                if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
+
+                logger.debug(`${this} Sending result ${r} onto channel`);
+                resultsChannel.send({ result: r });
               }
 
-              if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
-              if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
-
-              logger.debug(`${this} sending result ${r} onto channel`);
-              resultsChannel.send({ result: r });
-            }
-
-            resultsChannel.send({ end: true });
-          })();
+              logger.debug(`${this} Extraction worker done`);
+              ok();
+            }));
         }
+
+        // Got all documents, now wait for workers to complete
+        logger.debug(`${this} Wait for extraction workers`);
+        await Promise.all(workerPromises);
+        logger.debug(`${this} All extraction workers done`);
+        resultsChannel.send({ end: true });
       })();
 
       for await (const val of resultsChannel.receive()) {
         if (done) break;
-
         if (val.end) break;
         yield Promise.resolve(val.result);
       }
@@ -167,11 +166,8 @@ export const BaseExtractor = class {
       }
 
     } finally {
-
       logger.info(`${this} done extracting ${target}`);
-
       done = true;
-
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;
     }
