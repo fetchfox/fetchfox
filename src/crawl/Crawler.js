@@ -13,6 +13,7 @@ export const Crawler = class extends BaseCrawler {
       logger.info(`Crawling ${url} with for "${query}"`);
 
       const maxPages = options?.maxPages;
+      const seen = {};
 
       for await (const doc of this.fetcher.fetch(url, { maxPages })) {
         doc.parseLinks(options?.css);
@@ -42,7 +43,6 @@ export const Crawler = class extends BaseCrawler {
               2),
           });
 
-          const seen = {};
           const toLink = {};
           for (const link of links) {
             toLink[link.id] = link;
