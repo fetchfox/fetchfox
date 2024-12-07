@@ -107,7 +107,7 @@ export const Workflow = class extends BaseWorkflow {
 
     try {
       if (this.ctx.limit) {
-        last.limit = this.ctx.limit;
+        last.limit = Math.min(this.ctx.limit, last.limit);
       }
 
       const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
