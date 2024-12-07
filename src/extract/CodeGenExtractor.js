@@ -83,7 +83,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
         sample.push(copy.publicOnly());
         if (sample.length >= sampleSize) break;
       }
-      // helperStream.return();
       return sample;
     }
 
@@ -151,11 +150,11 @@ export const CodeGenExtractor = class extends BaseExtractor {
         continue;
       }
 
-      // if (feedback.accuracy <= junkAccuracy) {
-      //   logger.debug(`${this} Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
-      //   genFn = () => this.firstAttempt(docs, samples, questions);
-      //   continue;
-      // }
+      if (feedback.accuracy <= junkAccuracy) {
+        logger.debug(`${this} Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
+        genFn = () => this.firstAttempt(docs, samples, questions);
+        continue;
+      }
 
       // Update our state to the candidate
       this.state.results = candidate.results;
@@ -283,7 +282,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
     return { fn, code };
   }
 
-  async *run(target, questions, options) {
+  async *_run(doc, questions, options) {
     if (!this.state) {
       throw new Error('Code gen must learn a state before running');
     }
@@ -292,15 +291,12 @@ export const CodeGenExtractor = class extends BaseExtractor {
       throw new Error(`Question mismatch in code gen run: ${JSON.stringify(questions)} != ${JSON.stringify(this.state.questions)}`);
     }
 
-    const gen = await this.getDocs(target);
-    const doc = (await gen.next()).value;
-
     const { fn } = codeToFn(this.state.code);
     const results = runFn(fn, doc.html);
 
     logger.info(`Returning ${results.length} results from code gen function`);
     for (const item of results) {
-      yield Promise.resolve(item);
+      yield Promise.resolve(new Item(item));
     }
   }
 }
