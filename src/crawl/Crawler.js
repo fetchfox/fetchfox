@@ -20,7 +20,7 @@ export const Crawler = class extends BaseCrawler {
         const links = doc.links;
         doc.parseLinks();
 
-        const maxBytes = this.ai.maxTokens / 4;
+        const maxBytes = this.ai.maxTokens / 2;
         const slimmer = item => ({
           id: item.id,
           html: item.html.substr(0, 200),

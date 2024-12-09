@@ -108,11 +108,11 @@ export const BaseWorkflow = class {
         next,
       ]);
 
-      if (done) break;
-
       for (const r of result) {
         yield Promise.resolve(r);
       }
+
+      if (done) break;
     }
 
     logger.info(`Streaming done`);

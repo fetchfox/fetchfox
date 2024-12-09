@@ -1,0 +1,1 @@
+{"val":{"delta":{},"partial":{"description":"Scrapes articles from the NFL subreddit, capturing titles, authors, and publication dates.","name":"NFL Subreddit Article Collector","slug":"nfl-subreddit-collector"},"usage":{"input":365,"output":48,"total":413}},"expiresAt":1733710121902}

@@ -3,15 +3,16 @@ import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
+import { testCache } from '../lib/util.js';
 
 describe('github.com', function() {
-  this.timeout(5 * 60 * 1000);
+  this.timeout(10 * 1000);
 
   it('should do basic scrape @run', async () => {
     let countPartials = 0;
     const out = await fox
       .config({
-        diskCachex: os.tmpdir() + '/fetchfox-test-cache',
+        cache: testCache(),
         fetcher: [
           'playwright',
           { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 },
@@ -56,7 +57,7 @@ describe('github.com', function() {
     let countPartials = 0;
     const out = await fox
       .config({
-        diskCachex: os.tmpdir() + '/fetchfox-test-cache',
+        cache: testCache(),
         fetcher: [
           'playwright',
           { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 },

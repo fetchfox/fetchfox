@@ -40,29 +40,6 @@ export const Document = class {
     return data;
   }
 
-  async htmlChunks(countFn, maxTokens) {
-    let index = 0;
-    let tokensPerByte = 0;
-
-    for (const bytes of [1000, 4000, 16000, 32000]) {
-      const tokens = await countFn(this.html.substr(0, bytes));
-      tokensPerByte = Math.max(tokensPerByte, tokens / bytes);
-    }
-
-    tokensPerByte *= 1.1;
-    const bytesPerChunk = Math.floor(maxTokens / tokensPerByte);
-    logger.debug(`Guessing ${tokensPerByte.toFixed(2)} tokens/byte -> ${bytesPerChunk} bytes/chunk`);
-
-    const chunks = [];
-    for (let i = 0; i < this.html.length; i += bytesPerChunk) {
-      chunks.push(this.html.slice(i, i + bytesPerChunk));
-    }
-
-    logger.debug(`Divided ${this} into ${chunks.length} chunks`);
-
-    return chunks;
-  }
-
   async uploadHtml(presignedUrl) {
     await fetch(presignedUrl, {
       method: 'PUT',
@@ -271,7 +248,7 @@ async function fetchRetry(url, options={}, retries=3, delay=5000) {
     } catch (e) {
       lastError = e;
       if (attempt < retries) {
-        console.log(`Retrying... attempt ${attempt + 1}`);
+        logger.debig(`[Document] Retrying... attempt ${attempt + 1}`);
         await new Promise((ok) => setTimeout(ok, delay));
       }
     }

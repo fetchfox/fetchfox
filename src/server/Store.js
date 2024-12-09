@@ -12,12 +12,11 @@ export const Store = class {
     }
     this.kv = kv;
     this.subs = {};
+    this.debounce = {};
+  }
 
-    // TODO: pul out reusable debounce function/component
-    this.debounceSet = {};
-    this.debounceTrigger = {};
-
-    this.q = Promise.resolve();
+  toString() {
+    return '[Store]';
   }
 
   nextId() {
@@ -46,71 +45,60 @@ export const Store = class {
     this.subs[id] = this.subs[id].filter(c => c != cb);
   }
 
-  async trigger(id) {
-    if (!this.debounceTrigger[id]) {
-      this.debounceTrigger[id] = {
+  async _debounceExec(which, id, msec, fn) {
+    if (!this.debounce[which]) {
+      this.debounce[which] = {};
+    }
+    if (!this.debounce[which][id]) {
+      this.debounce[which][id] = {
         q: Promise.resolve(),
         seq: 0,
       };
     }
 
-    this.debounceTrigger[id].seq++;
-    const mySeq = this.debounceTrigger[id].seq;
-
-    this.debounceTrigger[id].q.then(async () => {
-      await new Promise((ok) => setTimeout(ok, 100));
-
-      if (mySeq != this.debounceTrigger[id].seq) {
+    const db = this.debounce[which];
+    db[id].seq++;
+    const mySeq = db[id].seq;
+    db[id].q.then(async () => {
+      await new Promise(ok => setTimeout(ok, msec));
+      if (mySeq != db[id].seq) {
         return Promise.resolve();
-
       } else {
-        return new Promise(async (ok) => {
-          if (this.subs[id]) {
-            const subs = this.subs[id];  // Store subs before async call
-            const job = await this.kv.get(id);
-            for (const cb of subs) {
-              cb(job);
-            }
-          }
-          ok();
-        });
+        return await fn();
       }
     });
 
-    return this.debounceTrigger[id].q;
+    return db[id].q;
+  }
+
+  async trigger(id, val) {
+    const subs = this.subs[id];
+    return this._debounceExec(
+      'trigger',
+      id,
+      100,
+      async () => {
+        if (!subs) return;
+        for (const cb of subs) {
+          cb(val);
+        }
+      });
   }
 
   async _set(id, val) {
-    if (!this.debounceSet[id]) {
-      this.debounceSet[id] = {
-        q: Promise.resolve(),
-        seq: 0,
-      };
-    }
-
-    this.debounceSet[id].seq++;
-    const mySeq = this.debounceSet[id].seq;
-
-    this.debounceSet[id].q.then(async () => {
-      await new Promise(ok => setTimeout(ok, 100));
-
-      if (mySeq != this.debounceSet[id].seq) {
-        return Promise.resolve();
-
-      } else {
-        val.seq = mySeq;
-        return await this.kv.set(id, val);
-      }
-    });
-
-    return this.debounceSet[id].q;
+    return this._debounceExec(
+      'set',
+      id,
+      100,
+      () => this.kv.set(id, val));
   }
 
   async pub(id, results) {
     const updatedAt = Math.floor((new Date()).getTime() / 1000);
     logger.debug(`${this} Pub set ${id}`);
-    await this._set(id, { ...results, updatedAt });
-    this.trigger(id);
+    const val = { ...results, updatedAt };
+    await this._set(id, val);
+    this.trigger(id, val);
   }
 
   async finish(id, results) {
@@ -121,8 +109,7 @@ export const Store = class {
 
     logger.debug(`${this} Finish set ${id}`);
     await this._set(id, job);
-    await this.trigger(id);
-
+    await this.trigger(id, job);
     delete this.subs[id];
   }
 }

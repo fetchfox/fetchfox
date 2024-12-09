@@ -11,51 +11,41 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   }
 
   async *_run(doc, questions, options) {
+    logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     const { stream } = options || {};
-
-    logger.debug(`Getting doc in ${this}`);
-
     let { description, limit, single } = options || {};
-
     let extraRules = '';
     if (single) {
       extraRules = `These rules OVERRIDE previous instructions:
 - You must find ONLY ONE result`;
     }
+    const context = {
+      url: doc.url,
+      questions: JSON.stringify(questions, null, 2),
+      html: doc.html,
+      extraRules,
+      description: (
+        description
+      ? `You are looking for this type of item(s):\n\n${description}`
+      : ''),
+    };
 
-    logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
-    const that = this;
-    const inner = async function* (html) {
-      const context = {
-        url: doc.url,
-        questions: JSON.stringify(questions, null, 2),
-        html,
-        extraRules,
-        description: (
-          description
-            ? `You are looking for this type of item(s):\n\n${description}`
-            : ''),
-      };
-      const prompt = scrapeOnce.render(context);
+    let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai, this.cache);
 
-      const stream = that.ai.stream(prompt, { format: 'jsonl' });
-      for await (const { delta } of stream) {
-        if (delta.itemCount) continue;
-        yield Promise.resolve({
-          item: new Item(delta, doc),
-        });
-      }
+    const max = 50;
+    if (prompts.length > max) {
+      logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
+      prompts = prompts.slice(0, max);
     }
 
-    const chunks = await doc.htmlChunks((str) => this.ai.countTokens(str), this.ai.maxTokens - 20000);
-    const max = 50;
     let count = 0;
-    for (let i = 0; i < max && i < chunks.length; i++) {
-      logger.debug(`Extraction iteration ${i + 1} of max ${max} for ${doc}`);
-      for await (const result of inner(chunks[i])) {
-        logger.debug(`Extraction found item (${++count} on this page): ${result.item}`);
-        yield Promise.resolve(result.item);
+    for (const prompt of prompts) {
+      logger.debug(`${this} Streaming prompt ${++count} of ${prompts.length}`);
+      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+      for await (const { delta } of stream) {
+        if (delta.itemCount) continue;
+        yield Promise.resolve(new Item(delta, doc));
       }
     }
   }

@@ -185,8 +185,8 @@ export const CodeGenExtractor = class extends BaseExtractor {
   }
 
   async feedback(docs, itemDescription, questions, code, samples, actuals) {
+    // TODO: use renderCapped with multiple fields that can flex
     const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(docs, samples, actuals);
-
     const context = {
       htmls: htmlsPrompt,
       samples: samplesPrompt,
@@ -195,7 +195,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       code,
       questions: JSON.stringify(questions, null, 2),
     };
-    const prompt = codeGenFeedback.render(context);
+    const { prompt } = await codeGenFeedback.renderCapped(context, 'htmls', this.ai, this.cache);
 
     logger.debug(`Asking for feedback using ${this.ai}`);
     const start = (new Date()).getTime();
@@ -208,7 +208,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
   async iterate(docs, itemDescription, questions, code, samples, actuals, feedback) {
     const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(docs, samples, actuals);
-
     const context = {
       htmls: htmlsPrompt,
       samples: samplesPrompt,
@@ -218,7 +217,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
       feedback: JSON.stringify(feedback, null, 2),
     };
-    const prompt = codeGenIterate.render(context);
+    const { prompt } = await codeGenIterate.renderCapped(context, 'htmls', this.ai, this.cache);
 
     logger.debug(`Iterating on code using ${this.ai}`);
     const start = (new Date()).getTime();
@@ -247,22 +246,19 @@ export const CodeGenExtractor = class extends BaseExtractor {
   }
 
   async findDescription(doc, sample, questions) {
-    const chunks = await this.chunks(doc);
     const context = {
       url: '',
-      html: chunks[0].html,
-      text: chunks[0].text,
+      text: doc.text,
       sample: JSON.stringify(sample, null, 2),
       questions: JSON.stringify(questions, null, 2),
     };
-    const prompt = findMultiDescription.render(context);
+    const { prompt } = await findMultiDescription.renderCapped(context, 'text', this.ai, this.cache);
     const answer = await this.ai.ask(prompt, { format: 'json' });
     return answer.partial.itemDescription;
   }
 
   async writeCode(docs, samples, questions, itemDescription) {
     const [htmlsPrompt, samplesPrompt] = toPrompt(docs, samples);
-
     const context = {
       itemDescription: itemDescription,
       questions: JSON.stringify(questions, null, 2),
@@ -270,7 +266,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       htmls: htmlsPrompt,
       samples: samplesPrompt,
     };
-    const prompt = codeGenMulti.render(context);
+    const { prompt } = await codeGenMulti.renderCapped(context, 'htmls', this.ai, this.cache);
 
     logger.info(`Writing code with ${this.ai}`);
     const start = (new Date()).getTime();

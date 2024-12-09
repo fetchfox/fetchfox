@@ -39,10 +39,9 @@ export const Server = class {
         data.id,
         (r) => {
           r.id = data.id;
+          ws.send(JSON.stringify(r));
           if (r.done) {
             ok(r);
-          } else {
-            ws.send(JSON.stringify(r));
           }
         });
     });

@@ -76,9 +76,9 @@ export const Template = class {
         .toString(CryptoJS.enc.Hex)
         .substr(0, 16);
       key = `template-renderCapped-${this.constructor.name}-${hash}`;
-      const result = await cache.get(key);
-      if (result) {
-        return result;
+      const cached = await cache.get(key);
+      if (cached) {
+        return cached;
       }
     }
 
@@ -121,10 +121,10 @@ export const Template = class {
     const took = (new Date()).getTime() - start;
     logger.debug(`Capped render took ${took} msec, gave ${final} tokens`);
 
+    const result = { prompt, bytesUsed, done: bytesUsed == context[flexField].length };
     if (cache) {
-      cache.set(key, prompt);
+      cache.set(key, result);
     }
-
-    return { prompt, bytesUsed, done: bytesUsed == context[flexField].length };
+    return result;
   }
 }
