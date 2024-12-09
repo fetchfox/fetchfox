@@ -1,1 +1,0 @@
-{"val":{"delta":{},"partial":{"description":"Scrape The Hacker News for articles about malware and vulnerabilities, extracting essential details.","name":"Malware Articles Scraper","slug":"malware-articles-scraper"},"usage":{"input":502,"output":47,"total":549}},"expiresAt":1733707707667}

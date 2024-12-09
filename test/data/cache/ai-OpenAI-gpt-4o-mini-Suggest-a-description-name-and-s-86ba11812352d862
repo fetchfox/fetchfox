@@ -1,1 +1,0 @@
-{"val":{"delta":{},"partial":{"description":"Scrapes posts from the NFL subreddit, gathering titles, authors, scores, and URLs.","name":"NFL Subreddit Post Collector","slug":"nfl-subreddit-posts"},"usage":{"input":362,"output":49,"total":411}},"expiresAt":1733710126404}
