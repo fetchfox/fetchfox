@@ -11,6 +11,7 @@ import { createChannel } from '../util.js';
 export const BaseExtractor = class {
   constructor(options) {
     const { kv, ai, fetcher, minimizer, cache, hardCapTokens } = options || {};
+    this.cache = cache;
     this.kv = getKV(kv);
     this.ai = getAI(ai, { cache });
     this.fetcher = getFetcher(fetcher, { cache });
@@ -71,15 +72,6 @@ export const BaseExtractor = class {
     }
   }
 
-  async chunks(doc, maxTokens) {
-    if (maxTokens) {
-      maxTokens = Math.min(maxTokens, this.hardCapTokens, this.ai.maxTokens);
-    } else {
-      maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
-    }
-    return doc.htmlChunks((str) => this.ai.countTokens(str), this.ai.maxTokens - 20000);
-  }
-
   async *run(target, questions, options) {
     this.usage.queries++;
     const start = (new Date()).getTime();
@@ -101,7 +93,7 @@ export const BaseExtractor = class {
         const gen = this.getDocs(target, docsOptions);
         for await (const doc of gen) {
           if (done) break;
-          logger.debug(`${this} Sending doc ${doc} onto channel`);
+          logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
           docsChannel.send({ doc });
         }
 
@@ -118,10 +110,13 @@ export const BaseExtractor = class {
           if (val.end) {
             break;
           }
+          if (done) {
+            break;
+          }
 
           const doc = val.doc;
           const myIndex = workerPromises.length;
-          logger.info(`${this} Starting new worker on ${doc} (${myIndex})`);
+          logger.info(`${this} Starting new worker on ${doc} (${myIndex}) done=${done}`);
 
           // Start an extraction worker
           workerPromises.push(
@@ -151,7 +146,8 @@ export const BaseExtractor = class {
         // Got all documents, now wait for workers to complete
         logger.debug(`${this} Wait for extraction workers`);
         await Promise.all(workerPromises);
-        logger.debug(`${this} All extraction workers done`);
+        done = true;
+        logger.debug(`${this} All extraction workers done ${done}`);
         resultsChannel.end();
       })();
 

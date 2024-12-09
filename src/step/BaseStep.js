@@ -219,7 +219,7 @@ export const BaseStep = class {
           return;
         }
 
-        logger.debug(`${this} Pushing onto batch, current=${batch.length}, limit=${batchSize}`);
+        logger.debug(`${this} Pushing onto batch, current=${batch.length}, batch size=${batchSize}`);
         batch.push(item);
 
         if (batch.length >= batchSize) {

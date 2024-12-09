@@ -1,15 +1,7 @@
-import { S3Cache } from '../../src/cache/S3Cache.js';
+import { DiskCache } from '../../src/cache/DiskCache.js';
 
-export const testCache = (namespace = 'default') => {
-  if (!process.env.S3_CACHE_BUCKET) {
-    return;
-  }
+export const testDiskCachePath = './test/data/cache';
 
-  const params = {
-    bucket: process.env.S3_CACHE_BUCKET,
-    prefix: `test-cache/${namespace}/`,
-    acl: 'public-read',
-    ttls: { base: 10 * 365 * 24 * 3600 },
-  };
-  return new S3Cache(params);
+export const testCache = () => {
+  return new DiskCache(testDiskCachePath);
 }

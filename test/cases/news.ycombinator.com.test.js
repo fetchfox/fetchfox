@@ -3,6 +3,7 @@ import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
+import { testCache } from '../lib/util.js';
 
 describe('news.ycombinator.com', function() {
   this.timeout(5 * 60 * 1000);
@@ -10,6 +11,7 @@ describe('news.ycombinator.com', function() {
   it('should work @run', async () => {
     let countPartials = 0;
     const out = await fox
+      .config({ cache: testCache() })
       .init('https://ffcloud.s3.amazonaws.com/fetchfox-docs/vrpsig87v0/https-news-ycombinator-com-news.html')
       .extract({
         articleTitle: 'What is the title of the article?',

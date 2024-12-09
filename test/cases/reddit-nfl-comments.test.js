@@ -2,6 +2,7 @@ import { logger } from '../../src/log/logger.js';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
+import { testCache } from '../lib/util.js';
 
 describe('old.reddit.com nfl comments', function() {
   this.timeout(5 * 60 * 1000);
@@ -9,6 +10,7 @@ describe('old.reddit.com nfl comments', function() {
   it('should scrape 5 comments @run', async () => {
     const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html';
     const out = await fox
+      .config({ cache: testCache() })
       .init(url)
       .extract({
         username: 'user who posted comment',
@@ -70,6 +72,7 @@ describe('old.reddit.com nfl comments', function() {
 
     const out = await fox
       .config({
+        cache: testCache(),
         extractor: ['code-gen', { ai: 'openai:gpt-4o' }],
       })
       .init(url)
