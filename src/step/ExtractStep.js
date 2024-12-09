@@ -87,9 +87,14 @@ export const ExtractStep = class extends BaseStep {
       logger.debug(`${this } Extract took ${(took/1000).toFixed(1)} sec so far`);
       const combined = { ...item, ...output };
       logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
+
       const done = cb(combined);
-      if (done) break;
-      if (this.single) break;
+      if (done) {
+        break;
+      }
+      if (this.single) {
+        break;
+      }
     }
   }
 }

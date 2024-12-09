@@ -146,7 +146,6 @@ export const BaseExtractor = class {
         // Got all documents, now wait for workers to complete
         logger.debug(`${this} Wait for extraction workers`);
         await Promise.all(workerPromises);
-        done = true;
         logger.debug(`${this} All extraction workers done ${done}`);
         resultsChannel.end();
       })();
@@ -154,16 +153,14 @@ export const BaseExtractor = class {
       let count = 0;
 
       for await (const val of resultsChannel.receive()) {
-        if (done) break;
-        if (val.end) break;
+        if (done) {
+          break;
+        }
+        if (val.end) {
+          break;
+        }
         logger.debug(`${this} Found ${++count} items so far`);
         yield Promise.resolve(val.result);
-      }
-
-    } catch (e) {
-      if (e instanceof AIError) {
-        logger.error(`${this} Got AI error, bailing: ${e}`);
-        return;
       }
 
     } finally {

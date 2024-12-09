@@ -86,12 +86,17 @@ export const createChannel = () => {
   return {
     end() {
       done = true;
+
       while (resolvers.length > 0) {
         const resolve = resolvers.shift();
         resolve(Promise.resolve({ end: true }));
       }
     },
     send(value) {
+      if (done) {
+        throw new Error('Cannot send on done channel');
+      }
+
       if (resolvers.length > 0) {
         const resolve = resolvers.shift();
         resolve(value);
@@ -101,15 +106,13 @@ export const createChannel = () => {
     },
     async *receive() {
       while (true) {
-        if (done) {
-          yield Promise.resolve({ end: true });
-        }
-
         if (messages.length > 0) {
           yield messages.shift();
+        } else if (done) {
+          yield Promise.resolve({ end: true });
         } else {
-          const promise = new Promise((resolve) => {
-            resolvers.push(resolve);
+          const promise = new Promise((ok) => {
+            resolvers.push(ok);
           });
           yield await promise;
         }
