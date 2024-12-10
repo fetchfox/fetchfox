@@ -144,6 +144,7 @@ export const Server = class {
       }
     });
 
+    data.context = { ...this.context, ...(data.context || {}) };
     this.safeSend(child, { command: 'start', id, data });
     return id;
   }

@@ -188,12 +188,12 @@ export const BaseStep = class {
           );
 
           p.catch((e) => {
-            logger.error(`${this} Got error while processing all ${e}`);
+            logger.error(`${this} Got error while processing ${e}`);
 
             meta.status = 'error';
             meta.error = '' + e;
             cursor.publish(
-              id,
+              firstId,
               { _meta: meta },
               index,
               done);

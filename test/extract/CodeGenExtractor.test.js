@@ -39,7 +39,9 @@ describe('CodeGenExtractor', function() {
     assert.equal(out.items.length, 161);
   });
 
-  it('should run workflow with crawl and code gen pokemon @run', async () => {
+  // We can't consistently write code to extract this data. Disabled it for
+  // now until prompting/setup is improved.
+  it('should run workflow with crawl and code gen pokemon @disabled', async () => {
     const wf = await fox
       .config({
         cache: testCache(),

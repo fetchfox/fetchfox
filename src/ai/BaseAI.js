@@ -92,7 +92,6 @@ export const BaseAI = class {
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
     logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
-
     return result;
   }
 
@@ -168,8 +167,10 @@ export const BaseAI = class {
           yield Promise.resolve(parsed);
         }
       }
+
     } catch (e) {
       err = e;
+
     } finally {
       const msec = (new Date()).getTime() - start;
       this.runtime.msec += msec;

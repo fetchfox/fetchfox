@@ -6,13 +6,16 @@ import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
 import { Client } from '../../src/relay/Client.js';
 import { googleSearchPlanPrompt } from './data.js';
 import { setShouldIgnore } from '../setup.js';
-import { testCache } from '../lib/util.js';
+import { testCache, testCacheConfig } from '../lib/util.js';
 
 describe('Server', function() {
   this.timeout(20 * 1000);
 
   this.launch = async () => {
-    const s = new Server({ childPath: 'src/server/child.js', context: { cache: testCache() } });
+    const s = new Server({
+      childPath: 'src/server/child.js',
+      context: { s3Cache: testCache() },
+    });
     await new Promise(ok => s.listen(7070, ok));
     this.s = s;
     return s;
@@ -303,7 +306,7 @@ describe('Server', function() {
               "name": "extract",
               "args": {
                 "questions": {
-                  "name": "What is the name of the Pokémon?",
+                  "name": "What is the name of the Pokémon? Start with the first one",
                   "type": "What is the type of the Pokémon?"
                 },
                 "single": false

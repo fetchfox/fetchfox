@@ -61,10 +61,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *_fetch(url, options) {
-    // if (Math.random() < 0.2) {
-    //   throw new Error('test fetch error');
-    // }
-
     logger.info(`${this} Fetch ${url} with options ${options || '(none)'}`);
     if (this.options?.proxy?.server) {
       logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
