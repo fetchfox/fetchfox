@@ -98,6 +98,7 @@ export const ExtractStep = class extends BaseStep {
         }
       }
     } catch (e) {
+      logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }

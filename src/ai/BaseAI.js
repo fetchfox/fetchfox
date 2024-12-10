@@ -1,7 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { parseAnswer, getModelData, sleep } from './util.js';
-import { AIError } from './AIError.js';
 
 export const BaseAI = class {
   constructor(options) {
@@ -170,6 +169,7 @@ export const BaseAI = class {
 
     } catch (e) {
       err = e;
+      throw e;
 
     } finally {
       const msec = (new Date()).getTime() - start;
@@ -178,7 +178,7 @@ export const BaseAI = class {
 
       if (err) {
         logger.warn(`Error during AI stream, not caching`);
-        throw new AIError(err);
+        throw err;
       } else {
         this.setCache(prompt, options, result);
       }
@@ -207,7 +207,7 @@ export const BaseAI = class {
         logger.error(`Caught ${this} error: ${e}`);
 
         if (!e.status || --retries <= 0) {
-          throw new AIError(e);
+          throw e;
         }
 
         logger.debug(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);

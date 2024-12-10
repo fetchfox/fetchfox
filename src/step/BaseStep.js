@@ -220,6 +220,7 @@ export const BaseStep = class {
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);
+
         if (isOk) {
           ok();
         }

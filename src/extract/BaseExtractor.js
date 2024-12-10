@@ -5,7 +5,6 @@ import { getFetcher } from '../fetch/index.js';
 import { getMinimizer } from '../min/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
-import { AIError } from '../ai/AIError.js';
 import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
@@ -91,7 +90,6 @@ export const BaseExtractor = class {
       // Start documents worker
       const docsPromise = new Promise(async (ok, bad) => {
         logger.info(`${this} Started pagination docs worker`);
-        logger.trace('??');
         try {
           const gen = this.getDocs(target, docsOptions);
           for await (const doc of gen) {
@@ -130,26 +128,31 @@ export const BaseExtractor = class {
 
             // Start an extraction worker
             workerPromises.push(
-              new Promise(async (ok) => {
-                for await (const r of this._run(doc, questions, options)) {
-                  if (done) break;
+              new Promise(async (ok, bad) => {
+                try {
+                  for await (const r of this._run(doc, questions, options)) {
+                    if (done) break;
 
-                  const ser = JSON.stringify(r.publicOnly());
-                  if (seen[ser]) {
-                    logger.debug(`${this} Dropping duplicate result: ${ser}`);
-                    continue;
+                    const ser = JSON.stringify(r.publicOnly());
+                    if (seen[ser]) {
+                      logger.debug(`${this} Dropping duplicate result: ${ser}`);
+                      continue;
+                    }
+                    seen[ser] = true;
+
+                    if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+                    if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
+
+                    logger.debug(`${this} Sending result ${r} onto channel`);
+                    resultsChannel.send({ result: r });
                   }
-                  seen[ser] = true;
 
-                  if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
-                  if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
-
-                  logger.debug(`${this} Sending result ${r} onto channel`);
-                  resultsChannel.send({ result: r });
+                  logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
+                  ok();
+                } catch(e) {
+                  logger.error(`${this} Error in extraction promise: ${e}`);
+                  bad(e);
                 }
-
-                logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
-                ok();
               }));
           }
 
@@ -226,6 +229,7 @@ export const BaseExtractor = class {
       }
       return result;
     } catch(e) {
+      logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }
@@ -243,6 +247,7 @@ export const BaseExtractor = class {
         yield Promise.resolve(r);
       }
     } catch(e) {
+      logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }

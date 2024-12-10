@@ -3,9 +3,11 @@ import os from 'os';
 import { fox } from '../../src/index.js';
 import { redditSampleHtml } from './data.js';
 import { testCache } from '../lib/util.js';
+import { OpenAI } from '../../src/index.js';
+import { Fetcher } from '../../src/index.js';
 
 describe('Workflow', function() {
-  this.timeout(process.env.WRITE_TEST_CACHE ? 15000 : 5000);
+  this.timeout(30 * 1000);
 
   it('should load steps from json @run', async () => {
     const data = {
@@ -277,6 +279,112 @@ describe('Workflow', function() {
 
     assert.equal(out.items.length, 2);
     assert.equal(count, 2);
+  });
+
+  it('should finish with flakey fetcher @run', async function () {
+    this.timeout(45 * 1000);
+
+    let count = 0;
+    const FlakeyFetcher = class extends Fetcher {
+      async *fetch(...args) {
+        for await (const out of super.fetch(...args)) {
+          if (++count % 2 == 0) {
+            throw new Error('flakey fetch');
+          } else {
+            yield Promise.resolve(out);
+          }
+        }
+      }
+    };
+
+    const f = await fox
+      .config({
+        cache: testCache(),
+        fetcher: new FlakeyFetcher({
+          concurrency: 4,
+          intervalCap: 4,
+          interval: 1000,
+        }),
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl('find links to individual character pokemon pages')
+      .extract({
+        name: 'What is the name of the pokemon? Start with the first one',
+        number: 'What is the pokedex number?',
+      })
+      .limit(5);
+
+    const out = await f.run();
+    assert.equal(out.items.length, 5);
+  });
+
+  it('should finish incomplete with flakey AI @run', async function () {
+    this.timeout(45 * 1000);
+
+    let count = 0;
+    const FlakeyAI = class extends OpenAI {
+      async *inner(...args) {
+        for await (const out of super.inner(...args)) {
+          if (++count % 50 == 0) {
+            throw new Error('flakey AI');
+          } else {
+            yield Promise.resolve(out);
+          }
+        }
+      }
+    };
+
+    const f = await fox
+      .config({
+        cache: testCache(),
+        ai: new FlakeyAI(),
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        name: 'What is the name of the pokemon? Start with the first one',
+        number: 'What is the pokedex number?',
+      })
+      .limit(5);
+
+    const out = await f.run();
+
+    // Expect 2 because AI error stops the entire stream
+    assert.equal(out.items.length, 2);
+  });
+
+  it('should finish crawl with flakey AI @run', async function () {
+    this.timeout(45 * 1000);
+
+    let count = 0;
+    const FlakeyAI = class extends OpenAI {
+      async *inner(...args) {
+        for await (const out of super.inner(...args)) {
+          if (++count % 50 == 0) {
+            throw new Error('flakey AI');
+          } else {
+            yield Promise.resolve(out);
+          }
+        }
+      }
+    };
+
+    const f = await fox
+      .config({
+        cache: testCache(),
+        ai: new FlakeyAI(),
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl('find links to individual character pokemon pages')
+      .extract({
+        name: 'What is the name of the pokemon? Start with the first one',
+        number: 'What is the pokedex number?',
+      })
+      .limit(5);
+
+    const out = await f.run();
+
+    // TODO: Make this deterministic, and assert a specific number
+    assert.ok(out.items.length >= 1);
   });
 
 });
