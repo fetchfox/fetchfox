@@ -48,7 +48,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
           yield Promise.resolve(new Item(delta, doc));
         }
       } catch(e) {
-        logger.trace('??');
         logger.error(`${this} Got error: ${e}`);
         throw e;
       }
