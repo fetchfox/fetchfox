@@ -15,8 +15,7 @@ describe('CodeGenExtractor', function() {
       price: 'What is the price of this product? Format: $XX.XX'
     };
     const cge = new CodeGenExtractor();
-    await cge.init(urls, questions);
-    await cge.learn();
+    await cge.learn(urls, { questions });
 
     const out = await cge.all(urls[0], questions);
     assert.equal(out.length, 161);

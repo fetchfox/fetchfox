@@ -20,8 +20,6 @@ describe('examples', function() {
       .limit(3)
       .run(null, (delta) => {});
 
-    console.log('results.items', results.items);
-
     assert.equal(results.items.length, 3);
     assert.equal(results.items[0].name, 'Bulbasaur');
     assert.equal(results.items[0].number, '#0001');

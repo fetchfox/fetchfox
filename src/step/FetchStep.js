@@ -5,7 +5,7 @@ import { Item } from '../item/Item.js';
 export const FetchStep = class extends BaseStep {
   constructor(args) {
     super(args);
-    this.urlFields = args?.urlFields || ['url'];
+    this.urlFields = args?.urlFields || ['url', '_url'];
     this.waitForText = args?.waitForText;
     this.active = args?.active;
     this.css = args?.css;
@@ -16,9 +16,9 @@ export const FetchStep = class extends BaseStep {
     await cursor.ctx.fetcher.clear();
   }
 
-  async process({ cursor, item }, cb) {
+  async process({ cursor, item, index }, cb) {
     logger.info(`Fetch step for ${item}`);
-    const options = { multiple: true };
+    const options = { multiple: true, priority: index };
 
     if (this.waitForText) options.waitForText = this.waitForText;
     if (this.maxPages) options.maxPages = this.maxPages;
@@ -27,7 +27,9 @@ export const FetchStep = class extends BaseStep {
 
     const streams = [];
     for (const field of this.urlFields) {
-      const stream = await cursor.ctx.fetcher.fetch(item[field], options);
+      const url = item[field];
+      if (!url) continue;
+      const stream = await cursor.ctx.fetcher.fetch(url, options);
       streams.push(stream);
     }
 

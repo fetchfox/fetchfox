@@ -33,7 +33,6 @@ describe('youtube.com', function() {
         null,
         (partial) => {
           count++;
-          console.log(`Item ${count}:`, partial.item);
         });
   });
 

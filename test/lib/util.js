@@ -1,7 +1,12 @@
-import { DiskCache } from '../../src/cache/DiskCache.js';
-
-export const testDiskCachePath = './test/data/cache';
+import { S3Cache } from '../../src/cache/S3Cache.js';
 
 export const testCache = () => {
-  return new DiskCache(testDiskCachePath);
+  const params = {
+    bucket: process.env.S3_CACHE_BUCKET || 'ffcloud',
+    prefix: 'test-cache/',
+    acl: 'public-read',
+    ttls: { base: 10 * 365 * 24 * 3600 },
+    readOnly: !process.env.WRITE_TEST_CACHE,
+  };
+  return new S3Cache(params);
 }

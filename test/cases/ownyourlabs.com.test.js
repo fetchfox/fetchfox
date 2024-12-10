@@ -5,7 +5,7 @@ import process from 'node:process';
 import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
-describe('news.ycombinator.com', function() {
+describe('ownyourlabs.com', function() {
   this.timeout(5 * 60 * 1000);
 
   it('should work @run', async () => {
@@ -19,9 +19,6 @@ describe('news.ycombinator.com', function() {
       })
       .limit(20)
       .run();
-
-    console.log('out', out.items);
-    console.log('out', out.items.length);
 
     assert.equal(out.items.length, 20);
   });

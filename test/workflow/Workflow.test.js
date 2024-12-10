@@ -5,7 +5,7 @@ import { redditSampleHtml } from './data.js';
 import { testCache } from '../lib/util.js';
 
 describe('Workflow', function() {
-  this.timeout(5 * 1000);
+  this.timeout(process.env.WRITE_TEST_CACHE ? 15000 : 5000);
 
   it('should load steps from json @run', async () => {
     const data = {
@@ -79,12 +79,17 @@ describe('Workflow', function() {
       .limit(3);
 
     let count = 0;
+    let countLoading = 0;
 
-    await f.run(null, () => {
+    await f.run(null, (partial) => {
       count++
+      if (partial.item?._meta?.status == 'loading') {
+        countLoading2++;
+      }
     });
 
     assert.equal(count, 3);
+    assert.equal(countLoading, 0, 'loading by default should not publish');
 
     const f2 = await fox
       .config({
@@ -99,12 +104,17 @@ describe('Workflow', function() {
       .limit(3);
 
     let count2 = 0;
+    let countLoading2 = 0;
 
-    await f2.run(null, () => {
+    await f2.run(null, (partial) => {
       count2++
+      if (partial.item?._meta?.status == 'loading') {
+        countLoading2++;
+      }
     });
 
     assert.equal(count2, 17, 'all partials received');
+    assert.ok(countLoading2 >= 3, 'all loading received');
   });
 
   it('should describe @run', async () => {
