@@ -191,7 +191,7 @@ export const BaseStep = class {
             logger.error(`${this} Got error while processing ${e}`);
 
             meta.status = 'error';
-            meta.error = '' + e;
+            meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
             cursor.publish(
               firstId,
               { _meta: meta },
