@@ -184,7 +184,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
       for (const prompt of prompts) {
-        const answer = await this.ai.ask(prompt, { format: 'json' });
+        let answer;
+        try {
+          answer = await this.ai.ask(prompt, { format: 'json' });
+        } catch(e) {
+          logger.error(`${this} Got AI error during pagination, ignore`);
+          continue
+        }
+
         logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
         if (answer?.partial?.hasPagination &&
