@@ -66,7 +66,6 @@ export const logger = {
     send('error', args);
   },
   listen: (cb) => {
-    console.log('listen', cb);
     callbacks.push(cb);
   },
 };

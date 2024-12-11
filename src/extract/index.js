@@ -1,7 +1,5 @@
 import { logger } from '../log/logger.js';
 import { SinglePromptExtractor } from './SinglePromptExtractor.js';
-import { IterativePromptExtractor } from './IterativePromptExtractor.js';
-import { MinimizingExtractor } from './MinimizingExtractor.js';
 import { CodeGenExtractor } from './CodeGenExtractor.js';
 
 export { BaseExtractor } from './BaseExtractor.js';
@@ -9,20 +7,13 @@ export const DefaultExtractor = SinglePromptExtractor;
 
 export const getExtractor = (which, options) => {
   if (!which) {
-    return new MinimizingExtractor({ ...options, extractor: new SinglePromptExtractor(options) });
+    return new SinglePromptExtractor(options);
   }
   if (typeof which != 'string') return which;
 
   let extractorClass = {
     sp: SinglePromptExtractor,
     'single-prompt': SinglePromptExtractor,
-
-    ip: IterativePromptExtractor,
-    'iterative-prompt': IterativePromptExtractor,
-
-    m: MinimizingExtractor,
-    min: MinimizingExtractor,
-    minimizing: MinimizingExtractor,
 
     cg: CodeGenExtractor,
     'code-gen': CodeGenExtractor,

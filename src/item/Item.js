@@ -13,6 +13,10 @@ export const Item = class {
     this.#source = source;
     if (!this._sourceUrl) {
       this._sourceUrl = source?.url || data?._sourceUrl;
+
+      if (source?.html?.length) {
+        this._sourceSize = source.html.length;
+      }
     }
     if (source?.htmlUrl) this._htmlUrl = source.htmlUrl;
     if (source?.screenshotUrl) this._screenshotUrl = source.screenshotUrl;
@@ -30,6 +34,16 @@ export const Item = class {
     return new Item(
       JSON.parse(JSON.stringify(this)),
       this.#source);
+  }
+
+  publicOnly() {
+    const copy = { ...this };
+    for (const key of Object.keys(this)) {
+      if (key.startsWith('_')) {
+        delete copy[key];
+      }
+    }
+    return copy;
   }
 
   async finish() {

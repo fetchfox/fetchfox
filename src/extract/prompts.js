@@ -1,8 +1,8 @@
 import { Template } from '../template/Template.js';
 
 export const scrapeOnce = new Template(
-  ['extraRules', 'limit', 'description', 'questions', 'url', 'text', 'html', 'count'],
-  `You are a web scraping extraction program. You will receive webpage content including text and HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar. 
+  ['extraRules', 'description', 'questions', 'url', 'html'],
+  `You are a web scraping extraction program. You will receive webpage content including HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar. 
 
 If you're unable to answer a question fill in the value "(not found)", but make your best guess. Prefer to give an answer if one seems plausible.
 
@@ -18,9 +18,8 @@ Follow these important rules:
 - Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
 - Pay attention to user format specifications
-- Follow schema requests, eg. return array fields if requested
-
-{{extraRules}}
+- Generally avoid returning results with many (not found) fields
+- For URL, always include the FULL ABSOLUTE URL
 
 Example of a valid response with multiple items:
 {"itemCount": 2}
@@ -33,22 +32,18 @@ Example of a valid response with a single item:
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
->>>> Limit to this many item(s):
-{{limit}}
-
 >>>> The URL of the website:
 {{url}}
 
->>>> Raw text from innerText of the page:
-{{text}}
-
->>>> HTML text from innerHTML of the page (first {{count}} characters):
+>>>> HTML text from innerHTML of the page:
 {{html}}
 
 >>>> {{description}}
 
 >>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS:
 {{questions}}
+
+{{extraRules}}
 `);
 
 export const iterative = new Template(
@@ -118,15 +113,15 @@ The user is looking for these fields on each item: {{questions}}
 Follow these guidelines:
 - You MUST RESPOND ONLY WITH JAVASCRIPT CODE and comments
 - Do NOT GIVE EXAMPLE USAGE
+- Use SHORT CONCISE variable names
 - You may use the node-html-parser library. It will be passed in as a parameter.
 - Make your code robust, including null checks
 - Loops and maps should have a try/catch structure so a single failed element does not break the entire execution
 
 It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
-- Before writing any code, explain your reasoning in a comment block
-- Decide if you will use XPath via $x(...) or CSS selectors, or something else
+- Before writing any code, explain your reasoning in a comment block in 10-100 words
+- Decide if you will use XPath or CSS selectors, or something else
 - Decide and explain which XPath or CSS selectors you will use
-- Describe how you ensure this solution will generalize and be robust with respect to HTML and CSS quirks
 - Describe any challenging parts of the extraction
 
 The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
@@ -215,8 +210,8 @@ Follow these guidelines:
 
 It is VERY IMPORTANT to include a comment block at the start that explains your reasoning:
 - If you made changes, explain the changes compared to the previous code, and why you think it will fix any issues
-- If you made no changes, say so, and say why not
 - You may disregard feedback that would make the code too complicated, more brittle, or that is too hard to integrate. Consider the feedback and use your best judgement.
+- If the feedback accuracy score is LOW, you can MOSTLY IGNORE the previous iteation
 
 The response you give will be a parameter to new Function(). Therefore, do NOT give a function signature. The function will be called with a TWO named parameters:
 - \`html\`: the HTML of the page

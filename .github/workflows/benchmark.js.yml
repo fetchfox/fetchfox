@@ -2,7 +2,7 @@ name: Benchmarks
 
 on:
   push:
-    branches: [ 'master', 'dev' ]
+    branches: [ 'dev', 'master' ]
 
 jobs:
   benchmark:
@@ -12,6 +12,16 @@ jobs:
     strategy:
       matrix:
         node-version: [22.x]
+        ai:
+          - openai:gpt-4o-mini
+          - openai:gpt-4o
+          - google:gemini-1.5-pro
+          - google:gemini-1.5-flash
+          - groq:llama-3.1-70b-versatile
+          - groq:llama-3.2-11b-vision-preview
+          - groq:llama-3.2-90b-vision-preview
+          - anthropic:claude-3-5-sonnet-latest
+          - anthropic:claude-3-5-haiku-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -34,14 +44,19 @@ jobs:
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        S3_CACHE: ffcloud
+        CDP_URL: ${{ secrets.CDP_URL }}
+
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        BENCH_KV: redis
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
         REDIS_URL: ${{ secrets.REDIS_URL }}
         COMMIT: ${{ github.sha }}
         BRANCH: ${{ env.BRANCH }}
         FF_LOG: debug
+        BENCH_KV: redis
+        BENCH_USE_CDP: true
+        BENCH_MATRIX_AI: ${{ matrix.ai }}
       run: npm run bench
       continue-on-error: true

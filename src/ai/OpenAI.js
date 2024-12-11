@@ -4,10 +4,16 @@ import { z } from 'zod';
 import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
+import { get_encoding, encoding_for_model } from 'tiktoken';
 
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
+
+  async countTokens(str) {
+    const enc = encoding_for_model(this.model);
+    return enc.encode(str).length;
+  }
 
   normalizeChunk(chunk) {
     const { id, model } = chunk;

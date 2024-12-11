@@ -11,8 +11,8 @@ import { copyKeys } from './constants.js';
 // Order matters for `decodeableKeys`
 export const decodeableKeys = [
   ['kv', getKV, BaseKV],
-  ['fetcher', getFetcher, BaseFetcher],
   ['ai', getAI, BaseAI],
+  ['fetcher', getFetcher, BaseFetcher],
   ['crawler', getCrawler, BaseCrawler],
   ['extractor', getExtractor, BaseExtractor],
 ];
@@ -22,11 +22,13 @@ const decodeArgs = (args, cache) => {
   decoded.publishAllSteps = args.publishAllSteps;
   decoded.cache = cache;
 
-  if (args.diskCache) {
-    args.cache = new DiskCache(args.diskCache);
+  const diskCache = args.diskCache || process.env.DISK_CACHE;
+  if (diskCache) {
+    args.cache = new DiskCache(diskCache);
   }
-  if (args.s3Cache) {
-    args.cache = new S3Cache(args.s3Cache);
+  const s3Cache = args.s3Cache;
+  if (s3Cache) {
+    args.cache = new S3Cache(s3Cache);
   }
   if (args.cache) {
     decoded.cache = args.cache;

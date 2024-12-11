@@ -69,6 +69,11 @@ export const BaseAI = class {
     return `[${this.constructor.name} ${this.model}]`;
   }
 
+  async countTokens(str) {
+    // Override this in derived classes
+    return str.length / 2.5;
+  }
+
   cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
     const hash = CryptoJS
       .SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
@@ -86,7 +91,6 @@ export const BaseAI = class {
     const result = await this.cache.get(key);
     const outcome = result ? '(hit)' : '(miss)';
     logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
-
     return result;
   }
 
@@ -111,7 +115,8 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
-    logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes`);
+    const tokens = await this.countTokens(prompt);
+    logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const { format, cacheHint, schema } = Object.assign({ format: 'text' }, options);
     const cached = await this.getCache(prompt, options);
@@ -161,17 +166,19 @@ export const BaseAI = class {
           yield Promise.resolve(parsed);
         }
       }
+
     } catch (e) {
       err = e;
+      throw e;
+
     } finally {
       const msec = (new Date()).getTime() - start;
       this.runtime.msec += msec;
       this.runtime.sec += msec / 1000;
 
       if (err) {
-        logger.warn(`Error during AI stream, not caching: ${err}`);
+        logger.warn(`Error during AI stream, not caching`);
         throw err;
-        return;
       } else {
         this.setCache(prompt, options, result);
       }
@@ -179,7 +186,8 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
-    logger.debug(`Asking ${this} for prompt with ${prompt.length} bytes`);
+    const tokens = await this.countTokens(prompt);
+    logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const before = {
       usage: Object.assign({}, this.usage),
@@ -198,10 +206,7 @@ export const BaseAI = class {
       } catch(e) {
         logger.error(`Caught ${this} error: ${e}`);
 
-        if (!e.status) {
-          throw e;
-        }
-        if (--retries <= 0) {
+        if (!e.status || --retries <= 0) {
           throw e;
         }
 
@@ -264,7 +269,7 @@ export const BaseAI = class {
           delta: result,
           partial: parseAnswer(ctx.answer, ctx.format),
           usage: ctx.usage,
-        };a
+        };
       }
     } else {
       const parsed = parseAnswer('' + ctx.buffer, ctx.format);
@@ -276,4 +281,10 @@ export const BaseAI = class {
       };
     }
   }
+}
+
+const isCritical = (e) => {
+  // Quick hacky check to see if it is about token length
+  const str = ('' + e).toLowerCase();
+  return !(str.includes('tokens') && str.includes('max'));
 }

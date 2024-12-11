@@ -20,6 +20,16 @@ const combineInfo = (info) => {
     example: 5,
     required: false,
   };
+
+  if (['const', 'extract', 'crawl'].includes(info.name)) {
+    combined.args.maxPages = {
+      description: 'Max number of pages to fetch from source URLs',
+      format: 'number',
+      required: false,
+      default: 5,
+    };
+  }
+
   return combined;
 };
 
@@ -175,18 +185,6 @@ export const stepDescriptionsMap = {
         example: ['url', 'companyUrl'],
         required: false,
         default: ['url'],
-      },
-      scroll: {
-        description: 'Number of times to scroll down the page',
-        format: 'number',
-        example: 5,
-        required: false,
-      },
-      scrollWait: {
-        description: 'If scrolling, number of milliseconds to wait before the next scroll',
-        format: 'number',
-        example: 500,
-        required: false,
       },
       waitForText: {
         description: 'Text to wait for which indicates the page is loaded',

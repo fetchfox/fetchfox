@@ -17,16 +17,21 @@ export const CrawlStep = class extends BaseStep {
     this.css = args?.css;
   }
 
-  async process({ cursor, item }, cb) {
+  async process({ cursor, item, index }, cb) {
     const crawler = cursor.ctx.crawler;
     const start = (new Date()).getTime();
 
-    const options = {};
-    if (this.css) options.css = this.css;
+    const options = {
+      css: this.css,
+      maxPages: this.maxPages,
+      fetchOptions: { priority: index },
+    };
 
-    const url = item.url || item.source().url;
+    // TODO: modular/intelligent selection of URL field
+    const url = item._url || (item.source() && item.source().url);
+
     for await (const output of crawler.run(url, this.query, options)) {
-      if (!output.url) {
+      if (!output._url) {
         logger.error(`No URL found for item ${item}`);
         continue;
       }

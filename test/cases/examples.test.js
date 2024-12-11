@@ -3,14 +3,18 @@ import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
+import { testCache } from '../lib/util.js';
 
 // Test the examples from README.md
 describe('examples', function() {
-  this.timeout(5 * 60 * 1000);
+  this.timeout(5 * 1000);
 
   it('should do basic example @run', async () => {
     const results = await fox
-      .init('https://pokemondb.net/pokedex/national')
+      .config({ cache: testCache() })
+      .init(
+        'https://pokemondb.net/pokedex/national',
+      )
       .extract({
         name: 'Pokemon name, starting with the first pokemon',
         number: 'Pokemon number, format: #XXXX',
@@ -29,6 +33,7 @@ describe('examples', function() {
 
   it('should do streaming example @run', async () => {
     const stream = fox
+      .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({ name: 'Pokemon name', number: 'Pokemon number, format: #XXXX' })
       .limit(3)
@@ -38,8 +43,6 @@ describe('examples', function() {
     for await (const delta of stream) {
       results.push(delta.item);
     }
-
-    stream.return();
 
     assert.equal(results.length, 3);
     assert.equal(results[0].name, 'Bulbasaur');

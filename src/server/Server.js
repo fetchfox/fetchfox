@@ -13,6 +13,7 @@ export const Server = class {
 
     this.store = options?.store || new Store();
     this.onError = options?.onError;
+    this.context = options?.context || {};
 
     this.conns = new Set();
     this.relay = new Relay();
@@ -38,10 +39,9 @@ export const Server = class {
         data.id,
         (r) => {
           r.id = data.id;
+          ws.send(JSON.stringify(r));
           if (r.done) {
             ok(r);
-          } else {
-            ws.send(JSON.stringify(r));
           }
         });
     });
@@ -119,6 +119,8 @@ export const Server = class {
     child.on('message', (msg) => {
       const { command, data } = msg;
 
+      logger.debug(`${this} Got command: ${command} data=${JSON.stringify(data).substr(0, 200)}`);
+
       switch (command) {
         case 'partial':
           this.store.pub(id, data);
@@ -142,6 +144,7 @@ export const Server = class {
       }
     });
 
+    data.context = { ...this.context, ...(data.context || {}) };
     this.safeSend(child, { command: 'start', id, data });
     return id;
   }
@@ -149,25 +152,27 @@ export const Server = class {
   async stop(data) {
     logger.info(`Server stop ${JSON.stringify(data)}`);
     const id = data.id;
-    if (!this.children[id]) {
-      logger.warn(`No child process to stop ${id}`);
-      return;
+    if (this.children[id]) {
+      const child = this.children[id];
+      this.safeSend(child, { command: 'stop' });
     }
-
-    const child = this.children[id];
-    this.safeSend(child, { command: 'stop' });
   }
 
   async plan(data, ws) {
     logger.info(`Plan based on ${JSON.stringify(data.prompt).substr(0, 200)}`);
-    const f = await fox.plan(...(data.prompt));
+    const f = await fox
+      .config(this.context)
+      .plan(...(data.prompt));
     return f.dump();
   }
 
   async describe(data, ws) {
     logger.info(`Describe based on ${JSON.stringify(data.workflow).substr(0, 200)}`);
-    const f = await fox.describe(data.workflow);
-    return f.dump();
+    const out = await fox
+      .config(this.context)
+      .load({ steps: data.workflow.steps })
+      .describe();
+    return out.dump();
   }
 
   listen(port, cb) {
@@ -183,17 +188,20 @@ export const Server = class {
 
       ws.on('message', async (msg) => {
         let data = JSON.parse(msg);
+        let end;
         let out;
 
         for (const mw of this.middleware) {
-          const result = mw(data);
+          const result = await mw(data);
           if (result.end) {
-            out = result.end;
+            end = result.end;
             break;
           }
         }
 
-        if (!out) {
+        const original = JSON.parse(JSON.stringify(data));
+
+        if (!end) {
           switch (data.command) {
             case 'ping':
               out = await this.ping(data, ws);
@@ -228,7 +236,25 @@ export const Server = class {
 
         // TODO: Keep connection alive in general, instead of closing on each command
         const command = out?.command;
-        ws.send(JSON.stringify({ command, out, close: true }));
+
+        if (end) {
+          out = end;
+        }
+
+        let resp = {
+          request: original,
+          command,
+          out,
+          close: true,
+        };
+
+        if (!end) {
+          for (const mw of this.middleware) {
+            resp = await mw(resp);
+          }
+        }
+
+        ws.send(JSON.stringify(resp));
         ws.close(1000);
 
         this.conns.delete(ws);

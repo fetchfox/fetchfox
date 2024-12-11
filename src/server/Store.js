@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import ShortUniqueId from 'short-unique-id';
 
 export const Store = class {
@@ -11,6 +12,11 @@ export const Store = class {
     }
     this.kv = kv;
     this.subs = {};
+    this.debounce = {};
+  }
+
+  toString() {
+    return '[Store]';
   }
 
   nextId() {
@@ -39,28 +45,71 @@ export const Store = class {
     this.subs[id] = this.subs[id].filter(c => c != cb);
   }
 
-  async trigger(id) {
-    if (this.subs[id]) {
-      const subs = this.subs[id];  // Store subs before async call
-      const job = await this.kv.get(id);
-      for (const cb of subs) {
-        cb(job);
-      }
+  async _debounceExec(which, id, msec, fn) {
+    if (!this.debounce[which]) {
+      this.debounce[which] = {};
     }
+    if (!this.debounce[which][id]) {
+      this.debounce[which][id] = {
+        q: Promise.resolve(),
+        seq: 0,
+      };
+    }
+
+    const db = this.debounce[which];
+    db[id].seq++;
+    const mySeq = db[id].seq;
+    db[id].q.then(async () => {
+      await new Promise(ok => setTimeout(ok, msec));
+      if (mySeq != db[id].seq) {
+        return Promise.resolve();
+      } else {
+        return await fn();
+      }
+    });
+
+    return db[id].q;
+  }
+
+  async trigger(id, val) {
+    const subs = this.subs[id];
+    return this._debounceExec(
+      'trigger',
+      id,
+      100,
+      async () => {
+        if (!subs) return;
+        for (const cb of subs) {
+          cb(val);
+        }
+      });
+  }
+
+  async _set(id, val) {
+    return this._debounceExec(
+      'set',
+      id,
+      100,
+      () => this.kv.set(id, val));
   }
 
   async pub(id, results) {
-    await this.kv.set(id, results);
-    this.trigger(id);
+    const updatedAt = Math.floor((new Date()).getTime() / 1000);
+    logger.debug(`${this} Pub set ${id}`);
+    const val = { ...results, updatedAt };
+    await this._set(id, val);
+    this.trigger(id, val);
   }
 
   async finish(id, results) {
+    const finishedAt = Math.floor((new Date()).getTime() / 1000);
     const job = results || (await this.kv.get(id)) || {};
     job.done = true;
-    await this.kv.set(id, job);
+    job.finishedAt = finishedAt;
 
-    await this.trigger(id);
-
+    logger.debug(`${this} Finish set ${id}`);
+    await this._set(id, job);
+    await this.trigger(id, job);
     delete this.subs[id];
   }
 }

@@ -1,10 +1,12 @@
+import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 
 export const Template = class {
-  constructor(args, base) {
+  constructor(args, base, cache) {
     this.validate(args, base);
     this.base = base;
     this.args = args;
+    this.cache = cache;
   }
 
   validate(args, base) {
@@ -29,5 +31,100 @@ export const Template = class {
       prompt = prompt.replaceAll('{{' + key + '}}', val);
     }
     return prompt;
+  }
+
+  cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
+    const hash = CryptoJS
+      .SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
+      .toString(CryptoJS.enc.Hex)
+      .substr(0, 16);
+    const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
+    return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`
+  }
+
+  async renderMulti(context, flexField, ai, cache) {
+    const copy = { ...context };
+    const prompts = [];
+    const offset = 0;
+    while (true) {
+      const { prompt, bytesUsed, done } = await this.renderCapped(
+        copy, flexField, ai, cache);
+      prompts.push(prompt);
+      if (done) {
+        break;
+      }
+      copy[flexField] = copy[flexField].substr(bytesUsed);
+    }
+    return prompts;
+  }
+
+  async renderCapped(context, flexField, ai, cache) {
+    const maxTokens = ai.maxTokens || 128000;
+    const countFn = async (str) => ai.countTokens(str);
+    const accuracy = 8000;
+
+    let key;
+    if (cache) {
+      const hash = CryptoJS
+        .SHA256(JSON.stringify({
+          context,
+          accuracy,
+          flexField,
+          maxTokens,
+          base: this.base,
+        }))
+        .toString(CryptoJS.enc.Hex)
+        .substr(0, 16);
+      key = `template-renderCapped-${this.constructor.name}-${hash}`;
+      const cached = await cache.get(key);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const start = (new Date()).getTime();
+
+    let prompt;
+    let tokens;
+    let guess = Math.min(context[flexField].length, maxTokens * 4);
+    let lowerBound = 0;
+    let upperBound = Math.min(context[flexField].length, maxTokens * 8);
+
+    const render = (size) => {
+      const copy = { ...context };
+      copy[flexField] = context[flexField].substr(0, size);
+      return this.render(copy);
+    }
+
+    for (let i = 0; i < 10; i++) {
+      prompt = render(guess);
+      tokens = await countFn(prompt);
+
+      if (tokens < maxTokens && maxTokens - tokens < accuracy) {
+        lowerBound = guess;
+        break;
+      }
+
+      if (tokens > maxTokens) {
+        upperBound = guess;
+      } else {
+        lowerBound = guess;
+      }
+
+      guess = (lowerBound + upperBound) / 2;
+    }
+
+    const bytesUsed = lowerBound;
+    prompt = render(bytesUsed);
+    const final = await countFn(prompt);
+
+    const took = (new Date()).getTime() - start;
+    logger.debug(`Capped render took ${took} msec, gave ${final} tokens`);
+
+    const result = { prompt, bytesUsed, done: bytesUsed == context[flexField].length };
+    if (cache) {
+      cache.set(key, result);
+    }
+    return result;
   }
 }

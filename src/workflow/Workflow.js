@@ -104,9 +104,10 @@ export const Workflow = class extends BaseWorkflow {
     const rest = this.steps.slice(0, this.steps.length - 1);
 
     let originalLimit = last.limit;
+
     try {
       if (this.ctx.limit) {
-        last.limit = this.ctx.limit;
+        last.limit = last.limit ? Math.min(this.ctx.limit, last.limit) : this.ctx.limit;
       }
 
       const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
@@ -117,6 +118,7 @@ export const Workflow = class extends BaseWorkflow {
 
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
       return this.cursor.out(true);
+
     } finally {
       last.limit = originalLimit;
       this.cursor.finishAll();

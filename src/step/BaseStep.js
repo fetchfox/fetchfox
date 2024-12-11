@@ -1,16 +1,20 @@
-import PQueue from 'p-queue';
 import { logger } from '../log/logger.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
 
+// Some steps will need a larger batch size, but otherwise keep
+// step batches to size of 1 so that items are passed to next
+// step immediately
+const defaultBatchSize = 1;
+
 export const BaseStep = class {
+
   constructor(args) {
+    this.batchSize = args?.batchSize || defaultBatchSize;
     this.limit = args?.limit;
+    // TODO: pull defaults from info
+    this.maxPages = args?.maxPages || 5;
+
     this.callbacks = {};
-    this.q = new PQueue({
-      concurrency: args?.concurrency === undefined ? 1000 : args?.concurrency,
-      intervalCap: args?.intervalCap === undefined ? 1000 : args?.intervalCap,
-      interval: args?.interval === undefined ? 1 : args?.interval,
-    });
   }
 
   toString() {
@@ -97,18 +101,16 @@ export const BaseStep = class {
       throw e;
     }
   }
-  
-  async _run(cursor, steps, index) {
-    // TODO: batch process items mode for steps that work better when
-    // all items are available. Applies to FilterStep, SchemaStep,
-    // and maybe others.
 
+  async _run(cursor, steps, index) {
     logger.info(`Run ${this}`);
+
+    this.start = new Date();
 
     await this._before(cursor, index);
 
     const parent = steps[index - 1];
-    // const rest = upstream.slice(0, upstream.length - 1);
+
     const next = index + 1 >= steps.length ? null : steps[index + 1];
 
     let onNextDone;
@@ -127,12 +129,98 @@ export const BaseStep = class {
     // 2) Parent is done, and all its outputs are completed
     // 3) There is a next step, and next step is done (regardless 
     await new Promise(async (ok) => {
+      let batch = [];
+      const batchSize = this.batchSize;
+
+      const processBatch = async () => {
+        const b = [...batch];
+        batch = [];
+        received += b.length;
+
+        const all = [];
+
+        for (const item of b) {
+          const meta = { status: 'loading', sourceUrl: item._url };
+
+          // Create placeholder item for the *first* output
+          let firstId = cursor.publish(
+            null,
+            { _meta: meta },
+            index,
+            done);
+
+          const p = this.process(
+            { cursor, item, index, batch: b },
+            (output) => {
+              this.results.push(output);
+              const hitLimit = this.limit && this.results.length >= this.limit;
+
+              if (hitLimit) {
+                logger.info(`${this} Hit limit with ${this.results.length} results`);
+              }
+
+              meta.status = 'done';
+              if (!done) {
+                cursor.publish(
+                  firstId,
+                  { ...output, _meta: meta },
+                  index,
+                  done);
+
+                // Only the *first* output should be an update, so set
+                // use a null ID for the remainder
+                firstId = null;
+
+                this.trigger('item', output);
+              }
+
+              done ||= hitLimit;
+
+              if (done) {
+                logger.debug(`${this} Received done signal inside callback`);
+                ok();
+              } else {
+                done = maybeOk();
+              }
+
+              return done;
+            }
+          );
+
+          p.catch((e) => {
+            logger.error(`${this} Got error while processing ${e}`);
+
+            meta.status = 'error';
+            meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
+            cursor.publish(
+              firstId,
+              { _meta: meta },
+              index,
+              done);
+          });
+
+          all.push(p);
+        }
+
+        await Promise.all(all).catch((e) => {
+          logger.error(`${this} Got error while waiting for all ${e}`);
+        });
+
+        completed += b.length;
+
+        if (done) {
+          ok();
+        } else {
+          done ||= maybeOk();
+        }
+      };
 
       const maybeOk = () => {
         logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);
+
         if (isOk) {
           ok();
         }
@@ -150,6 +238,7 @@ export const BaseStep = class {
         'done',
         () => {
           parentDone = true;
+          processBatch();
           maybeOk();
         });
 
@@ -162,64 +251,13 @@ export const BaseStep = class {
           return;
         }
 
-        received++;
+        logger.debug(`${this} Pushing onto batch, current=${batch.length}, batch size=${batchSize}`);
+        batch.push(item);
 
-        try {
-          const p = this.q.add(() => {
-            if (done) return;
-
-            if (!this.start) {
-              this.start = new Date();
-            }
-
-            return this.process(
-              { cursor, item, index },
-              (output) => {
-                if (!this.firstResult) {
-                  this.firstResult = new Date();
-                  const took = this.firstResult - this.start;
-                  logger.debug(`${this} got first result after ${(took / 1000).toFixed(2)} sec`);
-                }
-
-                this.results.push(output);
-
-                const hitLimit = this.limit && this.results.length >= this.limit;
-
-                if (hitLimit) {
-                  logger.info(`Hit limit on step ${this} with ${this.results.length} results`);
-                }
-                done ||= hitLimit;
-
-                cursor.publish(output, index, done);
-                this.trigger('item', output);
-
-                if (done) {
-                  logger.debug(`Received done signal inside callback for ${this}`);
-                  ok();
-                } else {
-                  done = maybeOk();
-                }
-
-                return done;
-              })
-          });
-
-          logger.debug(`Step ${this} has ${this.q.size} tasks in queue`);
-          await p;
-
-        } catch(e) {
-          await cursor.error(e, index);
-          throw e;
+        if (batch.length >= batchSize) {
+          logger.debug(`${this} Process batch`);
+          processBatch();
         }
-
-        completed++;
-
-        if (this.limit && completed >= this.limit) {
-          logger.debug(`Number completed in ${this} exceeds limit ${this.limit}, done`);
-          ok();
-        }
-
-        maybeOk();
       });
 
       if (parent) {
@@ -235,9 +273,6 @@ export const BaseStep = class {
     onNextDone && next.remove(onNextDone);
     parent.remove(onParentItem);
     parent.remove(onParentDone);
-
-    logger.info(`Done with ${this}, clearing queue with ${this.q.size} tasks left`);
-    this.q.clear();
 
     this.trigger('done');
 

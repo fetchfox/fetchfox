@@ -13,12 +13,15 @@ export const Cursor = class {
       items: [],
       step: step.dump(),
     }));
+
+    this._itemMap = {};
+    this._nextId = 1;
   }
 
   out(markDone) {
     const out = JSON.parse(JSON.stringify({
       done: this.done,
-      items: this.items,
+      items: this.items.filter(it => it._meta?.status != 'loading'),
       full: this.full,
       context: this.ctx.dump(),
     }));
@@ -47,15 +50,29 @@ export const Cursor = class {
     }
   }
 
-  publish(item, stepIndex, done) {
-    let copy;
-    if (item instanceof Item) {
-      copy = item.copy();
-    } else {
-      copy = JSON.parse(JSON.stringify(item));
-    }
+  publish(id, item, stepIndex, done) {
 
-    this.full[stepIndex].items.push(copy);
+    if (id) {
+      // Got id, update
+      if (!this._itemMap[id]) {
+        throw new Error(`${this} Tried to publish item with id ${id}, not found`);
+      }
+      for (const key of Object.keys(item)) {
+        this._itemMap[id][key] = item[key];
+      }
+
+    } else {
+      // No id, create
+      let copy;
+      if (item instanceof Item) {
+        copy = item.copy();
+      } else {
+        copy = JSON.parse(JSON.stringify(item));
+      }
+      id = this._nextId++;
+      this._itemMap[id] = copy;
+      this.full[stepIndex].items.push(copy);
+    }
 
     if (done) {
       this.full[stepIndex].done = true;
@@ -67,13 +84,19 @@ export const Cursor = class {
       this.items = this.full[stepIndex].items;
     }
 
-    if (this.cb && (isLast || this.ctx.publishAllSteps)) {
+    const shouldPublish = (
+      (isLast && item._meta?.status == 'done') ||
+      this.ctx.publishAllSteps);
+
+    if (this.cb && shouldPublish) {
       this.cb({
         ...this.out(),
         item,
         stepIndex,
       });
     }
+
+    return id;
   }
 
   error(message, stepIndex) {

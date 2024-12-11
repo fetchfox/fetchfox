@@ -51,3 +51,72 @@ export async function getWebSocket() {
   _WebSocket = wsModule.default;
   return _WebSocket;
 }
+
+export const createBlocker = () => {
+  let doneResolvers = [];
+  let isDone = false;
+
+  return {
+    wait() {
+      if (isDone) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        doneResolvers.push(resolve);
+      });
+    },
+    done() {
+      isDone = true;
+      while (doneResolvers.length > 0) {
+        const resolve = doneResolvers.shift();
+        resolve();
+      }
+    },
+    reset() {
+      isDone = false;
+    },
+  };
+}
+
+export const createChannel = () => {
+  const messages = [];
+  const resolvers = [];
+  let done = false;
+
+  return {
+    end() {
+      done = true;
+
+      while (resolvers.length > 0) {
+        const resolve = resolvers.shift();
+        resolve(Promise.resolve({ end: true }));
+      }
+    },
+    send(value) {
+      if (done) {
+        throw new Error('Cannot send on done channel');
+      }
+
+      if (resolvers.length > 0) {
+        const resolve = resolvers.shift();
+        resolve(value);
+      } else {
+        messages.push(value);
+      }
+    },
+    async *receive() {
+      while (true) {
+        if (messages.length > 0) {
+          yield messages.shift();
+        } else if (done) {
+          yield Promise.resolve({ end: true });
+        } else {
+          const promise = new Promise((ok) => {
+            resolvers.push(ok);
+          });
+          yield await promise;
+        }
+      }
+    }
+  };
+}

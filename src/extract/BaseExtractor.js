@@ -1,16 +1,21 @@
 import { logger } from '../log/logger.js';
-import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
+import { getAI } from '../ai/index.js';
+import { getFetcher } from '../fetch/index.js';
+import { getMinimizer } from '../min/index.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
+import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, kv, fetcher, cache, hardCapTokens } = options || {};
-    this.ai = getAI(ai, { cache });
+    const { kv, ai, fetcher, minimizer, cache, hardCapTokens } = options || {};
+    this.cache = cache;
     this.kv = getKV(kv);
-    this.fetcher = fetcher || new DefaultFetcher({ cache });
-    this.hardCapTokens = hardCapTokens || 1e6;
+    this.ai = getAI(ai, { cache });
+    this.fetcher = getFetcher(fetcher, { cache });
+    this.minimizer = getMinimizer(minimizer, { cache });
+    this.hardCapTokens = hardCapTokens || 1e7;
     this.usage = {
       requests: 0,
       runtime: 0,
@@ -26,7 +31,7 @@ export const BaseExtractor = class {
     this.fetcher.clear();
   }
 
-  async *getDoc(target) {
+  async *getDocs(target, options) {
     if (target instanceof Document) {
       yield Promise.resolve(target);
       return;
@@ -37,6 +42,8 @@ export const BaseExtractor = class {
       url = target;
     } else if (target?.url) {
       url = target.url;
+    } else if (target?._url) {
+      url = target._url;
     }
 
     if (!url && typeof target?.source == 'function' && target.source() instanceof Document) {
@@ -47,101 +54,153 @@ export const BaseExtractor = class {
     try {
       new URL(url);
     } catch(e) {
-      logger.warn(`Extractor dropping invalid url ${url}: ${e}`);
+      logger.warn(`${this} Extractor dropping invalid url ${url}: ${e}`);
       url = null;
     }
 
     if (!url) {
-      logger.warn(`Could not find extraction target in ${target}`);
+      logger.warn(`${this} Could not find extraction target in ${target}`);
       return;
     }
 
-    for await (const doc of this.fetcher.fetch(url)) {
+    for await (let doc of this.fetcher.fetch(url, options)) {
+      if (this.minimizer) {
+        doc = await this.minimizer.min(doc);
+      }
       yield Promise.resolve(doc);
     }
-  }
-
-  chunks(doc, maxTokens) {
-    if (maxTokens) {
-      maxTokens = Math.min(maxTokens, this.hardCapTokens, this.ai.maxTokens);
-    } else {
-      maxTokens = Math.min(this.hardCapTokens, this.ai.maxTokens);
-    }
-
-    // let textChunkSize = maxTokens * 4 * 0.1;
-    // let htmlChunkSize = maxTokens * 4 * 0.25;
-
-    // Include only HTML. Make a rough guess as to how many bytes we can include.
-    let textChunkSize = 0;
-    let htmlChunkSize = maxTokens * 4 * 0.7;
-
-    const text = doc?.text || '';
-    const html = doc?.html || '';
-
-    if (html.length <= 100) {
-      textChunkSize += htmlChunkSize;
-      htmlChunkSize = 0;
-    }
-
-    const result = [];
-
-    for (let i = 0; ; i++) {
-      const textPart = text.slice(
-        i * textChunkSize,
-        (i + 1) * textChunkSize);
-
-      const htmlPart = html.slice(
-        i * htmlChunkSize,
-        (i + 1) * htmlChunkSize);
-
-      if (!textPart && !htmlPart) break;
-
-      result.push({
-        offset: i,
-        text: textPart,
-        html: htmlPart,
-      });
-    }
-
-    for (let i = 0; i < result.length; i++) {
-      result[i].more = i + 1 < result.length;
-    }
-
-    return result;
   }
 
   async *run(target, questions, options) {
     this.usage.queries++;
     const start = (new Date()).getTime();
 
+    const seen = {};
+    let done = false;
+    let error;
+
     try {
-      const map = {};
-
       const docs = [];
-      for await (const doc of this.getDoc(target)) {
-        docs.push(doc);
-      }
+      const fetchOptions = options?.fetchOptions || {};
+      const docsOptions = { questions, maxPages: options?.maxPages, ...fetchOptions };
 
-      // const doc = await this.getDoc(target);
-      // TODO: Run on all docs
+      const docsChannel = createChannel();
+      const resultsChannel = createChannel();
 
-      const doc = docs[0];
-      for await (const r of this._run(doc, questions, options)) {
-        for (const key of Object.keys(r)) {
-          const remap = map[key];
-          if (remap) {
-            const val = r[key];
-            delete r[key];
-            r[remap] = val;
+      // Start documents worker
+      const docsPromise = new Promise(async (ok, bad) => {
+        logger.info(`${this} Started pagination docs worker`);
+        try {
+          const gen = this.getDocs(target, docsOptions);
+          for await (const doc of gen) {
+            if (done) break;
+            logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
+            docsChannel.send({ doc });
           }
+          ok();
+        } catch(e) {
+          logger.error(`${this} Error in documents worker: ${e}`);
+          bad(e);
+
+        } finally {
+          logger.debug(`${this} Done with docs worker`);
+          docsChannel.end();
+        }
+      })
+
+      // Get documents, and start extraction worker for each
+      const resultsPromise = new Promise(async (ok, bad) => {
+        const workerPromises = [];
+
+        try {
+          // Get documents from channel and start worker for each
+          for await (const val of docsChannel.receive()) {
+            if (val.end) {
+              break;
+            }
+            if (done) {
+              break;
+            }
+
+            const doc = val.doc;
+            const myIndex = workerPromises.length;
+            logger.info(`${this} Starting new worker on ${doc} (${myIndex}) done=${done}`);
+
+            // Start an extraction worker
+            workerPromises.push(
+              new Promise(async (ok, bad) => {
+                try {
+                  for await (const r of this._run(doc, questions, options)) {
+                    if (done) break;
+
+                    const ser = JSON.stringify(r.publicOnly());
+                    if (seen[ser]) {
+                      logger.debug(`${this} Dropping duplicate result: ${ser}`);
+                      continue;
+                    }
+                    seen[ser] = true;
+
+                    if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
+                    if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
+
+                    logger.debug(`${this} Sending result ${r} onto channel`);
+                    resultsChannel.send({ result: r });
+                  }
+
+                  logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
+                  ok();
+                } catch(e) {
+                  logger.error(`${this} Error in extraction promise: ${e}`);
+                  bad(e);
+                }
+              }));
+          }
+
+          // Got all documents, now wait for workers to complete
+          logger.debug(`${this} Wait for extraction workers`);
+          await Promise.all(workerPromises);
+
+        } catch (e) {
+          logger.error(`${this} Error in extraction worker: ${e}`);
+          bad(e)
+
+        } finally {
+          logger.debug(`${this} All extraction workers done ${done}`);
+          resultsChannel.end();
+          ok();
+        }
+      })
+
+      let count = 0;
+
+      try {
+        for await (const val of resultsChannel.receive()) {
+          if (done) {
+            break;
+          }
+          if (val.end) {
+            break;
+          }
+          logger.debug(`${this} Found ${++count} items so far`);
+          yield Promise.resolve(val.result);
         }
 
-        if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
-        if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
+        await docsPromise;
+        await resultsPromise;
 
-        yield Promise.resolve(r);
+      } catch (e) {
+        throw e;
       }
+
     } finally {
+      logger.info(`${this} done extracting ${target}`);
+
+      if (error) {
+        logger.error(`${this} Throwing caught error ${error}`);
+        throw error;
+      }
+
+      done = true;
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;
     }
@@ -164,10 +223,15 @@ export const BaseExtractor = class {
   async all(target, questions, options) {
     options = {...options, stream: false };
     let result = [];
-    for await (const r of this.run(target, questions, options)) {
-      result.push(r);
+    try {
+      for await (const r of this.run(target, questions, options)) {
+        result.push(r);
+      }
+      return result;
+    } catch(e) {
+      logger.error(`${this} Got error: ${e}`);
+      throw e;
     }
-    return result;
   }
 
   async one(target, questions, options) {
@@ -177,9 +241,14 @@ export const BaseExtractor = class {
   }
 
   async *stream(target, questions, options) {
-    options = {...options, stream: true };
-    for await (const r of this.run(target, questions, options)) {
-      yield Promise.resolve(r);
+    try {
+      options = {...options, stream: true };
+      for await (const r of this.run(target, questions, options)) {
+        yield Promise.resolve(r);
+      }
+    } catch(e) {
+      logger.error(`${this} Got error: ${e}`);
+      throw e;
     }
   }
 }

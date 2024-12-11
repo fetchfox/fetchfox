@@ -40,25 +40,6 @@ export const Document = class {
     return data;
   }
 
-  async writeText(filepath) {
-    // try {
-    //   const fs = await import('fs').then(module => module.promises);
-    //   await fs.writeFile(filepath, this.text, 'utf-8');
-    //   logger.info(`Wrote text to ${filepath}`);
-    // } catch (error) {
-    // }
-  }
-
-  async writeHtml(filepath) {
-    // try {
-    //   const fs = await import('fs').then(module => module.promises);
-    //   const baseHref = `<base href="${(new URL(this.url)).origin}" />\n`;
-    //   await fs.writeFile(filepath, baseHref + this.html, 'utf-8');
-    //   logger.info(`Wrote HTML to ${filepath}`);
-    // } catch (error) {
-    // }
-  }
-
   async uploadHtml(presignedUrl) {
     await fetch(presignedUrl, {
       method: 'PUT',
@@ -86,7 +67,7 @@ export const Document = class {
 
     if (data.htmlUrl) {
       logger.debug(`Loading HTML url ${data.htmlUrl}`);
-      const resp = await fetch(data.htmlUrl);
+      const resp = await fetchRetry(data.htmlUrl);
       await this.read(resp, null, null, data);
     }
   }
@@ -255,4 +236,23 @@ export const Document = class {
       return;
     }
   }
+}
+
+async function fetchRetry(url, options={}, retries=3, delay=5000) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+      return resp;
+    } catch (e) {
+      lastError = e;
+      if (attempt < retries) {
+        logger.debug(`[Document] Retrying... attempt ${attempt + 1}`);
+        await new Promise((ok) => setTimeout(ok, delay));
+      }
+    }
+  }
+
+  throw new Error(`Failed after ${retries + 1} attempts: ${lastError.message}`);
 }

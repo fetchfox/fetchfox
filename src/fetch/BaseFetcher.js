@@ -1,5 +1,7 @@
 import CryptoJS from 'crypto-js';
+import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
+import { linkChunks, decodeLinks } from '../crawl/util.js';
 import { Document } from '../document/Document.js';
 import { presignS3 } from './util.js';
 import ShortUniqueId from 'short-unique-id';
@@ -8,6 +10,7 @@ import PQueue from 'p-queue';
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
+    this.ai = options?.ai || getAI();
     this.queue = [];
     this.usage = {
       requests: 0,
@@ -15,10 +18,11 @@ export const BaseFetcher = class {
       cached: 0,
       runtime: 0,
     };
+
     this.q = new PQueue({
-      concurrency: options?.concurrency || 5,
-      intervalCap: options?.intervalCap || 3,
-      interval: options?.interval || 3000,
+      concurrency: options?.concurrency || 4,
+      intervalCap: options?.intervalCap || 1,
+      interval: options?.interval || 1000,
     });
 
     this.s3 = options?.s3;
@@ -49,6 +53,8 @@ export const BaseFetcher = class {
       url = target;
     } else if (typeof target.url == 'string') {
       url = target.url;
+    } else if (typeof target._url == 'string') {
+      url = target._url;
     }
 
     // Pull out options that affect caching
@@ -86,10 +92,14 @@ export const BaseFetcher = class {
       }
 
       logger.debug(`Adding to fetch queue: ${url}`);
-      const p = await this.q.add(() => {
-        logger.info(`Queue is starting fetch of: ${url}`);
-        return this._fetch(url, options);
-      });
+      const priority = options?.priority || 1;
+
+      const p = await this.q.add(
+        () => {
+          logger.info(`Queue is starting fetch of: ${url}`);
+          return this._fetch(url, options);
+        },
+        { priority });
       logger.debug(`Fetch queue has ${this.q.size} requests`);
 
       this.usage.completed++;
@@ -103,7 +113,7 @@ export const BaseFetcher = class {
         logger.debug(`Fetcher s3 config: ${JSON.stringify(this.s3)}`);
         if (this.s3) {
           const bucket = this.s3.bucket;
-          const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}';
+          const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
           const acl = this.s3.acl || '';
           const id = new ShortUniqueId({
             length: 10,
@@ -117,7 +127,11 @@ export const BaseFetcher = class {
           const presignedUrl = await presignS3({
             bucket, key, contentType: 'text/html', acl });
 
-          await doc.uploadHtml(presignedUrl);
+          try {
+            await doc.uploadHtml(presignedUrl);
+          } catch(e) {
+            logger.error(`Failed to upload ${key}: ${e}`);
+          }
         }
 
         docs.push(doc);
@@ -176,4 +190,5 @@ export const BaseFetcher = class {
     logger.debug(`Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
+
 }

@@ -1,5 +1,3 @@
-console.log('FetchFox is new! If you need help, ask on Discord: https://discord.gg/mM54bwdu59');
-
 export { getAI } from './ai/index.js';
 export { getCrawler } from './crawl/index.js';
 export { getExporter } from './export/index.js';
@@ -14,11 +12,10 @@ export { Document } from './document/Document.js';
 export { Crawler } from './crawl/Crawler.js';
 
 export { Fetcher } from './fetch/Fetcher.js';
+export { BaseFetcher } from './fetch/BaseFetcher.js';
 export { RelayFetcher } from './fetch/RelayFetcher.js';
 
 export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
-export { IterativePromptExtractor } from './extract/IterativePromptExtractor.js';
-export { MinimizingExtractor } from './extract/MinimizingExtractor.js';
 export { CodeGenExtractor } from './extract/CodeGenExtractor.js';
 
 export { Exporter } from './export/Exporter.js';
