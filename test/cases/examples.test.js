@@ -7,6 +7,8 @@ import { testCache } from '../lib/util.js';
 
 // Test the examples from README.md
 describe('examples', function() {
+  this.timeout(5 * 1000);
+
   it('should do basic example @run', async () => {
     const results = await fox
       .config({ cache: testCache() })
@@ -19,8 +21,6 @@ describe('examples', function() {
       })
       .limit(3)
       .run(null, (delta) => {});
-
-    console.log('results.items', results.items);
 
     assert.equal(results.items.length, 3);
     assert.equal(results.items[0].name, 'Bulbasaur');

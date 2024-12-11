@@ -64,7 +64,6 @@ describe('channels', function() {
     const p3 = new Promise(async (ok) => {
       for await (const v of c1.receive()) {
         if (v.end) break;
-        console.log(v);
       }
       ok();
     });

@@ -22,7 +22,7 @@ export const BaseFetcher = class {
     this.q = new PQueue({
       concurrency: options?.concurrency || 4,
       intervalCap: options?.intervalCap || 1,
-      interval: options?.interval || 5000,
+      interval: options?.interval || 1000,
     });
 
     this.s3 = options?.s3;
@@ -53,6 +53,8 @@ export const BaseFetcher = class {
       url = target;
     } else if (typeof target.url == 'string') {
       url = target.url;
+    } else if (typeof target._url == 'string') {
+      url = target._url;
     }
 
     // Pull out options that affect caching
@@ -90,10 +92,14 @@ export const BaseFetcher = class {
       }
 
       logger.debug(`Adding to fetch queue: ${url}`);
-      const p = await this.q.add(() => {
-        logger.info(`Queue is starting fetch of: ${url}`);
-        return this._fetch(url, options);
-      });
+      const priority = options?.priority || 1;
+
+      const p = await this.q.add(
+        () => {
+          logger.info(`Queue is starting fetch of: ${url}`);
+          return this._fetch(url, options);
+        },
+        { priority });
       logger.debug(`Fetch queue has ${this.q.size} requests`);
 
       this.usage.completed++;
@@ -124,7 +130,7 @@ export const BaseFetcher = class {
           try {
             await doc.uploadHtml(presignedUrl);
           } catch(e) {
-            logger.error(`Failed to upload: ${e}`);
+            logger.error(`Failed to upload ${key}: ${e}`);
           }
         }
 

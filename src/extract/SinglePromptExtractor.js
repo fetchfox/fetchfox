@@ -3,7 +3,6 @@ import { logger } from '../log/logger.js';
 import { DefaultFetcher } from '../fetch/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { scrapeOnce } from './prompts.js';
-import { AIError } from '../ai/AIError.js';
 
 export const SinglePromptExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -43,9 +42,14 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     for (const prompt of prompts) {
       logger.debug(`${this} Streaming prompt ${++count} of ${prompts.length}`);
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
-      for await (const { delta } of stream) {
-        if (delta.itemCount) continue;
-        yield Promise.resolve(new Item(delta, doc));
+      try {
+        for await (const { delta } of stream) {
+          if (delta.itemCount) continue;
+          yield Promise.resolve(new Item(delta, doc));
+        }
+      } catch(e) {
+        logger.error(`${this} Got error: ${e}`);
+        throw e;
       }
     }
   }

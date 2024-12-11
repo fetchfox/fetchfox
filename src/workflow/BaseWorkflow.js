@@ -94,13 +94,15 @@ export const BaseWorkflow = class {
         (r) => {
           buffer.push(r);
         })
-        .then((out) => { done = true; ok(out) })
+        .then((out) => { done = true; ok([]) })
         .catch(err);
     });
 
     while(!done) {
       const next = new Promise((ok) => {
-        buffer.consume(r => ok(r));
+        buffer.consume(r => {
+          ok(r)
+        });
       });
 
       const result = await Promise.race([

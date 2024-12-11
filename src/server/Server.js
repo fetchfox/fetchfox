@@ -119,6 +119,8 @@ export const Server = class {
     child.on('message', (msg) => {
       const { command, data } = msg;
 
+      logger.debug(`${this} Got command: ${command} data=${JSON.stringify(data).substr(0, 200)}`);
+
       switch (command) {
         case 'partial':
           this.store.pub(id, data);
@@ -142,6 +144,7 @@ export const Server = class {
       }
     });
 
+    data.context = { ...this.context, ...(data.context || {}) };
     this.safeSend(child, { command: 'start', id, data });
     return id;
   }

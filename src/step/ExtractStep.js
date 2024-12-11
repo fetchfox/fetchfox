@@ -33,7 +33,7 @@ export const ExtractStep = class extends BaseStep {
     await cursor.ctx.extractor.clear();
   }
 
-  async process({ cursor, item, batch }, cb) {
+  async process({ cursor, item, batch, index }, cb) {
     logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
     const start = (new Date()).getTime();
 
@@ -74,27 +74,32 @@ export const ExtractStep = class extends BaseStep {
       await ex.ready();
     }
 
-    const stream = ex.stream(
-      item,
-      this.questions,
-      {
-        single: this.single,
-        maxPages: this.maxPages,
-      });
+    try {
+      const stream = ex.stream(
+        item,
+        this.questions,
+        {
+          single: this.single,
+          maxPages: this.maxPages,
+          fetchOptions: { priority: index },
+        });
+      for await (const output of stream) {
+        const took = (new Date()).getTime() - start;
+        logger.debug(`${this } Extract took ${(took/1000).toFixed(1)} sec so far`);
+        const combined = { ...item, ...output };
+        logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
 
-    for await (const output of stream) {
-      const took = (new Date()).getTime() - start;
-      logger.debug(`${this } Extract took ${(took/1000).toFixed(1)} sec so far`);
-      const combined = { ...item, ...output };
-      logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
-
-      const done = cb(combined);
-      if (done) {
-        break;
+        const done = cb(combined);
+        if (done) {
+          break;
+        }
+        if (this.single) {
+          break;
+        }
       }
-      if (this.single) {
-        break;
-      }
+    } catch (e) {
+      logger.error(`${this} Got error: ${e}`);
+      throw e;
     }
   }
 }

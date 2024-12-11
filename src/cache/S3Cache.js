@@ -10,9 +10,14 @@ export const S3Cache = class {
     this.prefix = options.prefix || 'fetchfox-benchmarks/';
     this.acl = options.acl;
     this.ttls = options.ttls || { base: 2 * 3600 };
+    this.readOnly = options?.readOnly;
   }
 
   async set(key, val, label) {
+    if (this.readOnly) {
+      return;
+    }
+
     const ttl = this.ttls[label] || this.ttls.base || 2 * 3600;
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
     const body = JSON.stringify(data);
@@ -62,6 +67,10 @@ export const S3Cache = class {
   }
 
   async del(key) {
+    if (this.readOnly) {
+      return;
+    }
+
     const objectKey = `${this.prefix}${key}`;
     try {
       await s3.send(new DeleteObjectCommand({

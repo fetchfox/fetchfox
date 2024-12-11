@@ -17,13 +17,14 @@ export const CrawlStep = class extends BaseStep {
     this.css = args?.css;
   }
 
-  async process({ cursor, item }, cb) {
+  async process({ cursor, item, index }, cb) {
     const crawler = cursor.ctx.crawler;
     const start = (new Date()).getTime();
 
     const options = {
       css: this.css,
       maxPages: this.maxPages,
+      fetchOptions: { priority: index },
     };
 
     // TODO: modular/intelligent selection of URL field

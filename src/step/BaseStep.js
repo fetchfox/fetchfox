@@ -1,10 +1,15 @@
 import { logger } from '../log/logger.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
 
+// Some steps will need a larger batch size, but otherwise keep
+// step batches to size of 1 so that items are passed to next
+// step immediately
+const defaultBatchSize = 1;
+
 export const BaseStep = class {
-  static batchSize = 10;
 
   constructor(args) {
+    this.batchSize = args?.batchSize || defaultBatchSize;
     this.limit = args?.limit;
     // TODO: pull defaults from info
     this.maxPages = args?.maxPages || 5;
@@ -96,7 +101,7 @@ export const BaseStep = class {
       throw e;
     }
   }
-  
+
   async _run(cursor, steps, index) {
     logger.info(`Run ${this}`);
 
@@ -125,54 +130,81 @@ export const BaseStep = class {
     // 3) There is a next step, and next step is done (regardless 
     await new Promise(async (ok) => {
       let batch = [];
-      const batchSize = BaseStep.batchSize;
+      const batchSize = this.batchSize;
 
       const processBatch = async () => {
         const b = [...batch];
         batch = [];
-
         received += b.length;
 
-        try {
-          const all = [];
+        const all = [];
 
-          for (const item of b) {
-            const p = this.process(
-              { cursor, item, index, batch: b },
-              (output) => {
-                this.results.push(output);
-                const hitLimit = this.limit && this.results.length >= this.limit;
+        for (const item of b) {
+          const meta = { status: 'loading', sourceUrl: item._url };
 
-                if (hitLimit) {
-                  logger.info(`${this} Hit limit with ${this.results.length} results`);
-                }
+          // Create placeholder item for the *first* output
+          let firstId = cursor.publish(
+            null,
+            { _meta: meta },
+            index,
+            done);
 
-                if (!done) {
-                  cursor.publish(output, index, done);
-                  this.trigger('item', output);
-                }
+          const p = this.process(
+            { cursor, item, index, batch: b },
+            (output) => {
+              this.results.push(output);
+              const hitLimit = this.limit && this.results.length >= this.limit;
 
-                done ||= hitLimit;
-
-                if (done) {
-                  logger.debug(`${this} Received done signal inside callback`);
-                  ok();
-                } else {
-                  done = maybeOk();
-                }
-
-                return done;
+              if (hitLimit) {
+                logger.info(`${this} Hit limit with ${this.results.length} results`);
               }
-            );
-            all.push(p);
-          }
 
-          await Promise.all(all);
+              meta.status = 'done';
+              if (!done) {
+                cursor.publish(
+                  firstId,
+                  { ...output, _meta: meta },
+                  index,
+                  done);
 
-        } catch(e) {
-          await cursor.error(e, index);
-          throw e;
+                // Only the *first* output should be an update, so set
+                // use a null ID for the remainder
+                firstId = null;
+
+                this.trigger('item', output);
+              }
+
+              done ||= hitLimit;
+
+              if (done) {
+                logger.debug(`${this} Received done signal inside callback`);
+                ok();
+              } else {
+                done = maybeOk();
+              }
+
+              return done;
+            }
+          );
+
+          p.catch((e) => {
+            logger.error(`${this} Got error while processing ${e}`);
+
+            meta.status = 'error';
+            meta.error = '' + e;
+            cursor.publish(
+              firstId,
+              { _meta: meta },
+              index,
+              done);
+          });
+
+          all.push(p);
         }
+
+        await Promise.all(all).catch((e) => {
+          logger.error(`${this} Got error while waiting for all ${e}`);
+        });
 
         completed += b.length;
 
@@ -188,6 +220,7 @@ export const BaseStep = class {
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);
+
         if (isOk) {
           ok();
         }

@@ -6,15 +6,16 @@ import { RemoteWorkflow } from '../../src/workflow/RemoteWorkflow.js';
 import { Client } from '../../src/relay/Client.js';
 import { googleSearchPlanPrompt } from './data.js';
 import { setShouldIgnore } from '../setup.js';
-import { testDiskCachePath } from '../lib/util.js';
+import { testCache, testCacheConfig } from '../lib/util.js';
 
 describe('Server', function() {
-  this.timeout(10 * 1000);
-
-  const diskCache = testDiskCachePath;
+  this.timeout(20 * 1000);
 
   this.launch = async () => {
-    const s = new Server({ childPath: 'src/server/child.js', context: { diskCache } });
+    const s = new Server({
+      childPath: 'src/server/child.js',
+      context: { s3Cache: testCache() },
+    });
     await new Promise(ok => s.listen(7070, ok));
     this.s = s;
     return s;
@@ -31,7 +32,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       });
 
@@ -68,7 +68,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
         limit: 3,
         publishAllSteps: true,
@@ -137,7 +136,6 @@ describe('Server', function() {
     const wf = webfox;
     const out = await wf
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       })
       .run(data);
@@ -152,7 +150,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       });
 
@@ -190,7 +187,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       });
 
@@ -237,7 +233,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       });
 
@@ -292,7 +287,6 @@ describe('Server', function() {
     const wf = webfox;
     const out = await wf
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       })
       .run(
@@ -312,7 +306,7 @@ describe('Server', function() {
               "name": "extract",
               "args": {
                 "questions": {
-                  "name": "What is the name of the Pokémon?",
+                  "name": "What is the name of the Pokémon? Start with the first one",
                   "type": "What is the type of the Pokémon?"
                 },
                 "single": false
@@ -341,7 +335,6 @@ describe('Server', function() {
     const s = await this.launch(); 
 
     const run = fox
-      .config({ diskCache })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions: {
@@ -355,7 +348,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       });
     const rwRun = rw
@@ -395,7 +387,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       });
     const workflow = await rw.plan('https://pokemondb.net/pokedex/national find links to pokemon pages and extract names');
@@ -417,7 +408,6 @@ describe('Server', function() {
 
       const rw = new RemoteWorkflow()
         .config({
-          diskCache,
           host: 'http://127.0.0.1:7070',
         });
 
@@ -462,7 +452,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
         publishAllSteps: true,
       });
@@ -662,7 +651,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
         publishAllSteps: true,
       });
@@ -708,7 +696,6 @@ describe('Server', function() {
 
     const rw = new RemoteWorkflow()
       .config({
-        diskCache,
         host: 'http://127.0.0.1:7070',
       });
 

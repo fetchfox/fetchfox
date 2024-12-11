@@ -7,7 +7,6 @@ describe('ExtractStep', function() {
   this.timeout(60 * 1000);
 
   it('should supplement items with subsequent extractions @run', async () => {
-    console.log('should supplement items');
     const f = await fox
       .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
