@@ -21,7 +21,7 @@ const combineInfo = (info) => {
     required: false,
   };
 
-  if (['const', 'extract', 'crawl'].includes(info.name)) {
+  if (['const', 'extract', 'crawl', 'fetch'].includes(info.name)) {
     combined.args.maxPages = {
       description: 'Max number of pages to fetch from source URLs',
       format: 'number',
