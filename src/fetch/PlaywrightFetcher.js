@@ -1,8 +1,9 @@
 import { chromium } from 'playwright-extra';
 import { Document } from '../document/Document.js';
 import { logger } from '../log/logger.js';
+import { timer } from '../log/timer.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
-import { createChannel, Timer } from '../util.js';
+import { createChannel } from '../util.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { analyzePagination } from './prompts.js';
 
@@ -19,7 +20,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.pullIframes = options.pullIframes;
 
     this.options = options.options || {};
-    this.timer = new Timer({ name: 'PlaywrightFetcher' });
   }
 
   cacheOptions() {
@@ -60,7 +60,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *_fetch(url, options) {
-    yield* this.timer.withScopeGen('fetch', this, async function* (timer) {
+    yield* timer.withScopeGen('PlaywrightFetcher.fetch', this, async function* () {
       logger.info(`${this} Fetch ${url} with options ${options || '(none)'}`);
       if (this.options?.proxy?.server) {
         logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
@@ -100,7 +100,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _docFromPage(page, options) {
-    return await this.timer.withScope('docFromPage', async (timer) => {
+    return await timer.withScope('docFromPage', async () => {
       let html;
       let status;
       try {
@@ -122,7 +122,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           // loadWait: this.loadWait,
           loadWait: 0,
           pullIframes: this.pullIframes,
-          timer: this.timer,
         });
 
         timer.log('get html from success');
@@ -165,7 +164,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *paginate(url, page, options) {
-    yield* this.timer.withScopeGen('paginate', this, async function* (timer) {
+    yield* timer.withScopeGen('paginate', this, async function* () {
       // Initial load
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -310,8 +309,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 };
 
-const getHtmlFromSuccess = async (page, { loadWait, pullIframes, timer }) => {
-  return await timer.withScope('getHtmlFromSuccess', async (timer) => {
+const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
+  return await timer.withScope('getHtmlFromSuccess', async () => {
     logger.debug(`Playwright waiting ${(loadWait / 1000).toFixed(1)} sec`);
 
     await new Promise((ok) => setTimeout(ok, loadWait));

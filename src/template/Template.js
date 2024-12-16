@@ -38,7 +38,7 @@ export const Template = class {
     return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`;
   }
 
-  async renderMulti(context, flexField, ai, cache, timer) {
+  async renderMulti(context, flexField, ai, cache) {
     const maxTokens = ai.maxTokens || 128000;
 
     let key;
@@ -54,13 +54,8 @@ export const Template = class {
       if (cached) return cached;
     }
 
-    timer?.log('start');
-
     const barePrompt = this.render({ ...context, [flexField]: '' });
     const barePromptTokens = await ai.countTokens(barePrompt);
-
-    timer?.log(`count bare prompt tokens, got ${barePromptTokens}`);
-
     const remainingTokens = (ai.maxTokens || 128000) - barePromptTokens;
 
     const prompts = [];
