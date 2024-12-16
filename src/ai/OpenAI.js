@@ -1,10 +1,9 @@
 import OpenAILib from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
+import { encoding_for_model } from 'tiktoken';
 import { z } from 'zod';
-import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
-import { parseAnswer } from './util.js';
-import { get_encoding, encoding_for_model } from 'tiktoken';
+import { BaseAI } from './BaseAI.js';
 
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
@@ -12,6 +11,7 @@ export const OpenAI = class extends BaseAI {
 
   async countTokens(str) {
     const enc = encoding_for_model(this.model);
+    enc.encode_single_token;
     return enc.encode(str).length;
   }
 

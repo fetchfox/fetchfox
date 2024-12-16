@@ -14,7 +14,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.cdp = options.cdp;
 
     // TODO: these options should be passed in in `fetch`
-    this.loadWait = options.loadWait || 4000;
+    this.loadWait = options.loadWait || 2000;
     this.timeoutWait = options.timeoutWait || 15000;
     this.pullIframes = options.pullIframes;
 
@@ -121,7 +121,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         timer.log('wait for text');
 
         const r = await getHtmlFromSuccess(page, {
-          loadWait: 0, // this.loadWait,
+          // loadWait: this.loadWait,
+          loadWait: 0,
           pullIframes: this.pullIframes,
           timer: this.timer,
         });
@@ -169,7 +170,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     yield* this.timer.withScopeGen('paginate', this, async function* (timer) {
       // Initial load
       try {
-        await page.goto(url); // , { waitUntil: "domcontentloaded" });
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
       } catch (e) {
         logger.warn(`Goto gave error, but continuing anyways: ${e}`);
       }
@@ -224,7 +225,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         const prompts = await analyzePagination.renderMulti(context, 'html', this.ai, this.cache, timer);
         timer.pop();
 
-        timer.log('analyzePagination.renderMulti');
+        timer.log(`analyzePagination.renderMulti, got ${prompts.length} prompts`);
 
         logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
         for (const prompt of prompts) {
@@ -236,7 +237,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             continue;
           }
 
-          timer.log(`paginate prompt: ${prompt.slice(0, 100)}`);
+          timer.log(`pass paginate prompt to llm`);
 
           logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 

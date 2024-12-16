@@ -2,10 +2,28 @@ import CryptoJS from 'crypto-js';
 import { logger } from './log/logger';
 import colors from 'colors/safe';
 
+export const hashObject = (v) => {
+  function sortKeysDeep(obj) {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      const sortedKeys = Object.keys(obj).sort();
+      const ret = {};
+      for (const key in sortedKeys) {
+        ret[key] = sortKeysDeep(obj[key]);
+      }
+      return ret;
+    }
+    return obj;
+  }
+  return CryptoJS.SHA256(JSON.stringify(sortKeysDeep(v))).toString(CryptoJS.enc.Hex);
+};
+
+export const hashObjectShort = (v) => {
+  return hashObject(v).slice(0, 16);
+};
+
 export const shuffle = (l) => {
   // Deterministic shuffle to keep prompts stable
-  const h = (v) => CryptoJS.SHA256(JSON.stringify(v)).toString(CryptoJS.enc.Hex);
-  l.sort((a, b) => h(a).localeCompare(h(b)));
+  l.sort((a, b) => hashObject(a).localeCompare(hashObject(b)));
   return l;
 };
 

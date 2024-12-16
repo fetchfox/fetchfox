@@ -1,6 +1,6 @@
-import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
-import { parseAnswer, getModelData, sleep } from './util.js';
+import { hashObjectShort } from '../util.js';
+import { getModelData, parseAnswer, sleep } from './util.js';
 
 export const BaseAI = class {
   constructor(options) {
@@ -62,9 +62,14 @@ export const BaseAI = class {
   }
 
   cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = CryptoJS.SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
-      .toString(CryptoJS.enc.Hex)
-      .substr(0, 16);
+    const hash = hashObjectShort({
+      prompt,
+      systemPrompt,
+      format,
+      cacheHint,
+      schema,
+    });
+
     const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
     return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`;
   }
