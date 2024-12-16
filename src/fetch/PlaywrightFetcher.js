@@ -5,8 +5,10 @@ import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { BaseFetcher } from './BaseFetcher.js';
-import { analyzePagination } from './prompts.js';
+import { analyzePagination, verifyPaginationByURL, verifyPaginationByHTML } from './prompts.js';
 import { createChannel } from '../util.js';
+import { createPatch } from 'diff';
+import { html as diff2html } from 'diff2html';
 
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
@@ -138,6 +140,76 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return doc;
   }
 
+  async _verifyPagination(beforeHTMLDoc, afterHTMLDoc) {
+    // Bail since the HTML is obviously the same
+    if (beforeHTMLDoc.html.length === afterHTMLDoc.html.length) {
+      if (beforeHTMLDoc.html === afterHTMLDoc.html) {
+        // TODO: This needs to come from this.ai and not be hardcoded...
+        return {
+          partial: {
+            paginationOccurred: false,
+            reason: 'HTML is identical',
+          },
+          usage: {
+            input: 0,
+            output: 0,
+            total: 0,
+          },
+          cost: {
+            input: 0,
+            output: 0,
+            total: 0,
+          },
+        };
+      }
+    }
+
+    // First check if the URLs are different with very obvious pagination to save tokens
+    if (beforeHTMLDoc.url !== afterHTMLDoc.url) {
+      const prompt = await verifyPaginationByURL.render(
+        {
+          beforeURL: beforeHTMLDoc.url,
+          afterURL: afterHTMLDoc.url,
+        },
+        'html',
+        this.ai,
+        this.cache
+      );
+
+      const answer = await this.ai.ask(prompt, { format: 'json' });
+      if (answer?.partial?.paginationOccurred) {
+        return answer;
+      }
+    }
+
+    const diff = createPatch(beforeHTMLDoc.url,
+      beforeHTMLDoc.html,
+      afterHTMLDoc.html,
+      'before',
+      'after'
+    );
+
+    logger.debug(`${this} got diff: ${diff}`);
+
+    // Do we need the full context of the HTML? My think is that the diff is enough but
+    // maybe if all has failed and there's confidence there *is* pagination, we can
+    // use the full HTML as well as a diff.
+    const htmlPrompt = await verifyPaginationByHTML.render(
+      {
+        diff,
+      },
+      'html',
+      this.ai,
+      this.cache
+    );
+
+    // Use a better model to do better detection. The idea being that
+    // the page pages happen a lot less often than basic parsing.
+    const htmlAnswer = await this.ai.ask(htmlPrompt, { format: 'json', model: 'gpt-4o' });
+    logger.debug(`${this} got htmlAnswer: ${JSON.stringify(htmlAnswer, null, 2)}`);
+    return htmlAnswer;
+  }
+
   async *paginate(url, page, options) {
     // Initial load
     try {
@@ -164,9 +236,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
 
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
-      const minDoc = await min.min(doc);
+      let minDoc = await min.min(doc);
       const fns = [];
-
       const hostname = (new URL(url)).hostname;
       let domainSpecific = {
         'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
@@ -197,15 +268,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         if (answer?.partial?.hasPagination &&
           answer?.partial?.paginationJavascript
         ) {
-          let fn;
-          try {
-            fn = new Function(answer.partial.paginationJavascript);
-          } catch(e) {
-            logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it`);
-          }
-          if (fn) {
-            fns.push(fn);
-          }
+          fns.push(answer.partial.paginationJavascript);
         }
       }
 
@@ -215,13 +278,42 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
 
-      const docs = [];
       let fnIndex = 0;
       for (let i = 1; i < iterations; i++) {
         const fn = fns[fnIndex];
         logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
         try {
-          await page.evaluate(fn);
+          await page.evaluate((fnString) => {
+            try {
+              // It's doing new Function() on the string a lot, so we need to remove that
+              const cleanFnString = fnString.replace(/^new Function\(['"](.*)['"]\)$/, '$1');
+              const fn = new Function(cleanFnString);
+              return fn();
+            } catch(e) {
+              throw e;
+            }
+          }, fn);
+
+          // TODO: This is not the best way to do this
+          await new Promise(ok => setTimeout(ok, 1000));
+
+          const newDoc = await this._docFromPage(page, options);
+          if (!newDoc) {
+            logger.warn(`${this} could not get new doc on iteration #${i}, bailing!`);
+            continue;
+          }
+
+          const minNewDoc = await min.min(newDoc);
+          const prom = await this._verifyPagination(minDoc, minNewDoc);
+          if (!prom.partial?.paginationOccurred) {
+            logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${prom.reason}`);
+
+            // TODO: Try again with a different pagination function?
+            continue;
+          }
+
+          minDoc = minNewDoc;
+          channel.send({ doc: newDoc });
         } catch (e) {
           if (fnIndex >= fns.length) {
             logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
@@ -232,9 +324,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
           continue;
         }
-        const doc = await this._docFromPage(page, options);
 
+        const doc = await this._docFromPage(page, options);
         logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
+
         if (doc) {
           channel.send({ doc });
         }

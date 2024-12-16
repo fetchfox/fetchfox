@@ -38,6 +38,7 @@
     "commander": "^12.1.0",
     "crypto-js": "^4.2.0",
     "csv-stringify": "^6.5.1",
+    "diff2html": "^3.4.48",
     "dropbox": "^10.34.0",
     "googleapis": "^144.0.0",
     "groq-sdk": "^0.7.0",
