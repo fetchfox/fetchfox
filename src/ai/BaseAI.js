@@ -62,14 +62,7 @@ export const BaseAI = class {
   }
 
   cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = hashObjectShort({
-      prompt,
-      systemPrompt,
-      format,
-      cacheHint,
-      schema,
-    });
-
+    const hash = hashObjectShort({ prompt, systemPrompt, format, cacheHint, schema });
     const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
     return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`;
   }

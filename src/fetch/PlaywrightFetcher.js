@@ -105,9 +105,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       let status;
       try {
         logger.debug(`${this} wait for DOM content with timeout ${this.timeoutWait}`);
-        await page.waitForLoadState('domcontentloaded', {
-          timeout: this.timeoutWait,
-        });
+        await page.waitForLoadState('domcontentloaded', { timeout: this.timeoutWait });
 
         timer.log('wait for dom content loaded');
         logger.debug(`${this} loaded page before timeout`);

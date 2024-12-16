@@ -11,7 +11,6 @@ export const OpenAI = class extends BaseAI {
 
   async countTokens(str) {
     const enc = encoding_for_model(this.model);
-    enc.encode_single_token;
     return enc.encode(str).length;
   }
 
