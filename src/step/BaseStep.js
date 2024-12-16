@@ -12,7 +12,7 @@ export const BaseStep = class {
     this.batchSize = args?.batchSize || defaultBatchSize;
     this.limit = args?.limit;
     // TODO: pull defaults from info
-    this.maxPages = args?.maxPages || 5;
+    this.maxPages = args?.maxPages || 1;
 
     this.callbacks = {};
   }
