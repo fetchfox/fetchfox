@@ -219,7 +219,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           html: minDoc.html,
           domainSpecific,
         };
-        const prompts = await analyzePagination.renderMulti(context, 'html', this.ai, this.cache);
+
+        timer.push('renderMulti');
+        const prompts = await analyzePagination.renderMulti(context, 'html', this.ai, this.cache, timer);
+        timer.pop();
 
         timer.log('analyzePagination.renderMulti');
 
@@ -262,11 +265,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
         timer.log(`right before iterations`);
 
-        const docs = [];
         let fnIndex = 0;
         for (let i = 1; i < iterations; i++) {
           const fn = fns[fnIndex];
           logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
+
           try {
             await page.evaluate(fn);
           } catch (e) {
@@ -281,6 +284,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             );
             continue;
           }
+
+          timer.log(`iteration ${i} - evaluate ${fn.toString()}`);
+
           const doc = await this._docFromPage(page, options);
 
           logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
@@ -288,7 +294,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             channel.send({ doc });
           }
 
-          timer.log(`iteration ${i}`);
+          timer.log(`iteration ${i} - docFromPage`);
         }
 
         channel.end();
