@@ -57,7 +57,7 @@ export const OpenAI = class extends BaseAI {
         existing,
         {
           type: 'image_url',
-          image_url: { url:  options.imageUrl },
+          image_url: { url: options.imageUrl },
         },
       ];
     }
@@ -104,4 +104,4 @@ export const OpenAI = class extends BaseAI {
       yield Promise.resolve(answer);
     }
   }
-}
+};

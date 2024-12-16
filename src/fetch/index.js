@@ -1,6 +1,6 @@
 import { logger } from '../log/logger.js';
 import { Fetcher } from './Fetcher.js';
-import { RelayFetcher } from './RelayFetcher.js'
+import { RelayFetcher } from './RelayFetcher.js';
 import { PlaywrightFetcher } from './PlaywrightFetcher.js';
 
 export { BaseFetcher } from './BaseFetcher.js';
@@ -29,4 +29,4 @@ export const getFetcher = (which, options) => {
     return;
   }
   return new fetcherClass(options);
-}
+};

@@ -33,23 +33,20 @@ export const Workflow = class extends BaseWorkflow {
     }
 
     const planner = new Planner(this.ctx);
-    let planPromise
+    let planPromise;
 
     if (args.prompt != undefined) {
       logger.debug(`Plan workflow from prompt`);
-      planPromise = planner.fromPrompt(
-        args.prompt,
-        {
-          url: args.url,
-          html: args.html,
-        });
-
+      planPromise = planner.fromPrompt(args.prompt, {
+        url: args.url,
+        html: args.html,
+      });
     } else {
       logger.debug(`Plan workflow from string steps`);
 
       if (args) this.parseRunArgs(args);
       const steps = [...this.steps, ...this._stepsInput];
-      const stepsPlain = steps.map(step => {
+      const stepsPlain = steps.map((step) => {
         if (step instanceof BaseStep) {
           return step.dump();
         } else {
@@ -58,13 +55,9 @@ export const Workflow = class extends BaseWorkflow {
         }
       });
       planPromise = planner.plan(stepsPlain);
-
     }
 
-    const {
-      steps,
-      itemDescription,
-    } = await planPromise;
+    const { steps, itemDescription } = await planPromise;
 
     this.steps = steps;
     this._stepsInput = [];
@@ -110,7 +103,7 @@ export const Workflow = class extends BaseWorkflow {
         last.limit = last.limit ? Math.min(this.ctx.limit, last.limit) : this.ctx.limit;
       }
 
-      const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
+      const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map((s) => ('' + s).replace('Step', '')).join(' -> ')} `;
       logger.info('╔' + '═'.repeat(msg.length) + '╗');
       logger.info('║' + msg + '║');
       logger.info('╚' + '═'.repeat(msg.length) + '╝');
@@ -118,16 +111,15 @@ export const Workflow = class extends BaseWorkflow {
 
       const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
       return this.cursor.out(true);
-
     } finally {
       last.limit = originalLimit;
       this.cursor.finishAll();
     }
   }
-}
+};
 
 for (const stepName of stepNames) {
-  Workflow.prototype[stepName] = function(prompt) {
+  Workflow.prototype[stepName] = function (prompt) {
     const name = stepName;
     const cls = classMap[name];
 
@@ -144,16 +136,13 @@ for (const stepName of stepNames) {
         }
         return this.step(new cls(args));
       }
-
     } else if (name == 'crawl') {
       if (typeof prompt == 'string') {
         return this.step(new cls({ query: prompt }));
       }
-
     } else if (name == 'fetch') {
       const args = prompt;
       return this.step(new cls(args));
-
     } else if (name == 'limit') {
       if (prompt.limit) {
         return this.step(new cls(prompt));
@@ -163,5 +152,5 @@ for (const stepName of stepNames) {
     }
 
     return this.step({ name, args: prompt });
-  }
+  };
 }

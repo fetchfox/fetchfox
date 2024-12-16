@@ -22,17 +22,18 @@ export const standardMatrix = (extra, options) => {
   if (process.env.BENCH_MATRIX_FETCHER) {
     fetcher = process.env.BENCH_MATRIX_FETCHER.split(',');
   } else {
-    fetcher = [
-      'playwright',
-    ];
+    fetcher = ['playwright'];
   }
 
-  return createMatrix({
-    ai,
-    fetcher,
-    ...extra,
-  }, options);
-}
+  return createMatrix(
+    {
+      ai,
+      fetcher,
+      ...extra,
+    },
+    options,
+  );
+};
 
 export const createMatrix = (configs, options) => {
   const cdp = process.env.CDP_URL;
@@ -66,4 +67,4 @@ export const createMatrix = (configs, options) => {
   }
 
   return matrix;
-}
+};

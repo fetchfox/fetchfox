@@ -16,17 +16,14 @@ export const FileKV = class extends BaseKV {
       if (e.code === 'ENOENT') {
         this.data = {};
         return;
-      } 
+      }
 
       throw e;
     }
   }
 
   async save() {
-    await fs.writeFile(
-      this.path,
-      JSON .stringify(this.data, null, 2),
-      'utf8');
+    await fs.writeFile(this.path, JSON.stringify(this.data, null, 2), 'utf8');
   }
 
   async get(key) {

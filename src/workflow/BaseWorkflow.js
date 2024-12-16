@@ -77,7 +77,7 @@ export const BaseWorkflow = class {
       },
       consume: function (cb) {
         logger.debug(`Stream got consume callback`);
-        if(this.items.length) {
+        if (this.items.length) {
           logger.debug(`Stream sending to consume callback`);
           cb(this.items);
           this.items = [];
@@ -85,30 +85,28 @@ export const BaseWorkflow = class {
           logger.debug(`Stream storing consume callback`);
           this.cb = cb;
         }
-      }
+      },
     };
 
     const end = new Promise((ok, err) => {
-      this.run(
-        args,
-        (r) => {
-          buffer.push(r);
+      this.run(args, (r) => {
+        buffer.push(r);
+      })
+        .then((out) => {
+          done = true;
+          ok([]);
         })
-        .then((out) => { done = true; ok([]) })
         .catch(err);
     });
 
-    while(!done) {
+    while (!done) {
       const next = new Promise((ok) => {
-        buffer.consume(r => {
-          ok(r)
+        buffer.consume((r) => {
+          ok(r);
         });
       });
 
-      const result = await Promise.race([
-        end,
-        next,
-      ]);
+      const result = await Promise.race([end, next]);
 
       for (const r of result) {
         yield Promise.resolve(r);
@@ -119,4 +117,4 @@ export const BaseWorkflow = class {
 
     logger.info(`Streaming done`);
   }
-}
+};

@@ -2,17 +2,19 @@ import { logger } from '../../src/log/logger.js';
 import assert from 'assert';
 import os from 'os';
 import { Planner } from '../../src/plan/Planner.js';
-import {
-  redditNflCommentPageHtml,
-  redditNflMainPageHtml,
-  pokedexPageHtml,
-} from './data.js';
+import { redditNflCommentPageHtml, redditNflMainPageHtml, pokedexPageHtml } from './data.js';
 
 const logSteps = (steps) => {
-  logger.debug(JSON.stringify(steps.map(s => s.dump()), null, 2));
-}
+  logger.debug(
+    JSON.stringify(
+      steps.map((s) => s.dump()),
+      null,
+      2,
+    ),
+  );
+};
 
-describe('Planner', function() {
+describe('Planner', function () {
   this.timeout(30 * 1000);
 
   // These tests are all a little flakey, disabled for now.
@@ -56,12 +58,8 @@ describe('Planner', function() {
     const d = JSON.stringify(steps[1].dump()).toLowerCase();
     assert.ok(d.indexOf('title') != -1);
     assert.ok(d.indexOf('point') != -1);
-    assert.ok(
-      d.indexOf('username') != -1 ||
-      d.indexOf('submit') != -1
-    );
+    assert.ok(d.indexOf('username') != -1 || d.indexOf('submit') != -1);
   });
-
 
   it('should do multi page crawl scrape for reddit article summaries @disabled', async () => {
     const planner = new Planner();
@@ -76,9 +74,7 @@ describe('Planner', function() {
     logSteps(steps);
 
     // TODO: ai prompt engineering so it returns exactly 3 steps
-    assert.ok(
-      steps.length >= 3 &&
-      steps.length <= 4);
+    assert.ok(steps.length >= 3 && steps.length <= 4);
     assert.equal(steps[0].name(), 'const');
     assert.equal(steps[1].name(), 'crawl');
     assert.equal(steps[2].name(), 'extract');
@@ -126,7 +122,6 @@ describe('Planner', function() {
     assert.ok(!steps[1].single);
   });
 
-
   it('should do multi page crawl for pokedex data @disabled', async () => {
     const planner = new Planner();
 
@@ -154,7 +149,8 @@ describe('Planner', function() {
   it('should keep google url @disabled', async () => {
     const planner = new Planner();
 
-    const url = 'https://www.google.com/search?sca_esv=c263faa809bdb49e&sxsrf=ADLYWIJFw5OpqGyQgJepg4RH5DL739-wFA:1730916173269&q=adjustable+bed&udm=28&fbs=AEQNm0BglSNKPbDQcL4Et01QEIYvJ5VGsHgUL_tsKqYywhWXkknveTpaLEIQiU02u5i1FK5Aui8Lbcs6UtNG0K_ZRX5_Sfaez_nbio7ZevU-01UapIxO69dMWeVTKP_UKwkGJCi-gm4_XCwzeGcd3iWHdX18pJO4SCbD0xKKCtmS-V7RqxnCEfTZFtgpF81MF2iMynb0DJhUqRTMt9YhJKKaN0U-I1PLrg&ved=1t:220175&ictx=111&biw=1218&bih=746&dpr=2#ip=1';
+    const url =
+      'https://www.google.com/search?sca_esv=c263faa809bdb49e&sxsrf=ADLYWIJFw5OpqGyQgJepg4RH5DL739-wFA:1730916173269&q=adjustable+bed&udm=28&fbs=AEQNm0BglSNKPbDQcL4Et01QEIYvJ5VGsHgUL_tsKqYywhWXkknveTpaLEIQiU02u5i1FK5Aui8Lbcs6UtNG0K_ZRX5_Sfaez_nbio7ZevU-01UapIxO69dMWeVTKP_UKwkGJCi-gm4_XCwzeGcd3iWHdX18pJO4SCbD0xKKCtmS-V7RqxnCEfTZFtgpF81MF2iMynb0DJhUqRTMt9YhJKKaN0U-I1PLrg&ved=1t:220175&ictx=111&biw=1218&bih=746&dpr=2#ip=1';
 
     const workflow = await planner.plan({
       prompt: 'scrape products',
@@ -164,5 +160,4 @@ describe('Planner', function() {
 
     assert.equal(workflow.steps[0].items[0].url, url);
   });
-
 });

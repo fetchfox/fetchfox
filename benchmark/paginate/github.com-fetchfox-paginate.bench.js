@@ -4,15 +4,12 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkExcludeUrls } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate github.com', async function() {
+describe('paginate github.com', async function () {
   const matrix = standardMatrix({
     fetcher: ['playwright'],
   });
 
-  const wf = await fox
-    .init('https://github.com/fetchfox/fetchfox/commits/master/')
-    .fetch({ pages: 5 })
-    .plan();
+  const wf = await fox.init('https://github.com/fetchfox/fetchfox/commits/master/').fetch({ pages: 5 }).plan();
 
   return itRunMatrix(
     it,
@@ -45,5 +42,6 @@ describe('paginate github.com', async function() {
         return score;
       },
     ],
-    { shouldSave: true });
+    { shouldSave: true },
+  );
 });

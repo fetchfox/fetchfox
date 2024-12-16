@@ -25,4 +25,4 @@ export const getExtractor = (which, options) => {
   }
 
   return new extractorClass(options);
-}
+};

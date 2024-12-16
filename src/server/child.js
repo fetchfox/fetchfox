@@ -1,4 +1,4 @@
-const start = (new Date()).getTime();
+const start = new Date().getTime();
 
 import { fox } from '../fox/fox.js';
 import { logger } from '../log/logger.js';
@@ -21,30 +21,27 @@ process.on('unhandledRejection', async (e, p) => {
       ...(e.code && { code: e.code }),
       ...(e.details && { details: e.details }),
     };
-  }
+  };
 
   await process.send({ command: 'error', data: serialize(e) });
   process.exit(1);
 });
 
 process.on('message', async ({ command, data }) => {
-  logger.debug(`Child got message: command=${command} data=${data}`)
+  logger.debug(`Child got message: command=${command} data=${data}`);
   switch (command) {
     case 'start':
       if (workflow != null) {
         throw new Error('already started');
       }
 
-      workflow = await fox
-        .config(data.context)
-        .plan(...(data.workflow.steps));
+      workflow = await fox.config(data.context).plan(...data.workflow.steps);
 
-      workflow.run(
-        null,
-        (data) => {
+      workflow
+        .run(null, (data) => {
           process.send({ command: 'partial', data });
         })
-        .then(data => {
+        .then((data) => {
           process.send({ command: 'final', data });
         });
       break;
@@ -60,5 +57,5 @@ process.on('message', async ({ command, data }) => {
   }
 });
 
-const took = (new Date()).getTime() - start;
+const took = new Date().getTime() - start;
 logger.debug(`child.js took ${took} msec to start`);

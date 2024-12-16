@@ -37,7 +37,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
       this.ctx = this.ctx = { ...this.ctx, ...data.options };
     }
     this.steps = [];
-    for (const step of (data?.steps || [])) {
+    for (const step of data?.steps || []) {
       this.step(step);
     }
     return this;
@@ -57,7 +57,7 @@ export const RemoteWorkflow = class extends BaseWorkflow {
           msg.apiKey = this.ctx.apiKey;
         }
         ws.send(JSON.stringify(msg));
-      }
+      };
 
       ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data);
@@ -68,16 +68,16 @@ export const RemoteWorkflow = class extends BaseWorkflow {
         } else {
           cb && cb(data, ws);
         }
-      }
+      };
 
       ws.onerror = (e) => {
         logger.error(`Client side websocket error: ${e}`);
         err(e);
-      }
+      };
 
       ws.onclose = () => {
         logger.info('Client side websocket connection closed');
-      }
+      };
     });
   }
 
@@ -139,14 +139,14 @@ export const RemoteWorkflow = class extends BaseWorkflow {
       this.id = null;
     }
   }
-}
+};
 
 for (const stepName of stepNames) {
-  RemoteWorkflow.prototype[stepName] = function(prompt) {
+  RemoteWorkflow.prototype[stepName] = function (prompt) {
     this.step({
       name: stepName,
       args: prompt,
     });
     return this;
-  }
+  };
 }

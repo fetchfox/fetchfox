@@ -12,8 +12,7 @@ export const BaseMinimizer = class {
   }
 
   async cacheKey(doc, options) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ doc: await doc.dump(), options }))
+    const hash = CryptoJS.SHA256(JSON.stringify({ doc: await doc.dump(), options }))
       .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     return `min-${this.constructor.name}-${doc.url.replace(/\//g, '-').substr(0, 100)}-${hash}`;
@@ -50,13 +49,13 @@ export const BaseMinimizer = class {
     if (cached) return cached;
     if (!doc) return;
 
-    const start = (new Date()).getTime() / 1000;
+    const start = new Date().getTime() / 1000;
     const before = JSON.stringify([doc.html, doc.text]).length;
 
     const min = await this._min(doc);
 
     const after = JSON.stringify([min.html, min.text]).length;
-    const took = (new Date()).getTime() / 1000 - start;
+    const took = new Date().getTime() / 1000 - start;
     logger.info(`Minimizing took ${took.toFixed(2)} seconds`);
     logger.info(`Minimized doc from ${(before / 1000).toFixed(1)} kB -> ${(after / 1000).toFixed(1)} kB`);
 
@@ -64,4 +63,4 @@ export const BaseMinimizer = class {
 
     return min;
   }
-}
+};

@@ -15,4 +15,5 @@ Example of valid output:
 The user filter is: {{query}}
 
 Apply this filter to these items:
-{{items}}`);
+{{items}}`,
+);

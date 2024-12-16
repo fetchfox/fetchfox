@@ -12,6 +12,6 @@ export const fox = {
 };
 
 for (const stepName of stepNames) {
-  fox[stepName] = (...args) => (new Workflow())[stepName](...args);
+  fox[stepName] = (...args) => new Workflow()[stepName](...args);
 }
 fox['init'] = fox['const'];

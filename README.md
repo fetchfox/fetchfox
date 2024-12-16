@@ -34,8 +34,10 @@ const results = await fox
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
-  .run(null, (delta) => { console.log(delta.item) });
-  
+  .run(null, (delta) => {
+    console.log(delta.item);
+  });
+
 for (const result of results) {
   console.log('Item:', result.item);
 }
@@ -74,7 +76,7 @@ Alternatively, you can pass in your API key in code, like this:
 import { fox } from 'fetchfox';
 
 const results = await fox
-  .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' }})
+  .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' } })
   .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
 ```
 
@@ -82,7 +84,7 @@ This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can
 
 ```javascript
 const results = await fox
-  .config({ ai: { model: 'anthropic:claude-3-5-sonnet-20240620', apiKey: 'your-anthropic-key' }})
+  .config({ ai: { model: 'anthropic:claude-3-5-sonnet-20240620', apiKey: 'your-anthropic-key' } })
   .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
 ```
 
@@ -96,7 +98,8 @@ Easiest is to use a single prompt, like in the example below.
 import { fox } from 'fetchfox';
 
 const results = await fox.run(
-  `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
+  `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`,
+);
 ```
 
 For more control, you can specify the steps like below.
@@ -126,7 +129,7 @@ This scrape will take some time, so there is an option to output incremental res
 import { fox } from 'fetchfox';
 
 const f = await fox
-  .config({ diskCache: '/tmp/fetchfox_cache'  })
+  .config({ diskCache: '/tmp/fetchfox_cache' })
   .init('https://github.com/bitcoin/bitcoin/commits/master')
   .crawl('find urls commits, limit: 10')
   .extract('get commit hash, author, and loc changed')
@@ -192,6 +195,5 @@ Or use `npx` instead:
 npx fetchfox extract https://www.npmjs.com/package/@tinyhttp/cookie \
   'what is the package name?,what is the version number?,who is the main author?'
 ```
-
 
 ![cli](https://github.com/user-attachments/assets/50e07613-7d31-4405-9c11-fe70febee0f7)

@@ -4,7 +4,7 @@ import process from 'node:process';
 import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
-describe('old.reddit.com nfl comments', function() {
+describe('old.reddit.com nfl comments', function () {
   this.timeout(5 * 60 * 1000);
 
   it('should scrape 5 comments @run', async () => {
@@ -24,43 +24,40 @@ describe('old.reddit.com nfl comments', function() {
       {
         username: 'NFL_Warning',
         points: '0',
-        content: "Locked because it's just political fights. NFL would investigate if he had worn a new balance hat, bc it's not officially endorsed by the NFL.",
-        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html'
+        content:
+          "Locked because it's just political fights. NFL would investigate if he had worn a new balance hat, bc it's not officially endorsed by the NFL.",
+        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html',
       },
       {
         username: 'zombiebillnye',
         points: '8481',
         content: `"We'll figure it out after next week"`,
-        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html'
+        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html',
       },
       {
         username: 'socom52',
         points: '2903',
         content: '"We will wait to see who wins"',
-        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html'
+        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html',
       },
       {
         username: 'Expendable_Red_Shirt',
         points: '691',
         content: "You think we'll have a winner after next week?",
-        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html'
+        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html',
       },
       {
         username: 'PeopleReady',
         points: '545',
         content: 'A winner yes, a concession no',
-        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html'
-      }
+        url: 'https://ffcloud.s3.us-west-2.amazonaws.com/testdata/old-reddit-nfl-comment-page.html',
+      },
     ];
 
     for (let i = 0; i < expected; i++) {
       // TODO: verify points also, once that is working
       for (const key in ['username', 'content']) {
-        assert.equal(
-          expected[i][key],
-          out.items[i][key],
-          `${key} for index ${i}`
-        );
+        assert.equal(expected[i][key], out.items[i][key], `${key} for index ${i}`);
       }
     }
   });
@@ -85,11 +82,9 @@ describe('old.reddit.com nfl comments', function() {
         examples: [url],
       })
       .limit(100)
-      .run(
-        null,
-        (partial) => {
-          count++;
-        });
+      .run(null, (partial) => {
+        count++;
+      });
 
     assert.equal(count, 100);
 
@@ -98,23 +93,23 @@ describe('old.reddit.com nfl comments', function() {
       {
         username: 'zombiebillnye',
         points: '8482',
-        content: `"We'll figure it out after next week"`
+        content: `"We'll figure it out after next week"`,
       },
       {
         username: 'socom52',
         points: '2904',
-        content: '"We will wait to see who wins"'
+        content: '"We will wait to see who wins"',
       },
       {
         username: 'Expendable_Red_Shirt',
         points: '692',
-        content: "You think we'll have a winner after next week?"
+        content: "You think we'll have a winner after next week?",
       },
       {
         username: 'PeopleReady',
         points: '546',
-        content: 'A winner yes, a concession no'
-      }
+        content: 'A winner yes, a concession no',
+      },
     ];
 
     for (let i = 0; i < expected.length; i++) {
@@ -139,5 +134,4 @@ describe('old.reddit.com nfl comments', function() {
       assert.ok(diff <= 2);
     }
   });
-
 });

@@ -41,4 +41,4 @@ export const FetchStep = class extends BaseStep {
       }
     }
   }
-}
+};

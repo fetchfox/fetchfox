@@ -4,7 +4,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate scholarshipamerica', async function() {
+describe('paginate scholarshipamerica', async function () {
   const matrix = standardMatrix({
     fetcher: ['playwright'],
   });
@@ -17,21 +17,17 @@ describe('paginate scholarshipamerica', async function() {
     { _sourceUrl: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=5' },
   ];
 
-  const wf = await fox
-    .init('https://scholarshipamerica.org/students/browse-scholarships/')
-    .fetch({ pages: 5 })
-    .plan();
+  const wf = await fox.init('https://scholarshipamerica.org/students/browse-scholarships/').fetch({ pages: 5 }).plan();
 
   return itRunMatrix(
     it,
     'paginate scholarshipamerica',
     wf.dump(),
     matrix,
-    [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
-    ],
+    [(items) => checkItemsExact(items, expected, ['_sourceUrl'])],
     {
       shouldSave: true,
-      noCache: true,  // requires live site for JS paging
-    });
+      noCache: true, // requires live site for JS paging
+    },
+  );
 });

@@ -67,4 +67,4 @@ export const Anthropic = class extends BaseAI {
       yield Promise.resolve(chunk);
     }
   }
-}
+};

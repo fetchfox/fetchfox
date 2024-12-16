@@ -23,7 +23,7 @@ export { SchemaStep } from './SchemaStep.js';
 export { UniqueStep } from './UniqueStep.js';
 
 export const classMap = {
-  'const': ConstStep,
+  const: ConstStep,
   crawl: CrawlStep,
   exportItems: ExportItemsStep,
   exportURLs: ExportURLsStep,

@@ -6,8 +6,8 @@ import { gather } from './prompts.js';
 
 export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
-    this.usage.requests++
-    const start = (new Date()).getTime();
+    this.usage.requests++;
+    const start = new Date().getTime();
 
     try {
       logger.info(`Crawling ${url} with for "${query}"`);
@@ -23,7 +23,7 @@ export const Crawler = class extends BaseCrawler {
         doc.parseLinks();
 
         const maxBytes = this.ai.maxTokens / 2;
-        const slimmer = item => ({
+        const slimmer = (item) => ({
           id: item.id,
           html: item.html.substr(0, 200),
           text: item.text,
@@ -40,9 +40,10 @@ export const Crawler = class extends BaseCrawler {
           const prompt = gather.render({
             query,
             links: JSON.stringify(
-              chunk.filter(l => validate(l.url)),
+              chunk.filter((l) => validate(l.url)),
               null,
-              2),
+              2,
+            ),
           });
 
           const toLink = {};
@@ -71,13 +72,13 @@ export const Crawler = class extends BaseCrawler {
         }
       }
     } finally {
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       this.usage.runtime += took;
     }
   }
 
   async all(url, query, options) {
-    options = {...options, stream: false };
+    options = { ...options, stream: false };
     let result = [];
     for await (const r of this.run(url, query, options)) {
       result.push(r);
@@ -86,34 +87,34 @@ export const Crawler = class extends BaseCrawler {
   }
 
   async one(url, query, options) {
-    options = {...options, stream: true };
+    options = { ...options, stream: true };
     for await (const r of this.run(url, query, options)) {
       return r;
     }
   }
 
   async *stream(url, query, options) {
-    options = {...options, stream: true };
+    options = { ...options, stream: true };
     for await (const r of this.run(url, query, options)) {
       yield Promise.resolve(r);
     }
   }
-}
+};
 
 const dedupeLinks = (l) => {
   const u = [];
-  const seen = {};    
+  const seen = {};
   for (let item of cleanLinks(l)) {
     if (seen[item.url]) continue;
     seen[item.url] = true;
     u.push(item);
   }
   return u;
-}
+};
 
 const cleanLinks = (l) => {
   const clean = [];
-  const seen = {};    
+  const seen = {};
   for (let item of l) {
     if (!item.url) {
       continue;
@@ -124,4 +125,4 @@ const cleanLinks = (l) => {
     clean.push(item);
   }
   return clean;
-}
+};

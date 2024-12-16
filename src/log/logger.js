@@ -40,7 +40,7 @@ const send = (level, args) => {
   for (const cb of callbacks) {
     cb(level, args);
   }
-}
+};
 
 export const logger = {
   trace: (...args) => {

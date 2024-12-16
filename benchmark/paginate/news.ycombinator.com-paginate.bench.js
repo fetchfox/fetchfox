@@ -4,7 +4,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate news.ycombinator.com/news', async function() {
+describe('paginate news.ycombinator.com/news', async function () {
   const matrix = standardMatrix({
     fetcher: ['playwright'],
   });
@@ -17,18 +17,14 @@ describe('paginate news.ycombinator.com/news', async function() {
     { _sourceUrl: 'https://news.ycombinator.com/news?p=5' },
   ];
 
-  const wf = await fox
-    .init('https://news.ycombinator.com/news')
-    .fetch({ pages: 5 })
-    .plan();
+  const wf = await fox.init('https://news.ycombinator.com/news').fetch({ pages: 5 }).plan();
 
   return itRunMatrix(
     it,
-    'paginate news.ycombinator.com/news', 
+    'paginate news.ycombinator.com/news',
     wf.dump(),
     matrix,
-    [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
-    ],
-    { shouldSave: true });
+    [(items) => checkItemsExact(items, expected, ['_sourceUrl'])],
+    { shouldSave: true },
+  );
 });

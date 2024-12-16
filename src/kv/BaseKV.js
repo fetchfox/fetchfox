@@ -1,2 +1,1 @@
-export const BaseKV = class {
-}
+export const BaseKV = class {};

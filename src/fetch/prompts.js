@@ -1,6 +1,5 @@
 import { Template } from '../template/Template.js';
 
-
 export const analyzePagination = new Template(
   ['html', 'domainSpecific'],
   `You are part of a web scraping program. You are given some HTML, and your goal is to analyze the pagination style of this page.
@@ -38,4 +37,5 @@ IMPORTANT:
 {{html}}
 
 Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse()
-`);
+`,
+);

@@ -8,4 +8,5 @@ MAIN GOAL: You want to KEEP THE CONTENT and get rid of FORMATTING, CRUFT, AND JU
 
 Try to keep around 10-20% of the input HTML.
 
-Here is the HTML to minimize: {{html}}`);
+Here is the HTML to minimize: {{html}}`,
+);

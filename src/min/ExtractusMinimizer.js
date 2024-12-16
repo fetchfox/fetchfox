@@ -9,30 +9,28 @@ export const ExtractusMinimizer = class extends BaseMinimizer {
   }
 
   async min(doc) {
-    const options = { removeTags: this.removeTags }
+    const options = { removeTags: this.removeTags };
     const cached = await this.getCache(doc, options);
     if (cached) return cached;
     if (!doc) return;
 
-    const start = (new Date()).getTime() / 1000;
+    const start = new Date().getTime() / 1000;
     const before = JSON.stringify([doc.html, doc.text]).length;
     logger.info(`Minimizing ${doc} with extractus`);
 
     const article = await extract(doc.html);
     const out = JSON.stringify(article, null, 2);
     const min = new Document();
-    await min.loadData(Object.assign(
-      {},
-      await doc.dump(),
-      {
+    await min.loadData(
+      Object.assign({}, await doc.dump(), {
         body: out,
         html: out,
         text: null,
-      })
+      }),
     );
 
     const after = JSON.stringify([min.html, min.text]).length;
-    const took = (new Date()).getTime() / 1000 - start;
+    const took = new Date().getTime() / 1000 - start;
     logger.info(`Minimizing took ${took.toFixed(2)} seconds`);
     logger.info(`Minimized doc from ${before} bytes -> ${after} bytes`);
 
@@ -40,4 +38,4 @@ export const ExtractusMinimizer = class extends BaseMinimizer {
 
     return min;
   }
-}
+};

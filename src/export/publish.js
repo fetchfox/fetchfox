@@ -17,13 +17,10 @@ export const publishToS3 = async (buf, contentType, acl, bucket, key) => {
   };
 
   const command = new PutObjectCommand(params);
-  const [ , region] = await Promise.all([
-    s3.send(command),
-    s3.config.region(),
-  ]);
+  const [, region] = await Promise.all([s3.send(command), s3.config.region()]);
   const location = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
   return location;
-}
+};
 
 export const publishToDropbox = async (buf, path, token) => {
   const dbx = new Dropbox({ accessToken: token, fetch });
@@ -45,13 +42,15 @@ export const publishToDropbox = async (buf, path, token) => {
   if ((existing?.result?.links || []).length) {
     url = existing.result.links[0].url;
   } else {
-    url = (await dbx.sharingCreateSharedLinkWithSettings({
-      path: resp.result.path_display,
-    })).result.url;
+    url = (
+      await dbx.sharingCreateSharedLinkWithSettings({
+        path: resp.result.path_display,
+      })
+    ).result.url;
   }
 
   return url;
-}
+};
 
 export const publishToGoogle = async (buf, path, token) => {
   const auth = new google.auth.OAuth2();
@@ -113,4 +112,4 @@ export const publishToGoogle = async (buf, path, token) => {
   const url = `https://drive.google.com/uc?id=${file.data.id}&export=download`;
 
   return url;
-}
+};

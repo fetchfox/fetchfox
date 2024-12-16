@@ -24,9 +24,9 @@ export const Document = class {
 
     if (options?.presignedUrl) {
       logger.info(`Dumping to presigned URL ${options?.presignedUrl}`);
-      const start = (new Date()).getTime();
+      const start = new Date().getTime();
       const htmlUrl = await this.uploadHtml(options.presignedUrl);
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       logger.debug(`Uploaded document to presigned URL, took=${took} msec`);
       delete data.body;
       delete data.html;
@@ -80,10 +80,10 @@ export const Document = class {
       this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
     }
     logger.info(`Loading document from response ${this.url}`);
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
     this.body = await resp.text();
-    const tookRead = (new Date()).getTime() - start;
-    logger.debug(`Done reading body for ${this.url}, took ${tookRead/1000} sec and got ${this.body.length} bytes`);
+    const tookRead = new Date().getTime() - start;
+    logger.debug(`Done reading body for ${this.url}, took ${tookRead / 1000} sec and got ${this.body.length} bytes`);
 
     let respHeaders = {};
     if (typeof resp.headers == 'function') {
@@ -109,8 +109,8 @@ export const Document = class {
     }
 
     this.parse();
-    const took = (new Date()).getTime() - start;
-    logger.info(`Done loading for ${this.url}, took total of ${took/1000} sec`);
+    const took = new Date().getTime() - start;
+    logger.info(`Done loading for ${this.url}, took total of ${took / 1000} sec`);
   }
 
   parse() {
@@ -126,9 +126,9 @@ export const Document = class {
     let html = this.body;
 
     if (selector) {
-      let selected = ''
+      let selected = '';
       const root = parse(html);
-      root.querySelectorAll(selector).forEach(el => {
+      root.querySelectorAll(selector).forEach((el) => {
         selected += el.outerHTML; // Append the outer HTML of each element to selected.
       });
       html = selected;
@@ -144,9 +144,9 @@ export const Document = class {
     this.requireHtml();
 
     const root = parse(this.html);
-    
-    ['style', 'script', 'svg'].forEach(tag => {
-      root.querySelectorAll(tag).forEach(el => {
+
+    ['style', 'script', 'svg'].forEach((tag) => {
+      root.querySelectorAll(tag).forEach((el) => {
         el.replaceWith(`[[${tag} removed]]`);
       });
     });
@@ -176,7 +176,7 @@ export const Document = class {
 
     let els = [];
     if (css) {
-      root.querySelectorAll(css).forEach(el => els.push(el));
+      root.querySelectorAll(css).forEach((el) => els.push(el));
     } else {
       els = [root];
     }
@@ -187,7 +187,7 @@ export const Document = class {
         as.push(el);
       }
 
-      el.querySelectorAll('a').forEach(a => {
+      el.querySelectorAll('a').forEach((a) => {
         as.push(a);
       });
 
@@ -236,9 +236,9 @@ export const Document = class {
       return;
     }
   }
-}
+};
 
-async function fetchRetry(url, options={}, retries=3, delay=5000) {
+async function fetchRetry(url, options = {}, retries = 3, delay = 5000) {
   let lastError;
 
   for (let attempt = 0; attempt <= retries; attempt++) {

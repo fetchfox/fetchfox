@@ -22,14 +22,16 @@ export const S3Cache = class {
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
     const body = JSON.stringify(data);
     const objectKey = `${this.prefix}${key}`;
-    
-    await s3.send(new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: objectKey,
-      Body: body,
-      ACL: this.acl,
-      ContentType: 'application/json',
-    }));
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: objectKey,
+        Body: body,
+        ACL: this.acl,
+        ContentType: 'application/json',
+      }),
+    );
     logger.info(`Successfully set cache for key: ${this.url(objectKey)}`);
   }
 
@@ -37,10 +39,12 @@ export const S3Cache = class {
     const objectKey = `${this.prefix}${key}`;
     let resp;
     try {
-      resp = await s3.send(new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-      }));
+      resp = await s3.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+        }),
+      );
     } catch (e) {
       if (e.name === 'NoSuchKey') return null;
       logger.error(`Failed get cache object ${this.url(objectKey)}: ${e}`);
@@ -73,10 +77,12 @@ export const S3Cache = class {
 
     const objectKey = `${this.prefix}${key}`;
     try {
-      await s3.send(new DeleteObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-      }));
+      await s3.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+        }),
+      );
       logger.debug(`Successfully deleted cache for key: ${this.url(objectKey)}`);
     } catch (e) {
       if (e.name === 'NoSuchKey') return; // Key does not exist, no action needed
@@ -96,4 +102,4 @@ export const S3Cache = class {
   url(objectKey) {
     return `https://${this.bucket}.s3.amazonaws.com/${objectKey}`;
   }
-}
+};

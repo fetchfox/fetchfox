@@ -24,10 +24,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
       html: doc.html,
       extraRules,
-      description: (
-        description
-      ? `You are looking for this type of item(s):\n\n${description}`
-      : ''),
+      description: description ? `You are looking for this type of item(s):\n\n${description}` : '',
     };
 
     let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai, this.cache);
@@ -47,10 +44,10 @@ export const SinglePromptExtractor = class extends BaseExtractor {
           if (delta.itemCount) continue;
           yield Promise.resolve(new Item(delta, doc));
         }
-      } catch(e) {
+      } catch (e) {
         logger.error(`${this} Got error: ${e}`);
         throw e;
       }
     }
   }
-}
+};

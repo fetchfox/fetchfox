@@ -2,7 +2,7 @@ import assert from 'assert';
 import process from 'node:process';
 import { getAI } from '../../src/index.js';
 
-describe('AI', function() {
+describe('AI', function () {
   this.timeout(10000);
 
   it('should default to OpenAI gpt-4o-mini @run', () => {
@@ -19,7 +19,7 @@ describe('AI', function() {
       let err;
       try {
         const ai = getAI();
-      } catch(e) {
+      } catch (e) {
         err = e;
       }
       assert.ok(('' + err).indexOf('missing API key for OpenAI') != -1, 'expect API key error');

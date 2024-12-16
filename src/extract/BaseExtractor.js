@@ -53,7 +53,7 @@ export const BaseExtractor = class {
 
     try {
       new URL(url);
-    } catch(e) {
+    } catch (e) {
       logger.warn(`${this} Extractor dropping invalid url ${url}: ${e}`);
       url = null;
     }
@@ -73,7 +73,7 @@ export const BaseExtractor = class {
 
   async *run(target, questions, options) {
     this.usage.queries++;
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     const seen = {};
     let done = false;
@@ -98,15 +98,14 @@ export const BaseExtractor = class {
             docsChannel.send({ doc });
           }
           ok();
-        } catch(e) {
+        } catch (e) {
           logger.error(`${this} Error in documents worker: ${e}`);
           bad(e);
-
         } finally {
           logger.debug(`${this} Done with docs worker`);
           docsChannel.end();
         }
-      })
+      });
 
       // Get documents, and start extraction worker for each
       const resultsPromise = new Promise(async (ok, bad) => {
@@ -149,27 +148,26 @@ export const BaseExtractor = class {
 
                   logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
                   ok();
-                } catch(e) {
+                } catch (e) {
                   logger.error(`${this} Error in extraction promise: ${e}`);
                   bad(e);
                 }
-              }));
+              }),
+            );
           }
 
           // Got all documents, now wait for workers to complete
           logger.debug(`${this} Wait for extraction workers`);
           await Promise.all(workerPromises);
-
         } catch (e) {
           logger.error(`${this} Error in extraction worker: ${e}`);
-          bad(e)
-
+          bad(e);
         } finally {
           logger.debug(`${this} All extraction workers done ${done}`);
           resultsChannel.end();
           ok();
         }
-      })
+      });
 
       let count = 0;
 
@@ -187,11 +185,9 @@ export const BaseExtractor = class {
 
         await docsPromise;
         await resultsPromise;
-
       } catch (e) {
         throw e;
       }
-
     } finally {
       logger.info(`${this} done extracting ${target}`);
 
@@ -201,7 +197,7 @@ export const BaseExtractor = class {
       }
 
       done = true;
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       this.usage.runtime += took;
     }
   }
@@ -214,41 +210,41 @@ export const BaseExtractor = class {
     let c = 0;
     for (const q of questions) {
       if (this.isMissing(data, q)) {
-        c++
+        c++;
       }
     }
     return c;
   }
 
   async all(target, questions, options) {
-    options = {...options, stream: false };
+    options = { ...options, stream: false };
     let result = [];
     try {
       for await (const r of this.run(target, questions, options)) {
         result.push(r);
       }
       return result;
-    } catch(e) {
+    } catch (e) {
       logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }
 
   async one(target, questions, options) {
-    options = {...options, stream: false };
+    options = { ...options, stream: false };
     const all = await this.all(target, questions, options);
     return all?.length ? all[0] : null;
   }
 
   async *stream(target, questions, options) {
     try {
-      options = {...options, stream: true };
+      options = { ...options, stream: true };
       for await (const r of this.run(target, questions, options)) {
         yield Promise.resolve(r);
       }
-    } catch(e) {
+    } catch (e) {
       logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }
-}
+};

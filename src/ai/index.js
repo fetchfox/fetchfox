@@ -28,11 +28,10 @@ export const getAI = (which, options) => {
 
     gemini: Gemini,
     google: Gemini,
-
   }[provider];
   if (!aiClass) {
     logger.error(`Unknown AI provider: ${provider}`);
     return;
   }
   return new aiClass(options);
-}
+};

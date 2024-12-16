@@ -28,44 +28,31 @@ export const ChromeRelayActor = class {
   }
 
   async act(data) {
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
     try {
       logger.info(`Chrome relay actor got: ${JSON.stringify(data)}`);
       if (data.command == 'fetch') {
         const out = await this.fetch(data);
         return out;
-
       } else if (data.command == 'clearCookies') {
         const out = await this.clearCookies(data);
         return out;
-
       } else {
         throw new Error(`Unhandled command ${JSON.stringify(data)}`);
       }
     } finally {
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       logger.debug(`Chrome relay actor end-to-end took ${took} msec`);
     }
   }
 
   async fetch(data) {
-    const {
-      url,
-      presignedUrl,
-      waitForText,
-      removeTags,
-    } = data;
+    const { url, presignedUrl, waitForText, removeTags } = data;
     const active = !!data.active;
 
     logger.debug(`Chrome relay actor fetching url: ${url}, with waitForText=${waitForText}`);
 
-    const [
-      activeTab,
-      tabWithUrl
-    ] = await Promise.all([
-      getActiveTab(),
-      getTabWithUrl(url),
-    ]);
+    const [activeTab, tabWithUrl] = await Promise.all([getActiveTab(), getTabWithUrl(url)]);
 
     let tab;
     let status;
@@ -79,25 +66,20 @@ export const ChromeRelayActor = class {
       tab = activeTab;
       status = 200;
       shouldClose = false;
-
     } else if (tabWithUrl) {
       logger.debug(`Chrome relay actor found tab with matching URL ${tabWithUrl.id}`);
       tab = tabWithUrl;
       status = 200;
       shouldClose = false;
-
     } else {
       logger.debug(`Chrome relay actor opening new tab`);
 
-      const resp = await new Promise(ok => chrome.tabs.create(
-        { url, active },
-        (tab) => {
-          setTimeout(
-            async () => {
-              logger.warn(`Request completed timeout hit on tab=${tab.id} url={url}`);
-              ok({ tab, details: { statusCode: 200 } });
-            },
-            this.requestCompletedTimeout);
+      const resp = await new Promise((ok) =>
+        chrome.tabs.create({ url, active }, (tab) => {
+          setTimeout(async () => {
+            logger.warn(`Request completed timeout hit on tab=${tab.id} url={url}`);
+            ok({ tab, details: { statusCode: 200 } });
+          }, this.requestCompletedTimeout);
 
           chrome.webRequest.onCompleted.addListener(
             (details) => {
@@ -106,9 +88,9 @@ export const ChromeRelayActor = class {
                 ok({ tab, details });
               }
             },
-            { urls: [url] }
+            { urls: [url] },
           );
-        })
+        }),
       );
 
       tab = resp.tab;
@@ -117,23 +99,22 @@ export const ChromeRelayActor = class {
     }
 
     try {
-      const start = (new Date()).getTime();
+      const start = new Date().getTime();
       logger.debug(`Got status for ${tab.id}: ${status}, loading: ${waitForText}`);
       let doc = await getDocumentFromTab(tab.id, status, 2000, waitForText);
-      const tookLoad = (new Date()).getTime() - start;
+      const tookLoad = new Date().getTime() - start;
       logger.debug(`Loaded document ${doc}, presignedUrl=${presignedUrl}, took=${tookLoad} msec`);
 
       if (removeTags) {
-        const start = (new Date()).getTime();
+        const start = new Date().getTime();
         logger.debug(`Minimize doc before returning`);
         const minimizer = new TagRemovingMinimizer({ removeTags });
         doc = await minimizer.min(doc);
-        const tookMin = (new Date()).getTime() - start;
+        const tookMin = new Date().getTime() - start;
         logger.debug(`Minimized ${doc}, took=${tookMin} msec`);
       }
 
       return doc.dump({ presignedUrl });
-
     } finally {
       if (shouldClose) {
         logger.debug(`Chrome relay actor closing tab ${tab.id}`);
@@ -141,7 +122,6 @@ export const ChromeRelayActor = class {
       }
     }
   }
-
 
   async clearCookies(data) {
     const { domain } = data;
@@ -167,7 +147,8 @@ export const ChromeRelayActor = class {
           () => {
             logger.debug(`Removed storage for: ${domain}`);
             ok();
-          })
+          },
+        );
       }),
 
       new Promise((ok) => {
@@ -182,15 +163,17 @@ export const ChromeRelayActor = class {
               },
               (details) => {
                 logger.debug(`Removed cookie OK: name=${details.name} url=${url}`);
-              });
+              },
+            );
           },
-          ok)
+          ok,
+        );
       }),
     ]);
 
     return { status: 'ok' };
   }
-}
+};
 
 const injectFunction = async (waitTime, waitForText) => {
   if (waitForText) {
@@ -213,19 +196,18 @@ const injectFunction = async (waitTime, waitForText) => {
         }
       }, interval);
     });
-
   } else {
-    await new Promise(ok => setTimeout(ok, waitTime));
+    await new Promise((ok) => setTimeout(ok, waitTime));
   }
 
   return {
     url: document.location.href,
     body: document.documentElement.outerHTML,
     resp: {
-      headers: {'content-type': 'text/html'},
+      headers: { 'content-type': 'text/html' },
     },
   };
-}
+};
 
 const getDocumentFromTab = async (tabId, status, waitForMsec, waitForText) => {
   const result = await chrome.scripting.executeScript({
@@ -246,29 +228,25 @@ const getDocumentFromTab = async (tabId, status, waitForMsec, waitForText) => {
   doc.loadData(data);
   doc.parse();
   return doc;
-}
+};
 
 const getActiveTab = async () => {
   return new Promise((ok) => {
-    chrome.tabs.query(
-      { active: true },
-      (tabs) => ok(tabs[0] ? tabs[0] : null));
+    chrome.tabs.query({ active: true }, (tabs) => ok(tabs[0] ? tabs[0] : null));
   });
-}
+};
 
 const getTabWithUrl = async (url) => {
   let u = new URL(url);
   // Query without hash
   const noHash = url.replace(u.hash, '');
   return new Promise((ok) => {
-    chrome.tabs.query(
-      { url: noHash },
-      (tabs) => {
-        // Check for hash match
-        for (let tab of (tabs || [])) {
-          if (tab.url == url) ok(tab);
-        }
-        ok(null);
-      });
+    chrome.tabs.query({ url: noHash }, (tabs) => {
+      // Check for hash match
+      for (let tab of tabs || []) {
+        if (tab.url == url) ok(tab);
+      }
+      ok(null);
+    });
   });
-}
+};

@@ -4,14 +4,13 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkExcludeUrls } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('extract from transcripts.recursiveprojects.cloud', async function() {
-  const matrix = standardMatrix({
-  });
+describe('extract from transcripts.recursiveprojects.cloud', async function () {
+  const matrix = standardMatrix({});
 
   const expected = [
     {
       timestamp: '21:02:39',
-      content: 'Check the rear locket. There. Copy. Are we in forward brake balance? Yes, we do.'
+      content: 'Check the rear locket. There. Copy. Are we in forward brake balance? Yes, we do.',
     },
     {
       timestamp: '21:03:02',
@@ -49,10 +48,12 @@ describe('extract from transcripts.recursiveprojects.cloud', async function() {
       timestamp: '21:05:46',
       content: 'Piastri free.',
     },
-  ]
+  ];
 
   const wf = await fox
-    .init('https://ffcloud.s3.amazonaws.com/fetchfox-docs/jbwswaczy5/https-transcripts-recursiveprojects-cloud-archive-18396-207381.html')
+    .init(
+      'https://ffcloud.s3.amazonaws.com/fetchfox-docs/jbwswaczy5/https-transcripts-recursiveprojects-cloud-archive-18396-207381.html',
+    )
     .extract({
       timestamp: 'What is the timestamp of the message?',
       content: 'What is the content of the message?',
@@ -82,5 +83,6 @@ describe('extract from transcripts.recursiveprojects.cloud', async function() {
         return score;
       },
     ],
-    { shouldSave: true });
+    { shouldSave: true },
+  );
 });

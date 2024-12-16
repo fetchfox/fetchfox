@@ -13,4 +13,4 @@ export const MemKV = class extends BaseKV {
   async set(key, val) {
     this.data[key] = val;
   }
-}
+};
