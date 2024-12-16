@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js';
+import { logger } from './log/logger';
 
 export const shuffle = (l) => {
   // Deterministic shuffle to keep prompts stable
@@ -115,3 +116,85 @@ export const createChannel = () => {
     },
   };
 };
+
+export class Timer {
+  constructor(options) {
+    this.options = options ?? {};
+    this.scopes = [];
+    this.push(this.options.name ?? '<unnamed>');
+    this.logString(this.topScope(), '=== TIMER INIT');
+  }
+
+  push(name) {
+    const now = performance.now();
+
+    this.scopes.push({
+      name,
+      start: now,
+      time: now,
+      depth: this.scopes.length ? this.scopes[this.scopes.length - 1].depth + 1 : 0,
+    });
+  }
+
+  async *withScopeGen(name, self, fn) {
+    this.push(name);
+    try {
+      yield* fn.bind(self)(this);
+    } finally {
+      this.pop();
+    }
+  }
+
+  async withScope(name, fn) {
+    this.push(name);
+    try {
+      return await fn(this);
+    } finally {
+      this.pop();
+    }
+  }
+
+  topScope() {
+    return this.scopes[this.scopes.length - 1];
+  }
+
+  pop() {
+    this.total();
+    this.scopes.pop();
+  }
+
+  logString(scope, s) {
+    const { useLogger, disabled } = this.options;
+    if (disabled) return;
+
+    const indentation = '    '.repeat(scope.depth);
+    const name = scope.name ?? '<unnamed>';
+    const output = `${indentation}[${name}] ${s}`;
+
+    if (useLogger) {
+      logger.info(output);
+    } else {
+      console.log(output);
+    }
+  }
+
+  log(s) {
+    const scope = this.topScope();
+
+    const now = performance.now();
+    const delta = now - scope.time;
+    scope.time = now;
+
+    this.logString(scope, `${delta} -- ${s}`);
+  }
+
+  total() {
+    const scope = this.topScope();
+
+    const now = performance.now();
+    const delta = now - scope.start;
+    scope.time = now;
+
+    this.logString(scope, `${delta} TOTAL`);
+  }
+}
