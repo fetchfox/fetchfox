@@ -1,5 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from './log/logger';
+import colors from 'colors/safe';
 
 export const shuffle = (l) => {
   // Deterministic shuffle to keep prompts stable
@@ -117,23 +118,67 @@ export const createChannel = () => {
   };
 };
 
+class TimerScope {
+  constructor(name, depth, timerOptions) {
+    this.name = name;
+    this.depth = depth;
+
+    const now = performance.now();
+    this.start = now;
+    this.time = now;
+
+    this.options = timerOptions;
+  }
+
+  logString(s) {
+    const { useLogger, disabled } = this.options;
+    if (disabled) return;
+
+    const indentation = '    '.repeat(this.depth);
+    const name = this.name ?? '<unnamed>';
+    const output = `${indentation}[${name}] ${s}`;
+
+    if (useLogger) {
+      logger.info(output);
+    } else {
+      console.log(output);
+    }
+  }
+
+  formatDelta(delta) {
+    const output = `[${delta.toFixed(4)}ms]`;
+    return delta >= 1000 ? colors.red(output) : output;
+  }
+
+  log(s) {
+    const now = performance.now();
+    const delta = now - this.time;
+    this.time = now;
+
+    this.logString(`${s} ${this.formatDelta(delta)}`);
+  }
+
+  total() {
+    const now = performance.now();
+    const delta = now - this.start;
+    this.time = now;
+
+    this.logString(`TOTAL ${this.formatDelta(delta)}`);
+  }
+}
+
 export class Timer {
   constructor(options) {
     this.options = options ?? {};
     this.scopes = [];
     this.push(this.options.name ?? '<unnamed>');
-    this.logString(this.topScope(), '=== TIMER INIT');
+    this.topScope().logString('=== TIMER INIT');
   }
 
   push(name) {
-    const now = performance.now();
-
-    this.scopes.push({
-      name,
-      start: now,
-      time: now,
-      depth: this.scopes.length ? this.scopes[this.scopes.length - 1].depth + 1 : 0,
-    });
+    const scope = this.topScope();
+    const depth = scope ? scope.depth + 1 : 0;
+    this.scopes.push(new TimerScope(name, depth, this.options));
   }
 
   async *withScopeGen(name, self, fn) {
@@ -155,6 +200,7 @@ export class Timer {
   }
 
   topScope() {
+    if (!this.scopes.length) return null;
     return this.scopes[this.scopes.length - 1];
   }
 
@@ -163,38 +209,6 @@ export class Timer {
     this.scopes.pop();
   }
 
-  logString(scope, s) {
-    const { useLogger, disabled } = this.options;
-    if (disabled) return;
-
-    const indentation = '    '.repeat(scope.depth);
-    const name = scope.name ?? '<unnamed>';
-    const output = `${indentation}[${name}] ${s}`;
-
-    if (useLogger) {
-      logger.info(output);
-    } else {
-      console.log(output);
-    }
-  }
-
-  log(s) {
-    const scope = this.topScope();
-
-    const now = performance.now();
-    const delta = now - scope.time;
-    scope.time = now;
-
-    this.logString(scope, `${delta} -- ${s}`);
-  }
-
-  total() {
-    const scope = this.topScope();
-
-    const now = performance.now();
-    const delta = now - scope.start;
-    scope.time = now;
-
-    this.logString(scope, `${delta} TOTAL`);
-  }
+  log = (s) => this.topScope().log(s);
+  total = () => this.topScope().total();
 }
