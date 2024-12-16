@@ -60,7 +60,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *_fetch(url, options) {
-    yield* this.timer.withScopeGen('_fetch', this, async function* (timer) {
+    yield* this.timer.withScopeGen('fetch', this, async function* (timer) {
       logger.info(`${this} Fetch ${url} with options ${options || '(none)'}`);
       if (this.options?.proxy?.server) {
         logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
@@ -100,7 +100,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _docFromPage(page, options) {
-    return await this.timer.withScope('_docFromPage', async (timer) => {
+    return await this.timer.withScope('docFromPage', async (timer) => {
       let html;
       let status;
       try {
