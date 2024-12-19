@@ -1,6 +1,7 @@
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
+import { testCache } from '../lib/util.js';
 
 describe('pokemondb.net', function() {
   this.timeout(5 * 60 * 1000);
@@ -80,6 +81,7 @@ describe('pokemondb.net', function() {
 
     const f = await fox
       .config({
+        cache: testCache(),
         fetcher: ['playwright', { headless: true, interval: 1000, intervalCap: 1 }],
       })
       .init('https://pokemondb.net/pokedex/national')

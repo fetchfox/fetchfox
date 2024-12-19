@@ -124,6 +124,10 @@ export const Workflow = class extends BaseWorkflow {
       this.cursor.finishAll();
     }
   }
+
+  async stop() {
+    // Should instantly stop the workflow
+  }
 }
 
 for (const stepName of stepNames) {

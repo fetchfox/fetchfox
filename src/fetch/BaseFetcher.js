@@ -191,4 +191,7 @@ export const BaseFetcher = class {
     return this.cache.set(key, val, 'fetch');
   }
 
+  async stop() {
+    // Should instantly stop the fetching
+  }
 }

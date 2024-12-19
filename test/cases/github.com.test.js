@@ -21,7 +21,6 @@ describe('github.com', function() {
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
-        limit: 5,
       })
       .extract({
         questions: {
@@ -32,6 +31,7 @@ describe('github.com', function() {
         },
         single: true,
       })
+      .limit(5)
       .run(null, (partial) => {
         const { item, results } = partial;
         countPartials++;

@@ -281,10 +281,8 @@ export const BaseAI = class {
       };
     }
   }
-}
 
-const isCritical = (e) => {
-  // Quick hacky check to see if it is about token length
-  const str = ('' + e).toLowerCase();
-  return !(str.includes('tokens') && str.includes('max'));
+  async stop() {
+    // Should instantly stop the streaming
+  }
 }
