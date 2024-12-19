@@ -93,14 +93,32 @@ export const OpenAI = class extends BaseAI {
 
       args.response_format = zodResponseFormat(toZod(options.schema), 'item');
     }
-    const completion = await openai.chat.completions.create(args);
+
+    let completion;
+    try {
+      completion = await openai.chat.completions.create(args);
+    } catch (e) {
+      logger.error(`${this} Caught error while making completion: ${e}`);
+      throw e;
+    }
 
     if (canStream) {
-      for await (const chunk of completion) {
-        yield Promise.resolve(chunk);
+      try {
+        logger.debug(`${this} Stream the completion`);
+        for await (const chunk of completion) {
+          yield Promise.resolve(chunk);
+        }
+      } catch (e) {
+        logger.error(`${this} Caught error while streaming chunks: ${e}`);
+        throw e;
       }
     } else {
-      const answer = await completion;
+      try {
+        const answer = await completion;
+      } catch (e) {
+        logger.error(`${this} Caught error while awaiting: ${e}`);
+        throw e;
+      }
       yield Promise.resolve(answer);
     }
   }
