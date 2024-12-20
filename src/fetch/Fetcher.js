@@ -15,4 +15,4 @@ export const Fetcher = class extends BaseFetcher {
     await doc.read(resp, url, options);
     yield Promise.resolve(doc);
   }
-}
+};

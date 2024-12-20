@@ -12,4 +12,4 @@ export const BaseCrawler = class {
       runtime: 0,
     };
   }
-}
+};

@@ -44,7 +44,8 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 {{questions}}
 
 {{extraRules}}
-`);
+`,
+);
 
 export const iterative = new Template(
   ['url', 'text', 'html', 'count', 'question'],
@@ -66,7 +67,8 @@ Follow these important rules:
 
 >>>> The user's question is:
 {{question}}
-`);
+`,
+);
 
 export const findMultiDescription = new Template(
   ['questions', 'url'],
@@ -85,12 +87,12 @@ The URL of the page is:
 Based on the questions, what is the ITEM the user is trying to scrape? Response must be a noun.
 
 Your response MUST be valid JSON and only JSON. It will be parsed with JSON.parse()
-`
+`,
 );
 
 export const codeGenMulti = new Template(
   ['num', 'htmls', 'itemDescription', 'questions', 'samples'],
-    `You writing Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data.
+  `You writing Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data.
 
 Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments.
 
@@ -131,7 +133,8 @@ Use ONLY these parameters in your code
 
 Make sure to RETURN the result at the end
 
-`);
+`,
+);
 
 export const codeGenFeedback = new Template(
   ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code'],
@@ -171,7 +174,8 @@ Below is your task:
 - Limit your response to around 500 words
 - In some cases, the expected answers may be wrong. They are AI generated, and the AI is not perfect at doign the extraction.
 - You MUST reply in JSON, your response will be fed into JSON.parse()
-`);
+`,
+);
 
 export const codeGenIterate = new Template(
   ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code', 'feedback'],
@@ -220,5 +224,5 @@ Use ONLY these parameters in your code
 
 Make sure to RETURN the result at the end
 
-`
-)
+`,
+);

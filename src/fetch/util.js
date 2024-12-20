@@ -11,10 +11,7 @@ export const presignS3 = async ({ bucket, key, contentType, acl }) => {
     ContentType: contentType,
     ACL: acl,
   });
-  const url = await getSignedUrl(
-    s3,
-    command,
-    { expiresIn: 30 * 60 });
+  const url = await getSignedUrl(s3, command, { expiresIn: 30 * 60 });
   logger.debug(`Generating presigned URL ${url}`);
   return url;
-}
+};

@@ -4,12 +4,9 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkExcludeUrls } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('emails', async function() {
+describe('emails', async function () {
   const matrix = standardMatrix({
-    prompt: [
-      'find email address',
-      'find email address, deobfuscate if needed',
-    ],
+    prompt: ['find email address', 'find email address, deobfuscate if needed'],
     url: [
       'https://opcam.ua.edu/contact.html',
       'https://www.radioalabama.net/contact',
@@ -18,10 +15,7 @@ describe('emails', async function() {
     ],
   });
 
-  const wf = await fox
-    .init('{{url}}')
-    .extract({ email: '{{prompt}}' })
-    .plan();
+  const wf = await fox.init('{{url}}').extract({ email: '{{prompt}}' }).plan();
 
   return itRunMatrix(
     it,
@@ -40,5 +34,6 @@ describe('emails', async function() {
         return score;
       },
     ],
-    { shouldSave: true });
+    { shouldSave: true },
+  );
 });

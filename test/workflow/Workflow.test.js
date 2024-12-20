@@ -6,68 +6,64 @@ import { testCache } from '../lib/util.js';
 import { OpenAI } from '../../src/index.js';
 import { Fetcher } from '../../src/index.js';
 
-describe('Workflow', function() {
+describe('Workflow', function () {
   this.timeout(30 * 1000);
 
   it('should load steps from json @run', async () => {
     const data = {
-      "steps": [
+      steps: [
         {
-          "name": "const",
-          "args": {
-            "items": [
+          name: 'const',
+          args: {
+            items: [
               {
-                "url": "https://thehackernews.com/"
-              }
+                url: 'https://thehackernews.com/',
+              },
             ],
-            "maxPages": "10"
-          }
+            maxPages: '10',
+          },
         },
         {
-          "name": "crawl",
-          "args": {
-            "query": "Find links to articles about malware and other vulnerabilities",
-            "limit": "5",
-            "maxPages": "10"
-          }
+          name: 'crawl',
+          args: {
+            query: 'Find links to articles about malware and other vulnerabilities',
+            limit: '5',
+            maxPages: '10',
+          },
         },
         {
-          "name": "extract",
-          "args": {
-            "questions": {
-              summary: "Summarize the malware/vulnerability in 5-20 words",
-              technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",
-              url: "What is the URL? Format: Absolute URL"
+          name: 'extract',
+          args: {
+            questions: {
+              summary: 'Summarize the malware/vulnerability in 5-20 words',
+              technical: 'What are the technical identifiers like filenames, indicators of compromise, etc.?',
+              url: 'What is the URL? Format: Absolute URL',
             },
-            "maxPages": "10"
-          }
+            maxPages: '10',
+          },
         },
         {
-          "name": "limit",
-          "args": {
-            "limit": "2"
-          }
+          name: 'limit',
+          args: {
+            limit: '2',
+          },
         },
         {
-          "name": "exportURLs",
-          "args": {
-            "field": "url",
-            "format": "pdf",
-            "destination": "google",
-            "filename": "a-{url}.pdf",
-            "directory": "1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb"
-          }
-        }
+          name: 'exportURLs',
+          args: {
+            field: 'url',
+            format: 'pdf',
+            destination: 'google',
+            filename: 'a-{url}.pdf',
+            directory: '1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb',
+          },
+        },
       ],
     };
 
-    const f = await fox
-      .config({ cache: testCache() })
-      .load(data);
+    const f = await fox.config({ cache: testCache() }).load(data);
 
-    assert.equal(
-      JSON.stringify(f.dump().steps, null, 2),
-      JSON.stringify(data.steps, null, 2));
+    assert.equal(JSON.stringify(f.dump().steps, null, 2), JSON.stringify(data.steps, null, 2));
   });
 
   it('should publish all steps @run', async () => {
@@ -84,7 +80,7 @@ describe('Workflow', function() {
     let countLoading = 0;
 
     await f.run(null, (partial) => {
-      count++
+      count++;
       if (partial.item?._meta?.status == 'loading') {
         countLoading2++;
       }
@@ -109,7 +105,7 @@ describe('Workflow', function() {
     let countLoading2 = 0;
 
     await f2.run(null, (partial) => {
-      count2++
+      count2++;
       if (partial.item?._meta?.status == 'loading') {
         countLoading2++;
       }
@@ -121,73 +117,69 @@ describe('Workflow', function() {
 
   it('should describe @run', async () => {
     const data = {
-      "steps": [
+      steps: [
         {
-          "name": "const",
-          "args": {
-            "items": [
+          name: 'const',
+          args: {
+            items: [
               {
-                "url": "https://thehackernews.com/"
-              }
-            ]
-          }
+                url: 'https://thehackernews.com/',
+              },
+            ],
+          },
         },
         {
-          "name": "crawl",
-          "args": {
-            "query": "Find links to articles about malware and other vulnerabilities",
-            "limit": "5"
-          }
+          name: 'crawl',
+          args: {
+            query: 'Find links to articles about malware and other vulnerabilities',
+            limit: '5',
+          },
         },
         {
-          "name": "extract",
-          "args": {
-            "questions": {
-              summary: "Summarize the malware/vulnerability in 5-20 words",
-              technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",
-              url: "What is the URL? Format: Absolute URL"
-            }
-          }
+          name: 'extract',
+          args: {
+            questions: {
+              summary: 'Summarize the malware/vulnerability in 5-20 words',
+              technical: 'What are the technical identifiers like filenames, indicators of compromise, etc.?',
+              url: 'What is the URL? Format: Absolute URL',
+            },
+          },
         },
         {
-          "name": "limit",
-          "args": {
-            "limit": "2"
-          }
+          name: 'limit',
+          args: {
+            limit: '2',
+          },
         },
         {
-          "name": "exportURLs",
-          "args": {
-            "field": "url",
-            "format": "pdf",
-            "destination": "google",
-            "filename": "a-{url}.pdf",
-            "directory": "1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb"
-          }
-        }
+          name: 'exportURLs',
+          args: {
+            field: 'url',
+            format: 'pdf',
+            destination: 'google',
+            filename: 'a-{url}.pdf',
+            directory: '1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb',
+          },
+        },
       ],
     };
 
-    const wf = await fox
-      .config({ cache: testCache() })
-      .load(data)
-      .plan();
+    const wf = await fox.config({ cache: testCache() }).load(data).plan();
     await wf.describe();
 
     assert.ok(
       wf.name.toLowerCase().indexOf('hacker') != -1 ||
-      wf.name.toLowerCase().indexOf('vuln') != -1 ||
-      wf.name.toLowerCase().indexOf('malware') != -1,
-      'name sanity check');
-    assert.ok(
-      wf.description.toLowerCase().indexOf('hacker') != -1,
-      'description sanity check');
+        wf.name.toLowerCase().indexOf('vuln') != -1 ||
+        wf.name.toLowerCase().indexOf('malware') != -1,
+      'name sanity check',
+    );
+    assert.ok(wf.description.toLowerCase().indexOf('hacker') != -1, 'description sanity check');
   });
 
   // This test doesn't interact well with caching, because caching
   // circumvents the concurrent request tally. Disabled to not run
   // a slow test.
-  it('should limit number of fetch requests @disabled', async function() {
+  it('should limit number of fetch requests @disabled', async function () {
     const f = await fox
       .init('https://pokemondb.net/pokedex/national')
       .crawl({
@@ -213,61 +205,53 @@ describe('Workflow', function() {
   });
 
   it('should plan with html @run', async () => {
-    const wf = await fox
-      .config({ cache: testCache() })
-      .plan({
-        url: 'https://www.reddit.com/r/nfl/',
-        prompt: 'scrape articles',
-        html: redditSampleHtml,
-      });
+    const wf = await fox.config({ cache: testCache() }).plan({
+      url: 'https://www.reddit.com/r/nfl/',
+      prompt: 'scrape articles',
+      html: redditSampleHtml,
+    });
     await wf.describe();
 
-    assert.ok(
-      wf.name.toLowerCase().indexOf('nfl') != -1,
-      'name should contain nfl');
-    assert.ok(
-      wf.description.toLowerCase().indexOf('nfl') != -1,
-      'description should contain nfl');
+    assert.ok(wf.name.toLowerCase().indexOf('nfl') != -1, 'name should contain nfl');
+    assert.ok(wf.description.toLowerCase().indexOf('nfl') != -1, 'description should contain nfl');
   });
 
-  it('should use global limit @run', async function() {
+  it('should use global limit @run', async function () {
     const data = {
-      "options": {
-        "limit": 2,
+      options: {
+        limit: 2,
       },
-      "steps": [
+      steps: [
         {
-          "name": "const",
-          "args": {
-            "items": [
+          name: 'const',
+          args: {
+            items: [
               {
-                "url": "https://thehackernews.com/"
-              }
-            ]
-          }
+                url: 'https://thehackernews.com/',
+              },
+            ],
+          },
         },
         {
-          "name": "crawl",
-          "args": {
-            "query": "Find links to articles about malware and other vulnerabilities",
-          }
+          name: 'crawl',
+          args: {
+            query: 'Find links to articles about malware and other vulnerabilities',
+          },
         },
         {
-          "name": "extract",
-          "args": {
-            "questions": {
-              summary: "Summarize the malware/vulnerability in 5-20 words",
-              technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",
-              url: "What is the URL? Format: Absolute URL"
-            }
-          }
-        }
+          name: 'extract',
+          args: {
+            questions: {
+              summary: 'Summarize the malware/vulnerability in 5-20 words',
+              technical: 'What are the technical identifiers like filenames, indicators of compromise, etc.?',
+              url: 'What is the URL? Format: Absolute URL',
+            },
+          },
+        },
       ],
     };
 
-    const f = await fox
-      .config({ cache: testCache() })
-      .load(data);
+    const f = await fox.config({ cache: testCache() }).load(data);
     let count = 0;
     const out = await f.run(null, (partial) => {
       count++;
@@ -386,5 +370,4 @@ describe('Workflow', function() {
     // TODO: Make this deterministic, and assert a specific number
     assert.ok(out.items.length >= 1);
   });
-
 });

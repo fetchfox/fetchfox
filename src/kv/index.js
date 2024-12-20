@@ -29,4 +29,4 @@ export const getKV = (which, options) => {
   }
 
   return new kvClass(options);
-}
+};

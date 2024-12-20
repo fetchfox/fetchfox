@@ -78,9 +78,14 @@ export const Exporter = class extends BaseExporter {
 
     let batches;
     switch (this.mode) {
-      case 'combined': batches = [buffer]; break;
-      case 'separate': batches = buffer.map(x => [x]); break;
-      default: throw new Error(`Unhandled mode ${this.mode}`);
+      case 'combined':
+        batches = [buffer];
+        break;
+      case 'separate':
+        batches = buffer.map((x) => [x]);
+        break;
+      default:
+        throw new Error(`Unhandled mode ${this.mode}`);
     }
 
     let urls = [];
@@ -96,7 +101,7 @@ export const Exporter = class extends BaseExporter {
         case 'jsonl':
           logger.info(`Serialize JSONL`);
           contentType = 'application/jsonlines';
-          body = batch.map(x => JSON.stringify(x)).join('\n');
+          body = batch.map((x) => JSON.stringify(x)).join('\n');
           break;
 
         case 'json':
@@ -111,18 +116,16 @@ export const Exporter = class extends BaseExporter {
 
           const headersDict = {};
           for (const item of batch) {
-            Object.keys(item).map(h => headersDict[h] = true);
+            Object.keys(item).map((h) => (headersDict[h] = true));
           }
           const headers = Object.keys(headersDict);
           const options = { header: true, columns: headers };
-          body = await new Promise(
-            (ok, bad) => stringify(
-              batch,
-              options,
-              (err, output) => {
-                if (err) bad(err);
-                else ok(output);
-              }));
+          body = await new Promise((ok, bad) =>
+            stringify(batch, options, (err, output) => {
+              if (err) bad(err);
+              else ok(output);
+            }),
+          );
           break;
 
         case 'pdf':
@@ -145,12 +148,7 @@ export const Exporter = class extends BaseExporter {
       } else {
         switch (this.destination) {
           case 's3':
-            url = await publishToS3(
-              body,
-              contentType,
-              'public-read',
-              this.s3bucket,
-              filepath);
+            url = await publishToS3(body, contentType, 'public-read', this.s3bucket, filepath);
             break;
 
           case 'dropbox':
@@ -167,7 +165,8 @@ export const Exporter = class extends BaseExporter {
             url = filepath;
             break;
 
-          default: throw new Error(`Unhandled destination: ${this.destination}`);
+          default:
+            throw new Error(`Unhandled destination: ${this.destination}`);
         }
       }
 
@@ -175,7 +174,7 @@ export const Exporter = class extends BaseExporter {
     }
 
     this.key = null;
-    this.filepath = null
+    this.filepath = null;
     this.file = null;
 
     return urls;
@@ -198,11 +197,10 @@ export const Exporter = class extends BaseExporter {
       await page.goto(url);
       await page.waitForTimeout(2000);
       buf = await page.pdf({ format: 'A4' });
-
     } finally {
       await browser.close();
     }
 
     return buf;
   }
-}
+};

@@ -4,7 +4,7 @@ import { fox } from '../../src/index.js';
 import { BaseStep } from '../../src/step/BaseStep.js';
 import { testCache } from '../lib/util.js';
 
-describe('BaseStep', function() {
+describe('BaseStep', function () {
   this.timeout(60 * 1000);
 
   const batchSize = 3;
@@ -75,5 +75,4 @@ describe('BaseStep', function() {
     assert.equal(results.items[0].name, 'Bulbasaur');
     assert.equal(results.items[0].number, '#0001');
   });
-
 });

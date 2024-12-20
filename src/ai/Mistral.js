@@ -44,4 +44,4 @@ export const Mistral = class extends BaseAI {
       yield Promise.resolve(chunk);
     }
   }
-}
+};

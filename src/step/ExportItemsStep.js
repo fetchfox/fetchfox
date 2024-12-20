@@ -28,4 +28,4 @@ export const ExportItemsStep = class extends BaseStep {
     this.exporter = null;
     return urls;
   }
-}
+};

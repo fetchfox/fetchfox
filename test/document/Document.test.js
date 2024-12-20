@@ -6,7 +6,7 @@ import { Document } from '../../src/document/Document.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-describe('Document', function() {
+describe('Document', function () {
   this.timeout(60 * 1000);
 
   it('should support s3', async () => {
@@ -23,10 +23,7 @@ describe('Document', function() {
       ContentType: 'text/html',
       ACL: 'public-read',
     });
-    const presignedUrl = await getSignedUrl(
-      s3,
-      command,
-      { expiresIn: 30 * 60 });
+    const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 30 * 60 });
 
     await doc.uploadHtml(presignedUrl);
 
@@ -50,10 +47,7 @@ describe('Document', function() {
       ContentType: 'text/html',
       ACL: 'public-read',
     });
-    const presignedUrl = await getSignedUrl(
-      s3,
-      command,
-      { expiresIn: 30 * 60 });
+    const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 30 * 60 });
 
     const data = await doc.dump({ presignedUrl });
 
@@ -62,9 +56,7 @@ describe('Document', function() {
     assert.ok(!data.text, 'no text');
     assert.ok(!data.links, 'no links');
     assert.ok(JSON.stringify(data).length < 10000, 'under 10kB');
-    assert.equal(
-      data.htmlUrl,
-      'https://ffcloud.s3.us-west-2.amazonaws.com/testout/document-s3-upload.html');
+    assert.equal(data.htmlUrl, 'https://ffcloud.s3.us-west-2.amazonaws.com/testout/document-s3-upload.html');
 
     const docOut = await fetcher.fetch(data.htmlUrl);
     assert.equal(docOut.html, doc.html);
@@ -77,5 +69,4 @@ describe('Document', function() {
     assert.equal(docLoad.url, doc.url);
     assert.equal(docLoad.links.length, doc.links.length);
   });
-
 });

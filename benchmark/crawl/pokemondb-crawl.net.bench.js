@@ -4,7 +4,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkExcludeUrls } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('crawl pokemondb', async function() {
+describe('crawl pokemondb', async function () {
   const matrix = standardMatrix({
     prompt: [
       'find pokemon',
@@ -13,11 +13,7 @@ describe('crawl pokemondb', async function() {
     ],
   });
 
-  const wf = await fox
-    .init('https://pokemondb.net/pokedex/national')
-    .crawl({ query: '{{prompt}}' })
-    .limit(20)
-    .plan();
+  const wf = await fox.init('https://pokemondb.net/pokedex/national').crawl({ query: '{{prompt}}' }).limit(20).plan();
 
   return itRunMatrix(
     it,
@@ -28,10 +24,7 @@ describe('crawl pokemondb', async function() {
       (items) => {
         const score = [0, 0];
 
-        const invalid = [
-          'https://pokemondb.net/pokedex/national',
-          'https://pokemondb.net/pokedex/all',
-        ];
+        const invalid = ['https://pokemondb.net/pokedex/national', 'https://pokemondb.net/pokedex/all'];
 
         for (const item of items) {
           score[1]++;
@@ -44,5 +37,6 @@ describe('crawl pokemondb', async function() {
         return score;
       },
     ],
-    { shouldSave: true });
+    { shouldSave: true },
+  );
 });

@@ -27,7 +27,7 @@ export const UniqueStep = class extends BaseStep {
 
   async process({ cursor, item }, cb) {
     const fields = this.fields || Object.keys(item).sort();
-    const val = this.fields.map(f => item[f] || '(not found)').join('_');
+    const val = this.fields.map((f) => item[f] || '(not found)').join('_');
     if (this.seen[val]) {
       logger.debug(`Already seen "${fields.join(', ')}"="${val}", skipping ${item}`);
       return;
@@ -37,4 +37,4 @@ export const UniqueStep = class extends BaseStep {
     this.seen[val] = true;
     cb(item);
   }
-}
+};

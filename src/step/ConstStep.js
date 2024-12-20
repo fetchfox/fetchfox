@@ -34,4 +34,4 @@ export const ConstStep = class extends BaseStep {
     cursor.finish(index);
     this.trigger('done');
   }
-}
+};

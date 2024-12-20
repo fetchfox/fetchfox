@@ -2,8 +2,7 @@ import assert from 'assert';
 import os from 'os';
 import { createChannel } from '../../src/util.js';
 
-describe('channels', function() {
-
+describe('channels', function () {
   it('should send and receive @run', async () => {
     const c1 = createChannel();
     const c2 = createChannel();
@@ -69,11 +68,9 @@ describe('channels', function() {
     });
 
     await p3;
-
   });
 
   it('should send all messages before end @run', async () => {
-
     const c = createChannel();
 
     const got = [];
@@ -97,7 +94,5 @@ describe('channels', function() {
     assert.equal(got[0].seq, 1);
     assert.equal(got[1].seq, 2);
     assert.equal(got[2].seq, 3);
-
   });
-
 });

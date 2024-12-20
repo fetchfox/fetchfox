@@ -18,10 +18,13 @@ export const Client = class {
   }
 
   msgId() {
-    return 'msg_' +(new ShortUniqueId({
-      length: 10,
-      dictionary: 'alphanum_lower',
-    })).rnd();
+    return (
+      'msg_' +
+      new ShortUniqueId({
+        length: 10,
+        dictionary: 'alphanum_lower',
+      }).rnd()
+    );
   }
 
   async connect(id) {
@@ -39,10 +42,12 @@ export const Client = class {
     }
 
     if (!id) {
-      id = 'relay_' +(new ShortUniqueId({
-        length: 10,
-        dictionary: 'alphanum_lower',
-      })).rnd();
+      id =
+        'relay_' +
+        new ShortUniqueId({
+          length: 10,
+          dictionary: 'alphanum_lower',
+        }).rnd();
     }
 
     this.id = id;
@@ -55,7 +60,7 @@ export const Client = class {
     let ws;
     try {
       ws = new WebSocket(this.host);
-    } catch(e) {
+    } catch (e) {
       logger.error(`Web socket connection error: ${e}`);
       throw e;
     }
@@ -68,22 +73,22 @@ export const Client = class {
         logger.info(`Relay web socket connected ${id}`);
         this.ws.send(JSON.stringify({ command: 'relayListen', id }));
 
-        for (const cb of (this.connectionWaiters || [])) {
+        for (const cb of this.connectionWaiters || []) {
           cb(id);
         }
         this.connectionWaiters = null;
-      }
+      };
 
       ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data);
         this._receive(data);
-      }
+      };
 
       ws.onerror = (e) => {
         logger.error(`Websocket error: ${e.error}`);
         this.connectionWaiters = null;
         err(e);
-      }
+      };
 
       ws.onclose = async () => {
         this.ws = null;
@@ -91,7 +96,7 @@ export const Client = class {
         if (this.reconnect) {
           await this._reconnect(10);
         }
-      }
+      };
     });
   }
 
@@ -113,7 +118,8 @@ export const Client = class {
                 ok('error');
               }
             },
-            Math.min(10000, i * 1000));
+            Math.min(10000, i * 1000),
+          );
         });
 
         logger.debug(`Reconnect result: ${result}`);
@@ -181,28 +187,30 @@ export const Client = class {
   async ping(cb) {
     logger.debug(`Relay client ping`);
     const data = { command: 'ping' };
-    const msgId =  this.msgId(); 
+    const msgId = this.msgId();
     data.msgId = msgId;
     this.sent[msgId] = true;
     this.pingCb = () => {
       cb && cb();
       this.pingCb = null;
-    }
+    };
     return this.ws.send(JSON.stringify(data));
   }
 
   async send(data, replyCb) {
     logger.debug(`Relay client send to id=${this.id} host=${this.host} ws=${this.ws}`);
 
-    const msgId =  this.msgId(); 
+    const msgId = this.msgId();
     data.msgId = msgId;
     this.sent[msgId] = true;
 
     if (replyCb) {
-      const replyId = 'reply_' +(new ShortUniqueId({
-        length: 10,
-        dictionary: 'alphanum_lower',
-      })).rnd();
+      const replyId =
+        'reply_' +
+        new ShortUniqueId({
+          length: 10,
+          dictionary: 'alphanum_lower',
+        }).rnd();
       data.replyId = replyId;
       this.replyCb[replyId] = replyCb;
       logger.debug(`Added reply ID: ${replyId}`);
@@ -227,6 +235,6 @@ export const Client = class {
     this.ws = null;
     logger.debug(`Send close to websocket`);
     ws.close(1000);
-    return new Promise((ok) => ws.onclose = ok);
+    return new Promise((ok) => (ws.onclose = ok));
   }
-}
+};

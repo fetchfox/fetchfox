@@ -13,7 +13,7 @@ export const testCache = () => {
     readOnly: !process.env.WRITE_TEST_CACHE,
   };
   return new S3Cache(params);
-}
+};
 
 export const testCacheConfig = () => {
   return [
@@ -26,4 +26,4 @@ export const testCacheConfig = () => {
       readOnly: !process.env.WRITE_TEST_CACHE,
     },
   ];
-}
+};

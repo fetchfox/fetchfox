@@ -24,4 +24,4 @@ export const getMinimizer = (which, options) => {
     return;
   }
   return new minimizerClass(options);
-}
+};

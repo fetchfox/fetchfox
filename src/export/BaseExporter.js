@@ -6,4 +6,4 @@ export const BaseExporter = class {
     // - append vs. truncate
     // - combine vs. single item out
   }
-}
+};

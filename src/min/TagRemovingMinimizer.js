@@ -14,7 +14,7 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
     let removeTags = this.removeTags;
     if (doc.url.indexOf('youtube.com') != -1) {
       logger.debug(`Not removing <script> on youtube.com`);
-      removeTags = removeTags.filter(t => t != 'script');
+      removeTags = removeTags.filter((t) => t != 'script');
     }
 
     logger.info(`Minimizing ${doc} by removing tags: ${removeTags.join(', ')}`);
@@ -22,15 +22,15 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
     let initial = (doc.html || '').replace(/[ \t\n]+/g, ' '); // remove extra whitespace
     const root = parse(initial);
 
-    removeTags.forEach(tag => {
-      root.querySelectorAll(tag).forEach(element => {
+    removeTags.forEach((tag) => {
+      root.querySelectorAll(tag).forEach((element) => {
         element.replaceWith('');
       });
     });
 
     const removeAttributes = ['style'];
-    root.querySelectorAll('*').forEach(element => {
-      removeAttributes.forEach(attr => {
+    root.querySelectorAll('*').forEach((element) => {
+      removeAttributes.forEach((attr) => {
         element.removeAttribute(attr);
       });
     });
@@ -47,4 +47,4 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
 
     return min;
   }
-}
+};

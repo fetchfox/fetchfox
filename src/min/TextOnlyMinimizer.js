@@ -13,7 +13,7 @@ export const TextOnlyMinimizer = class extends BaseMinimizer {
     if (cached) return cached;
     if (!doc) return;
 
-    const start = (new Date()).getTime() / 1000;
+    const start = new Date().getTime() / 1000;
     const before = JSON.stringify([doc.html, doc.text]).length;
     logger.info(`Minimizing ${doc} with text only`);
 
@@ -25,7 +25,7 @@ export const TextOnlyMinimizer = class extends BaseMinimizer {
     await min.loadData(data);
 
     const after = JSON.stringify([min.html, min.text]).length;
-    const took = (new Date()).getTime() / 1000 - start;
+    const took = new Date().getTime() / 1000 - start;
     logger.info(`Minimizing took ${took.toFixed(2)} seconds`);
     logger.info(`Minimized doc from ${before} bytes -> ${after} bytes`);
 
@@ -33,4 +33,4 @@ export const TextOnlyMinimizer = class extends BaseMinimizer {
 
     return min;
   }
-}
+};

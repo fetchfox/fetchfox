@@ -6,16 +6,16 @@ import { Document } from '../../src/document/Document.js';
 import { fox } from '../../src/index.js';
 import { sample } from './data/chia-anime-sample.html.js';
 
-describe('pointhound.com', function() {
+describe('pointhound.com', function () {
   this.timeout(60 * 1000);
 
   it('should work for simple crawl', async () => {
-    const url = 'https://www.pointhound.com/flights?dateBuffer=false&flightClass=Business+%26+First+Class&originCode=JFK&originName=New+York&destinationCode=BOS&destinationName=Boston&passengerCount=1&departureDate=2024-11-23';
+    const url =
+      'https://www.pointhound.com/flights?dateBuffer=false&flightClass=Business+%26+First+Class&originCode=JFK&originName=New+York&destinationCode=BOS&destinationName=Boston&passengerCount=1&departureDate=2024-11-23';
 
-    const f = await fox
-      .config({
-        fetcher: ['playwright', { headless: true, loadWait: 4000 } ],
-      });
+    const f = await fox.config({
+      fetcher: ['playwright', { headless: true, loadWait: 4000 }],
+    });
     const out = await f
       .init(url)
       .extract({
@@ -34,5 +34,4 @@ describe('pointhound.com', function() {
       assert.ok(item.points.match(/[0-9,]+ pts/, 'points format'));
     }
   });
-
-})
+});

@@ -17,8 +17,8 @@ export const Template = class {
       found.push(m[1]);
     }
 
-    const allFound = args.every(arg => found.includes(arg));
-    const noExtra = found.every(arg => args.includes(arg));
+    const allFound = args.every((arg) => found.includes(arg));
+    const noExtra = found.every((arg) => args.includes(arg));
 
     if (!allFound) throw new Error(`Missing expected args. Expected: ${args}, Found: ${found}`);
     if (!noExtra) throw new Error(`Found extra args Expected: ${args}, Found: ${found}`);
@@ -27,19 +27,18 @@ export const Template = class {
   render(context) {
     let prompt = this.base;
     for (const key of Object.keys(context)) {
-      const val = (context[key] || '');
+      const val = context[key] || '';
       prompt = prompt.replaceAll('{{' + key + '}}', val);
     }
     return prompt;
   }
 
   cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
+    const hash = CryptoJS.SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
       .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
-    return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`
+    return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`;
   }
 
   async renderMulti(context, flexField, ai, cache) {
@@ -47,8 +46,7 @@ export const Template = class {
     const prompts = [];
     const offset = 0;
     while (true) {
-      const { prompt, bytesUsed, done } = await this.renderCapped(
-        copy, flexField, ai, cache);
+      const { prompt, bytesUsed, done } = await this.renderCapped(copy, flexField, ai, cache);
       prompts.push(prompt);
       if (done) {
         break;
@@ -65,14 +63,15 @@ export const Template = class {
 
     let key;
     if (cache) {
-      const hash = CryptoJS
-        .SHA256(JSON.stringify({
+      const hash = CryptoJS.SHA256(
+        JSON.stringify({
           context,
           accuracy,
           flexField,
           maxTokens,
           base: this.base,
-        }))
+        }),
+      )
         .toString(CryptoJS.enc.Hex)
         .substr(0, 16);
       key = `template-renderCapped-${this.constructor.name}-${hash}`;
@@ -82,7 +81,7 @@ export const Template = class {
       }
     }
 
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     let prompt;
     let tokens;
@@ -94,7 +93,7 @@ export const Template = class {
       const copy = { ...context };
       copy[flexField] = context[flexField].substr(0, size);
       return this.render(copy);
-    }
+    };
 
     for (let i = 0; i < 10; i++) {
       prompt = render(guess);
@@ -118,7 +117,7 @@ export const Template = class {
     prompt = render(bytesUsed);
     const final = await countFn(prompt);
 
-    const took = (new Date()).getTime() - start;
+    const took = new Date().getTime() - start;
     logger.debug(`Capped render took ${took} msec, gave ${final} tokens`);
 
     const result = { prompt, bytesUsed, done: bytesUsed == context[flexField].length };
@@ -127,4 +126,4 @@ export const Template = class {
     }
     return result;
   }
-}
+};

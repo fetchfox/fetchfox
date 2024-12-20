@@ -5,7 +5,7 @@ import process from 'node:process';
 import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
-describe('news.ycombinator.com', function() {
+describe('news.ycombinator.com', function () {
   this.timeout(5 * 60 * 1000);
 
   it('should work @run', async () => {
@@ -25,10 +25,10 @@ describe('news.ycombinator.com', function() {
     assert.ok(countPartials > 15 && countPartials < 35, 'partials ballpark');
     assert.ok(out.items.length > 15 && out.items.length < 35, 'items ballpark');
     const totalComments = out.items
-      .filter(item => {
+      .filter((item) => {
         try {
           return !isNaN(parseInt(item.numComments));
-        } catch(e) {
+        } catch (e) {
           return false;
         }
       })

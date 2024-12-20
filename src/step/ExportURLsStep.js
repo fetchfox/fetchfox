@@ -5,8 +5,8 @@ import { getExporter } from '../export/index.js';
 export const ExportURLsStep = class extends BaseStep {
   constructor(args) {
     super(args);
-    this.filename = args?.filename || '{url}.pdf'
-    this.directory = args?.directory || ''
+    this.filename = args?.filename || '{url}.pdf';
+    this.directory = args?.directory || '';
     this.field = args.field;
 
     this.format = args.format || 'pdf';
@@ -20,9 +20,7 @@ export const ExportURLsStep = class extends BaseStep {
 
     const args = this.args();
     args.mode = this.mode;
-    const filepath = (this.directory
-                    ? `${this.directory}/${this.filename}`
-                    : this.filename)
+    const filepath = this.directory ? `${this.directory}/${this.filename}` : this.filename;
     args.filepath = filepath;
     args.tokens = cursor.ctx.tokens;
     const exporter = getExporter(this.destination, args);
@@ -37,4 +35,4 @@ export const ExportURLsStep = class extends BaseStep {
 
     cb(item);
   }
-}
+};

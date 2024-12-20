@@ -73,7 +73,7 @@ export const BaseFetcher = class {
     }
 
     this.usage.requests++;
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     const docs = [];
 
@@ -99,7 +99,8 @@ export const BaseFetcher = class {
           logger.info(`Queue is starting fetch of: ${url}`);
           return this._fetch(url, options);
         },
-        { priority });
+        { priority },
+      );
       logger.debug(`Fetch queue has ${this.q.size} requests`);
 
       this.usage.completed++;
@@ -120,16 +121,18 @@ export const BaseFetcher = class {
             dictionary: 'alphanum_lower',
           }).rnd();
           const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
-          const key = keyTemplate
-            .replaceAll('{id}', id)
-            .replaceAll('{url}', cleanUrl);
+          const key = keyTemplate.replaceAll('{id}', id).replaceAll('{url}', cleanUrl);
 
           const presignedUrl = await presignS3({
-            bucket, key, contentType: 'text/html', acl });
+            bucket,
+            key,
+            contentType: 'text/html',
+            acl,
+          });
 
           try {
             await doc.uploadHtml(presignedUrl);
-          } catch(e) {
+          } catch (e) {
             logger.error(`Failed to upload ${key}: ${e}`);
           }
         }
@@ -137,13 +140,12 @@ export const BaseFetcher = class {
         docs.push(doc);
         yield Promise.resolve(doc);
       }
-
     } finally {
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       this.usage.runtime += took;
 
       if (docs.length) {
-        const all = await Promise.all(docs.map(doc => doc.dump()));
+        const all = await Promise.all(docs.map((doc) => doc.dump()));
         this.setCache(url, cacheOptions, all);
       }
     }
@@ -154,8 +156,7 @@ export const BaseFetcher = class {
   }
 
   cacheKey(url, options) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ url, options, ...this.cacheOptions() }))
+    const hash = CryptoJS.SHA256(JSON.stringify({ url, options, ...this.cacheOptions() }))
       .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
     return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;
@@ -177,7 +178,7 @@ export const BaseFetcher = class {
         doc.loadData(data);
         docs.push(doc);
       }
-      logger.debug(`Fetch cache loaded ${docs.map(d => ''+d).join(', ')}`);
+      logger.debug(`Fetch cache loaded ${docs.map((d) => '' + d).join(', ')}`);
       return docs;
     } else {
       return null;
@@ -187,11 +188,13 @@ export const BaseFetcher = class {
   async setCache(url, options, val) {
     if (!this.cache) return;
     const key = this.cacheKey(url, options);
-    logger.debug(`Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
+    logger.debug(
+      `Set fetch cache for ${url} to "${JSON.stringify(val).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`,
+    );
     return this.cache.set(key, val, 'fetch');
   }
 
   async stop() {
     // Should instantly stop the fetching
   }
-}
+};

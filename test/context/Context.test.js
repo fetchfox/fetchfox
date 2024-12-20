@@ -2,8 +2,7 @@ import assert from 'assert';
 import os from 'os';
 import { Context } from '../../src/context/Context.js';
 
-describe('Context', function() {
-
+describe('Context', function () {
   it('should update @run', () => {
     const ctx = new Context({ publishAllSteps: true, limit: 5 });
 
@@ -36,23 +35,13 @@ describe('Context', function() {
 
     ctx.update({
       ai: ['openai', { model: 'gpt-4o' }],
-      extractor: ['code-gen', { ai: 'openai:gpt-4o'}],
+      extractor: ['code-gen', { ai: 'openai:gpt-4o' }],
     });
-    assert.equal(
-      JSON.stringify(ctx.dump().ai),
-      '["openai",{"model":"gpt-4o"}]');
-    assert.equal(
-      JSON.stringify(ctx.dump().extractor),
-      '["code-gen",{"ai":"openai:gpt-4o"}]');
+    assert.equal(JSON.stringify(ctx.dump().ai), '["openai",{"model":"gpt-4o"}]');
+    assert.equal(JSON.stringify(ctx.dump().extractor), '["code-gen",{"ai":"openai:gpt-4o"}]');
 
     ctx.update({ fetcher: ['playwright', { cdp: 'ws://example.com/ws' }] });
-    assert.equal(
-      JSON.stringify(ctx.dump().ai),
-      '["openai",{"model":"gpt-4o"}]');
-    assert.equal(
-      JSON.stringify(ctx.dump().fetcher),
-      '["playwright",{"cdp":"ws://example.com/ws"}]');
-
+    assert.equal(JSON.stringify(ctx.dump().ai), '["openai",{"model":"gpt-4o"}]');
+    assert.equal(JSON.stringify(ctx.dump().fetcher), '["playwright",{"cdp":"ws://example.com/ws"}]');
   });
-
 });

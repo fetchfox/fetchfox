@@ -44,4 +44,4 @@ export const Groq = class extends BaseAI {
       yield Promise.resolve(chunk);
     }
   }
-}
+};

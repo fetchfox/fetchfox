@@ -43,9 +43,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         try {
           p = chromium.connectOverCDP(this.cdp);
           break;
-        } catch(e) {
+        } catch (e) {
           logger.warn(`Could not connect to CDP: ${e}`);
-          await new Promise(ok => setTimeout(ok, 5 * 1000));
+          await new Promise((ok) => setTimeout(ok, 5 * 1000));
         }
 
         if (!p) {
@@ -91,7 +91,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let html;
     let status;
     try {
-      logger.debug(`${this} wait for DOM content with timeout ${this.timeoutWait}`)
+      logger.debug(`${this} wait for DOM content with timeout ${this.timeoutWait}`);
       await page.waitForLoadState('domcontentloaded', { timeout: this.timeoutWait });
       logger.debug(`${this} loaded page before timeout`);
 
@@ -101,15 +101,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         await locator.waitFor();
       }
 
-      const r = await getHtmlFromSuccess(
-        page,
-        {
-          loadWait: this.loadWait,
-          pullIframes: this.pullIframes,
-        });
+      const r = await getHtmlFromSuccess(page, {
+        loadWait: this.loadWait,
+        pullIframes: this.pullIframes,
+      });
       status = 200;
       html = r.html;
-    } catch(e) {
+    } catch (e) {
       logger.error(`Playwright could not get from ${page}: ${e}`);
       logger.debug(`Trying to salvage results`);
       html = await getHtmlFromError(page);
@@ -143,7 +141,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     try {
       await page.goto(url);
     } catch (e) {
-      logger.warn(`Goto gave error, but continuing anyways: ${e}`)
+      logger.warn(`Goto gave error, but continuing anyways: ${e}`);
     }
 
     const doc = await this._docFromPage(page, options);
@@ -167,10 +165,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       const minDoc = await min.min(doc);
       const fns = [];
 
-      const hostname = (new URL(url)).hostname;
-      let domainSpecific = {
-        'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
-      }[hostname] || '';
+      const hostname = new URL(url).hostname;
+      let domainSpecific =
+        {
+          'x.com':
+            'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
+        }[hostname] || '';
       if (domainSpecific) {
         domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
         logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
@@ -179,28 +179,25 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         html: minDoc.html,
         domainSpecific,
       };
-      const prompts = await analyzePagination.renderMulti(
-        context, 'html', this.ai, this.cache);
+      const prompts = await analyzePagination.renderMulti(context, 'html', this.ai, this.cache);
 
       logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
       for (const prompt of prompts) {
         let answer;
         try {
           answer = await this.ai.ask(prompt, { format: 'json' });
-        } catch(e) {
+        } catch (e) {
           logger.error(`${this} Got AI error during pagination, ignore`);
-          continue
+          continue;
         }
 
         logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
-        if (answer?.partial?.hasPagination &&
-          answer?.partial?.paginationJavascript
-        ) {
+        if (answer?.partial?.hasPagination && answer?.partial?.paginationJavascript) {
           let fn;
           try {
             fn = new Function(answer.partial.paginationJavascript);
-          } catch(e) {
+          } catch (e) {
             logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it`);
           }
           if (fn) {
@@ -229,7 +226,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           }
 
           fnIndex++;
-          logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
+          logger.warn(
+            `${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`,
+          );
           continue;
         }
         const doc = await this._docFromPage(page, options);
@@ -251,11 +250,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       yield Promise.resolve(val.doc);
     }
   }
-}
+};
 
 const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
-  logger.debug(`Playwright waiting ${(loadWait/1000).toFixed(1)} sec`);
-  await new Promise(ok => setTimeout(ok, loadWait));
+  logger.debug(`Playwright waiting ${(loadWait / 1000).toFixed(1)} sec`);
+  await new Promise((ok) => setTimeout(ok, loadWait));
 
   if (pullIframes) {
     // Get all the iframes
@@ -266,10 +265,10 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       let el;
       try {
         el = await frame.frameElement();
-      } catch(e) {
+      } catch (e) {
         continue;
       }
-      const tagName = await el.evaluate(el => el.tagName);
+      const tagName = await el.evaluate((el) => el.tagName);
       if (tagName == 'IFRAME') {
         iframes.push(frame);
       }
@@ -282,48 +281,51 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       let content;
       try {
         content = await iframe.content();
-      } catch(e) {
+      } catch (e) {
         content = '[iframe unavailable]';
       }
 
-      const result = await page.evaluate(({ index, content }) => {
-        const iframes = document.querySelectorAll('iframe');
-        const iframe = iframes[index];
-        if (iframe) {
-          let policy;
-          if (window.trustedTypes.defaultPolicy) {
-            policy = window.trustedTypes.defaultPolicy;
-          } else {
-            policy = window.trustedTypes.createPolicy('default', {
-              createHTML: (html) => html,
-            });
+      const result = await page.evaluate(
+        ({ index, content }) => {
+          const iframes = document.querySelectorAll('iframe');
+          const iframe = iframes[index];
+          if (iframe) {
+            let policy;
+            if (window.trustedTypes.defaultPolicy) {
+              policy = window.trustedTypes.defaultPolicy;
+            } else {
+              policy = window.trustedTypes.createPolicy('default', {
+                createHTML: (html) => html,
+              });
+            }
+
+            const div = document.createElement('div');
+            div.innerHTML = policy.createHTML(content);
+
+            iframe.replaceWith(div);
           }
-
-          const div = document.createElement('div');
-          div.innerHTML = policy.createHTML(content);
-
-          iframe.replaceWith(div);
-        }
-      }, { index: i, content });
+        },
+        { index: i, content },
+      );
     }
   }
 
   logger.debug(`Get page content on ${page.url()}`);
-  const start = (new Date()).getTime();
+  const start = new Date().getTime();
   const html = await page.content();
-  const took = (new Date()).getTime() - start;
+  const took = new Date().getTime() - start;
   logger.debug(`Running .content() took ${took} msec`);
 
   return { html };
-}
+};
 
 const getHtmlFromError = async (page) => {
   try {
     logger.debug(`Get HTML from error result on ${page.url()}`);
     const html = await page.evaluate(() => document.documentElement.outerHTML);
-    return html
-  } catch(e) {
+    return html;
+  } catch (e) {
     logger.error(`Failed to get HTML from error result, got another error: ${e}`);
     return null;
   }
-}
+};

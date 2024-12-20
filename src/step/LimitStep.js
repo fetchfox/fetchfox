@@ -13,4 +13,4 @@ export const LimitStep = class extends BaseStep {
     logger.info(`Limit step on ${JSON.stringify(item).substr(0, 100)}`);
     cb(item);
   }
-}
+};

@@ -4,9 +4,9 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate danbooru.donmai.us', async function() {
+describe('paginate danbooru.donmai.us', async function () {
   const matrix = standardMatrix({
-    fetcher: [['playwright', { headless: false }]],  // This page only loads with headful
+    fetcher: [['playwright', { headless: false }]], // This page only loads with headful
   });
 
   const expected = [
@@ -17,18 +17,14 @@ describe('paginate danbooru.donmai.us', async function() {
     { _sourceUrl: 'https://danbooru.donmai.us/posts?page=5' },
   ];
 
-  const wf = await fox
-    .init('https://danbooru.donmai.us/')
-    .fetch({ pages: 5 })
-    .plan();
+  const wf = await fox.init('https://danbooru.donmai.us/').fetch({ pages: 5 }).plan();
 
   return itRunMatrix(
     it,
     'paginate danbooru.donmai.us',
     wf.dump(),
     matrix,
-    [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
-    ],
-    { shouldSave: true });
+    [(items) => checkItemsExact(items, expected, ['_sourceUrl'])],
+    { shouldSave: true },
+  );
 });

@@ -25,15 +25,13 @@ export const Item = class {
   toString() {
     const dump = JSON.stringify(this);
     if (dump.length > 100) {
-      dump = dump.substr(0, 80) + '...'
+      dump = dump.substr(0, 80) + '...';
     }
     return `[Item ${dump}]`;
   }
 
   copy() {
-    return new Item(
-      JSON.parse(JSON.stringify(this)),
-      this.#source);
+    return new Item(JSON.parse(JSON.stringify(this)), this.#source);
   }
 
   publicOnly() {
@@ -46,8 +44,7 @@ export const Item = class {
     return copy;
   }
 
-  async finish() {
-  }
+  async finish() {}
 
   clean(val) {
     val = '' + val;
@@ -77,7 +74,7 @@ export const Item = class {
       const empty = {
         json: JSON.stringify([], null, 2),
         jsonl: '',
-      }[format]
+      }[format];
       fs.writeFileSync(filename, empty);
     }
 
@@ -88,14 +85,11 @@ export const Item = class {
     }
     switch (format) {
       case 'json':
-        out = JSON.stringify(
-          JSON
-            .parse(fs.readFileSync(filename, 'utf-8'))
-            .concat([data]), null, 2);
+        out = JSON.stringify(JSON.parse(fs.readFileSync(filename, 'utf-8')).concat([data]), null, 2);
         break;
 
       case 'jsonl':
-        out = fs.readFileSync(filename, 'utf-8').trim() + '\n' + (JSON.stringify(data)) + '\n';
+        out = fs.readFileSync(filename, 'utf-8').trim() + '\n' + JSON.stringify(data) + '\n';
         break;
 
       default:
@@ -104,4 +98,4 @@ export const Item = class {
 
     return fs.writeFileSync(filename, out);
   }
-}
+};

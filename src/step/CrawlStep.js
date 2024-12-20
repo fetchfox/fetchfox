@@ -13,13 +13,13 @@ export const CrawlStep = class extends BaseStep {
     }
     if (!query) throw new Error('no query');
 
-    this.query= query;
+    this.query = query;
     this.css = args?.css;
   }
 
   async process({ cursor, item, index }, cb) {
     const crawler = cursor.ctx.crawler;
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     const options = {
       css: this.css,
@@ -36,10 +36,10 @@ export const CrawlStep = class extends BaseStep {
         continue;
       }
 
-      const took = (new Date()).getTime() - start;
-      logger.debug(`Crawl took ${took/1000} sec so far`);
+      const took = new Date().getTime() - start;
+      logger.debug(`Crawl took ${took / 1000} sec so far`);
       const done = cb(output);
       if (done) break;
     }
   }
-}
+};

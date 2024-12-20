@@ -3,7 +3,7 @@ import os from 'os';
 import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
-describe('ExtractStep', function() {
+describe('ExtractStep', function () {
   this.timeout(60 * 1000);
 
   it('should supplement items with subsequent extractions @run', async () => {
@@ -22,12 +22,7 @@ describe('ExtractStep', function() {
 
     const out = await f.run();
 
-    const expectedKeys = [
-      'url',
-      'name',
-      'number',
-      'height',
-    ];
+    const expectedKeys = ['url', 'name', 'number', 'height'];
 
     assert.equal(out.items.length, 3);
 
@@ -35,5 +30,4 @@ describe('ExtractStep', function() {
       assert.ok(Object.keys(item).includes(...expectedKeys));
     }
   });
-
 });

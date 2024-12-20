@@ -19,11 +19,7 @@ export const Server = class {
     this.relay = new Relay();
     this.middleware = [];
     this.children = {};
-    this.childPath = (
-      options.childPath ||
-      path.join(
-        process.cwd(),
-        'node_modules/fetchfox/src/server/child.js'));
+    this.childPath = options.childPath || path.join(process.cwd(), 'node_modules/fetchfox/src/server/child.js');
 
     this.shouldPrefork = options?.shouldPrefork;
     this.shouldPrefork && this.prefork();
@@ -35,32 +31,27 @@ export const Server = class {
 
   async sub(data, ws) {
     return new Promise((ok) => {
-      this.store.sub(
-        data.id,
-        (r) => {
-          r.id = data.id;
-          ws.send(JSON.stringify(r));
-          if (r.done) {
-            ok(r);
-          }
-        });
+      this.store.sub(data.id, (r) => {
+        r.id = data.id;
+        ws.send(JSON.stringify(r));
+        if (r.done) {
+          ok(r);
+        }
+      });
     });
   }
 
   async relayListen(data, ws) {
     return new Promise((ok) => {
-      this.relay.listen(
-        data.id,
-        (r) => {
-          ws.send(JSON.stringify(r));
-        }
-      );
+      this.relay.listen(data.id, (r) => {
+        ws.send(JSON.stringify(r));
+      });
     });
   }
 
   async relaySend(data, ws) {
     const { command, id, ...rest } = data;
-    logger.info(`Server got relaySend ${rest.data.msgId}: ${JSON.stringify(data).substr(0,200)}`);
+    logger.info(`Server got relaySend ${rest.data.msgId}: ${JSON.stringify(data).substr(0, 200)}`);
     return new Promise((ok) => {
       this.relay.send(id, rest.data);
     });
@@ -96,9 +87,9 @@ export const Server = class {
     const child = this.children[id];
     this.nextForkId = null;
 
-    setTimeout(
-      () => { this.shouldPrefork && this.prefork() },
-      1);
+    setTimeout(() => {
+      this.shouldPrefork && this.prefork();
+    }, 1);
 
     return { id, child };
   }
@@ -111,9 +102,9 @@ export const Server = class {
   async start(data, ws) {
     logger.info(`Server start ${JSON.stringify(data)}`);
 
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
     const { id, child } = this.fork();
-    const took = (new Date()).getTime() - start;
+    const took = new Date().getTime() - start;
     logger.debug(`Start took ${took} msec to fork`);
 
     child.on('message', (msg) => {
@@ -160,18 +151,13 @@ export const Server = class {
 
   async plan(data, ws) {
     logger.info(`Plan based on ${JSON.stringify(data.prompt).substr(0, 200)}`);
-    const f = await fox
-      .config(this.context)
-      .plan(...(data.prompt));
+    const f = await fox.config(this.context).plan(...data.prompt);
     return f.dump();
   }
 
   async describe(data, ws) {
     logger.info(`Describe based on ${JSON.stringify(data.workflow).substr(0, 200)}`);
-    const out = await fox
-      .config(this.context)
-      .load({ steps: data.workflow.steps })
-      .describe();
+    const out = await fox.config(this.context).load({ steps: data.workflow.steps }).describe();
     return out.dump();
   }
 
@@ -183,7 +169,7 @@ export const Server = class {
 
     this.wss = new WebSocketServer({ server: this.s });
 
-    this.wss.on('connection', ws => {
+    this.wss.on('connection', (ws) => {
       this.conns.add(ws);
 
       ws.on('message', async (msg) => {
@@ -268,4 +254,4 @@ export const Server = class {
   close(cb) {
     return this.s.close(cb);
   }
-}
+};

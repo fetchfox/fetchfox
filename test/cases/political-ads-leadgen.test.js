@@ -3,7 +3,7 @@ import os from 'os';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
 
-describe('political-ads-leadgen', function() {
+describe('political-ads-leadgen', function () {
   this.timeout(10 * 60 * 1000);
 
   it('should find leads', async () => {
@@ -19,7 +19,8 @@ describe('political-ads-leadgen', function() {
         'https://www.google.com/search?q=alabama+political+ad+agencies&start=10',
       ])
       .crawl({
-        query: 'find links to earch results linking to ad agency companies. offsite search results only, not the ones on google.com.',
+        query:
+          'find links to earch results linking to ad agency companies. offsite search results only, not the ones on google.com.',
         limit: 20,
       })
       .extract({
@@ -44,11 +45,14 @@ describe('political-ads-leadgen', function() {
         fetcher: ['playwright', { headless: true, wait: 4000 }],
       })
       .init(linkUrls)
-      .crawl({ query: 'Find links to ad agencies. Only ad agencies, no navigation, and ONLY off-site links', limit: 10 })
+      .crawl({
+        query: 'Find links to ad agencies. Only ad agencies, no navigation, and ONLY off-site links',
+        limit: 10,
+      })
       .extract({
         type: 'Is this page a specfic ad agency, or a list of more ad agencies? Answer exactly one of these: "company" or "links"',
         company_name: 'What is the name of this company?',
-        single: true
+        single: true,
       });
     const r2 = await f2.run();
     for (const item of r2.items) {
@@ -68,7 +72,7 @@ describe('political-ads-leadgen', function() {
         email: 'Find the email address of this company, if available',
         phone: 'Find the phone number of this company, if available',
         contact_us_url: 'Find the contact page URL this company, if available. Format: Full absolute URL',
-        single: true
+        single: true,
       });
     const r3 = await f3.run();
     const contactUrls = [];
@@ -87,7 +91,7 @@ describe('political-ads-leadgen', function() {
         email: 'Find the email address of this company, if available',
         phone: 'Find the phone number of this company, if available',
         contact_us_url: 'Find the contact page URL this company, if available. Format: Full absolute URL',
-        single: true
+        single: true,
       });
 
     const r4 = await f4.run();
@@ -107,5 +111,4 @@ describe('political-ads-leadgen', function() {
     assert.ok(validEmails > 3 && validEmails < 20, 'sanity check emails found');
     assert.ok(validPhones > 3 && validPhones < 20, 'sanity check phones found');
   });
-
 });

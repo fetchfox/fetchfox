@@ -65,7 +65,7 @@ const decodeArgs = (args, cache) => {
   }
 
   return decoded;
-}
+};
 
 export const Context = class {
   constructor(args) {
@@ -109,4 +109,4 @@ export const Context = class {
 
     return this;
   }
-}
+};

@@ -23,8 +23,8 @@ Example of valid output:
 Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}`);
-
+{{links}}`,
+);
 
 export const rate = new Template(
   ['query', 'links'],
@@ -58,7 +58,8 @@ Example of valid output:
 Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}`);
+{{links}}`,
+);
 
 export const categorize = new Template(
   ['urls'],
@@ -82,7 +83,8 @@ Follow these important rules:
 
 The list of URLs to categorize is below:
 {{urls}}
-`);
+`,
+);
 
 export const score = new Template(
   ['html', 'questions'],
@@ -109,4 +111,5 @@ Below is the USER PROMPT that you are responding to:
 {{html}}
 
 >>>> The user is extracting this data:
-{{questions}}`);
+{{questions}}`,
+);

@@ -12,8 +12,9 @@ export const Filter = class {
 
   async *run(items, query) {
     let id = 1;
-    const copy = [...items]
-      .map(item => { return { ...item, _ffid: id++ } });
+    const copy = [...items].map((item) => {
+      return { ...item, _ffid: id++ };
+    });
 
     const maxBytes = this.ai.maxTokens / 2;
     const chunked = chunkList(copy, maxBytes);
@@ -46,4 +47,4 @@ export const Filter = class {
 
     logger.info(`Filter matched ${count} out of original ${items.length}`);
   }
-}
+};

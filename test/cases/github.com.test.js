@@ -5,7 +5,7 @@ import process from 'node:process';
 import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
-describe('github.com', function() {
+describe('github.com', function () {
   this.timeout(10 * 1000);
 
   it('should do basic scrape @run', async () => {
@@ -13,10 +13,7 @@ describe('github.com', function() {
     const out = await fox
       .config({
         cache: testCache(),
-        fetcher: [
-          'playwright',
-          { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 },
-        ],
+        fetcher: ['playwright', { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 }],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
@@ -58,10 +55,7 @@ describe('github.com', function() {
     const out = await fox
       .config({
         cache: testCache(),
-        fetcher: [
-          'playwright',
-          { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 },
-        ],
+        fetcher: ['playwright', { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 }],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({

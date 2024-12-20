@@ -7,8 +7,7 @@ export const storeScores = async (scores) => {
   const p = [];
 
   for (const score of scores) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ name: score.name, commit: score.commit, config: score.config }))
+    const hash = CryptoJS.SHA256(JSON.stringify({ name: score.name, commit: score.commit, config: score.config }))
       .toString(CryptoJS.enc.Hex)
       .substr(0, 16);
 
@@ -18,4 +17,4 @@ export const storeScores = async (scores) => {
   }
 
   await Promise.all(p);
-}
+};

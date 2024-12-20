@@ -22,7 +22,8 @@ Your task is to return JSON definition for this step:
 {{step}}
 
 Make sure to ONLY return JSON, with no explanation. Your output will parsed using JSON.parse()
-`);
+`,
+);
 
 export const combined = new Template(
   ['stepLibrary', 'prompt', 'user', 'url', 'html'],
@@ -58,7 +59,8 @@ The user prompt is:
 {{prompt}}
 
 Make sure to ONLY return JSON, with no explanation. Your output will parsed using JSON.parse()
-`);
+`,
+);
 
 export const describe = new Template(
   ['job'],
@@ -83,7 +85,8 @@ Respond in JSON format:
 
 The scrape job you are describing and naming is:
 {{job}}
-`);
+`,
+);
 
 export const prePlan = new Template(
   ['url', 'html', 'prompt'],
@@ -166,19 +169,11 @@ Page HTML: {{html}}
 
 User prompt: {{prompt}}
 
-You MUST respond with ONLY the JSON object, no comments, no explanation. Otherwise you fail the task.`);
+You MUST respond with ONLY the JSON object, no comments, no explanation. Otherwise you fail the task.`,
+);
 
 export const guided = new Template(
-  [
-    'stepLibrary',
-    'prompt',
-    'intent',
-    'itemDescription',
-    'detailFields',
-    'url',
-    'shouldCrawl',
-    'itemsPerPage',
-  ],
+  ['stepLibrary', 'prompt', 'intent', 'itemDescription', 'detailFields', 'url', 'shouldCrawl', 'itemsPerPage'],
   `You are generating a plan for a web scraping program. You will receive a user prompt, and your goal is to output a JSON definition that plans out that scrape.
 
 Your JSON definition will be based on the available steps in the scraping library, which are described below. You must select both the proper step type, as well as the arguments to the step. You MUST only use steps from this library.
@@ -212,4 +207,5 @@ Page URL is: {{url}}
 {{shouldCrawl}}
 
 {{itemsPerPage}}
-`);
+`,
+);

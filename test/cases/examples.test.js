@@ -6,15 +6,13 @@ import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 // Test the examples from README.md
-describe('examples', function() {
+describe('examples', function () {
   this.timeout(5 * 1000);
 
   it('should do basic example @run', async () => {
     const results = await fox
       .config({ cache: testCache() })
-      .init(
-        'https://pokemondb.net/pokedex/national',
-      )
+      .init('https://pokemondb.net/pokedex/national')
       .extract({
         name: 'Pokemon name, starting with the first pokemon',
         number: 'Pokemon number, format: #XXXX',
@@ -49,4 +47,3 @@ describe('examples', function() {
     assert.equal(results[0].number, '#0001');
   });
 });
-

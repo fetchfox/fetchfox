@@ -1,4 +1,4 @@
-import { Ollama as OllamaLib } from 'ollama'
+import { Ollama as OllamaLib } from 'ollama';
 import { logger } from '../log/logger.js';
 import { BaseAI } from './BaseAI.js';
 import { parseAnswer } from './util.js';
@@ -55,4 +55,4 @@ export const Ollama = class extends BaseAI {
       yield Promise.resolve(chunk);
     }
   }
-}
+};

@@ -1,16 +1,13 @@
 import { logger } from '../log/logger.js';
 import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
-import {
-  stepDescriptions,
-  classMap,
-  BaseStep,
-} from '../step/index.js';
+import { stepDescriptions, classMap, BaseStep } from '../step/index.js';
 import { singleStep, combined, prePlan, describe, guided } from './prompts.js';
 import { isPlainObject } from '../util.js';
 
 const stepLibrary = stepDescriptions
-  .filter(v => !v.hideFromAI)
-  .map(v => JSON.stringify(v, null, 2)).join('\n\n');
+  .filter((v) => !v.hideFromAI)
+  .map((v) => JSON.stringify(v, null, 2))
+  .join('\n\n');
 
 export const Planner = class {
   constructor(options) {
@@ -55,29 +52,27 @@ export const Planner = class {
       } else {
         return JSON.stringify(input);
       }
-    }
+    };
 
     let allSteps = '';
     for (let i = 0; i < stepsInput.length; i++) {
-      allSteps += `${i + 1}) ${stringify(stepsInput[i])}\n`
+      allSteps += `${i + 1}) ${stringify(stepsInput[i])}\n`;
     }
 
     for (const input of stepsInput) {
       if (input instanceof BaseStep) {
         logger.debug(`Planner pushing ${input} into steps`);
         objs.push(input);
-
       } else if (isPlainObject(input) && input.name) {
         logger.debug(`Planner parsing JSON input ${JSON.stringify(input)} into steps`);
         objs.push(this.fromJson(input));
-
       } else {
         const str = stringify(input);
         const context = {
           stepLibrary,
           allSteps,
           step: str,
-        }
+        };
         if (this.user) {
           context.user = userPrompt(this.user);
         } else {
@@ -100,7 +95,7 @@ export const Planner = class {
       stepLibrary,
       prompt: scrapePrompt,
       url: '',
-      html: ''
+      html: '',
     };
     if (this.user) {
       context.user = userPrompt(this.user);
@@ -112,7 +107,7 @@ export const Planner = class {
     const answer = await this.ai.ask(prompt, { format: 'json' });
     const stepsJson = answer.partial;
 
-    return { steps: stepsJson.map(x => this.fromJson(x)) };
+    return { steps: stepsJson.map((x) => this.fromJson(x)) };
   }
 
   fromJson(json) {
@@ -125,13 +120,13 @@ export const Planner = class {
       if (!isNaN(parsed)) {
         json.args = { limit: parsed };
       }
-
     } else if (json.name == 'const') {
       let arr = [];
       let items;
       if (json.args.items) {
         items = json.args.items;
-      } if (Array.isArray(json.args)) {
+      }
+      if (Array.isArray(json.args)) {
         arr = json.args;
       } else {
         arr = [json.args];
@@ -165,7 +160,7 @@ export const Planner = class {
       stepLibrary,
       prompt: scrapePrompt,
       url: (args.url || '').substr(0, 1000),
-      html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000))
+      html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000)),
     };
     if (this.user) {
       prePlanContext.user = userPrompt(this.user);
@@ -184,9 +179,14 @@ export const Planner = class {
       intent: prePlanAnswer.intentAnalysis,
       itemDescription: prePlanAnswer.itemDescription,
       detailFields: '- ' + prePlanAnswer.detailFields.join('\n - '),
-      shouldCrawl: (
-        prePlanAnswer.scrapeType == 'multiPage' ? 'This scrape should crawl to find more URLs' : 'This scrape should NOT have a crawl step'),
-      itemsPerPage: (prePlanAnswer.perPage == 'multiple' ? 'You are looking for MULTIPLE items in each extraction' : 'You are looking for a SINGLE item per page in extraction'),
+      shouldCrawl:
+        prePlanAnswer.scrapeType == 'multiPage'
+          ? 'This scrape should crawl to find more URLs'
+          : 'This scrape should NOT have a crawl step',
+      itemsPerPage:
+        prePlanAnswer.perPage == 'multiple'
+          ? 'You are looking for MULTIPLE items in each extraction'
+          : 'You are looking for a SINGLE item per page in extraction',
       url: (args.url || '').substr(0, 1000),
     };
     const guidedPrompt = guided.render(guidedContext);
@@ -194,7 +194,7 @@ export const Planner = class {
 
     logger.debug(`Guided plan answer: ${JSON.stringify(guidedAnswer, null, 2)}`);
 
-    const steps = guidedAnswer.map(x => this.fromJson(x));
+    const steps = guidedAnswer.map((x) => this.fromJson(x));
 
     // Make sure URL is unchanged
     if (steps[0].name() == 'const') {
@@ -204,9 +204,9 @@ export const Planner = class {
     return {
       steps,
       itemDescription: prePlanAnswer.itemDescription,
-    }
+    };
   }
-}
+};
 
 const userPrompt = (user) => `The user executing this prompt is below.
 - For export steps, take into account the users available platforms and folders on those platforms

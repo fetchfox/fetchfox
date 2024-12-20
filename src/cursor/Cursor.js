@@ -9,22 +9,26 @@ export const Cursor = class {
     this.full = [];
     this.items = [];
     this.deferCb = [];
-    steps.map((step) => this.full.push({
-      items: [],
-      step: step.dump(),
-    }));
+    steps.map((step) =>
+      this.full.push({
+        items: [],
+        step: step.dump(),
+      }),
+    );
 
     this._itemMap = {};
     this._nextId = 1;
   }
 
   out(markDone) {
-    const out = JSON.parse(JSON.stringify({
-      done: this.done,
-      items: this.items.filter(it => it._meta?.status != 'loading'),
-      full: this.full,
-      context: this.ctx.dump(),
-    }));
+    const out = JSON.parse(
+      JSON.stringify({
+        done: this.done,
+        items: this.items.filter((it) => it._meta?.status != 'loading'),
+        full: this.full,
+        context: this.ctx.dump(),
+      }),
+    );
 
     if (markDone) {
       for (const step of out.full) {
@@ -51,7 +55,6 @@ export const Cursor = class {
   }
 
   publish(id, item, stepIndex, done) {
-
     if (id) {
       // Got id, update
       if (!this._itemMap[id]) {
@@ -60,7 +63,6 @@ export const Cursor = class {
       for (const key of Object.keys(item)) {
         this._itemMap[id][key] = item[key];
       }
-
     } else {
       // No id, create
       let copy;
@@ -84,9 +86,7 @@ export const Cursor = class {
       this.items = this.full[stepIndex].items;
     }
 
-    const shouldPublish = (
-      (isLast && item._meta?.status == 'done') ||
-      this.ctx.publishAllSteps);
+    const shouldPublish = (isLast && item._meta?.status == 'done') || this.ctx.publishAllSteps;
 
     if (this.cb && shouldPublish) {
       this.cb({
@@ -104,11 +104,14 @@ export const Cursor = class {
     this.full[stepIndex].error = message;
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
-    return this.cb && this.cb({
-      ...this.out(),
-      stepIndex,
-      error: { index: stepIndex, message },
-    });
+    return (
+      this.cb &&
+      this.cb({
+        ...this.out(),
+        stepIndex,
+        error: { index: stepIndex, message },
+      })
+    );
   }
 
   finish(stepIndex) {
@@ -138,4 +141,4 @@ export const Cursor = class {
       cb();
     }
   }
-}
+};

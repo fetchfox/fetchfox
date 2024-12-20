@@ -1,8 +1,7 @@
 import assert from 'assert';
 import { Store } from '../../src/server/Store.js';
 
-describe('Store', function() {
-
+describe('Store', function () {
   it('should debounce @run', async () => {
     const data = {};
     const delayKv = {
@@ -14,7 +13,7 @@ describe('Store', function() {
         await new Promise((ok) => setTimeout(ok, Math.random() * 50));
         data[id] = val;
       },
-    }
+    };
 
     const output = await new Promise(async (ok) => {
       const store = new Store(delayKv);
@@ -28,5 +27,4 @@ describe('Store', function() {
 
     assert.equal(output.abc, 9);
   });
-
 });

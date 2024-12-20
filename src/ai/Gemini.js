@@ -43,4 +43,4 @@ export const Gemini = class extends BaseAI {
       yield Promise.resolve(chunk);
     }
   }
-}
+};

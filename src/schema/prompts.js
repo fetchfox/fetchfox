@@ -26,4 +26,5 @@ The REAL user desired schema is:
 
 The REAL inputs to reformat is:
 {{items}}
-`);
+`,
+);
