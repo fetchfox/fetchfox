@@ -2,11 +2,12 @@ import { logger } from '../log/logger.js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-export const presignS3 = async ({ bucket, key, contentType, acl }) => {
+export const presignS3 = async ({ bucket, key, contentType, acl, region }) => {
   logger.debug(`Generating presigned URL`);
   const s3 = new S3Client();
   const command = new PutObjectCommand({
     Bucket: bucket,
+    Region: region,
     Key: key,
     ContentType: contentType,
     ACL: acl,
