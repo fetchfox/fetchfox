@@ -40,12 +40,11 @@ export const Document = class {
     return data;
   }
 
-  async uploadHtml(presignedUrl, signal) {
+  async uploadHtml(presignedUrl) {
     await fetch(presignedUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'text/html' },
       body: this.html,
-      signal,
     });
     this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
     logger.debug(`Uploaded HTML to ${this.htmlUrl}`);
