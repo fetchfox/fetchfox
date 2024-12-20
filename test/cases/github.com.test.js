@@ -10,7 +10,7 @@ describe('github.com', function () {
 
   it('should do basic scrape @run', async () => {
     let countPartials = 0;
-    const out = await fox
+    const workflow = fox
       .config({
         cache: testCache(),
         fetcher: ['playwright', { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 }],
@@ -18,6 +18,7 @@ describe('github.com', function () {
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+        maxPages: 5,
       })
       .extract({
         questions: {
@@ -28,11 +29,12 @@ describe('github.com', function () {
         },
         single: true,
       })
-      .limit(5)
-      .run(null, (partial) => {
-        const { item, results } = partial;
-        countPartials++;
-      });
+      .limit(5);
+
+    const out = await workflow.run(null, (partial) => {
+      const { item, results } = partial;
+      countPartials++;
+    });
 
     // Sanity checks
     assert.equal(countPartials, 5);
@@ -48,6 +50,7 @@ describe('github.com', function () {
     }
 
     assert.ok(locTotal >= 10, 'loc total');
+    // workflow.stop();
   });
 
   it('should do complex scrape @disabled', async () => {
