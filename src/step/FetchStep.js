@@ -18,7 +18,7 @@ export const FetchStep = class extends BaseStep {
 
   async process({ cursor, item, index }, cb) {
     logger.info(`Fetch step for ${item}`);
-    const options = { multiple: true, priority: index };
+    const options = { multiple: true, priority: index, signal: cursor.ctx.signal };
 
     if (this.waitForText) options.waitForText = this.waitForText;
     if (this.maxPages) options.maxPages = this.maxPages;

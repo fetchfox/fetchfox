@@ -38,7 +38,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let count = 0;
     for (const prompt of prompts) {
       logger.debug(`${this} Streaming prompt ${++count} of ${prompts.length}`);
-      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+      const stream = this.ai.stream(prompt, { format: 'jsonl', signal: options.signal });
       try {
         for await (const { delta } of stream) {
           if (delta.itemCount) continue;

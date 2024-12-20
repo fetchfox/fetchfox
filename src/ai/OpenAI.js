@@ -93,7 +93,9 @@ export const OpenAI = class extends BaseAI {
 
       args.response_format = zodResponseFormat(toZod(options.schema), 'item');
     }
-    const completion = await openai.chat.completions.create(args);
+    const completion = await openai.chat.completions.create(args, {
+      signal: options.signal,
+    });
 
     if (canStream) {
       for await (const chunk of completion) {

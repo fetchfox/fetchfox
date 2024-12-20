@@ -99,13 +99,15 @@ export const BaseFetcher = class {
           logger.info(`Queue is starting fetch of: ${url}`);
           return this._fetch(url, options);
         },
-        { priority },
+        { priority, signal: options.signal },
       );
       logger.debug(`Fetch queue has ${this.q.size} requests`);
 
       this.usage.completed++;
 
       for await (const doc of p) {
+        if (options.signal?.aborted) break;
+
         logger.debug(`Should we filter for CSS? ${options?.css}`);
         if (options?.css) {
           doc.parseHtml(options.css);
@@ -123,6 +125,7 @@ export const BaseFetcher = class {
           const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
           const key = keyTemplate.replaceAll('{id}', id).replaceAll('{url}', cleanUrl);
 
+          // this doesn't support AbortSignal
           const presignedUrl = await presignS3({
             bucket,
             key,
@@ -131,7 +134,7 @@ export const BaseFetcher = class {
           });
 
           try {
-            await doc.uploadHtml(presignedUrl);
+            await doc.uploadHtml(presignedUrl, options.signal);
           } catch (e) {
             logger.error(`Failed to upload ${key}: ${e}`);
           }

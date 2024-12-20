@@ -32,7 +32,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
-  async launch() {
+  async launch(signal) {
     logger.debug(`Playwright launching...`);
 
     let p;
@@ -40,10 +40,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`Playwright using CDP endpoint ${this.cdp}`);
 
       for (let i = 0; i < 3; i++) {
+        if (signal?.aborted) break;
+
         try {
+          // doesn't support abortsignal
           p = chromium.connectOverCDP(this.cdp);
           break;
         } catch (e) {
+          if (signal?.aborted) break;
+
           logger.warn(`Could not connect to CDP: ${e}`);
           await new Promise((ok) => setTimeout(ok, 5 * 1000));
         }
@@ -66,11 +71,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
     }
 
-    const browser = await this.launch();
+    const browser = await this.launch(options.signal);
 
     logger.debug(`${this} got browser`);
-
     const page = await browser.newPage();
+
+    if (options.signal?.aborted) return;
+
     try {
       const gen = this.paginate(url, page, options);
       for await (const doc of gen) {
@@ -137,6 +144,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *paginate(url, page, options) {
+    if (options.signal) {
+      options.signal.addEventListener('abort', async () => {
+        await page.close();
+      });
+    }
+
     // Initial load
     try {
       await page.goto(url);
@@ -149,6 +162,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
       return;
     }
+
+    if (options.signal?.aborted) return;
 
     const iterations = options?.maxPages || 0;
 
@@ -215,6 +230,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       const docs = [];
       let fnIndex = 0;
       for (let i = 1; i < iterations; i++) {
+        if (options.signal?.aborted) return;
+
         const fn = fns[fnIndex];
         logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
         try {
@@ -246,6 +263,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     yield Promise.resolve(doc);
 
     for await (const val of channel.receive()) {
+      if (options.signal?.aborted) break;
       if (val.end) break;
       yield Promise.resolve(val.doc);
     }
