@@ -134,7 +134,7 @@ export const BaseFetcher = class {
           });
 
           try {
-            await doc.uploadHtml(presignedUrl, options.signal);
+            await doc.uploadHtml(presignedUrl);
           } catch (e) {
             logger.error(`Failed to upload ${key}: ${e}`);
           }
@@ -195,9 +195,5 @@ export const BaseFetcher = class {
       `Set fetch cache for ${url} to "${JSON.stringify(val).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`,
     );
     return this.cache.set(key, val, 'fetch');
-  }
-
-  async stop() {
-    // Should instantly stop the fetching
   }
 };

@@ -269,8 +269,4 @@ export const BaseAI = class {
       };
     }
   }
-
-  async stop() {
-    // Should instantly stop the streaming
-  }
 };

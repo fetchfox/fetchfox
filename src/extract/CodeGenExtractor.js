@@ -1,11 +1,13 @@
-import * as nodeHtmlParser from 'node-html-parser';
-import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
-import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
-import { createBlocker } from '../util.js';
+import CryptoJS from 'crypto-js';
+import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
+import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
+import { iterative, findMultiDescription, codeGenMulti, codeGenFeedback, codeGenIterate } from './prompts.js';
 import { getExtractor } from './index.js';
-import { codeGenFeedback, codeGenIterate, codeGenMulti, findMultiDescription } from './prompts.js';
+import { getAI } from '../ai/index.js';
+import * as nodeHtmlParser from 'node-html-parser';
+import { createBlocker } from '../util.js';
 
 export const CodeGenExtractor = class extends BaseExtractor {
   constructor(options) {

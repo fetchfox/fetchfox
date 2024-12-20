@@ -253,8 +253,4 @@ export const BaseExtractor = class {
       throw e;
     }
   }
-
-  async stop() {
-    // Should instantly stop the extraction
-  }
 };

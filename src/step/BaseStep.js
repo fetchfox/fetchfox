@@ -256,8 +256,4 @@ export const BaseStep = class {
 
     return this.results;
   }
-
-  async stop() {
-    // Should instantly stop the step
-  }
 };
