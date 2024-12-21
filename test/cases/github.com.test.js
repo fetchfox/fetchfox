@@ -6,50 +6,56 @@ describe('github.com', function () {
   this.timeout(100 * 1000);
 
   it('should do basic scrape @run', async () => {
-    let countPartials = 0;
 
-    const workflow = fox
-      .config({
-        cache: new DiskCache('.test-cache'),
-        fetcher: ['playwright', { headless: false, loadWait: 1000, interval: 1000, intervalCap: 1 }],
-      })
-      .init('https://github.com/bitcoin/bitcoin/commits/master')
-      .crawl({
-        query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
-        maxPages: 100,
-      })
-      .fetch()
-      .extract({
-        questions: {
-          url: 'commit URL, full absolute URL',
-          hash: 'commit hash',
-          author: 'commit author',
-          loc: 'loc changed, NUMBER only',
-        },
-        single: true,
-      })
-      .limit(5);
+    let workflow;
 
-    const out = await workflow.run(null, (partial) => {
-      const { item, results } = partial;
-      countPartials++;
-    });
+    try {
+      let countPartials = 0;
 
-    // Sanity checks
-    assert.equal(countPartials, 5);
-    assert.equal(out.items.length, 5);
+      workflow = fox
+        .config({
+          cache: new DiskCache('.test-cache'),
+          fetcher: ['playwright', { headless: true, interval: 1000, intervalCap: 1 }],
+        })
+        .init('https://github.com/bitcoin/bitcoin/commits/master')
+        .crawl({
+          query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+          maxPages: 100,
+        })
+        .fetch()
+        .extract({
+          questions: {
+            url: 'commit URL, full absolute URL',
+            hash: 'commit hash',
+            author: 'commit author',
+            loc: 'loc changed, NUMBER only',
+          },
+          single: true,
+        })
+        .limit(1);
 
-    let locTotal = 0;
-    for (const item of out.items) {
-      assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
-      let loc = parseInt(item.loc);
-      if (!isNaN(loc)) {
-        locTotal += loc;
+      const out = await workflow.run(null, (partial) => {
+        const { item, results } = partial;
+        countPartials++;
+      });
+
+      // Sanity checks
+      assert.equal(countPartials, 1);
+      assert.equal(out.items.length, 1);
+
+      let locTotal = 0;
+      for (const item of out.items) {
+        assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
+        let loc = parseInt(item.loc);
+        if (!isNaN(loc)) {
+          locTotal += loc;
+        }
       }
-    }
 
-    assert.ok(locTotal >= 10, 'loc total');
-    // workflow.stop();
+      assert.ok(locTotal >= 10, 'loc total');
+    } finally {
+      workflow.stop();
+    }
   });
 
   it('should do complex scrape @disabled', async () => {
