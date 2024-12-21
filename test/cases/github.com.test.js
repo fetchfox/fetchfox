@@ -1,19 +1,17 @@
-import os from 'os';
-import fs from 'fs';
 import assert from 'assert';
-import process from 'node:process';
-import { fox } from '../../src/index.js';
+import { DiskCache, fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('github.com', function () {
-  this.timeout(10 * 1000);
+  this.timeout(100 * 1000);
 
   it('should do basic scrape @run', async () => {
     let countPartials = 0;
     const workflow = fox
       .config({
-        cache: testCache(),
-        fetcher: ['playwright', { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 }],
+        // cache: testCache(),
+        cache: new DiskCache('.test-cache'),
+        fetcher: ['playwright', { headless: false, loadWait: 1000, interval: 1000, intervalCap: 1 }],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({

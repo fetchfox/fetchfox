@@ -1,12 +1,10 @@
-import fetch from 'node-fetch';
-import playwright from 'playwright';
 import { chromium } from 'playwright-extra';
-import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
+import { logger } from '../log/logger.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
+import { createChannel } from '../util.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { analyzePagination } from './prompts.js';
-import { createChannel } from '../util.js';
 
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
@@ -73,12 +71,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     const browser = await this.launch(options.signal);
 
-    logger.debug(`${this} got browser`);
-    const page = await browser.newPage();
-
-    if (options.signal?.aborted) return;
-
     try {
+      logger.debug(`${this} got browser`);
+      const page = await browser.newPage();
+
+      if (options.signal?.aborted) return;
+
       const gen = this.paginate(url, page, options);
       for await (const doc of gen) {
         yield Promise.resolve(doc);
