@@ -75,6 +75,8 @@ export const Template = class {
     const countFn = async (str) => ai.countTokens(str);
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
+    logger.debug(`${this} Memory=${this.bytesPerTokenMemory.length} target=${this.memorySize}`);
+
     if (
       this.bytesPerTokenMemory.length >= this.memorySize &&
       Math.random() > this.memorySampleRate
