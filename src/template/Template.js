@@ -8,7 +8,10 @@ export const Template = class {
     this.base = base;
     this.args = args;
 
-    // * Optimization for renderCapped:
+    // Reduce the bytes used by a percent as a safety buffer
+    this.safetyMarginPercent = 0.8;
+
+    // Optimization for renderCapped:
     // After counting tokens `memorySize` times, use the average
     // tokens per byte with a safety buffer, and use that. This
     // reduces expensive calls to count the tokens in a string,
@@ -18,9 +21,6 @@ export const Template = class {
     // Keep track of latest token counts per byte
     this.memorySize = 4;
     this.bytesPerTokenMemory = [];
-
-    // Reduce the bytes used by a percent as a safety buffer
-    this.safetyMarginPercent = 0.8;
 
     // How often to sample after there is enough memory
     this.memorySampleRate = 0.05;
@@ -71,9 +71,9 @@ export const Template = class {
   }
 
   async renderCapped(context, flexField, ai) {
-    const maxTokens = ai.maxTokens || 128000;
+    const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
     const countFn = async (str) => ai.countTokens(str);
-    const accuracyBytes = 16000;
+    const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
     timer.push('Template.renderCapped');
 
@@ -95,9 +95,10 @@ export const Template = class {
       prompt = render(guess);
       tokens = await countFn(prompt);
 
-      if (tokens < maxTokens &&
-        (guess == len || len - guess < accuracyBytes))
-      {
+      const diff = maxTokens - tokens;
+      logger.debug(`${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`)
+
+      if (tokens < maxTokens && (guess == len || diff < accuracyTokens)) {
         lowerBound = guess;
         break;
       }
