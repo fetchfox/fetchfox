@@ -9,7 +9,7 @@ export const Template = class {
     this.args = args;
 
     // Reduce the bytes used by a percent as a safety buffer
-    this.safetyMarginPercent = 0.8;
+    this.safetyMarginPercent = 0.6;
 
     // Optimization for renderCapped:
     // After counting tokens `memorySize` times, use the average
@@ -19,11 +19,11 @@ export const Template = class {
     // per byte for LLM's.
 
     // Keep track of latest token counts per byte
-    this.memorySize = 4;
+    this.memorySize = 16;
     this.bytesPerTokenMemory = [];
 
     // How often to sample after there is enough memory
-    this.memorySampleRate = 0.05;
+    this.memorySampleRate = 0.1;
   }
 
   toString() {
