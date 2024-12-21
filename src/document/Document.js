@@ -41,7 +41,7 @@ export const Document = class {
   }
 
   async uploadHtml(presignedUrl) {
-    await fetch(presignedUrl, {
+    await fetchRetry(presignedUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'text/html' },
       body: this.html,
