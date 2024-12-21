@@ -3,11 +3,10 @@ import { logger } from '../log/logger.js';
 import { timer } from '../log/timer.js';
 
 export const Template = class {
-  constructor(args, base, cache) {
+  constructor(args, base) {
     this.validate(args, base);
     this.base = base;
     this.args = args;
-    this.cache = cache;
 
     // * Optimization for renderCapped:
     // After counting tokens `memorySize` times, use the average
@@ -55,22 +54,13 @@ export const Template = class {
     return prompt;
   }
 
-  cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
-      .toString(CryptoJS.enc.Hex)
-      .substr(0, 16);
-    const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
-    return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`;
-  }
-
-  async renderMulti(context, flexField, ai, cache) {
+  async renderMulti(context, flexField, ai) {
     const copy = { ...context };
     const prompts = [];
     const offset = 0;
     while (true) {
       const { prompt, bytesUsed, done } = await this.renderCapped(
-        copy, flexField, ai, cache);
+        copy, flexField, ai);
       prompts.push(prompt);
       if (done) {
         break;
@@ -80,40 +70,10 @@ export const Template = class {
     return prompts;
   }
 
-  async renderCapped(context, flexField, ai, cache) {
+  async renderCapped(context, flexField, ai) {
     const maxTokens = ai.maxTokens || 128000;
     const countFn = async (str) => ai.countTokens(str);
     const accuracyBytes = 16000;
-
-    let key;
-    if (cache) {
-      const hash = CryptoJS
-        .SHA256(JSON.stringify({
-          context,
-          accuracyBytes,
-          flexField,
-          maxTokens,
-          base: this.base,
-        }))
-        .toString(CryptoJS.enc.Hex)
-        .substr(0, 16);
-      key = `template-renderCapped-${this.constructor.name}-${hash}`;
-      const cached = await cache.get(key);
-      if (cached) {
-        return cached;
-      }
-    }
-
-    if (
-      this.bytesPerTokenMemory.length >= this.memorySize &&
-      Math.random() > this.memorySampleRate
-    )
-    {
-      const prompt = this.renderCappedFromMemory(context, flexField, ai);
-      if (prompt) {
-        return prompt;
-      }
-    }
 
     timer.push('Template.renderCapped');
 
@@ -165,11 +125,7 @@ export const Template = class {
       this.bytesPerTokenMemory.shift();
     }
 
-    const result = { prompt, bytesUsed, done: bytesUsed == len };
-    if (cache) {
-      cache.set(key, result);
-    }
-    return result;
+    return { prompt, bytesUsed, done: bytesUsed == len };
   }
 
   async renderCappedFromMemory(context, flexField, ai) {

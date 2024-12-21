@@ -195,7 +195,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       code,
       questions: JSON.stringify(questions, null, 2),
     };
-    const { prompt } = await codeGenFeedback.renderCapped(context, 'htmls', this.ai, this.cache);
+    const { prompt } = await codeGenFeedback.renderCapped(context, 'htmls', this.ai);
 
     logger.debug(`Asking for feedback using ${this.ai}`);
     const start = (new Date()).getTime();
@@ -217,7 +217,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
       feedback: JSON.stringify(feedback, null, 2),
     };
-    const { prompt } = await codeGenIterate.renderCapped(context, 'htmls', this.ai, this.cache);
+    const { prompt } = await codeGenIterate.renderCapped(context, 'htmls', this.ai);
 
     logger.debug(`Iterating on code using ${this.ai}`);
     const start = (new Date()).getTime();
@@ -252,7 +252,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       sample: JSON.stringify(sample, null, 2),
       questions: JSON.stringify(questions, null, 2),
     };
-    const { prompt } = await findMultiDescription.renderCapped(context, 'text', this.ai, this.cache);
+    const { prompt } = await findMultiDescription.renderCapped(context, 'text', this.ai);
     const answer = await this.ai.ask(prompt, { format: 'json' });
     return answer.partial.itemDescription;
   }
@@ -266,7 +266,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
       htmls: htmlsPrompt,
       samples: samplesPrompt,
     };
-    const { prompt } = await codeGenMulti.renderCapped(context, 'htmls', this.ai, this.cache);
+    const { prompt } = await codeGenMulti.renderCapped(context, 'htmls', this.ai);
 
     logger.info(`Writing code with ${this.ai}`);
     const start = (new Date()).getTime();
