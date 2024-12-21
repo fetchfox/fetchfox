@@ -11,8 +11,10 @@ export const OpenAI = class extends BaseAI {
   static defaultModel = 'gpt-4o-mini';
 
   async countTokens(str) {
-    const enc = encoding_for_model(this.model);
-    return enc.encode(str).length;
+    return str.length / 2;
+
+    // const enc = encoding_for_model(this.model);
+    // return enc.encode(str).length;
   }
 
   normalizeChunk(chunk) {
