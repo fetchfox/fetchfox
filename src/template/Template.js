@@ -75,6 +75,13 @@ export const Template = class {
     const countFn = async (str) => ai.countTokens(str);
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
+    if (
+      this.bytesPerTokenMemory.length >= this.memorySize &&
+      Math.random() > this.memorySampleRate
+    ) {
+      return renderCappedFromMemory(context, flexField, ai);
+    }
+
     timer.push('Template.renderCapped');
 
     const len = context[flexField].length;
