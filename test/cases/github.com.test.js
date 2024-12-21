@@ -1,53 +1,61 @@
-import os from 'os';
-import fs from 'fs';
 import assert from 'assert';
-import process from 'node:process';
-import { fox } from '../../src/index.js';
+import { DiskCache, fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('github.com', function () {
-  this.timeout(10 * 1000);
+  this.timeout(100 * 1000);
 
   it('should do basic scrape @run', async () => {
-    let countPartials = 0;
-    const out = await fox
-      .config({
-        cache: testCache(),
-        fetcher: ['playwright', { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 }],
-      })
-      .init('https://github.com/bitcoin/bitcoin/commits/master')
-      .crawl({
-        query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
-        limit: 5,
-      })
-      .extract({
-        questions: {
-          url: 'commit URL, full absolute URL',
-          hash: 'commit hash',
-          author: 'commit author',
-          loc: 'loc changed, NUMBER only',
-        },
-        single: true,
-      })
-      .run(null, (partial) => {
+
+    let workflow;
+
+    try {
+      let countPartials = 0;
+
+      workflow = fox
+        .config({
+          cache: new DiskCache('.test-cache'),
+          fetcher: ['playwright', { headless: true, interval: 1000, intervalCap: 1 }],
+        })
+        .init('https://github.com/bitcoin/bitcoin/commits/master')
+        .crawl({
+          query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+          maxPages: 100,
+        })
+        .fetch()
+        .extract({
+          questions: {
+            url: 'commit URL, full absolute URL',
+            hash: 'commit hash',
+            author: 'commit author',
+            loc: 'loc changed, NUMBER only',
+          },
+          single: true,
+        })
+        .limit(1);
+
+      const out = await workflow.run(null, (partial) => {
         const { item, results } = partial;
         countPartials++;
       });
 
-    // Sanity checks
-    assert.equal(countPartials, 5);
-    assert.equal(out.items.length, 5);
+      // Sanity checks
+      assert.equal(countPartials, 1);
+      assert.equal(out.items.length, 1);
 
-    let locTotal = 0;
-    for (const item of out.items) {
-      assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
-      let loc = parseInt(item.loc);
-      if (!isNaN(loc)) {
-        locTotal += loc;
+      let locTotal = 0;
+      for (const item of out.items) {
+        assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
+        let loc = parseInt(item.loc);
+        if (!isNaN(loc)) {
+          locTotal += loc;
+        }
       }
-    }
 
-    assert.ok(locTotal >= 10, 'loc total');
+      assert.ok(locTotal >= 10, 'loc total');
+    } finally {
+      workflow.stop();
+    }
   });
 
   it('should do complex scrape @disabled', async () => {

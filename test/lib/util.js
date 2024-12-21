@@ -1,8 +1,12 @@
 import { S3Cache } from '../../src/cache/S3Cache.js';
 
 export const testCache = () => {
+  if (!process.env.S3_CACHE_BUCKET) {
+    return null;
+  }
+
   const params = {
-    bucket: process.env.S3_CACHE_BUCKET || 'ffcloud',
+    bucket: process.env.S3_CACHE_BUCKET,
     prefix: 'test-cache/',
     acl: 'public-read',
     ttls: { base: 10 * 365 * 24 * 3600 },
@@ -15,7 +19,7 @@ export const testCacheConfig = () => {
   return [
     's3',
     {
-      bucket: process.env.S3_CACHE_BUCKET || 'ffcloud',
+      bucket: process.env.S3_CACHE_BUCKET,
       prefix: 'test-cache/',
       acl: 'public-read',
       ttls: { base: 10 * 365 * 24 * 3600 },

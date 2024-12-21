@@ -51,7 +51,7 @@ export const Crawler = class extends BaseCrawler {
             toLink[link.id] = link;
           }
 
-          const stream = this.ai.stream(prompt, { format: 'jsonl' });
+          const stream = this.ai.stream(prompt, { format: 'jsonl', signal: options.signal });
           for await (const { delta, usage } of stream) {
             if (!toLink[delta.id]) {
               logger.warn(`Could not find link with id ${delta.id}`);

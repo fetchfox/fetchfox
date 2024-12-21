@@ -6,8 +6,9 @@ import { filter } from './prompts.js';
 
 export const Filter = class {
   constructor(options) {
-    const { ai, cache } = options || {};
+    const { ai, cache, signal } = options || {};
     this.ai = getAI(ai, { cache });
+    this.signal = signal;
   }
 
   async *run(items, query) {
@@ -29,7 +30,7 @@ export const Filter = class {
         items: JSON.stringify(chunk, null, 2),
       });
 
-      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+      const stream = this.ai.stream(prompt, { format: 'jsonl', signal: this.signal });
       for await (const { delta, usage } of stream) {
         const matchId = delta._ffid;
         for (let i = 0; i < copy.length; i++) {

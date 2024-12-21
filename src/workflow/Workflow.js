@@ -9,7 +9,8 @@ import { classMap, stepNames, BaseStep } from '../step/index.js';
 export const Workflow = class extends BaseWorkflow {
   constructor() {
     super();
-    this.ctx = new Context({});
+    this.abortController = new AbortController();
+    this.ctx = new Context({ signal: this.abortController.signal });
   }
 
   config(args) {
@@ -87,6 +88,15 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   async run(args, cb) {
+    return await Promise.race([
+      this._run(args, cb),
+      new Promise((_, reject) => {
+        this.abortController.signal.addEventListener('abort', reject);
+      }),
+    ]);
+  }
+
+  async _run(args, cb) {
     if (args) this.parseRunArgs(args);
     await this.plan();
 
@@ -115,6 +125,10 @@ export const Workflow = class extends BaseWorkflow {
       last.limit = originalLimit;
       this.cursor.finishAll();
     }
+  }
+
+  async stop() {
+    this.abortController.abort();
   }
 };
 

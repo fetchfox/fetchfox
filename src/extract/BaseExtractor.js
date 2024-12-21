@@ -1,10 +1,9 @@
-import { logger } from '../log/logger.js';
-import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
-import { getFetcher } from '../fetch/index.js';
-import { getMinimizer } from '../min/index.js';
-import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
+import { getFetcher } from '../fetch/index.js';
+import { getKV } from '../kv/index.js';
+import { logger } from '../log/logger.js';
+import { getMinimizer } from '../min/index.js';
 import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
@@ -64,6 +63,8 @@ export const BaseExtractor = class {
     }
 
     for await (let doc of this.fetcher.fetch(url, options)) {
+      if (options.signal?.aborted) break;
+
       if (this.minimizer) {
         doc = await this.minimizer.min(doc);
       }
@@ -82,7 +83,12 @@ export const BaseExtractor = class {
     try {
       const docs = [];
       const fetchOptions = options?.fetchOptions || {};
-      const docsOptions = { questions, maxPages: options?.maxPages, ...fetchOptions };
+      const docsOptions = {
+        questions,
+        maxPages: options?.maxPages,
+        signal: options?.signal ?? null,
+        ...fetchOptions,
+      };
 
       const docsChannel = createChannel();
       const resultsChannel = createChannel();

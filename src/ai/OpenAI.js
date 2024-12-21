@@ -50,7 +50,7 @@ export const OpenAI = class extends BaseAI {
       stream_options: { include_usage: true },
     };
 
-    if (options.imageUrl) {
+    if (options?.imageUrl) {
       logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
       const existing = args.messages[0].content;
       args.messages[0].content = [
@@ -68,7 +68,7 @@ export const OpenAI = class extends BaseAI {
       delete args.stream_options;
     }
 
-    if (options.schema) {
+    if (options?.schema) {
       const toZod = (x) => {
         if (Array.isArray(x)) {
           const first = x.length == 0 ? '' : x[0];
@@ -93,7 +93,9 @@ export const OpenAI = class extends BaseAI {
 
       args.response_format = zodResponseFormat(toZod(options.schema), 'item');
     }
-    const completion = await openai.chat.completions.create(args);
+    const completion = await openai.chat.completions.create(args, {
+      signal: options.signal,
+    });
 
     if (canStream) {
       for await (const chunk of completion) {
