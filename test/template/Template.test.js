@@ -25,7 +25,6 @@ describe('Template', function() {
 
     const tokens = await ai.countTokens(prompt);
     assert.ok(tokens < ai.maxTokens);
-
   });
 
 });
