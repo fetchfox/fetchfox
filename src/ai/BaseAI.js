@@ -1,5 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
+import { timer } from '../log/timer.js';
 import { parseAnswer, getModelData, sleep } from './util.js';
 
 export const BaseAI = class {
@@ -70,8 +71,13 @@ export const BaseAI = class {
   }
 
   async countTokens(str) {
-    // Override this in derived classes
-    return str.length / 2.5;
+    timer.push(`${this}.countTokens`);
+    try {
+      // Override this in derived classes
+      return str.length / 2.5;
+    } finally {
+      timer.pop();
+    }
   }
 
   cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {

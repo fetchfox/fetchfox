@@ -1,10 +1,10 @@
 import assert from 'assert';
 import os from 'os';
-import { getFetcher } from '../../src/index.js';
-import { Document } from '../../src/document/Document.js';
-
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getFetcher } from '../../src/index.js';
+import { Document } from '../../src/document/Document.js';
+import { largeHtml } from './largeHtml.js';
 
 describe('Document', function() {
   this.timeout(60 * 1000);
@@ -78,4 +78,14 @@ describe('Document', function() {
     assert.equal(docLoad.links.length, doc.links.length);
   });
 
+  it('should parse', async () => {
+    const doc = new Document();
+    doc.loadData({
+      url: 'https://youtube.com',
+      contentType: 'text/html',
+      html: largeHtml,
+    });
+    doc.parse();
+  });
+  
 });

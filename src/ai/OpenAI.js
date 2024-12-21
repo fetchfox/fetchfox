@@ -5,14 +5,21 @@ import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
 import { get_encoding, encoding_for_model } from 'tiktoken';
+import { timer } from '../log/timer.js';
 
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
 
   async countTokens(str) {
-    const enc = encoding_for_model(this.model);
-    return enc.encode(str).length;
+    timer.push(`${this}.countTokens`);
+    try {
+      // Override this in derived classes
+      const enc = encoding_for_model(this.model);
+      return enc.encode(str).length;
+    } finally {
+      timer.pop();
+    }
   }
 
   normalizeChunk(chunk) {

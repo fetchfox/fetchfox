@@ -1,7 +1,5 @@
 import { logger } from '../log/logger.js';
-import { TextOnlyMinimizer } from './TextOnlyMinimizer.js';
 import { TagRemovingMinimizer } from './TagRemovingMinimizer.js';
-import { ExtractusMinimizer } from './ExtractusMinimizer.js';
 
 export const DefaultMinimizer = TagRemovingMinimizer;
 
@@ -12,12 +10,6 @@ export const getMinimizer = (which, options) => {
   let minimizerClass = {
     tr: TagRemovingMinimizer,
     'tag-removing': TagRemovingMinimizer,
-
-    to: TextOnlyMinimizer,
-    'text-only': TextOnlyMinimizer,
-
-    e: ExtractusMinimizer,
-    extractus: ExtractusMinimizer,
   }[which];
   if (!minimizerClass) {
     logger.error(`Unknown minimizer type: ${which}`);

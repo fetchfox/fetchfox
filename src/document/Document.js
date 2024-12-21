@@ -1,7 +1,9 @@
 import { logger } from '../log/logger.js';
+import { timer } from '../log/timer.js';
 import { URL } from 'whatwg-url';
 import { parse } from 'node-html-parser';
 
+// TODO: refactor Document entirely
 export const Document = class {
   constructor() {}
 
@@ -110,20 +112,28 @@ export const Document = class {
 
     this.parse();
     const took = (new Date()).getTime() - start;
-    logger.info(`Done loading for ${this.url}, took total of ${took/1000} sec`);
+    logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
   }
 
   parse() {
-    const contentType = (this.resp?.headers || {})['content-type'] || 'text/plain';
-    if (contentType.indexOf('text/html') != -1) {
+    timer.push('Document.parse');
+    const contentType = (
+      this.contentType ||
+      (this.resp?.headers || {})['content-type'] ||
+      'text/plain'
+    );
+    if (this.html || contentType == 'text/html') {
       this.parseHtml();
     }
+    timer.pop();
   }
 
   parseHtml(selector) {
+    timer.push('Document.parseHtml');
+
     this.contentType = 'text/html';
 
-    let html = this.body;
+    let html = this.html || this.body;
 
     if (selector) {
       let selected = ''
@@ -138,9 +148,13 @@ export const Document = class {
 
     this.parseTextFromHtml();
     this.parseLinks();
+
+    timer.pop();
   }
 
   parseTextFromHtml() {
+    timer.push('Document.parseTextFromHtml');
+
     this.requireHtml();
 
     const root = parse(this.html);
@@ -164,9 +178,13 @@ export const Document = class {
     };
 
     this.text = getText(root);
+
+    timer.pop();
   }
 
   parseLinks(css) {
+    timer.push('Document.parseLinks');
+
     this.requireHtml();
 
     const links = [];
@@ -204,8 +222,8 @@ export const Document = class {
         try {
           url = new URL(href, this.url);
         } catch (e) {
-          logger.warn(`Skipping invalid link: ${this.url} ${html}`);
-          return;
+          logger.warn(`Skipping invalid link: ${this.url} href=${href} url=${this.url} html=${html.substr(0, 40)}: ${e}`);
+          continue;
         }
 
         const urlStr = url.toString();
@@ -223,6 +241,8 @@ export const Document = class {
     }
 
     this.links = links;
+
+    timer.pop();
   }
 
   requireHtml() {
