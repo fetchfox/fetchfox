@@ -179,8 +179,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         html: minDoc.html,
         domainSpecific,
       };
-      const prompts = await analyzePagination.renderMulti(
-        context, 'html', this.ai, this.cache);
+      const prompts = await analyzePagination.renderMulti(context, 'html', this.ai);
 
       logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
       for (const prompt of prompts) {

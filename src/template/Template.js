@@ -1,12 +1,33 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
+import { timer } from '../log/timer.js';
 
 export const Template = class {
-  constructor(args, base, cache) {
+  constructor(args, base) {
     this.validate(args, base);
     this.base = base;
     this.args = args;
-    this.cache = cache;
+
+    // Reduce the bytes used by a percent as a safety buffer
+    this.safetyMarginPercent = 0.8;
+
+    // Optimization for renderCapped:
+    // After counting tokens `memorySize` times, use the average
+    // tokens per byte with a safety buffer, and use that. This
+    // reduces expensive calls to count the tokens in a string,
+    // and takes advantage of the fairly stable value of tokens
+    // per byte for LLM's.
+
+    // Keep track of latest token counts per byte
+    this.memorySize = 4;
+    this.bytesPerTokenMemory = [];
+
+    // How often to sample after there is enough memory
+    this.memorySampleRate = 0.05;
+  }
+
+  toString() {
+    return '[Template]';
   }
 
   validate(args, base) {
@@ -33,22 +54,13 @@ export const Template = class {
     return prompt;
   }
 
-  cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ prompt, systemPrompt, format, cacheHint, schema }))
-      .toString(CryptoJS.enc.Hex)
-      .substr(0, 16);
-    const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
-    return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`
-  }
-
-  async renderMulti(context, flexField, ai, cache) {
+  async renderMulti(context, flexField, ai) {
     const copy = { ...context };
     const prompts = [];
     const offset = 0;
     while (true) {
       const { prompt, bytesUsed, done } = await this.renderCapped(
-        copy, flexField, ai, cache);
+        copy, flexField, ai);
       prompts.push(prompt);
       if (done) {
         break;
@@ -58,31 +70,12 @@ export const Template = class {
     return prompts;
   }
 
-  async renderCapped(context, flexField, ai, cache) {
-    const maxTokens = ai.maxTokens || 128000;
+  async renderCapped(context, flexField, ai) {
+    const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
     const countFn = async (str) => ai.countTokens(str);
-    const accuracyBytes = 16000;
+    const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
-    let key;
-    if (cache) {
-      const hash = CryptoJS
-        .SHA256(JSON.stringify({
-          context,
-          accuracyBytes,
-          flexField,
-          maxTokens,
-          base: this.base,
-        }))
-        .toString(CryptoJS.enc.Hex)
-        .substr(0, 16);
-      key = `template-renderCapped-${this.constructor.name}-${hash}`;
-      const cached = await cache.get(key);
-      if (cached) {
-        return cached;
-      }
-    }
-
-    const start = (new Date()).getTime();
+    timer.push('Template.renderCapped');
 
     const len = context[flexField].length;
 
@@ -102,9 +95,10 @@ export const Template = class {
       prompt = render(guess);
       tokens = await countFn(prompt);
 
-      if (tokens < maxTokens &&
-        (guess == len || len - guess < accuracyBytes))
-      {
+      const diff = maxTokens - tokens;
+      logger.debug(`${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`)
+
+      if (tokens < maxTokens && (guess == len || diff < accuracyTokens)) {
         lowerBound = guess;
         break;
       }
@@ -122,13 +116,54 @@ export const Template = class {
     prompt = render(bytesUsed);
     const final = await countFn(prompt);
 
-    const took = (new Date()).getTime() - start;
-    logger.debug(`Capped render took ${took} msec, gave ${final} tokens`);
+    const bytesPerToken = bytesUsed / final;
 
-    const result = { prompt, bytesUsed, done: bytesUsed == len };
-    if (cache) {
-      cache.set(key, result);
+    timer.log(`bytes per token=${bytesPerToken.toFixed(2)}`);
+    timer.pop();
+
+    this.bytesPerTokenMemory.push(bytesPerToken);
+    if (this.bytesPerTokenMemory.length > this.memorySize) {
+      this.bytesPerTokenMemory.shift();
     }
-    return result;
+
+    return { prompt, bytesUsed, done: bytesUsed == len };
+  }
+
+  async renderCappedFromMemory(context, flexField, ai) {
+    timer.push('Template.renderCappedFromMemory');
+
+    const maxTokens = ai.maxTokens || 128000;
+
+    const sum = this.bytesPerTokenMemory.reduce((acc, x) => acc + x, 0);
+    const bytesPerTokenAvg = sum / this.bytesPerTokenMemory.length;
+
+    if (!bytesPerTokenAvg) {
+      return;
+    }
+
+    logger.debug(`${this} Rendering from memory with bytes per token=${bytesPerTokenAvg.toFixed(2)}`);
+
+    const render = (size) => {
+      const copy = { ...context };
+      copy[flexField] = context[flexField].substr(0, size);
+      return this.render(copy);
+    }
+
+    const emptyTokens = render(0).length / bytesPerTokenAvg;
+
+    if (emptyTokens > maxTokens) {
+      throw new Error('Prompt without context likely larger than max tokens');
+    }
+
+    const availableTokens = (maxTokens - emptyTokens) * this.safetyMarginPercent;
+    const len = context[flexField].length;
+    const bytes = Math.min(len, availableTokens * bytesPerTokenAvg);
+    const final = render(bytes);
+
+    timer.pop();
+
+    logger.debug(`${this} Rendered from memory, got ${final.length} bytes`);
+
+    return { prompt: final, bytesUsed: bytes, done: bytes == len };
   }
 }

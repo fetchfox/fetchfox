@@ -1,5 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
+import { timer } from '../log/timer.js';
 import { Document } from '../document/Document.js';
 
 export const BaseMinimizer = class {
@@ -50,14 +51,14 @@ export const BaseMinimizer = class {
     if (cached) return cached;
     if (!doc) return;
 
-    const start = (new Date()).getTime() / 1000;
+    timer.push(`${this}.min`);
+
     const before = JSON.stringify([doc.html, doc.text]).length;
-
     const min = await this._min(doc);
-
     const after = JSON.stringify([min.html, min.text]).length;
-    const took = (new Date()).getTime() / 1000 - start;
-    logger.info(`Minimizing took ${took.toFixed(2)} seconds`);
+
+    timer.pop();
+
     logger.info(`Minimized doc from ${(before / 1000).toFixed(1)} kB -> ${(after / 1000).toFixed(1)} kB`);
 
     this.setCache(doc, cacheOptions, min);

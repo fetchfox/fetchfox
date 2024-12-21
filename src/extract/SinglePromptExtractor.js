@@ -30,7 +30,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       : ''),
     };
 
-    let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai, this.cache);
+    let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
 
     const max = 50;
     if (prompts.length > max) {

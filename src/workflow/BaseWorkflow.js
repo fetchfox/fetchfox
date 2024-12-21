@@ -92,11 +92,18 @@ export const BaseWorkflow = class {
       this.run(
         args,
         (r) => {
-          buffer.push(r);
+          if (r.item) {
+            buffer.push(r.item);
+          }
         })
-        .then((out) => { done = true; ok([]) })
+        .then((out) => {
+          done = true;
+          ok(out.items);
+        })
         .catch(err);
     });
+
+    const seen = [];
 
     while(!done) {
       const next = new Promise((ok) => {
@@ -111,12 +118,16 @@ export const BaseWorkflow = class {
       ]);
 
       for (const r of result) {
-        yield Promise.resolve(r);
+        if (seen[r._meta.id]) {
+          continue;
+        }
+        seen[r._meta.id] = true;
+        yield Promise.resolve({ item: r });
       }
 
       if (done) break;
     }
 
-    logger.info(`Streaming done`);
+    logger.info(`${this} Streaming done`);
   }
 }

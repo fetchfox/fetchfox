@@ -61,6 +61,11 @@ export const Cursor = class {
         this._itemMap[id][key] = item[key];
       }
 
+      if (!item._meta) {
+        item._meta = {};
+      }
+      item._meta.id = id;
+
     } else {
       // No id, create
       let copy;
@@ -70,6 +75,12 @@ export const Cursor = class {
         copy = JSON.parse(JSON.stringify(item));
       }
       id = this._nextId++;
+
+      if (!copy._meta) {
+        copy._meta = {};
+      }
+      copy._meta.id = id;
+
       this._itemMap[id] = copy;
       this.full[stepIndex].items.push(copy);
     }
