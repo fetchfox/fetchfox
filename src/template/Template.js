@@ -79,7 +79,7 @@ export const Template = class {
       this.bytesPerTokenMemory.length >= this.memorySize &&
       Math.random() > this.memorySampleRate
     ) {
-      return renderCappedFromMemory(context, flexField, ai);
+      return this.renderCappedFromMemory(context, flexField, ai);
     }
 
     timer.push('Template.renderCapped');
