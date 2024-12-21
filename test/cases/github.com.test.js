@@ -7,17 +7,18 @@ describe('github.com', function () {
 
   it('should do basic scrape @run', async () => {
     let countPartials = 0;
+
     const workflow = fox
       .config({
-        // cache: testCache(),
         cache: new DiskCache('.test-cache'),
         fetcher: ['playwright', { headless: false, loadWait: 1000, interval: 1000, intervalCap: 1 }],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
-        maxPages: 5,
+        maxPages: 100,
       })
+      .fetch()
       .extract({
         questions: {
           url: 'commit URL, full absolute URL',
