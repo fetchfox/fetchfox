@@ -13,10 +13,16 @@ export const OpenAI = class extends BaseAI {
 
   async countTokens(str) {
     timer.push(`${this}.countTokens`);
+
+
     try {
       // Override this in derived classes
-      const enc = encoding_for_model(this.model);
-      return enc.encode(str).length;
+
+      // const enc = encoding_for_model(this.model);
+      // return enc.encode(str).length;
+
+      return str.length / 2;
+
     } finally {
       timer.pop();
     }
