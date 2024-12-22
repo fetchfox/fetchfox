@@ -77,12 +77,14 @@ export const Template = class {
 
     logger.debug(`${this} Memory=${this.bytesPerTokenMemory.length} target=${this.memorySize}`);
 
-    if (
-      this.bytesPerTokenMemory.length >= this.memorySize &&
-      Math.random() > this.memorySampleRate
-    ) {
-      return this.renderCappedFromMemory(context, flexField, ai);
-    }
+    // TODO: re-enable this
+
+    // if (
+    //   this.bytesPerTokenMemory.length >= this.memorySize &&
+    //   Math.random() > this.memorySampleRate
+    // ) {
+    //   return this.renderCappedFromMemory(context, flexField, ai);
+    // }
 
     timer.push('Template.renderCapped');
 
