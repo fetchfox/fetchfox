@@ -11,11 +11,29 @@ describe('Fetch', function() {
     const gen = await fetcher.fetch('https://example.com');
     const doc = (await gen.next()).value;
     const took = (new Date()).getTime() - start;
+
     assert.ok(doc.text.indexOf('Example Domain') != -1);
+    assert.ok(doc.html.indexOf('Example Domain') != -1);
     assert.ok(took < 2000);
   });
 
-  it('should rate limit @run', async () => {
+  it('should abort @run', async () => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const fetcher = getFetcher('fetch', { signal });
+
+    const start = (new Date()).getTime();
+    const gen = await fetcher.fetch('https://example.com');
+    controller.abort();
+    const doc = (await gen.next()).value;
+    const took = (new Date()).getTime() - start;
+
+    assert.ok(!doc);
+    assert.ok(took < 50);
+  });
+
+  it('should rate limit', async () => {
     const unlimitedFetcher = getFetcher(
       'fetch',
       {
