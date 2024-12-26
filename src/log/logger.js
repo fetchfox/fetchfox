@@ -42,6 +42,14 @@ const send = (level, args) => {
   }
 }
 
+export const addCallback(level, cb) {
+  callbacks.push((level_, args) => {
+    if (level_ == level) {
+      cb(level, args);
+    }
+  });
+}
+
 export const logger = {
   trace: (...args) => {
     log.trace(...args);
