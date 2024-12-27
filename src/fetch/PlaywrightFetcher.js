@@ -207,7 +207,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async *paginate(url, page, options) {
     try {
-      const { aborted } = await this._abortable(page.goto(url));
+      const { aborted } = await this._abortable(page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;

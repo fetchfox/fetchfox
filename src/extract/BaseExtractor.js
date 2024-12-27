@@ -153,10 +153,10 @@ export const BaseExtractor = class {
 
                   logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
                   ok();
+
                 } catch(e) {
                   logger.error(`${this} Error in extraction promise: ${e}`);
                   bad(e);
-                } finally {
                 }
               }));
           }

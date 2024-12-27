@@ -99,11 +99,9 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   async run(args, cb) {
-    // Create an abort controller that is available while this
-    // workflow runs
+    // Create an abort controller that can cancel this worklfow,
+    // and listen to the signal in context if one exists.
     this.controller = new AbortController();
-
-
     let ctxSignal;
     let abortListener;
     if (this.ctx.signal) {
@@ -114,7 +112,6 @@ export const Workflow = class extends BaseWorkflow {
       }
       ctxSignal.addEventListener('abort', abortListener);
     }
-
     this.ctx.update({ signal: this.controller.signal });
 
     if (args) this.parseRunArgs(args);

@@ -302,8 +302,6 @@ export const BaseStep = class {
     });
     await finishPromise;
 
-    await this._finish(cursor, index);
-
     onNextDone && next.remove(onNextDone);
     parent.remove(onParentItem);
     parent.remove(onParentDone);
