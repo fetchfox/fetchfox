@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import playwright from 'playwright';
 import { chromium } from 'playwright-extra';
-import { timer } from '../log/timer.js';
+import { Timer } from '../log/timer.js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
@@ -33,8 +33,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
-  async launch() {
+  async launch(options) {
+    const timer = options?.timer || new Timer();
     timer.push('PlaywrightFetcher.launch');
+
     logger.debug(`Playwright launching...`);
 
     let p;
@@ -65,6 +67,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *_fetch(url, options) {
+    const timer = new Timer();
     timer.push('PlaywrightFetcher._fetch');
 
     logger.info(`${this} Fetch ${url} with options ${options || '(none)'}`);
@@ -72,12 +75,22 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
     }
 
-    const browser = await this.launch();
+    const browser = await this.launch({ timer });
     logger.debug(`${this} got browser`);
 
-    const page = await browser.newPage();
+    timer.push('PlaywrightFetcher browser.newPage');
+    let page;
     try {
-      const gen = this.paginate(url, page, options);
+      page = await browser.newPage();
+    } catch(e) {
+      logger.error(`${this} Caught error while opening new page: ${e}`);
+      throw e;
+    } finally {
+      timer.pop();
+    }
+
+    try {
+      const gen = this.paginate(url, page, { ...options, timer });
       for await (const doc of gen) {
         yield Promise.resolve(doc);
       }
@@ -94,19 +107,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _docFromPage(page, options) {
+    const timer = options?.timer || new Timer();
+
     let html;
     let status;
+
+    timer.push('PlaywrightFetcher _docFromPage');
     try {
-      logger.debug(`${this} wait for DOM content with timeout ${this.timeoutWait}`)
-      await page.waitForLoadState('domcontentloaded', { timeout: this.timeoutWait });
-      logger.debug(`${this} loaded page before timeout`);
-
-      if (options?.waitForText) {
-        logger.debug(`Wait for text ${options.waitForText}`);
-        const locator = page.locator(`text=${options.waitForText}`);
-        await locator.waitFor();
-      }
-
       const r = await getHtmlFromSuccess(
         page,
         {
@@ -116,6 +123,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       status = 200;
       html = r.html;
     } catch(e) {
+      if (this.signal?.aborted) {
+        return;
+      }
+
       logger.error(`Playwright could not get from ${page}: ${e}`);
       logger.debug(`Trying to salvage results`);
       html = await getHtmlFromError(page);
@@ -125,6 +136,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
       logger.warn(`Read ${html.length} bytes from failed Playwright request`);
       status = 500;
+    } finally {
+      timer.pop();
     }
 
     const url = page.url();
@@ -140,28 +153,33 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
 
     const doc = new Document();
-    await doc.read(resp, url, options);
+    await doc.read(resp, url, { ...options, timer });
     return doc;
   }
 
   async _abortable(promise) {
-    const resultPromise = new Promise(async (ok) => {
-      const aborted = false;
-      ok({
-        aborted: false,
-        result: await promise,
-      });
+    const resultPromise = new Promise(async (ok, bad) => {
+      let result;
+      try {
+        result = await promise;
+      } catch (e) {
+        if (this.signal.aborted) {
+          ok({ aborted: true });
+          return;
+        }
+
+        logger.error(`${this} Abortable got error: ${e}`);
+        bad(e);
+      }
+
+      ok({ aborted: false, result });
     });
 
     if (!this.signal) {
       return resultPromise;
     }
 
-    const abortListener = () => {
-      logger.debug(`${this} Got abort signal`);
-      ok({ aborted: true });
-    }
-
+    let abortListener;
     const signalPromise = new Promise((ok) => {
       if (this.signal.aborted) {
         logger.debug(`${this} Already aborted`);
@@ -169,6 +187,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
 
+      abortListener = () => {
+        logger.debug(`${this} Got abort signal`);
+        ok({ aborted: true });
+      }
       this.signal.addEventListener('abort', abortListener);
     });
 
@@ -185,7 +207,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async *paginate(url, page, options) {
     try {
-      const { aborted } = await this._abortable(page.goto(url));
+      const { aborted } = await this._abortable(page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -216,7 +238,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
 
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
-      const minDoc = await min.min(doc);
+      const minDoc = await min.min(doc, { timer });
       const fns = [];
 
       const hostname = (new URL(url)).hostname;
@@ -303,7 +325,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     yield Promise.resolve(doc);
 
     for await (const val of channel.receive()) {
-      if (val.end) break;
+      if (val.end) {
+        break;
+      }
       yield Promise.resolve(val.doc);
     }
   }

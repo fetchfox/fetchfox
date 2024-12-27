@@ -99,6 +99,21 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   async run(args, cb) {
+    // Create an abort controller that can cancel this worklfow,
+    // and listen to the signal in context if one exists.
+    this.controller = new AbortController();
+    let ctxSignal;
+    let abortListener;
+    if (this.ctx.signal) {
+      ctxSignal = this.ctx.signal;
+      this.ctx.signal = null;
+      abortListener = () => {
+        this.controller.abort();
+      }
+      ctxSignal.addEventListener('abort', abortListener);
+    }
+    this.ctx.update({ signal: this.controller.signal });
+
     if (args) this.parseRunArgs(args);
     await this.plan();
 
@@ -127,7 +142,22 @@ export const Workflow = class extends BaseWorkflow {
     } finally {
       last.limit = originalLimit;
       this.cursor.finishAll();
+
+      this.abort();
+      if (ctxSignal) {
+        ctxSignal.removeEventListener('abort', abortListener);
+      }
+      this.controller = null;
     }
+  }
+
+  abort() {
+    logger.info(`${this} Aborting`);
+    if (!this.controller) {
+      logger.warn(`${this} Could not abort without a controller`);
+      return;
+    }
+    this.controller.abort();
   }
 }
 

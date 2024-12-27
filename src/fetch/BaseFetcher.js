@@ -4,6 +4,7 @@ import { logger } from '../log/logger.js';
 import { linkChunks, decodeLinks } from '../crawl/util.js';
 import { Document } from '../document/Document.js';
 import { presignS3 } from './util.js';
+import { createChannel } from '../util.js';
 import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
 
@@ -46,7 +47,7 @@ export const BaseFetcher = class {
   }
 
   async *fetch(target, options) {
-    logger.info(`Fetch ${target} with ${this}`);
+    logger.info(`${this} Fetch ${target} with ${this}`);
 
     let url;
 
@@ -65,7 +66,7 @@ export const BaseFetcher = class {
 
     const cached = await this.getCache(url, cacheOptions);
     if (cached) {
-      logger.debug(`Returning cached ${cached}`);
+      logger.debug(`${this} Returning cached ${cached}`);
       this.usage.cached++;
       for (const doc of cached) {
         yield Promise.resolve(doc);
@@ -92,26 +93,46 @@ export const BaseFetcher = class {
         }
       }
 
-      logger.debug(`Adding to fetch queue: ${url}`);
+      const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
+      logger.debug(`${this} Adding to fetch queue: ${url} ${debugStr()}`);
       const priority = options?.priority || 1;
 
+      // Use channel + promise wrapper to convert async generator into a
+      // promise that p-queue can throttle.
+      const channel = createChannel();
       const p = await this.q.add(
         () => {
-          logger.info(`Queue is starting fetch of: ${url}`);
-          return this._fetch(url, options);
+          return new Promise(async (ok) => {
+            logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
+
+            for await (const doc of this._fetch(url, options)) {
+              channel.send({ doc });
+            }
+
+            channel.end();
+
+            ok();
+          });
         },
         { priority });
-      logger.debug(`Fetch queue has ${this.q.size} requests`);
+      logger.debug(`${this} Fetch queue has ${this.q.size} requests ${debugStr()}`);
 
       this.usage.completed++;
 
-      for await (const doc of p) {
-        logger.debug(`Should we filter for CSS? ${options?.css}`);
+      // for await (const doc of p) {
+      for await (const val of channel.receive()) {
+        if (val.end) {
+          break;
+        }
+
+        const doc = val.doc;
+
+        logger.debug(`${this} Should we filter for CSS? ${options?.css}`);
         if (options?.css) {
           doc.parseHtml(options.css);
         }
 
-        logger.debug(`Fetcher s3 config: ${JSON.stringify(this.s3)}`);
+        logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
         if (this.s3) {
           const bucket = this.s3.bucket;
           const region = this.s3.region;
@@ -132,7 +153,7 @@ export const BaseFetcher = class {
           try {
             await doc.uploadHtml(presignedUrl);
           } catch(e) {
-            logger.error(`Failed to upload ${key}: ${e}`);
+            logger.error(`${this} Failed to upload ${key}: ${e}`);
           }
         }
 
@@ -170,7 +191,7 @@ export const BaseFetcher = class {
     const result = await this.cache.get(key);
     const hit = Array.isArray(result) && result.length > 0;
     const outcome = hit ? '(hit)' : '(miss)';
-    logger.debug(`Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
+    logger.debug(`${this} Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
 
     if (hit) {
       const docs = [];
@@ -179,7 +200,7 @@ export const BaseFetcher = class {
         doc.loadData(data);
         docs.push(doc);
       }
-      logger.debug(`Fetch cache loaded ${docs.map(d => ''+d).join(', ')}`);
+      logger.debug(`${this} Fetch cache loaded ${docs.map(d => ''+d).join(', ')}`);
       return docs;
     } else {
       return null;
@@ -189,7 +210,7 @@ export const BaseFetcher = class {
   async setCache(url, options, val) {
     if (!this.cache) return;
     const key = this.cacheKey(url, options);
-    logger.debug(`Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
+    logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
 

@@ -16,15 +16,18 @@ import { logger } from './logger.js';
 // We export a singleton `timer` from this file, which should be good enough
 // for nearly all use cases, but you can also instantiate your own Timer object.
 
+let timerId = 1;
+
 export class Timer {
   constructor() {
     this.scopes = [];
+    this.id = timerId++;
   }
 
   push(name) {
     const scope = this.topScope();
     const depth = scope ? scope.depth + 1 : 0;
-    this.scopes.push(new TimerScope(name, depth));
+    this.scopes.push(new TimerScope(name, depth, this.id));
   }
 
   async *withScopeGen(name, self, fn) {
@@ -60,9 +63,10 @@ export class Timer {
 }
 
 class TimerScope {
-  constructor(name, depth) {
+  constructor(name, depth, id) {
     this.name = name;
     this.depth = depth;
+    this.id = id;
 
     const now = performance.now();
     this.start = now;
@@ -72,7 +76,7 @@ class TimerScope {
   logString(s, level = 'debug') {
     const indentation = '    '.repeat(this.depth);
     const name = this.name ?? '<unnamed>';
-    const output = `${indentation}<${name}> ${s}`;
+    const output = `${indentation}<${this.id.toString().padStart(4, '0')} ${name}> ${s}`;
 
     logger[level](output);
   }

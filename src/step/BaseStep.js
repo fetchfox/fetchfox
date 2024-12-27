@@ -189,7 +189,7 @@ export const BaseStep = class {
           );
 
           p.catch((e) => {
-            logger.error(`${this} Got error while processing ${e}`);
+            logger.error(`${this} Got error while processing: ${e}`);
 
             meta.status = 'error';
             meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
@@ -198,13 +198,19 @@ export const BaseStep = class {
               { _meta: meta },
               index,
               done);
+
+            if (process.env.STRICT_ERRORS) {
+              throw e;
+            } else {
+              logger.warn(`${this} Strict mode not enabled, swallowing error: ${e.stack}`);
+            }
           });
 
           all.push(p);
         }
 
         await Promise.all(all).catch((e) => {
-          logger.error(`${this} Got error while waiting for all ${e}`);
+          logger.error(`${this} Got error while waiting for all: ${e}`);
         });
 
         completed += b.length;
@@ -225,6 +231,7 @@ export const BaseStep = class {
         if (isOk) {
           ok();
         }
+
         return isOk;
       }
 
@@ -268,7 +275,7 @@ export const BaseStep = class {
         ok();
       }
     }); // end processPromise
-e
+
     const abortListener = () => {
       done = true;
     };

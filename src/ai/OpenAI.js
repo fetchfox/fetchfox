@@ -5,13 +5,14 @@ import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
 import { parseAnswer } from './util.js';
 import { get_encoding, encoding_for_model } from 'tiktoken';
-import { timer } from '../log/timer.js';
+import { Timer } from '../log/timer.js';
 
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
 
-  async countTokens(str) {
+  async countTokens(str, options) {
+    const timer = options?.timer || new Timer();
     timer.push(`${this}.countTokens`);
     try {
       // Override this in derived classes
@@ -48,6 +49,11 @@ export const OpenAI = class extends BaseAI {
   }
 
   async *inner(prompt, options) {
+    if (this.signal?.aborted) {
+      logger.debug(`${this} Already aborted, return early`);
+      return;
+    }
+
     const openai = new OpenAILib({ apiKey: this.apiKey });
 
     const args = {

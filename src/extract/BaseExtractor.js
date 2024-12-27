@@ -91,8 +91,9 @@ export const BaseExtractor = class {
       // Start documents worker
       const docsPromise = new Promise(async (ok, bad) => {
         logger.info(`${this} Started pagination docs worker`);
+        const gen = this.getDocs(target, docsOptions);
+
         try {
-          const gen = this.getDocs(target, docsOptions);
           for await (const doc of gen) {
             if (done) break;
             logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
@@ -107,7 +108,7 @@ export const BaseExtractor = class {
           logger.debug(`${this} Done with docs worker`);
           docsChannel.end();
         }
-      })
+      }); // end docsPromise
 
       // Get documents, and start extraction worker for each
       const resultsPromise = new Promise(async (ok, bad) => {
@@ -132,7 +133,9 @@ export const BaseExtractor = class {
               new Promise(async (ok, bad) => {
                 try {
                   for await (const r of this._run(doc, questions, options)) {
-                    if (done) break;
+                    if (done) {
+                      break;
+                    }
 
                     const ser = JSON.stringify(r.publicOnly());
                     if (seen[ser]) {
@@ -150,6 +153,7 @@ export const BaseExtractor = class {
 
                   logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
                   ok();
+
                 } catch(e) {
                   logger.error(`${this} Error in extraction promise: ${e}`);
                   bad(e);
@@ -160,20 +164,20 @@ export const BaseExtractor = class {
           // Got all documents, now wait for workers to complete
           logger.debug(`${this} Wait for extraction workers`);
           await Promise.all(workerPromises);
+          ok();
 
         } catch (e) {
           logger.error(`${this} Error in extraction worker: ${e}`);
-          bad(e)
+          bad(e);
 
         } finally {
           logger.debug(`${this} All extraction workers done ${done}`);
           resultsChannel.end();
-          ok();
         }
-      })
+      }); // end resultsPromise
 
+      // Receive and yield results
       let count = 0;
-
       try {
         for await (const val of resultsChannel.receive()) {
           if (done) {
@@ -185,10 +189,8 @@ export const BaseExtractor = class {
           logger.debug(`${this} Found ${++count} items so far`);
           yield Promise.resolve(val.result);
         }
-
         await docsPromise;
         await resultsPromise;
-
       } catch (e) {
         throw e;
       }
