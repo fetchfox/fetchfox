@@ -159,7 +159,7 @@ export const BaseAI = class {
         try {
           for await (const chunk of this.inner(prompt, options)) {
             if (this.signal?.aborted) {
-              logger.trace(`${this} Already aborted, break inner`);
+              logger.debug(`${this} Already aborted, break inner`);
               done = true;
               break;
             }

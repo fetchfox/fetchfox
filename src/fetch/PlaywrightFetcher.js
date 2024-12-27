@@ -206,47 +206,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *paginate(url, page, options) {
-    const timer = options?.timer || new Timer();
-    timer.push('PlaywrightFetcher paginate first goto');
-    try {
-      const { aborted } = await this._abortable(page.goto(url, { waitUntil: 'domcontentloaded' }));
-      if (aborted) {
-        logger.warn(`${this} Aborted on goto`);
-        return;
-      }
-    } catch (e) {
-      logger.warn(`Goto gave error, but continuing anyways: ${e}`);
-    } finally  {
-      timer.pop();
-    }
-
-    const abortListener = () => {
-      logger.debug(`${this} Got abort signal`);
-      ok({ aborted: true });
-    }
-
-    const signalPromise = new Promise((ok) => {
-      if (this.signal.aborted) {
-        logger.debug(`${this} Already aborted`);
-        ok({ aborted: true });
-        return;
-      }
-
-      this.signal.addEventListener('abort', abortListener);
-    });
-
-    try {
-      const result = await Promise.race([
-        resultPromise,
-        signalPromise,
-      ]);
-      return result;
-    } finally {
-      this.signal.removeEventListener('abort', abortListener);
-    }
-  }
-
-  async *paginate(url, page, options) {
     try {
       const { aborted } = await this._abortable(page.goto(url));
       if (aborted) {

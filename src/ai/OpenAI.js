@@ -50,7 +50,7 @@ export const OpenAI = class extends BaseAI {
 
   async *inner(prompt, options) {
     if (this.signal?.aborted) {
-      logger.trace(`${this} Already aborted, return early`);
+      logger.debug(`${this} Already aborted, return early`);
       return;
     }
 

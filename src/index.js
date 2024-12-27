@@ -1,3 +1,6 @@
+import events from 'events';
+events.EventEmitter.defaultMaxListeners = 50;
+
 export { getAI } from './ai/index.js';
 export { getCrawler } from './crawl/index.js';
 export { getExporter } from './export/index.js';
