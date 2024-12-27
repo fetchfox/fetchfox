@@ -268,7 +268,7 @@ export const BaseStep = class {
         ok();
       }
     }); // end processPromise
-e
+
     const abortListener = () => {
       done = true;
     };
