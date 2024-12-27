@@ -1,5 +1,5 @@
 import { logger } from '../log/logger.js';
-import { timer } from '../log/timer.js';
+import { Timer } from '../log/timer.js';
 import { URL } from 'whatwg-url';
 import { parse } from 'node-html-parser';
 
@@ -116,6 +116,7 @@ export const Document = class {
   }
 
   parse() {
+    const timer = new Timer();
     timer.push('Document.parse');
     const contentType = (
       this.contentType ||
@@ -123,12 +124,13 @@ export const Document = class {
       'text/plain'
     );
     if (this.html || contentType.indexOf('text/html') != -1) {
-      this.parseHtml();
+      this.parseHtml(null, { timer });
     }
     timer.pop();
   }
 
-  parseHtml(selector) {
+  parseHtml(selector, options) {
+    const timer = options?.timer || new Timer();
     timer.push('Document.parseHtml');
 
     this.contentType = 'text/html';
@@ -152,7 +154,8 @@ export const Document = class {
     timer.pop();
   }
 
-  parseTextFromHtml() {
+  parseTextFromHtml(options) {
+    const timer = options?.timer || new Timer();
     timer.push('Document.parseTextFromHtml');
 
     this.requireHtml();
@@ -182,7 +185,8 @@ export const Document = class {
     timer.pop();
   }
 
-  parseLinks(css) {
+  parseLinks(css, options) {
+    const timer = options?.timer || new Timer();
     timer.push('Document.parseLinks');
 
     this.requireHtml();

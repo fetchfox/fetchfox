@@ -1,6 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
-import { timer } from '../log/timer.js';
+import { Timer } from '../log/timer.js';
 import { parseAnswer, getModelData, sleep } from './util.js';
 
 export const BaseAI = class {
@@ -72,8 +72,10 @@ export const BaseAI = class {
     return `[${this.constructor.name} ${this.model}]`;
   }
 
-  async countTokens(str) {
+  async countTokens(str, options) {
+    const timer = options?.timer || new Timer();
     timer.push(`${this}.countTokens`);
+
     try {
       // Override this in derived classes
       return str.length / 2.5;
@@ -149,31 +151,57 @@ export const BaseAI = class {
     let err;
     let result;
     try {
-      for await (const chunk of this.inner(prompt, options)) {
-        const norm = this.normalizeChunk(chunk);
-        const parsed = this.parseChunk(norm, ctx);
 
-        if (!parsed) continue;
+      let retries = options?.retries ?? 2;
+      let done = false;
 
-        if (format == 'jsonl') {
-          if (!result) {
-            result = [];
+      while (!done) {
+        try {
+          for await (const chunk of this.inner(prompt, options)) {
+            if (this.signal?.aborted) {
+              logger.trace(`${this} Already aborted, break inner`);
+              done = true;
+              break;
+            }
+
+            const norm = this.normalizeChunk(chunk);
+            const parsed = this.parseChunk(norm, ctx);
+
+            if (!parsed) continue;
+
+            if (format == 'jsonl') {
+              if (!result) {
+                result = [];
+              }
+
+              for (const d of parsed.delta) {
+                const r = {
+                  delta: d,
+                  partial: parsed.partial,
+                  usage: parsed.usage,
+                };
+                result.push(r);
+                yield Promise.resolve(r);
+              }
+            } else {
+              result = parsed;
+              yield Promise.resolve(parsed);
+            }
           }
 
-          for (const d of parsed.delta) {
-            const r = {
-              delta: d,
-              partial: parsed.partial,
-              usage: parsed.usage,
-            };
-            result.push(r);
-            yield Promise.resolve(r);
+          // Completed without exception, break out of retry loop
+          done = true;
+
+        } catch (e) {
+          if (retries-- <= 0) {
+            logger.error(`${this} No retries left after: ${e}`);
+            throw e;
           }
-        } else {
-          result = parsed;
-          yield Promise.resolve(parsed);
+
+          logger.warn(`${this} Retrying after error (${retries} left): ${e}`);
+          await sleep(4000);
         }
-      }
+      } // Retry loop
 
     } catch (e) {
       err = e;
@@ -185,7 +213,7 @@ export const BaseAI = class {
       this.runtime.sec += msec / 1000;
 
       if (err) {
-        logger.warn(`Error during AI stream, not caching`);
+        logger.warn(`${this} Error during AI stream, not caching`);
         throw err;
       } else {
         this.setCache(prompt, options, result);

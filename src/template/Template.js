@@ -1,6 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
-import { timer } from '../log/timer.js';
+import { Timer } from '../log/timer.js';
 
 export const Template = class {
   constructor(args, base) {
@@ -71,8 +71,11 @@ export const Template = class {
   }
 
   async renderCapped(context, flexField, ai) {
+    const timer = new Timer();
+    timer.push('Template.renderCapped');
+
     const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
-    const countFn = async (str) => ai.countTokens(str);
+    const countFn = async (str) => ai.countTokens(str, { timer });
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
     logger.debug(`${this} Memory=${this.bytesPerTokenMemory.length} target=${this.memorySize}`);
@@ -83,10 +86,8 @@ export const Template = class {
     //   this.bytesPerTokenMemory.length >= this.memorySize &&
     //   Math.random() > this.memorySampleRate
     // ) {
-    //   return this.renderCappedFromMemory(context, flexField, ai);
+    //   return this.renderCappedFromMemory(context, flexField, ai, { timer });
     // }
-
-    timer.push('Template.renderCapped');
 
     const len = context[flexField].length;
 
@@ -140,7 +141,8 @@ export const Template = class {
     return { prompt, bytesUsed, done: bytesUsed == len };
   }
 
-  async renderCappedFromMemory(context, flexField, ai) {
+  async renderCappedFromMemory(context, flexField, ai, options) {
+    const timer = options?.timer || new Timer();
     timer.push('Template.renderCappedFromMemory');
 
     const maxTokens = ai.maxTokens || 128000;

@@ -30,16 +30,21 @@ export const CrawlStep = class extends BaseStep {
     // TODO: modular/intelligent selection of URL field
     const url = item._url || (item.source() && item.source().url);
 
-    for await (const output of crawler.run(url, this.query, options)) {
-      if (!output._url) {
-        logger.error(`No URL found for item ${item}`);
-        continue;
-      }
+    try {
+      for await (const output of crawler.run(url, this.query, options)) {
+        if (!output._url) {
+          logger.error(`No URL found for item ${item}`);
+          continue;
+        }
 
-      const took = (new Date()).getTime() - start;
-      logger.debug(`Crawl took ${took/1000} sec so far`);
-      const done = cb(output);
-      if (done) break;
+        const took = (new Date()).getTime() - start;
+        logger.debug(`Crawl took ${took/1000} sec so far`);
+        const done = cb(output);
+        if (done) break;
+      }
+    } catch (e) {
+      logger.error(`${this} Got error: ${e}`);
+      throw e;
     }
   }
 }

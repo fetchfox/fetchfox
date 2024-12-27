@@ -1,6 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
-import { timer } from '../log/timer.js';
+import { Timer } from '../log/timer.js';
 import { Document } from '../document/Document.js';
 
 export const BaseMinimizer = class {
@@ -45,7 +45,10 @@ export const BaseMinimizer = class {
     return this.cache.set(key, await min.dump(), 'min');
   }
 
-  async min(doc) {
+  async min(doc, options) {
+    const timer = options?.timer || new Timer();
+    timer.push('Template.renderCappedFromMemory');
+
     const cacheOptions = { removeTags: this.removeTags };
     const cached = await this.getCache(doc, cacheOptions);
     if (cached) return cached;
