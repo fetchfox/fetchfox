@@ -146,7 +146,6 @@ export const Workflow = class extends BaseWorkflow {
       if (ctxSignal) {
         ctxSignal.removeEventListener('abort', abortListener);
       }
-      this.abort();
       this.controller = null;
     }
   }
