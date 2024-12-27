@@ -143,7 +143,6 @@ export const Workflow = class extends BaseWorkflow {
       last.limit = originalLimit;
       this.cursor.finishAll();
 
-      this.abort();
       if (ctxSignal) {
         ctxSignal.removeEventListener('abort', abortListener);
       }

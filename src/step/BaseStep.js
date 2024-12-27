@@ -227,11 +227,12 @@ export const BaseStep = class {
             }
           ); // q.add
 
-          p.catch((e) => {
-            logger.error(`{this} Promise queue gave an error: ${e}`);
-          });
-
-          all.push(p);
+          if (p) {
+            p.catch((e) => {
+              logger.error(`{this} Promise queue gave an error: ${e}`);
+            });
+            all.push(p);
+          }
         }
 
         await Promise.all(all).catch((e) => {
