@@ -17,6 +17,11 @@ export const Workflow = class extends BaseWorkflow {
     return this;
   }
 
+  toString() {
+    const len = (this.steps || []).length;
+    return `[${this.constructor.name}: ${len} step${len == 1 ? '' : 's'}]`
+  }
+
   async describe() {
     const planner = new Planner(this.ctx);
     const { name, description } = await planner.describe(this.dump());

@@ -387,4 +387,38 @@ describe('Workflow', function() {
     assert.ok(out.items.length >= 1);
   });
 
+  it('should abort @long', async function () {
+
+    const cases = [
+      [1, 100],
+      [10, 100],
+      [100, 200],
+      [1000, 1500],
+      [2000, 3000],
+      [5000, 6500],
+      [10000, 12000],
+    ];
+
+    for (const [timeout, limit] of cases) {
+      const controller = new AbortController();
+      const signal = controller.signal;
+
+      const wf = await fox
+        .config({ signal })
+        .init('https://news.ycombinator.com/news')
+        .crawl({ query: 'Find links to articles', maxPages: 5 })
+        .extract({ title: 'article title' })
+        .limit(100)
+        .plan();
+
+      setTimeout(() => controller.abort(), timeout);
+
+      const start = (new Date()).getTime();
+      const out = await wf.run();
+      const took = (new Date()).getTime() - start;
+
+      assert.ok(took < limit, `took=${took} timeout=${timeout} limit=${limit} quickly abort`);
+    }
+  });
+
 });

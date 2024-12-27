@@ -18,8 +18,10 @@ export const decodeableKeys = [
 ];
 
 const decodeArgs = (args, cache) => {
+
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
+  decoded.signal = args.signal;
   decoded.cache = cache;
 
   const diskCache = args.diskCache || process.env.DISK_CACHE;

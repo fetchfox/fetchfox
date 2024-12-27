@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import playwright from 'playwright';
 import { chromium } from 'playwright-extra';
+import { timer } from '../log/timer.js';
 import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
@@ -11,16 +12,16 @@ import { createChannel } from '../util.js';
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
-    this.headless = options.headless === undefined ? true : options.headless;
-    this.browser = options.browser || 'chromium';
-    this.cdp = options.cdp;
+    this.headless = options?.headless === undefined ? true : options?.headless;
+    this.browser = options?.browser || 'chromium';
+    this.cdp = options?.cdp;
 
     // TODO: these options should be passed in in `fetch`
-    this.loadWait = options.loadWait || 4000;
-    this.timeoutWait = options.timeoutWait || 15000;
-    this.pullIframes = options.pullIframes;
+    this.loadWait = options?.loadWait || 4000;
+    this.timeoutWait = options?.timeoutWait || 15000;
+    this.pullIframes = options?.pullIframes;
 
-    this.options = options.options || {};
+    this.options = options?.options || {};
   }
 
   cacheOptions() {
@@ -33,6 +34,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async launch() {
+    timer.push('PlaywrightFetcher.launch');
     logger.debug(`Playwright launching...`);
 
     let p;
@@ -57,17 +59,20 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       p = chromium.launch({ ...this.options, headless: this.headless });
     }
 
+    timer.pop();
+
     return p;
   }
 
   async *_fetch(url, options) {
+    timer.push('PlaywrightFetcher._fetch');
+
     logger.info(`${this} Fetch ${url} with options ${options || '(none)'}`);
     if (this.options?.proxy?.server) {
       logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
     }
 
     const browser = await this.launch();
-
     logger.debug(`${this} got browser`);
 
     const page = await browser.newPage();
@@ -84,6 +89,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`Closing on ${url}`);
         await browser.close();
       }
+      timer.pop();
     }
   }
 
@@ -138,17 +144,63 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return doc;
   }
 
-  async *paginate(url, page, options) {
-    // Initial load
-    try {
-      await page.goto(url);
-    } catch (e) {
-      logger.warn(`Goto gave error, but continuing anyways: ${e}`)
+  async _abortable(promise) {
+    const resultPromise = new Promise(async (ok) => {
+      const aborted = false;
+      ok({
+        aborted: false,
+        result: await promise,
+      });
+    });
+
+    if (!this.signal) {
+      return resultPromise;
     }
 
-    const doc = await this._docFromPage(page, options);
+    const abortListener = () => {
+      logger.debug(`${this} Got abort signal`);
+      ok({ aborted: true });
+    }
+
+    const signalPromise = new Promise((ok) => {
+      if (this.signal.aborted) {
+        logger.debug(`${this} Already aborted`);
+        ok({ aborted: true });
+        return;
+      }
+
+      this.signal.addEventListener('abort', abortListener);
+    });
+
+    try {
+      const result = await Promise.race([
+        resultPromise,
+        signalPromise,
+      ]);
+      return result;
+    } finally {
+      this.signal.removeEventListener('abort', abortListener);
+    }
+  }
+
+  async *paginate(url, page, options) {
+    try {
+      const { aborted } = await this._abortable(page.goto(url));
+      if (aborted) {
+        logger.warn(`${this} Aborted on goto`);
+        return;
+      }
+    } catch (e) {
+      logger.warn(`Goto gave error, but continuing anyways: ${e}`);
+    }
+
+    const { aborted, result: doc } = await this._abortable(this._docFromPage(page, options));
     if (!doc) {
       logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
+      return;
+    }
+    if (aborted) {
+      logger.warn(`${this} Aborted on _docFromPage`);
       return;
     }
 
@@ -231,7 +283,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
           continue;
         }
-        const doc = await this._docFromPage(page, options);
+
+        // const doc = await this._docFromPage(page, options);
+        const { aborted, result: doc } = await this._abortable(this._docFromPage(page, options));
+        if (aborted) {
+          logger.warn(`${this} Aborted on _docFromPage during pagination`);
+          break;
+        }
 
         logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
         if (doc) {

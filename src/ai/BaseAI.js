@@ -64,6 +64,8 @@ export const BaseAI = class {
     }
 
     if (options?.maxTokens) this.maxTokens = options.maxTokens;
+
+    this.signal = options?.signal;
   }
 
   toString() {

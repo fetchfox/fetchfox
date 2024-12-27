@@ -72,7 +72,7 @@ class TimerScope {
   logString(s, level = 'debug') {
     const indentation = '    '.repeat(this.depth);
     const name = this.name ?? '<unnamed>';
-    const output = `${indentation}[${name}] ${s}`;
+    const output = `${indentation}<${name}> ${s}`;
 
     logger[level](output);
   }
