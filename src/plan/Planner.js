@@ -1,5 +1,5 @@
 import { logger } from '../log/logger.js';
-import { getAI, getCrawler, getFetcher, getExtractor, getExporter } from '../index.js';
+import { getAI } from '../index.js';
 import {
   stepDescriptions,
   classMap,

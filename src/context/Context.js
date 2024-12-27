@@ -3,14 +3,12 @@ import { getAI, BaseAI } from '../ai/index.js';
 import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
 import { getFetcher, BaseFetcher } from '../fetch/index.js';
-import { getKV, BaseKV } from '../kv/index.js';
 import { DiskCache } from '../cache/DiskCache.js';
 import { S3Cache } from '../cache/S3Cache.js';
 import { copyKeys } from './constants.js';
 
 // Order matters for `decodeableKeys`
 export const decodeableKeys = [
-  ['kv', getKV, BaseKV],
   ['ai', getAI, BaseAI],
   ['fetcher', getFetcher, BaseFetcher],
   ['crawler', getCrawler, BaseCrawler],

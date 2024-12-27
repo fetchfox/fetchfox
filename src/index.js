@@ -3,7 +3,6 @@ events.EventEmitter.defaultMaxListeners = 50;
 
 export { getAI } from './ai/index.js';
 export { getCrawler } from './crawl/index.js';
-export { getExporter } from './export/index.js';
 export { getExtractor } from './extract/index.js';
 export { getFetcher } from './fetch/index.js';
 export { getMinimizer } from './min/index.js';
@@ -16,12 +15,9 @@ export { Crawler } from './crawl/Crawler.js';
 
 export { Fetcher } from './fetch/Fetcher.js';
 export { BaseFetcher } from './fetch/BaseFetcher.js';
-export { RelayFetcher } from './fetch/RelayFetcher.js';
 
 export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
 export { CodeGenExtractor } from './extract/CodeGenExtractor.js';
-
-export { Exporter } from './export/Exporter.js';
 
 export { OpenAI } from './ai/OpenAI.js';
 export { Anthropic } from './ai/Anthropic.js';
@@ -37,11 +33,7 @@ export { Planner } from './plan/Planner.js';
 
 export { ConstStep } from './step/ConstStep.js';
 export { CrawlStep } from './step/CrawlStep.js';
-export { ExportItemsStep } from './step/ExportItemsStep.js';
-export { ExportURLsStep } from './step/ExportURLsStep.js';
 
 export { stepDescriptions } from './step/info.js';
-
-export { Client } from './relay/Client.js';
 
 export { fox } from './fox/index.js';

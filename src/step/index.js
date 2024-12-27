@@ -2,8 +2,6 @@ export { BaseStep } from './BaseStep.js';
 
 import { ConstStep } from './ConstStep.js';
 import { CrawlStep } from './CrawlStep.js';
-import { ExportItemsStep } from './ExportItemsStep.js';
-import { ExportURLsStep } from './ExportURLsStep.js';
 import { ExtractStep } from './ExtractStep.js';
 import { FetchStep } from './FetchStep.js';
 import { FilterStep } from './FilterStep.js';
@@ -13,8 +11,6 @@ import { UniqueStep } from './UniqueStep.js';
 
 export { ConstStep } from './ConstStep.js';
 export { CrawlStep } from './CrawlStep.js';
-export { ExportItemsStep } from './ExportItemsStep.js';
-export { ExportURLsStep } from './ExportURLsStep.js';
 export { ExtractStep } from './ExtractStep.js';
 export { FetchStep } from './FetchStep.js';
 export { FilterStep } from './FilterStep.js';
@@ -25,8 +21,6 @@ export { UniqueStep } from './UniqueStep.js';
 export const classMap = {
   'const': ConstStep,
   crawl: CrawlStep,
-  exportItems: ExportItemsStep,
-  exportURLs: ExportURLsStep,
   extract: ExtractStep,
   fetch: FetchStep,
   filter: FilterStep,

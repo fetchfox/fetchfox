@@ -1,5 +1,4 @@
 import { logger } from '../log/logger.js';
-import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
 import { getMinimizer } from '../min/index.js';
@@ -9,10 +8,9 @@ import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { kv, ai, fetcher, minimizer, signal, cache, hardCapTokens } = options || {};
+    const { ai, fetcher, minimizer, signal, cache, hardCapTokens } = options || {};
     this.signal = signal;
     this.cache = cache;
-    this.kv = getKV(kv);
     this.ai = getAI(ai, { cache, signal });
     this.fetcher = getFetcher(fetcher, { cache, signal });
     this.minimizer = getMinimizer(minimizer, { cache });
