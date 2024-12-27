@@ -27,6 +27,7 @@ export const BaseFetcher = class {
 
     this.s3 = options?.s3;
     this.css = options?.css;
+    this.signal = options?.signal;
   }
 
   toString() {

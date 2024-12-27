@@ -101,32 +101,48 @@ export const OpenAI = class extends BaseAI {
       args.response_format = zodResponseFormat(toZod(options.schema), 'item');
     }
 
-    let completion;
-    try {
-      completion = await openai.chat.completions.create(args);
-    } catch (e) {
-      logger.error(`${this} Caught error while making completion: ${e}`);
-      throw e;
+    const aiOptions = {};
+
+    // OpenAI does not remove listeners after an aborted request,
+    // so we create our own local listenert and forward the abort().
+    // After we're done, we remove the listener. This prevents
+    // memory leaks via excess listeners.
+    let listener;
+    let localSignal;
+    if (this.signal) {
+      const controller = new AbortController();
+      localSignal = controller.signal;
+      listener = () => {
+        controller.abort();
+      };
+      this.signal.addEventListener('abort', listener);
+      aiOptions.signal = localSignal;
     }
 
-    if (canStream) {
-      try {
+    let completion;
+    try {
+      completion = await openai.chat.completions.create(args, aiOptions);
+      if (canStream) {
         logger.debug(`${this} Stream the completion`);
         for await (const chunk of completion) {
           yield Promise.resolve(chunk);
         }
-      } catch (e) {
-        logger.error(`${this} Caught error while streaming chunks: ${e}`);
-        throw e;
-      }
-    } else {
-      try {
+      } else {
         const answer = await completion;
-      } catch (e) {
-        logger.error(`${this} Caught error while awaiting: ${e}`);
-        throw e;
+        yield Promise.resolve(answer);
       }
-      yield Promise.resolve(answer);
+    } catch (e) {
+      if (e.constructor.name == 'APIUserAbortError') {
+        logger.warn(`${this} Aborted while creating: ${e}`);
+        return;
+      }
+
+      logger.error(`${this} Caught error while making completion: ${e}`);
+      throw e;
+    } finally {
+      if (listener) {
+        this.signal.removeEventListener('abort', listener);
+      }
     }
   }
 }

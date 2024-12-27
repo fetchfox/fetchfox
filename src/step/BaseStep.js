@@ -124,11 +124,12 @@ export const BaseStep = class {
 
     let done = false;
 
+
     // The following promise resolves on one of three conditions:
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
     // 3) There is a next step, and next step is done (regardless 
-    await new Promise(async (ok) => {
+    const processPromise = new Promise(async (ok) => {
       let batch = [];
       const batchSize = this.batchSize;
 
@@ -213,7 +214,7 @@ export const BaseStep = class {
         } else {
           done ||= maybeOk();
         }
-      };
+      }; // end processBatch
 
       const maybeOk = () => {
         logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
@@ -266,9 +267,33 @@ export const BaseStep = class {
         await this.process(cursor, [], (output) => cursor.publish(output, index));
         ok();
       }
+    }); // end processPromise
+e
+    const abortListener = () => {
+      done = true;
+    };
+    if (cursor.ctx.signal){
+      cursor.ctx.signal.addEventListener('abort', abortListener);
+    }
+    const removeAbortListener = () => {
+      if (cursor.ctx.signal) {
+        cursor.ctx.signal.removeEventListener('abort', abortListener);
+      }
+    }
+    processPromise.catch((e) => {
+      logger.error(`${this} Caught exception while processing: ${e}`);
+      removeAbortListener();
+      throw e;
     });
+    await processPromise;
 
-    await this._finish(cursor, index);
+    const finishPromise = this._finish(cursor, index);
+    finishPromise.catch((e) => {
+      logger.error(`${this} Caught exception while finishing: ${e}`);
+      removeAbortListener();
+      throw e;
+    });
+    await finishPromise;
 
     onNextDone && next.remove(onNextDone);
     parent.remove(onParentItem);

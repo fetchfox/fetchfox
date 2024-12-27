@@ -13,7 +13,10 @@ export const getFetcher = (which, options) => {
     return which;
   }
 
-  if (!which) which = 'fetch';
+  if (!which) {
+    which = 'fetch';
+  }
+
   let fetcherClass = {
     f: Fetcher,
     fetch: Fetcher,

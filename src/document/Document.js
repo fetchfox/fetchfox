@@ -122,7 +122,7 @@ export const Document = class {
       (this.resp?.headers || {})['content-type'] ||
       'text/plain'
     );
-    if (this.html || contentType == 'text/html') {
+    if (this.html || contentType.indexOf('text/html') != -1) {
       this.parseHtml();
     }
     timer.pop();

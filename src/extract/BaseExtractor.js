@@ -9,11 +9,12 @@ import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { kv, ai, fetcher, minimizer, cache, hardCapTokens } = options || {};
+    const { kv, ai, fetcher, minimizer, signal, cache, hardCapTokens } = options || {};
+    this.signal = signal;
     this.cache = cache;
     this.kv = getKV(kv);
-    this.ai = getAI(ai, { cache });
-    this.fetcher = getFetcher(fetcher, { cache });
+    this.ai = getAI(ai, { cache, signal });
+    this.fetcher = getFetcher(fetcher, { cache, signal });
     this.minimizer = getMinimizer(minimizer, { cache });
     this.hardCapTokens = hardCapTokens || 1e7;
     this.usage = {
