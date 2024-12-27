@@ -1,6 +1,6 @@
+import PQueue from 'p-queue';
 import { logger } from '../log/logger.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
-import PQueue from 'p-queue';
 
 // Some steps will need a larger batch size, but otherwise keep
 // step batches to size of 1 so that items are passed to next
@@ -331,5 +331,5 @@ export const BaseStep = class {
     this.trigger('done');
 
     return this.results;
-g  }
+  }
 }
