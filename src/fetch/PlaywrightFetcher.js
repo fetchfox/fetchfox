@@ -206,6 +206,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *paginate(url, page, options) {
+    const timer = options?.timer || new Timer();
+
     try {
       const { aborted } = await this._abortable(page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {

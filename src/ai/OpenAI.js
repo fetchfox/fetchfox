@@ -12,15 +12,21 @@ export const OpenAI = class extends BaseAI {
   static defaultModel = 'gpt-4o-mini';
 
   async countTokens(str, options) {
-    const timer = options?.timer || new Timer();
-    timer.push(`${this}.countTokens`);
-    try {
-      // Override this in derived classes
-      const enc = encoding_for_model(this.model);
-      return enc.encode(str).length;
-    } finally {
-      timer.pop();
-    }
+    // tiktoken is slow and CPU intensive to run, so for now
+    // just (over) estimate the nubmer of tokens. This is usually
+    // fine, since the promps chunk and iterate anyways.
+    // TODO: find a way to efficiently count tokens
+    return str.length / 2;
+
+    // const timer = options?.timer || new Timer();
+    // timer.push(`${this}.countTokens`);
+    // try {
+    //   // Override this in derived classes
+    //   const enc = encoding_for_model(this.model);
+    //   return enc.encode(str).length;
+    // } finally {
+    //   timer.pop();
+    // }
   }
 
   normalizeChunk(chunk) {

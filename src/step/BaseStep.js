@@ -1,5 +1,6 @@
 import { logger } from '../log/logger.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
+import PQueue from 'p-queue';
 
 // Some steps will need a larger batch size, but otherwise keep
 // step batches to size of 1 so that items are passed to next
@@ -15,6 +16,14 @@ export const BaseStep = class {
     this.maxPages = args?.maxPages || 1;
 
     this.callbacks = {};
+
+    this.q = new PQueue({
+      concurrency: args?.concurrency || Math.min(100, this.limit || 100),
+      intervalCap: args?.intervalCap || 100,
+      interval: args?.interval || 1,
+      timeout: args?.timeout || 5 * 60 * 1000,
+      throwOnTimeout: true,
+    });
   }
 
   toString() {
@@ -124,7 +133,6 @@ export const BaseStep = class {
 
     let done = false;
 
-
     // The following promise resolves on one of three conditions:
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
@@ -150,60 +158,77 @@ export const BaseStep = class {
             index,
             done);
 
-          const p = this.process(
-            { cursor, item, index, batch: b },
-            (output) => {
-              this.results.push(output);
-              const hitLimit = this.limit && this.results.length >= this.limit;
-
-              if (hitLimit) {
-                logger.info(`${this} Hit limit with ${this.results.length} results`);
+          const p = await this.q.add(
+            () => {
+              if (cursor.ctx.signal?.aborted) {
+                return;
               }
 
-              meta.status = 'done';
-              if (!done) {
+              const itemPromise = this.process(
+                { cursor, item, index, batch: b },
+                (output) => {
+                  this.results.push(output);
+                  const hitLimit = this.limit && this.results.length >= this.limit;
+
+                  if (hitLimit) {
+                    logger.info(`${this} Hit limit with ${this.results.length} results`);
+                  }
+
+                  meta.status = 'done';
+                  if (!done) {
+                    cursor.publish(
+                      firstId,
+                      { ...output, _meta: meta },
+                      index,
+                      done);
+
+                    // Only the *first* output should be an update, so set
+                    // use a null ID for the remainder
+                    firstId = null;
+
+                    this.trigger('item', output);
+                  }
+
+                  done ||= hitLimit;
+
+                  if (done) {
+                    logger.debug(`${this} Received done signal inside callback`);
+                    ok();
+                  } else {
+                    done = maybeOk();
+                  }
+
+                  return done;
+                }
+              );
+
+              itemPromise.catch((e) => {
+                logger.error(`${this} Got error while processing: ${e}`);
+
+                meta.status = 'error';
+                meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
                 cursor.publish(
                   firstId,
-                  { ...output, _meta: meta },
+                  { _meta: meta },
                   index,
                   done);
 
-                // Only the *first* output should be an update, so set
-                // use a null ID for the remainder
-                firstId = null;
+                if (process.env.STRICT_ERRORS) {
+                  throw e;
+                } else {
+                  logger.warn(`${this} Strict mode not enabled, swallowing error: ${e.stack}`);
+                }
+              });
 
-                this.trigger('item', output);
-              }
-
-              done ||= hitLimit;
-
-              if (done) {
-                logger.debug(`${this} Received done signal inside callback`);
-                ok();
-              } else {
-                done = maybeOk();
-              }
-
-              return done;
+              return itemPromise;
+            },
+            {
+              signal: cursor.ctx.signal,
             }
-          );
+          ); // q.add
 
           p.catch((e) => {
-            logger.error(`${this} Got error while processing: ${e}`);
-
-            meta.status = 'error';
-            meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
-            cursor.publish(
-              firstId,
-              { _meta: meta },
-              index,
-              done);
-
-            if (process.env.STRICT_ERRORS) {
-              throw e;
-            } else {
-              logger.warn(`${this} Strict mode not enabled, swallowing error: ${e.stack}`);
-            }
+            logger.error(`{this} Promise queue gave an error: ${e}`);
           });
 
           all.push(p);
@@ -251,11 +276,7 @@ export const BaseStep = class {
         });
 
       onParentItem = parent.on('item', async (item) => {
-        if (
-          this.limit !== null &&
-          this.limit !== undefined &&
-          received >= this.limit)
-        {
+        if (cursor.ctx.signal?.aborted) {
           return;
         }
 
@@ -277,6 +298,7 @@ export const BaseStep = class {
     }); // end processPromise
 
     const abortListener = () => {
+      this.q.clear();
       done = true;
     };
     if (cursor.ctx.signal){
@@ -309,5 +331,5 @@ export const BaseStep = class {
     this.trigger('done');
 
     return this.results;
-  }
+g  }
 }
