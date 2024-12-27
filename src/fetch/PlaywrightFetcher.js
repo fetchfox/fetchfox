@@ -284,7 +284,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           continue;
         }
 
-        // const doc = await this._docFromPage(page, options);
         const { aborted, result: doc } = await this._abortable(this._docFromPage(page, options));
         if (aborted) {
           logger.warn(`${this} Aborted on _docFromPage during pagination`);

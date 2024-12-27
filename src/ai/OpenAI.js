@@ -105,7 +105,7 @@ export const OpenAI = class extends BaseAI {
 
     // OpenAI does not remove listeners after an aborted request,
     // so we create our own local listenert and forward the abort().
-    // After we're done, we remove the listener. This prefvents
+    // After we're done, we remove the listener. This prevents
     // memory leaks via excess listeners.
     let listener;
     let localSignal;

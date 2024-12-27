@@ -116,7 +116,6 @@ export const BaseStep = class {
     let onNextDone;
     let onParentDone;
     let onParentItem;
-    let onAbort;
 
     let nextDone = false;
     let parentDone = false;
@@ -268,8 +267,8 @@ export const BaseStep = class {
         await this.process(cursor, [], (output) => cursor.publish(output, index));
         ok();
       }
-    }); // processPromise
-
+    }); // end processPromise
+e
     const abortListener = () => {
       done = true;
     };

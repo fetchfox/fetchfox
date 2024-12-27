@@ -3,7 +3,6 @@ import process from 'node:process';
 import { getAI } from '../../src/index.js';
 
 describe('OpenAI', function() {
-  this.timeout(10000);
 
   it('should abort @run', async () => {
     const controller = new AbortController();
