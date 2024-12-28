@@ -4,20 +4,22 @@ import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { Readable } from 'stream';
 import https from 'https';
 
-const s3 = new S3Client({
-  requestHandler: new NodeHttpHandler({
-    requestTimeout: 10000,
-    httpsAgent: { maxSockets: 80 },
-  }),
-});
-
 export const S3Cache = class {
   constructor(options) {
     this.bucket = options.bucket;
     this.prefix = options.prefix;
+    this.prefix = options.prefix;
     this.acl = options.acl;
     this.ttls = options.ttls || { base: 2 * 3600 };
     this.readOnly = options?.readOnly;
+
+    this.s3 = new S3Client({
+      region: options.region,
+      requestHandler: new NodeHttpHandler({
+        requestTimeout: 10000,
+        httpsAgent: { maxSockets: 80 },
+      }),
+    });
   }
 
   async set(key, val, label) {
@@ -30,7 +32,7 @@ export const S3Cache = class {
     const body = JSON.stringify(data);
     const objectKey = `${this.prefix}${key}`;
     
-    await s3.send(new PutObjectCommand({
+    await this.s3.send(new PutObjectCommand({
       Bucket: this.bucket,
       Key: objectKey,
       Body: body,
@@ -44,7 +46,7 @@ export const S3Cache = class {
     const objectKey = `${this.prefix}${key}`;
     let resp;
     try {
-      resp = await s3.send(new GetObjectCommand({
+      resp = await this.s3.send(new GetObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,
       }));
@@ -80,7 +82,7 @@ export const S3Cache = class {
 
     const objectKey = `${this.prefix}${key}`;
     try {
-      await s3.send(new DeleteObjectCommand({
+      await this.s3.send(new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,
       }));
