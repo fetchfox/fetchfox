@@ -23,14 +23,12 @@ export const Cursor = class {
     //   done: this.done,
     //   items: this.items.filter(it => it._meta?.status != 'loading'),
     //   full: this.full,
-    //   context: this.ctx.dump(),
     // }));
 
     const out = {
       done: this.done,
       items: this.items.filter(it => it._meta?.status != 'loading'),
       full: this.full,
-      context: this.ctx.dump(),
     };
 
     if (markDone) {
