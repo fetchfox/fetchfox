@@ -21,8 +21,6 @@ export const BaseStep = class {
       concurrency: args?.concurrency || Math.min(100, this.limit || 100),
       intervalCap: args?.intervalCap || 100,
       interval: args?.interval || 1,
-      timeout: args?.timeout || 5 * 60 * 1000,
-      throwOnTimeout: true,
     });
   }
 
