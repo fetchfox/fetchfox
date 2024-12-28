@@ -7,7 +7,7 @@ const s3 = new S3Client();
 export const S3Cache = class {
   constructor(options) {
     this.bucket = options.bucket;
-    this.prefix = options.prefix || 'fetchfox-benchmarks/';
+    this.prefix = options.prefix;
     this.acl = options.acl;
     this.ttls = options.ttls || { base: 2 * 3600 };
     this.readOnly = options?.readOnly;

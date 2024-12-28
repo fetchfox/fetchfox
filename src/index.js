@@ -25,6 +25,7 @@ export { Ollama } from './ai/Ollama.js';
 export { Groq } from './ai/Groq.js';
 
 export { DiskCache } from './cache/DiskCache.js';
+export { S3Cache } from './cache/S3Cache.js';
 
 export { Workflow } from './workflow/Workflow.js';
 
