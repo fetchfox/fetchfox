@@ -8,7 +8,7 @@ const s3 = new S3Client({
   requestHandler: new NodeHttpHandler({
     requestTimeout: 10000,
     httpsAgent: { maxSockets: 80 },
-  });
+  }),
 });
 
 export const S3Cache = class {
