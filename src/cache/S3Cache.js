@@ -17,7 +17,7 @@ export const S3Cache = class {
       region: options.region,
       requestHandler: new NodeHttpHandler({
         requestTimeout: 10000,
-        httpsAgent: { maxSockets: 80 },
+        httpsAgent: { maxSockets: 200 },
       }),
     });
   }
