@@ -127,6 +127,7 @@ export const OpenAI = class extends BaseAI {
       listener = () => {
         controller.abort();
       };
+      logger.debug(`${this} Adding abort event listener`);
       this.signal.addEventListener('abort', listener);
       aiOptions.signal = localSignal;
     }

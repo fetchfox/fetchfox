@@ -1,3 +1,4 @@
+import { setMaxListeners } from 'events';
 import { logger } from '../log/logger.js';
 import { Cursor } from '../cursor/Cursor.js';
 import { Context } from '../context/Context.js';
@@ -102,6 +103,7 @@ export const Workflow = class extends BaseWorkflow {
     // Create an abort controller that can cancel this worklfow,
     // and listen to the signal in context if one exists.
     this.controller = new AbortController();
+    setMaxListeners(10000, this.controller.signal);
     let ctxSignal;
     let abortListener;
     if (this.ctx.signal) {

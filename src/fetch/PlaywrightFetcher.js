@@ -191,6 +191,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`${this} Got abort signal`);
         ok({ aborted: true });
       }
+      logger.debug(`${this} Adding abort event listener`);
       this.signal.addEventListener('abort', abortListener);
     });
 
