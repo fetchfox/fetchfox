@@ -2,7 +2,6 @@ import { logger } from '../log/logger.js';
 import { OpenAI } from './OpenAI.js';
 import { Anthropic } from './Anthropic.js';
 import { Ollama } from './Ollama.js';
-import { Mistral } from './Mistral.js';
 import { Groq } from './Groq.js';
 import { Gemini } from './Gemini.js';
 export { BaseAI } from './BaseAI.js';
@@ -23,7 +22,6 @@ export const getAI = (which, options) => {
     openai: OpenAI,
     anthropic: Anthropic,
     ollama: Ollama,
-    mistral: Mistral,
     groq: Groq,
 
     gemini: Gemini,

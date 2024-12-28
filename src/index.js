@@ -22,7 +22,6 @@ export { CodeGenExtractor } from './extract/CodeGenExtractor.js';
 export { OpenAI } from './ai/OpenAI.js';
 export { Anthropic } from './ai/Anthropic.js';
 export { Ollama } from './ai/Ollama.js';
-export { Mistral } from './ai/Mistral.js';
 export { Groq } from './ai/Groq.js';
 
 export { DiskCache } from './cache/DiskCache.js';
