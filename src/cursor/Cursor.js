@@ -112,7 +112,7 @@ export const Cursor = class {
       //     });
       //     this.publishTimeout = null;
       //   }, 500);
-      }
+      // }
     }
 
     return id;
