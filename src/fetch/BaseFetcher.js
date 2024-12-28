@@ -1,10 +1,9 @@
-import CryptoJS from 'crypto-js';
 import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
 import { linkChunks, decodeLinks } from '../crawl/util.js';
 import { Document } from '../document/Document.js';
 import { presignS3 } from './util.js';
-import { createChannel } from '../util.js';
+import { createChannel, shortObjHash } from '../util.js';
 import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
 
@@ -177,10 +176,7 @@ export const BaseFetcher = class {
   }
 
   cacheKey(url, options) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ url, options, ...this.cacheOptions() }))
-      .toString(CryptoJS.enc.Hex)
-      .substr(0, 16);
+    const hash = shortObjHash({ url, options, ...this.cacheOptions() })
     return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;
   }
 

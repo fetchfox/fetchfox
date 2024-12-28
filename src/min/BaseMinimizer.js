@@ -1,7 +1,7 @@
-import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 import { Document } from '../document/Document.js';
+import { shortObjHash } from '../util.js';
 
 export const BaseMinimizer = class {
   constructor(options) {
@@ -13,10 +13,7 @@ export const BaseMinimizer = class {
   }
 
   async cacheKey(doc, options) {
-    const hash = CryptoJS
-      .SHA256(JSON.stringify({ doc: await doc.dump(), options }))
-      .toString(CryptoJS.enc.Hex)
-      .substr(0, 16);
+    const hash = shortObjHash({ doc: await doc.dump(), options });
     return `min-${this.constructor.name}-${doc.url.replace(/\//g, '-').substr(0, 100)}-${hash}`;
   }
 

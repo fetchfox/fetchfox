@@ -120,3 +120,11 @@ export const createChannel = () => {
     }
   };
 }
+
+export const shortObjHash = (obj) => {
+  const hash = CryptoJS
+    .SHA256(JSON.stringify(obj))
+    .toString(CryptoJS.enc.Hex)
+    .substr(0, 16);
+  return hash;
+}

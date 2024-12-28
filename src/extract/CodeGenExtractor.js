@@ -1,5 +1,4 @@
 import { logger } from '../log/logger.js';
-import CryptoJS from 'crypto-js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
