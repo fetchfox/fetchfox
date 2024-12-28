@@ -37,8 +37,7 @@ export const Filter = class {
           if (data._ffid == delta._ffid) {
             count++;
             delete data._ffid;
-            const source = orig.source ? orig.source() : null;
-            yield Promise.resolve(new Item(data, source));
+            yield Promise.resolve(new Item(data));
           }
         }
       }

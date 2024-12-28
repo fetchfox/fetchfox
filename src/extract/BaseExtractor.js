@@ -43,11 +43,8 @@ export const BaseExtractor = class {
       url = target.url;
     } else if (target?._url) {
       url = target._url;
-    }
-
-    if (!url && typeof target?.source == 'function' && target.source() instanceof Document) {
-      yield Promise.resolve(target.source());
-      return;
+    } else if (target?._sourceUrl) {
+      url = target._sourceUrl;
     }
 
     try {
