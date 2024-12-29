@@ -189,14 +189,12 @@ export const BaseFetcher = class {
       this.usage.runtime += took;
 
       if (docs.length) {
-        let all;
-        try {
-          all = await Promise.all(docs.map(doc => doc.dump()));
-        } catch (e) {
-          logger.error(`${this} Error while dumping documents for cache, ignore: ${e}`);
-          return;
-        }
-        this.setCache(url, cacheOptions, all);
+        Promise
+          .all(docs.map(doc => doc.dump()))
+          .then((all) => this.setCache(url, cacheOptions, all))
+          .catch((e) => {
+            logger.error(`${this} Error while caching docs cache, ignoring: ${e}`);
+          });
       }
     }
   }

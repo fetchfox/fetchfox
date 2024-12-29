@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-import playwright from 'playwright';
 import { chromium } from 'playwright-extra';
 import { Timer } from '../log/timer.js';
 import { logger } from '../log/logger.js';
@@ -9,7 +7,7 @@ import { BaseFetcher } from './BaseFetcher.js';
 import { analyzePagination } from './prompts.js';
 import { createChannel } from '../util.js';
 
-process.on('unhandledRejection', (e, promise) => {
+process.on('unhandledRejection', (e) => {
   if (e.name == 'TargetClosedError') {
     // These exceptions occur sometimes on browser launch, and we cannot
     // catch them in thsi process.
@@ -300,8 +298,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         domainSpecific,
       };
 
+      let prompts;
       try {
-        const prompts = await analyzePagination.renderMulti(context, 'html', this.ai);
+        prompts = await analyzePagination.renderMulti(context, 'html', this.ai);
       } catch (e) {
         logger.error(`${this} Error while rendering prompts: ${e}`);
         return;
@@ -313,7 +312,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         try {
           answer = await this.ai.ask(prompt, { format: 'json' });
         } catch(e) {
-          logger.error(`${this} Got AI error during pagination, ignore`);
+          logger.error(`${this} Got AI error during pagination, ignore: ${e}`);
           continue
         }
 
@@ -326,7 +325,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           try {
             fn = new Function(answer.partial.paginationJavascript);
           } catch(e) {
-            logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it`);
+            logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it: ${e}`);
           }
           if (fn) {
             fns.push(fn);
@@ -340,7 +339,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
 
-      const docs = [];
       let fnIndex = 0;
       for (let i = 1; i < iterations; i++) {
         const fn = fns[fnIndex];
@@ -418,13 +416,13 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       let el;
       try {
         el = await frame.frameElement();
-      } catch(e) {
+      } catch {
         continue;
       }
       let tagName;
       try {
         tagName = await el.evaluate(el => el.tagName);
-      } catch (e) {
+      } catch {
         continue;
       }
       if (tagName == 'IFRAME') {
@@ -439,7 +437,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       let content;
       try {
         content = await iframe.content();
-      } catch(e) {
+      } catch {
         content = '[iframe unavailable]';
       }
 
