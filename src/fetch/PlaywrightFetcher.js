@@ -230,8 +230,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
 
+    let doc;
+    let aborted;
     try {
-      const { aborted, result: doc } = await this._abortable(this._docFromPage(page, options));
+      const result = await this._abortable(this._docFromPage(page, options));
+      aborted = result.aborted;
+      doc = result.result;
     } catch (e) {
       logger.error(`${this} Error while getting doc from page: ${e}`);
       return;
@@ -332,8 +336,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           continue;
         }
 
+        let doc;
+        let aborted;
         try {
-          const { aborted, result: doc } = await this._abortable(this._docFromPage(page, options));
+          const result = await this._abortable(this._docFromPage(page, options));
+          aborted = result.aborted;
+          doc = result.result;
         } catch (e) {
           logger.error(`${this} Error while getting docs from page: ${e}`);
           throw e;
