@@ -43,8 +43,6 @@ export const S3Cache = class {
   }
 
   async get(key) {
-    throw new Error('TEST ERROR');
-
     const objectKey = `${this.prefix}${key}`;
     let resp;
     try {
