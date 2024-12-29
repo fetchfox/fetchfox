@@ -24,7 +24,10 @@
   },
   "homepage": "https://github.com/fetchfox/fetchfox",
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "chai": "^5.1.1",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
     "mocha": "^10.7.3"
   },
   "dependencies": {

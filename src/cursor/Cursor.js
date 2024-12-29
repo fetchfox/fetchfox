@@ -101,18 +101,6 @@ export const Cursor = class {
 
     if (shouldPublish) {
       this.cb({ ...this.out(), item, stepIndex });
-
-      // if (!this.publishTimeout) {
-      //   this.publishTimeout = setTimeout(() => {
-      //     logger.debug(`${this} Execute publish`);
-      //     this.cb({
-      //       ...this.out(),
-      //       item,
-      //       stepIndex,
-      //     });
-      //     this.publishTimeout = null;
-      //   }, 500);
-      // }
     }
 
     return id;
