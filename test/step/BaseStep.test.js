@@ -9,9 +9,10 @@ describe('BaseStep', function() {
 
   const batchSize = 3;
 
-  it('should do exactly batch size @run', async () => {
+  it('should do exactly batch size @run @fast', async () => {
     const limit = batchSize;
     const results = await fox
+      .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
@@ -26,9 +27,10 @@ describe('BaseStep', function() {
     assert.equal(results.items[0].number, '#0001');
   });
 
-  it('should do over 2x batch size @run', async () => {
+  it('should do over 2x batch size @run @fast', async () => {
     const limit = batchSize * 2 + 1;
     const results = await fox
+      .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
@@ -42,9 +44,10 @@ describe('BaseStep', function() {
     assert.equal(results.items[0].name, 'Bulbasaur');
   });
 
-  it('should do under batch size @run', async () => {
+  it('should do under batch size @run @fast', async () => {
     const limit = batchSize - 1;
     const results = await fox
+      .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
@@ -59,9 +62,10 @@ describe('BaseStep', function() {
     assert.equal(results.items[0].number, '#0001');
   });
 
-  it('should do limit=1 size @run', async () => {
+  it('should do limit=1 size @run @fast', async () => {
     const limit = 1;
     const results = await fox
+      .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,

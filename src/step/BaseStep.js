@@ -229,7 +229,11 @@ export const BaseStep = class {
             const task = await p;
             all.push(task);
           } catch (e) {
-            logger.error(`{this} Promise queue gave an error: ${e}`);
+            if (e.name == 'AbortError') {
+              logger.debug(`${this} Promise queue task aborted: ${e}`);
+            } else {
+              logger.error(`${this} Promise queue gave an error: ${e}`);
+            }
           }
         }
 
