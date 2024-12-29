@@ -156,7 +156,7 @@ export const BaseStep = class {
             index,
             done);
 
-          const p = await this.q.add(
+          const p = this.q.add(
             () => {
               if (cursor.ctx.signal?.aborted) {
                 return;
@@ -225,12 +225,18 @@ export const BaseStep = class {
             }
           ); // q.add
 
-          if (p) {
-            p.catch((e) => {
-              logger.error(`{this} Promise queue gave an error: ${e}`);
-            });
-            all.push(p);
+          try {
+            const task = await p;
+            all.push(task);
+          } catch (e) {
+            logger.error(`{this} Promise queue gave an error: ${e}`);
           }
+
+          // if (p) {
+          //   p.catch((e) => {
+          //     logger.error(`{this} Promise queue gave an error: ${e}`);
+          //   });
+          // }
         }
 
         await Promise.all(all).catch((e) => {
