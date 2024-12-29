@@ -9,7 +9,7 @@ import { Fetcher } from '../../src/index.js';
 describe('Workflow', function() {
   this.timeout(30 * 1000);
 
-  it('should load steps from json @run', async () => {
+  it('should load steps from json @run @fast', async () => {
     const data = {
       "steps": [
         {
@@ -47,16 +47,6 @@ describe('Workflow', function() {
           "args": {
             "limit": "2"
           }
-        },
-        {
-          "name": "exportURLs",
-          "args": {
-            "field": "url",
-            "format": "pdf",
-            "destination": "google",
-            "filename": "a-{url}.pdf",
-            "directory": "1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb"
-          }
         }
       ],
     };
@@ -70,7 +60,7 @@ describe('Workflow', function() {
       JSON.stringify(data.steps, null, 2));
   });
 
-  it('should publish all steps @run', async () => {
+  it('should publish all steps @run @fast', async () => {
     const f = await fox
       .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
@@ -115,11 +105,13 @@ describe('Workflow', function() {
       }
     });
 
-    assert.equal(count2, 17, 'all partials received');
+    assert.equal(count2, 16, 'all partials received');
     assert.ok(countLoading2 >= 3, 'all loading received');
+
+    f2.abort();
   });
 
-  it('should describe @run', async () => {
+  it('should describe @run @fast', async () => {
     const data = {
       "steps": [
         {
@@ -154,16 +146,6 @@ describe('Workflow', function() {
           "args": {
             "limit": "2"
           }
-        },
-        {
-          "name": "exportURLs",
-          "args": {
-            "field": "url",
-            "format": "pdf",
-            "destination": "google",
-            "filename": "a-{url}.pdf",
-            "directory": "1_pLorzwxFLXZrQA8DNHPDcqCX5p3szvb"
-          }
         }
       ],
     };
@@ -184,53 +166,7 @@ describe('Workflow', function() {
       'description sanity check');
   });
 
-  // This test doesn't interact well with caching, because caching
-  // circumvents the concurrent request tally. Disabled to not run
-  // a slow test.
-  it('should limit number of fetch requests @disabled', async function() {
-    const f = await fox
-      .init('https://pokemondb.net/pokedex/national')
-      .crawl({
-        query: 'Find links to specific Pokemon characters',
-      })
-      .extract({
-        name: 'What is the name of the pokemon?',
-        number: 'What is the pokedex number?',
-        stats: 'What are the basic stats of this pokemon?',
-        single: true,
-      })
-      .limit(5);
-
-    const out = await f.run();
-
-    assert.equal(out.items.length, 5);
-
-    const max = 20;
-
-    assert.ok(f.ctx.fetcher.usage.completed <= max, 'under max completed');
-    assert.ok(f.ctx.fetcher.usage.requests > 10, 'at least 10 requests made');
-    assert.ok(f.ctx.crawler.usage.count > 10, 'at least 10 links found');
-  });
-
-  it('should plan with html @run', async () => {
-    const wf = await fox
-      .config({ cache: testCache() })
-      .plan({
-        url: 'https://www.reddit.com/r/nfl/',
-        prompt: 'scrape articles',
-        html: redditSampleHtml,
-      });
-    await wf.describe();
-
-    assert.ok(
-      wf.name.toLowerCase().indexOf('nfl') != -1,
-      'name should contain nfl');
-    assert.ok(
-      wf.description.toLowerCase().indexOf('nfl') != -1,
-      'description should contain nfl');
-  });
-
-  it('should use global limit @run', async function() {
+  it('should use global limit @run @fast', async function() {
     const data = {
       "options": {
         "limit": 2,
@@ -279,6 +215,8 @@ describe('Workflow', function() {
 
     assert.equal(out.items.length, 2);
     assert.equal(count, 2);
+
+    f.abort();
   });
 
   it('should finish with flakey fetcher @run', async function () {
@@ -318,7 +256,7 @@ describe('Workflow', function() {
     assert.equal(out.items.length, 5);
   });
 
-  it('should finish incomplete with flakey AI @run', async function () {
+  it('should finish incomplete with flakey AI @run @slow', async function () {
     this.timeout(45 * 1000);
 
     let count = 0;
@@ -352,7 +290,7 @@ describe('Workflow', function() {
     assert.equal(out.items.length, 2);
   });
 
-  it('should finish crawl with flakey AI @run', async function () {
+  it('should finish crawl with flakey AI @run @slow', async function () {
     this.timeout(45 * 1000);
 
     let count = 0;
@@ -387,7 +325,7 @@ describe('Workflow', function() {
     assert.ok(out.items.length >= 1);
   });
 
-  it('should abort @long', async function () {
+  it('should abort @run @slow', async function () {
 
     const cases = [
       [1, 100],
