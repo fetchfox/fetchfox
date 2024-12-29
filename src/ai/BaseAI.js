@@ -95,8 +95,9 @@ export const BaseAI = class {
 
     const { systemPrompt, format, cacheHint, schema } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
+    let result;
     try {
-      const result = await this.cache.get(key);
+      result = await this.cache.get(key);
     } catch (e) {
       logger.error(`${this} Error while getting cache: ${e}`);
       return;
