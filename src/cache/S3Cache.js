@@ -51,10 +51,6 @@ export const S3Cache = class {
   }
 
   async get(key) {
-    if (Math.random() < 0.05) {
-      throw new Error('test random error');
-    }
-
     const objectKey = `${this.prefix}${key}`;
     let body;
     try {

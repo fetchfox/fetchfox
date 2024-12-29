@@ -231,12 +231,6 @@ export const BaseStep = class {
           } catch (e) {
             logger.error(`{this} Promise queue gave an error: ${e}`);
           }
-
-          // if (p) {
-          //   p.catch((e) => {
-          //     logger.error(`{this} Promise queue gave an error: ${e}`);
-          //   });
-          // }
         }
 
         await Promise.all(all).catch((e) => {
