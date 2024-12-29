@@ -8,9 +8,9 @@ import { testCache } from '../lib/util.js';
 describe('github.com', function() {
   this.timeout(10 * 1000);
 
-  it('should do basic scrape @run', async () => {
+  it('should do basic scrape @run @fast', async () => {
     let countPartials = 0;
-    const out = await fox
+    const wf = await fox
       .config({
         cache: testCache(),
         fetcher: [
@@ -31,7 +31,9 @@ describe('github.com', function() {
           loc: 'loc changed, NUMBER only',
         },
         single: true,
-      })
+      });
+
+    const out = await wf
       .run(null, (partial) => {
         const { item, results } = partial;
         countPartials++;
@@ -51,6 +53,8 @@ describe('github.com', function() {
     }
 
     assert.ok(locTotal >= 10, 'loc total');
+
+    wf.abort();
   });
 
   it('should do complex scrape @disabled', async () => {
