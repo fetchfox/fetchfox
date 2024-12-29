@@ -6,6 +6,7 @@ import {
 
 export const testCache = () => {
   const params = {
+    region: process.env.S3_CACHE_REGION || 'us-west-2',
     bucket: process.env.S3_CACHE_BUCKET || 'ffcloud',
     prefix: 'test-cache/',
     acl: 'public-read',
