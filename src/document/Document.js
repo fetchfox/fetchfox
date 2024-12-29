@@ -289,7 +289,7 @@ async function fetchRetry(url, options={}, retries=3, delay=4000) {
     } catch (e) {
       lastError = e;
       if (attempt < retries) {
-        const thisDelay = attempt * delay;
+        const thisDelay = (attempt + 1) * delay;
         logger.warn(`Retrying... attempt ${attempt + 1} delay=${thisDelay}: ${e}`);
         await new Promise((ok) => setTimeout(ok, attempt * thisDelay));
       }

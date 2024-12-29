@@ -229,7 +229,12 @@ export const BaseFetcher = class {
       const docs = [];
       for (const data of result) {
         const doc = new Document();
-        doc.loadData(data);
+        try {
+          await doc.loadData(data);
+        } catch (e) {
+          logger.error(`${this} Error loading data ${doc}: ${e}`);
+          return;
+        }
         docs.push(doc);
       }
       logger.debug(`${this} Fetch cache loaded ${docs.map(d => ''+d).join(', ')}`);

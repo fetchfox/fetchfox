@@ -9,6 +9,17 @@ import { BaseFetcher } from './BaseFetcher.js';
 import { analyzePagination } from './prompts.js';
 import { createChannel } from '../util.js';
 
+process.on('unhandledRejection', (e, promise) => {
+  if (e.name == 'TargetClosedError') {
+    // These exceptions occur sometimes on browser launch, and we cannot
+    // catch them in thsi process.
+    logger.error(`Ignore unhandled rejection: ${e}`);
+  } else {
+    throw e;
+  }
+});
+
+
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
