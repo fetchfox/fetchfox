@@ -22,6 +22,10 @@ export const S3Cache = class {
     });
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async set(key, val, label) {
     if (this.readOnly) {
       return;
@@ -47,6 +51,10 @@ export const S3Cache = class {
   }
 
   async get(key) {
+    if (Math.random() < 0.01) {
+      throw new Error('test random error');
+    }
+
     const objectKey = `${this.prefix}${key}`;
     let body;
     try {
