@@ -1,4 +1,3 @@
-import CryptoJS from 'crypto-js';
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 

@@ -43,11 +43,8 @@ export const BaseExtractor = class {
       url = target.url;
     } else if (target?._url) {
       url = target._url;
-    }
-
-    if (!url && typeof target?.source == 'function' && target.source() instanceof Document) {
-      yield Promise.resolve(target.source());
-      return;
+    } else if (target?._sourceUrl) {
+      url = target._sourceUrl;
     }
 
     try {
@@ -187,9 +184,22 @@ export const BaseExtractor = class {
           logger.debug(`${this} Found ${++count} items so far`);
           yield Promise.resolve(val.result);
         }
+      } catch (e) {
+        logger.error(`${this} Error while reading form results channel: ${e}`);
+        throw e;
+      }
+
+      try {
         await docsPromise;
+      } catch (e) {
+        logger.error(`${this} Error while waiting for docs promise: ${e}`);
+        throw e;
+      }
+
+      try {
         await resultsPromise;
       } catch (e) {
+        logger.error(`${this} Error while waiting for docs promise: ${e}`);
         throw e;
       }
 

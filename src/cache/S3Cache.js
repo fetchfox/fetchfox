@@ -1,16 +1,28 @@
 import { logger } from '../log/logger.js';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { Readable } from 'stream';
-
-const s3 = new S3Client();
 
 export const S3Cache = class {
   constructor(options) {
     this.bucket = options.bucket;
-    this.prefix = options.prefix || 'fetchfox-benchmarks/';
+    this.prefix = options.prefix;
+    this.prefix = options.prefix;
     this.acl = options.acl;
     this.ttls = options.ttls || { base: 2 * 3600 };
     this.readOnly = options?.readOnly;
+
+    this.s3 = new S3Client({
+      region: options.region,
+      requestHandler: new NodeHttpHandler({
+        requestTimeout: 10000,
+        httpsAgent: { maxSockets: 200 },
+      }),
+    });
+  }
+
+  toString() {
+    return `[${this.constructor.name}]`;
   }
 
   async set(key, val, label) {
@@ -22,37 +34,41 @@ export const S3Cache = class {
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
     const body = JSON.stringify(data);
     const objectKey = `${this.prefix}${key}`;
-    
-    await s3.send(new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: objectKey,
-      Body: body,
-      ACL: this.acl,
-      ContentType: 'application/json',
-    }));
-    logger.info(`Successfully set cache for key: ${this.url(objectKey)}`);
+
+    try {
+      await this.s3.send(new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: objectKey,
+        Body: body,
+        ACL: this.acl,
+        ContentType: 'application/json',
+      }));
+      logger.info(`${this} Successfully set cache for key: ${this.url(objectKey)}`);
+    } catch (e) {
+      logger.error(`${this} Error while setting cache: ${e}`);
+    }
   }
 
   async get(key) {
     const objectKey = `${this.prefix}${key}`;
-    let resp;
+    let body;
     try {
-      resp = await s3.send(new GetObjectCommand({
+      const resp = await this.s3.send(new GetObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,
       }));
+      body = await this.streamToString(resp.Body);
     } catch (e) {
       if (e.name === 'NoSuchKey') return null;
-      logger.error(`Failed get cache object ${this.url(objectKey)}: ${e}`);
+      logger.error(`${this} Failed get cache object ${this.url(objectKey)}: ${e}`);
       throw e;
     }
 
-    const body = await this.streamToString(resp.Body);
     let data;
     try {
       data = JSON.parse(body);
     } catch (e) {
-      logger.warn(`Failed to parse JSON for cache object ${this.url(objectKey)}: ${e}`);
+      logger.warn(`${this} Failed to parse JSON for cache object ${this.url(objectKey)}: ${e}`);
       this.del(key);
       return null;
     }
@@ -62,7 +78,7 @@ export const S3Cache = class {
       return null;
     }
 
-    logger.info(`Successfully got cache for key: ${this.url(objectKey)}`);
+    logger.info(`${this} Successfully got cache for key: ${this.url(objectKey)}`);
     return data.val;
   }
 
@@ -73,22 +89,25 @@ export const S3Cache = class {
 
     const objectKey = `${this.prefix}${key}`;
     try {
-      await s3.send(new DeleteObjectCommand({
+      await this.s3.send(new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,
       }));
-      logger.debug(`Successfully deleted cache for key: ${this.url(objectKey)}`);
+      logger.debug(`${this} Successfully deleted cache for key: ${this.url(objectKey)}`);
     } catch (e) {
-      if (e.name === 'NoSuchKey') return; // Key does not exist, no action needed
-      logger.error(`Failed to delete cache for key: ${this.url(objectKey)}: ${e}`);
-      throw e;
+      if (e.name === 'NoSuchKey') return;
+      logger.error(`${this} Failed to delete cache for key: ${this.url(objectKey)}: ${e}`);
     }
   }
 
   async streamToString(stream) {
     const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
+    try {
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+    } catch (e) {
+      logger.error(`${this} Error while streaming strings: ${e}`);
     }
     return Buffer.concat(chunks).toString('utf-8');
   }

@@ -10,6 +10,10 @@ export const DiskCache = class {
     fs.promises.mkdir(dirname, { recursive: true });
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async set(key, val, label) {
     const filepath = path.join(this.dirname, key);
     const ttl = this.ttls[label] || this.ttls.base || 2 * 3600;

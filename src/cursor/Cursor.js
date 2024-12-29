@@ -19,12 +19,11 @@ export const Cursor = class {
   }
 
   out(markDone) {
-    const out = JSON.parse(JSON.stringify({
+    const out = {
       done: this.done,
       items: this.items.filter(it => it._meta?.status != 'loading'),
       full: this.full,
-      context: this.ctx.dump(),
-    }));
+    };
 
     if (markDone) {
       for (const step of out.full) {
@@ -51,7 +50,6 @@ export const Cursor = class {
   }
 
   publish(id, item, stepIndex, done) {
-
     if (id) {
       // Got id, update
       if (!this._itemMap[id]) {
@@ -95,12 +93,8 @@ export const Cursor = class {
       (isLast && item._meta?.status == 'done') ||
       this.ctx.publishAllSteps);
 
-    if (this.cb && shouldPublish) {
-      this.cb({
-        ...this.out(),
-        item,
-        stepIndex,
-      });
+    if (shouldPublish) {
+      this.cb({ ...this.out(), item, stepIndex });
     }
 
     return id;
@@ -111,6 +105,7 @@ export const Cursor = class {
     this.full[stepIndex].error = message;
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
+
     return this.cb && this.cb({
       ...this.out(),
       stepIndex,

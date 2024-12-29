@@ -21,8 +21,6 @@ export const BaseStep = class {
       concurrency: args?.concurrency || Math.min(100, this.limit || 100),
       intervalCap: args?.intervalCap || 100,
       interval: args?.interval || 1,
-      timeout: args?.timeout || 5 * 60 * 1000,
-      throwOnTimeout: true,
     });
   }
 
@@ -158,7 +156,7 @@ export const BaseStep = class {
             index,
             done);
 
-          const p = await this.q.add(
+          const p = this.q.add(
             () => {
               if (cursor.ctx.signal?.aborted) {
                 return;
@@ -227,11 +225,11 @@ export const BaseStep = class {
             }
           ); // q.add
 
-          if (p) {
-            p.catch((e) => {
-              logger.error(`{this} Promise queue gave an error: ${e}`);
-            });
-            all.push(p);
+          try {
+            const task = await p;
+            all.push(task);
+          } catch (e) {
+            logger.error(`{this} Promise queue gave an error: ${e}`);
           }
         }
 

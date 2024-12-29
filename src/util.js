@@ -1,10 +1,11 @@
-import CryptoJS from 'crypto-js';
+import crypto from 'crypto';
 
 export const shuffle = (l) => {
   // Deterministic shuffle to keep prompts stable
-  const h = (v) => CryptoJS
-    .SHA256(JSON.stringify(v))
-    .toString(CryptoJS.enc.Hex);
+  const h = (v) => crypto
+    .createHash('sha256')
+    .update(JSON.stringify(v))
+    .digest('hex');
   l.sort((a, b) => h(a).localeCompare(h(b)));
   return l;
 }
@@ -119,4 +120,13 @@ export const createChannel = () => {
       }
     }
   };
+}
+
+export const shortObjHash = (obj) => {
+  const hash = crypto
+    .createHash('sha256')
+    .update(JSON.stringify(obj))
+    .digest('hex')
+    .substr(0, 16);
+  return hash;
 }
