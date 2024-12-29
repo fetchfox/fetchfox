@@ -75,8 +75,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
     }
 
+    let browser;
     try {
-      const browser = await this.launch({ timer });
+      browser = await this.launch({ timer });
     } catch (e) {
       logger.error(`${this} Caught error while launching browser: ${e}`);
       throw e;
