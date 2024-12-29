@@ -1,29 +1,20 @@
-import { S3Cache } from '../../src/cache/S3Cache.js';
+import {
+  MultiCache,
+  S3Cache,
+  DiskCache,
+} from '../../src/cache/index.js';
 
 export const testCache = () => {
-  if (!process.env.S3_CACHE_BUCKET) {
-    return null;
-  }
-
   const params = {
-    bucket: process.env.S3_CACHE_BUCKET,
+    bucket: process.env.S3_CACHE_BUCKET || 'ffcloud',
     prefix: 'test-cache/',
     acl: 'public-read',
     ttls: { base: 10 * 365 * 24 * 3600 },
     readOnly: !process.env.WRITE_TEST_CACHE,
   };
-  return new S3Cache(params);
-}
 
-export const testCacheConfig = () => {
-  return [
-    's3',
-    {
-      bucket: process.env.S3_CACHE_BUCKET,
-      prefix: 'test-cache/',
-      acl: 'public-read',
-      ttls: { base: 10 * 365 * 24 * 3600 },
-      readOnly: !process.env.WRITE_TEST_CACHE,
-    },
-  ];
+  return new MultiCache([
+    new DiskCache('.test-cache'),
+    new S3Cache(params),
+  ]);
 }
