@@ -279,7 +279,7 @@ export const Document = class {
   }
 }
 
-async function fetchRetry(url, options={}, retries=3, delay=5000) {
+async function fetchRetry(url, options={}, retries=3, delay=4000) {
   let lastError;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -289,8 +289,9 @@ async function fetchRetry(url, options={}, retries=3, delay=5000) {
     } catch (e) {
       lastError = e;
       if (attempt < retries) {
-        logger.warn(`${this} Retrying... attempt ${attempt + 1} delay=${delay}: ${e}`);
-        await new Promise((ok) => setTimeout(ok, delay));
+        const thisDelay = attempt * delay;
+        logger.warn(`Retrying... attempt ${attempt + 1} delay=${thisDelay}: ${e}`);
+        await new Promise((ok) => setTimeout(ok, attempt * thisDelay));
       }
     }
   }

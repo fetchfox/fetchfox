@@ -63,7 +63,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     timer.pop();
 
-    return p;
+    try {
+      const browser = await p;
+      return browser;
+    } catch (e) {
+      logger.error(`${this} Could not launch: ${e}`);
+      throw e;
+    }
   }
 
   async *_fetch(url, options) {
@@ -82,7 +88,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.error(`${this} Caught error while launching browser: ${e}`);
       throw e;
     }
-    logger.debug(`${this} got browser`);
+    logger.debug(`${this} Got browser`);
 
     timer.push('PlaywrightFetcher browser.newPage');
     let page;
@@ -135,7 +141,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       logger.error(`Playwright could not get from ${page}: ${e}`);
       logger.debug(`Trying to salvage results`);
-      html = await getHtmlFromError(page);
+      try {
+        html = await getHtmlFromError(page);
+      } catch (e) {
+        logger.warn(`Could not salvage results, give up: ${e}`);
+        return;
+      }
       if (!html) {
         logger.warn(`Could not salvage results, give up`);
         return;
