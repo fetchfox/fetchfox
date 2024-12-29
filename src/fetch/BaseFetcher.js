@@ -116,8 +116,7 @@ export const BaseFetcher = class {
               for await (const doc of this._fetch(url, options)) {
                 channel.send({ doc });
               }
-            }
-            catch (e) {
+            } catch (e) {
               logger.error(`${this} Caught error while getting documents: ${e}`);
               bad(e);
             }
@@ -168,12 +167,11 @@ export const BaseFetcher = class {
               .replaceAll('{id}', id)
               .replaceAll('{url}', cleanUrl);
 
-            const presignedUrl = await presignS3({
-              bucket, key, contentType: 'text/html', acl, region });
-
             try {
+              const presignedUrl = await presignS3({
+                bucket, key, contentType: 'text/html', acl, region });
               await doc.uploadHtml(presignedUrl);
-            } catch(e) {
+            } catch (e) {
               logger.error(`${this} Failed to upload ${key}: ${e}`);
             }
           }

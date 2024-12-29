@@ -2,7 +2,6 @@ import { logger } from '../log/logger.js';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { Readable } from 'stream';
-import https from 'https';
 
 export const S3Cache = class {
   constructor(options) {
@@ -96,9 +95,8 @@ export const S3Cache = class {
       }));
       logger.debug(`${this} Successfully deleted cache for key: ${this.url(objectKey)}`);
     } catch (e) {
-      if (e.name === 'NoSuchKey') return; // Key does not exist, no action needed
+      if (e.name === 'NoSuchKey') return;
       logger.error(`${this} Failed to delete cache for key: ${this.url(objectKey)}: ${e}`);
-      throw e;
     }
   }
 

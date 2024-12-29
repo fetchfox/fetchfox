@@ -19,12 +19,6 @@ export const Cursor = class {
   }
 
   out(markDone) {
-    // const out = JSON.parse(JSON.stringify({
-    //   done: this.done,
-    //   items: this.items.filter(it => it._meta?.status != 'loading'),
-    //   full: this.full,
-    // }));
-
     const out = {
       done: this.done,
       items: this.items.filter(it => it._meta?.status != 'loading'),

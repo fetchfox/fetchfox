@@ -301,7 +301,6 @@ export const BaseStep = class {
       done = true;
     };
     if (cursor.ctx.signal){
-      logger.debug(`${this} Adding abort event listener`);
       cursor.ctx.signal.addEventListener('abort', abortListener);
     }
     const removeAbortListener = () => {
