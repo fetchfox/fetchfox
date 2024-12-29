@@ -191,7 +191,7 @@ export const BaseFetcher = class {
       if (docs.length) {
         let all;
         try {
-          all = await Promise.all(docs.map(doc => doc.dump()));g
+          all = await Promise.all(docs.map(doc => doc.dump()));
         } catch (e) {
           logger.error(`${this} Error while dumping documents for cache, ignore: ${e}`);
           return;
