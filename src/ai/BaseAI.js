@@ -95,7 +95,12 @@ export const BaseAI = class {
 
     const { systemPrompt, format, cacheHint, schema } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
-    const result = await this.cache.get(key);
+    try {
+      const result = await this.cache.get(key);
+    } catch (e) {
+      logger.error(`${this} Error while getting cache: ${e}`);
+      return;
+    }
     const outcome = result ? '(hit)' : '(miss)';
     logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
     return result;
@@ -122,11 +127,22 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
-    const tokens = await this.countTokens(prompt);
+    let tokens;
+    try {
+      tokens = await this.countTokens(prompt);
+    } catch (e) {
+      logger.error(`${this} Error while counting tokens for stream: ${e}`);
+      return;
+    }
     logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const { format, cacheHint, schema } = Object.assign({ format: 'text' }, options);
-    const cached = await this.getCache(prompt, options);
+    let cached;
+    try {
+      cached = await this.getCache(prompt, options);
+    } catch (e) {
+      logger.error(`${this} Error while getting cache: ${e}`);
+    }
     if (cached) {
       if (format == 'jsonl') {
         for (const r of cached) {
@@ -219,7 +235,13 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
-    const tokens = await this.countTokens(prompt);
+    let tokens;
+    try {
+      tokens = await this.countTokens(prompt);
+    } catch (e) {
+      logger.error(`${this} Error while counting tokens for ask: ${e}`);
+      return;
+    }
     logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const before = {

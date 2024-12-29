@@ -119,7 +119,7 @@ export const BaseFetcher = class {
             }
             catch (e) {
               logger.error(`${this} Caught error while getting documents: ${e}`);
-              bad(e)
+              bad(e);
             }
             finally {
               channel.end();
@@ -213,10 +213,12 @@ export const BaseFetcher = class {
     if (!this.cache) return;
 
     const key = this.cacheKey(url, options);
+    let result
     try {
-      const result = await this.cache.get(key);
+      result = await this.cache.get(key);
     } catch (e) {
       logger.error(`${this} Error getting cache ${key}: ${e}`);
+      return;
     }
     const hit = Array.isArray(result) && result.length > 0;
     const outcome = hit ? '(hit)' : '(miss)';
