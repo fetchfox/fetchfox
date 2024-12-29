@@ -35,13 +35,24 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
       });
     });
 
-    const data = await doc.dump();
+    let data;
+    try {
+      data = await doc.dump();
+    } catch (e) {
+      logger.error(`${this} Error getting dump ${doc}: ${e}`);
+      throw e;
+    }
     const html = pretty(root.toString(), { ocd: true });
     data.body = html;
     data.html = html;
 
     const min = new Document();
-    await min.loadData(data);
+    try {
+      await min.loadData(data);
+    } catch (e) {
+      logger.error(`${this} Error loading data ${doc}: ${e}`);
+      throw e;
+    }
 
     min.parse();
 
