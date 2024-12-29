@@ -6,7 +6,7 @@ import { largeHtml } from './largeHtml.js';
 
 describe('TagRemovingMinimizer', function () {
 
-  it('should remove tags simple @run', async () => {
+  it('should remove tags simple @run @fast', async () => {
     const min = new TagRemovingMinimizer({
       removeTags: ['script', 'style']
     });
@@ -19,7 +19,7 @@ describe('TagRemovingMinimizer', function () {
     assert.ok(docMin.html.indexOf('keep') != -1);
   });
 
-  it('should remove tags large @run', async () => {
+  it('should remove tags large @run @fast', async () => {
     const min = new TagRemovingMinimizer({
       removeTags: ['script', 'style', 'svg', 'meta']
     });

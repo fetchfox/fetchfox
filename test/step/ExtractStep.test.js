@@ -4,9 +4,7 @@ import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('ExtractStep', function() {
-  this.timeout(60 * 1000);
-
-  it('should supplement items with subsequent extractions @run', async () => {
+  it('should supplement items with subsequent extractions @run @fast', async () => {
     const f = await fox
       .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
@@ -34,6 +32,7 @@ describe('ExtractStep', function() {
     for (const item of out.items) {
       assert.ok(Object.keys(item).includes(...expectedKeys));
     }
-  });
 
+    f.abort();
+  });
 });
