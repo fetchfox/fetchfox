@@ -60,25 +60,24 @@ export const CodeGenExtractor = class extends BaseExtractor {
       this.state.examples
         .slice(0, num)
         .map((example) => {
-          return new Promise((ok) => {
-            this.getDocs(example)
-              .then(gen => {
-                const p = gen.next();
-                return [p, gen]
-              })
-              .then(([result, gen]) => {
-                gen.return().catch((e) => {
-                  logger.error(`${this} Returning generator gave: ${e}`);
-                });
-                return result.value;
-              })
-              .then((doc) => {
-                const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
-                const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
-                ok(minDoc);
+          return this.getDocs(example)
+            .then(gen => {
+              const p = gen.next();
+              return [p, gen]
+            })
+            .then(([result, gen]) => {
+              // eslint-disable-next-line promise/no-nesting
+              gen.return().catch((e) => {
+                logger.error(`${this} Returning generator gave: ${e}`);
               });
-          });
-        }));
+              return result.value;
+            })
+            .then((doc) => {
+              const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
+              return new TagRemovingMinimizer(removeTags).min(doc);
+            })
+        })
+    );
 
     logger.debug(`Getting sample for code generation`);
     const sampleSize = 5;

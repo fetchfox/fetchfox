@@ -10,8 +10,10 @@
     "./server": "./src/server.js"
   },
   "scripts": {
+    "lint": "eslint src/",
     "test": "mocha test/**/*.test.js -g @fast",
-    "bench": "mocha benchmark/**/*.bench.js -g @bench"
+    "bench": "mocha benchmark/**/*.bench.js -g @bench",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -27,7 +29,9 @@
     "@eslint/js": "^9.17.0",
     "chai": "^5.1.1",
     "eslint": "^9.17.0",
+    "eslint-plugin-promise": "^7.2.1",
     "globals": "^15.14.0",
+    "husky": "^9.1.7",
     "mocha": "^10.7.3"
   },
   "dependencies": {
