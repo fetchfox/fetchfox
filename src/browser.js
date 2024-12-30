@@ -1,2 +1,2 @@
-export { Document } from 'src/document/Document.js';
-export { TagRemovingMinimizer } from 'src/min/TagRemovingMinimizer.js';
+export { Document } from './document/Document.js';
+export { TagRemovingMinimizer } from './min/TagRemovingMinimizer.js';
