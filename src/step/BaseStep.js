@@ -241,12 +241,10 @@ export const BaseStep = class {
           .then(tasks => Promise.all(tasks))
           .then(() => {
             completed += b.length;
-
-            if (done) {
-              ok();
-            } else {
+            if (!done) {
               done ||= maybeOk();
             }
+            return;
           })
           .catch((e) => {
             if (e.name == 'AbortError') {
@@ -303,8 +301,7 @@ export const BaseStep = class {
       if (parent) {
         parent.run(cursor, steps, index - 1);
       } else {
-        this.process(cursor, [], (output) => cursor.publish(output, index))
-          .then(ok);
+        ok(this.process(cursor, [], (output) => cursor.publish(output, index)));
       }
     }); // end processPromise
 
