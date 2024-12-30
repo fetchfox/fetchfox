@@ -31,54 +31,6 @@ export const isPlainObject = (obj) => (
   (obj.constructor === Object || typeof obj.constructor === 'undefined')
 );
 
-let _WebSocket = null;
-export async function getWebSocket() {
-  if (_WebSocket) return _WebSocket;
-
-  try {
-    _WebSocket = WebSocket;
-    return _WebSocket;
-  } catch(e) {
-  }
-
-  try {
-    _WebSocket = window.WebSocket;
-    return _WebSocket;
-  } catch(e) {
-  }
-
-  // Load it from module
-  const wsModule = await import('ws');
-  _WebSocket = wsModule.default;
-  return _WebSocket;
-}
-
-export const createBlocker = () => {
-  let doneResolvers = [];
-  let isDone = false;
-
-  return {
-    wait() {
-      if (isDone) {
-        return Promise.resolve();
-      }
-      return new Promise((resolve) => {
-        doneResolvers.push(resolve);
-      });
-    },
-    done() {
-      isDone = true;
-      while (doneResolvers.length > 0) {
-        const resolve = doneResolvers.shift();
-        resolve();
-      }
-    },
-    reset() {
-      isDone = false;
-    },
-  };
-}
-
 export const createChannel = () => {
   const messages = [];
   const resolvers = [];
