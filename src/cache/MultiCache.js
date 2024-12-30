@@ -61,7 +61,7 @@ export const MultiCache = class {
     logger.info(`${this} Delete from caches ${key}: ${this.caches.map(c => '' + c)}`);
 
     try {
-      await Promise.allSettled(this.caches.map(c => c.del(key, val, label)));
+      await Promise.allSettled(this.caches.map(c => c.del(key)));
     } catch (e) {
       logger.error(`${this} Error while deleting from caches: ${e}`);
       throw e;
