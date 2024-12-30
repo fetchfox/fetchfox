@@ -46,15 +46,11 @@ export const Document = class {
   }
 
   async uploadHtml(presignedUrl) {
-    try {
-      await fetchRetry(presignedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'text/html' },
-        body: this.html,
-      });
-    } catch (e) {
-      throw e;
-    }
+    await fetchRetry(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/html' },
+      body: this.html,
+    });
     this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
     logger.debug(`${this} Uploaded HTML to ${this.htmlUrl}`);
     return this.htmlUrl;

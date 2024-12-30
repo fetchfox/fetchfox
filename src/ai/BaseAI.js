@@ -166,7 +166,7 @@ export const BaseAI = class {
     let result;
     try {
 
-      let retries = options?.retries ?? 2;
+      let retries = Math.min(this.maxRetries, options?.retries ?? 2);
       let done = false;
 
       while (!done) {
@@ -250,7 +250,7 @@ export const BaseAI = class {
     };
 
     let result;
-    let retries = 3;
+    let retries = Math.min(this.maxRetries, options?.retries ?? 2);
     const retryMsec= 5000;
     while (true) {
       try {
