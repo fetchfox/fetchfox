@@ -6,8 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./web": "./src/web.js",
-    "./server": "./src/server.js"
+    "./browser": "./src/browser.js"
   },
   "scripts": {
     "lint": "eslint src/",
