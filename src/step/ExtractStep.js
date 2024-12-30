@@ -1,5 +1,4 @@
 import { logger } from '../log/logger.js';
-import { getExtractor } from '../extract/index.js';
 import { CodeGenExtractor } from '../extract/CodeGenExtractor.js';
 import { BaseStep } from './BaseStep.js';
 import { isPlainObject } from '../util.js';

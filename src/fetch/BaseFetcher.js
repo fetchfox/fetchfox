@@ -87,6 +87,19 @@ export const BaseFetcher = class {
 
     const docs = [];
 
+    const abortListener = () => {
+      this.q.clear();
+    }
+
+    if (this.signal) {
+      if (this.signal.aborted) {
+        abortListener();
+        return;
+      }
+
+      this.signal.addEventListener('abort', abortListener);
+    }
+
     try {
       try {
         new URL(url);
@@ -110,6 +123,11 @@ export const BaseFetcher = class {
       const channel = createChannel();
       const p = this.q.add(
         () => {
+          // We should replace `createChannel` with another library. Until then,
+          // allow async Promise executor here to support an async generator
+          // feeding into a channel.
+          // See https://github.com/fetchfox/fetchfox/issues/42
+          /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok, bad) => {
             logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
             try {
@@ -125,6 +143,7 @@ export const BaseFetcher = class {
             }
             ok();
           });
+          /* eslint-enable no-async-promise-executor */
         },
         { priority });
 
@@ -185,6 +204,9 @@ export const BaseFetcher = class {
       }
 
     } finally {
+      if (this.signal) {
+        this.signal.removeEventListener('abort', abortListener);
+      }
       const took = (new Date()).getTime() - start;
       this.usage.runtime += took;
 

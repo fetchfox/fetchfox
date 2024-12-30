@@ -2,7 +2,6 @@ import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
 import { getMinimizer } from '../min/index.js';
-import { DefaultFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
 import { createChannel } from '../util.js';
 
@@ -73,10 +72,8 @@ export const BaseExtractor = class {
 
     const seen = {};
     let done = false;
-    let error;
 
     try {
-      const docs = [];
       const fetchOptions = options?.fetchOptions || {};
       const docsOptions = { questions, maxPages: options?.maxPages, ...fetchOptions };
 
@@ -84,6 +81,9 @@ export const BaseExtractor = class {
       const resultsChannel = createChannel();
 
       // Start documents worker
+
+      // See https://github.com/fetchfox/fetchfox/issues/42
+      /* eslint-disable no-async-promise-executor */
       const docsPromise = new Promise(async (ok, bad) => {
         logger.info(`${this} Started pagination docs worker`);
         const gen = this.getDocs(target, docsOptions);
@@ -104,8 +104,12 @@ export const BaseExtractor = class {
           docsChannel.end();
         }
       }); // end docsPromise
+      /* eslint-enable no-async-promise-executor */
 
       // Get documents, and start extraction worker for each
+
+      // See https://github.com/fetchfox/fetchfox/issues/42
+      /* eslint-disable no-async-promise-executor */
       const resultsPromise = new Promise(async (ok, bad) => {
         const workerPromises = [];
 
@@ -170,6 +174,7 @@ export const BaseExtractor = class {
           resultsChannel.end();
         }
       }); // end resultsPromise
+      /* eslint-enable no-async-promise-executor */
 
       // Receive and yield results
       let count = 0;
@@ -205,11 +210,6 @@ export const BaseExtractor = class {
 
     } finally {
       logger.info(`${this} done extracting ${target}`);
-
-      if (error) {
-        logger.error(`${this} Throwing caught error ${error}`);
-        throw error;
-      }
 
       done = true;
       const took = (new Date()).getTime() - start;

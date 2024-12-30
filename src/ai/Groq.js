@@ -1,7 +1,5 @@
 import { Groq as GroqLib } from 'groq-sdk';
-import { logger } from '../log/logger.js';
 import { BaseAI } from './BaseAI.js';
-import { parseAnswer } from './util.js';
 
 export const Groq = class extends BaseAI {
   static apiKeyEnvVariable = 'GROQ_API_KEY';
@@ -32,7 +30,7 @@ export const Groq = class extends BaseAI {
     return { model, message, usage };
   }
 
-  async *inner(prompt, options) {
+  async *inner(prompt) {
     const groq = new GroqLib({ apiKey: this.apiKey });
     const completion = await groq.chat.completions.create({
       model: this.model,

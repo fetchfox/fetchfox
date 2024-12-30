@@ -1,6 +1,5 @@
 import { Item } from '../item/Item.js';
 import { logger } from '../log/logger.js';
-import { DefaultFetcher } from '../fetch/index.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { scrapeOnce } from './prompts.js';
 
@@ -12,8 +11,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   async *_run(doc, questions, options) {
     logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    const { stream } = options || {};
-    let { description, limit, single } = options || {};
+    let { description, single } = options || {};
     let extraRules = '';
     if (single) {
       extraRules = `These rules OVERRIDE previous instructions:

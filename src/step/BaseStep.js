@@ -32,7 +32,7 @@ export const BaseStep = class {
     return nameMap[this.constructor.name];
   }
 
-  args(a) {
+  args() {
     const info = stepDescriptionsMap[this.name()];
     const args = {};
     for (const key of Object.keys(info.args)) {
@@ -135,7 +135,7 @@ export const BaseStep = class {
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
     // 3) There is a next step, and next step is done (regardless 
-    const processPromise = new Promise(async (ok) => {
+    const processPromise = new Promise((ok) => {
       let batch = [];
       const batchSize = this.batchSize;
 
@@ -144,8 +144,7 @@ export const BaseStep = class {
         batch = [];
         received += b.length;
 
-        const all = [];
-
+        const qPromises = [];
         for (const item of b) {
           const meta = { status: 'loading', sourceUrl: item._url };
 
@@ -226,8 +225,9 @@ export const BaseStep = class {
           ); // q.add
 
           try {
-            const task = await p;
-            all.push(task);
+            // const task = await p;
+            // all.push(task);
+            qPromises.push(p);
           } catch (e) {
             if (e.name == 'AbortError') {
               logger.debug(`${this} Promise queue task aborted: ${e}`);
@@ -237,17 +237,25 @@ export const BaseStep = class {
           }
         }
 
-        await Promise.all(all).catch((e) => {
-          logger.error(`${this} Got error while waiting for all: ${e}`);
-        });
+        return Promise.all(qPromises)
+          .then(tasks => Promise.all(tasks))
+          .then(() => {
+            completed += b.length;
 
-        completed += b.length;
+            if (done) {
+              ok();
+            } else {
+              done ||= maybeOk();
+            }
+          })
+          .catch((e) => {
+            if (e.name == 'AbortError') {
+              return;
+            }
+            logger.error(`${this} Got error while waiting for all: ${e}`);
+          });
 
-        if (done) {
-          ok();
-        } else {
-          done ||= maybeOk();
-        }
+
       }; // end processBatch
 
       const maybeOk = () => {
@@ -295,8 +303,8 @@ export const BaseStep = class {
       if (parent) {
         parent.run(cursor, steps, index - 1);
       } else {
-        await this.process(cursor, [], (output) => cursor.publish(output, index));
-        ok();
+        this.process(cursor, [], (output) => cursor.publish(output, index))
+          .then(ok);
       }
     }); // end processPromise
 

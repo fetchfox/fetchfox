@@ -56,7 +56,6 @@ export const Template = class {
   async renderMulti(context, flexField, ai) {
     const copy = { ...context };
     const prompts = [];
-    const offset = 0;
     while (true) {
       const { prompt, bytesUsed, done } = await this.renderCapped(
         copy, flexField, ai);

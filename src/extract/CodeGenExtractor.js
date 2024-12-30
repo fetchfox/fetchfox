@@ -3,14 +3,12 @@ import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import {
-  iterative,
   findMultiDescription,
   codeGenMulti,
   codeGenFeedback,
   codeGenIterate,
 } from './prompts.js';
 import { getExtractor } from './index.js';
-import { getAI } from '../ai/index.js';
 import * as nodeHtmlParser from 'node-html-parser';
 import { createBlocker } from '../util.js';
 
@@ -62,13 +60,23 @@ export const CodeGenExtractor = class extends BaseExtractor {
       this.state.examples
         .slice(0, num)
         .map((example) => {
-          return new Promise(async (ok) => {
-            const gen = await this.getDocs(example);
-            const doc = (await gen.next()).value;
-            gen.return();
-            const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
-            const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
-            ok(minDoc);
+          return new Promise((ok) => {
+            this.getDocs(example)
+              .then(gen => {
+                const p = gen.next();
+                return [p, gen]
+              })
+              .then(([result, gen]) => {
+                gen.return().catch((e) => {
+                  logger.error(`${this} Returning generator gave: ${e}`);
+                });
+                return result.value;
+              })
+              .then((doc) => {
+                const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
+                const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
+                ok(minDoc);
+              });
           });
         }));
 
@@ -277,7 +285,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
     return { fn, code };
   }
 
-  async *_run(doc, questions, options) {
+  async *_run(doc, questions) {
     if (!this.state) {
       throw new Error('Code gen must learn a state before running');
     }

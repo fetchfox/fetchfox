@@ -50,7 +50,7 @@ export const parseAnswer = (text, format) => {
 
       try {
         result.push(trimJson(JSON.parse(line))) }
-      catch(e) {
+      catch {
         leftover = line;
       }
     }
@@ -60,7 +60,7 @@ export const parseAnswer = (text, format) => {
     try {
       const result = JSON.parse(clean);
       return result;
-    } catch(e) {
+    } catch {
       return {};
     }
 

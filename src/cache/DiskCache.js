@@ -22,6 +22,9 @@ export const DiskCache = class {
   }
 
   async get(key) {
+
+    logger.trace(`path: ${path}`);
+
     const filepath = path.join(this.dirname, key);
     let file;
     try {

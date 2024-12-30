@@ -63,7 +63,7 @@ export const BaseAI = class {
       this.maxTokens = 10000;
     }
 
-    if (options?.maxTokens) this.maxTokens = options.maxTokens;
+    if (options?.maxTokens) this.maxTokens = maxTokens;
 
     this.signal = options?.signal;
   }
@@ -137,7 +137,7 @@ export const BaseAI = class {
     }
     logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
-    const { format, cacheHint, schema } = Object.assign({ format: 'text' }, options);
+    const { format, cacheHint } = Object.assign({ format: 'text' }, options);
     let cached;
     try {
       cached = await this.getCache(prompt, options);
@@ -158,11 +158,11 @@ export const BaseAI = class {
     let usage = { input: 0, output: 0, total: 0 };
     const start = (new Date()).getTime();
 
+    let err;
     let answer = '';
     let buffer = '';
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
 
-    let err;
     let result;
     try {
 
@@ -228,7 +228,6 @@ export const BaseAI = class {
 
       if (err) {
         logger.warn(`${this} Error during AI stream, not caching`);
-        throw err;
       } else {
         this.setCache(prompt, options, result);
       }
@@ -337,10 +336,4 @@ export const BaseAI = class {
       };
     }
   }
-}
-
-const isCritical = (e) => {
-  // Quick hacky check to see if it is about token length
-  const str = ('' + e).toLowerCase();
-  return !(str.includes('tokens') && str.includes('max'));
 }

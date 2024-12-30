@@ -13,12 +13,7 @@ export const BaseMinimizer = class {
   }
 
   async cacheKey(doc, options) {
-    let dump;
-    try {
-      dump = await doc.dump();
-    } catch (e) {
-      throw e;
-    }
+    const dump = await doc.dump();
     const hash = shortObjHash({ doc: dump, options });
     return `min-${this.constructor.name}-${doc.url.replace(/\//g, '-').substr(0, 100)}-${hash}`;
   }
@@ -29,7 +24,7 @@ export const BaseMinimizer = class {
 
     let key;
     try {
-      key = this.cacheKey(doc, options);
+      key = await this.cacheKey(doc, options);
     } catch (e) {
       logger.error(`${this} Error getting cache key ${doc}: ${e}`);
       return;
@@ -80,7 +75,7 @@ export const BaseMinimizer = class {
     try {
       cached = await this.getCache(doc, cacheOptions);
     } catch (e) {
-      logger.error(`${this} Error getting cache ${key}: ${e}`);
+      logger.error(`${this} Error getting cache: ${e}`);
     }
     if (cached) return cached;
     if (!doc) return;

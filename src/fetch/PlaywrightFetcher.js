@@ -190,22 +190,35 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _abortable(promise) {
-    const resultPromise = new Promise(async (ok, bad) => {
-      let result;
-      try {
-        result = await promise;
-      } catch (e) {
-        if (this.signal.aborted) {
-          ok({ aborted: true });
-          return;
-        }
-
-        logger.error(`${this} Abortable got error: ${e}`);
-        bad(e);
-      }
-
-      ok({ aborted: false, result });
+    const resultPromise = new Promise((ok, bad) => {
+      promise
+        .then((result) => {
+          ok({ aborted: false, result });
+        })
+        .catch((e) => {
+          if (this.signal.aborted) {
+            ok({ aborted: true });
+            return;
+          }
+          logger.error(`${this} Abortable got error: ${e}`);
+          bad(e);
+        });
     });
+
+    // const resultPromise = new Promise(async (ok, bad) => {
+    //   let result;
+    //   try {
+    //     result = await promise;
+    //   } catch (e) {
+    //     if (this.signal.aborted) {
+    //       ok({ aborted: true });
+    //       return;
+    //     }
+    //     logger.error(`${this} Abortable got error: ${e}`);
+    //     bad(e);
+    //   }
+    //   ok({ aborted: false, result });
+    // });
 
     if (!this.signal) {
       return resultPromise;
@@ -345,6 +358,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
         try {
           await page.evaluate(fn);
+          await new Promise(ok => setTimeout(ok, 40000));
+
+          console.log('url after pagination:', page.url());
+
         } catch (e) {
           if (fnIndex >= fns.length) {
             logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
@@ -441,6 +458,11 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
         content = '[iframe unavailable]';
       }
 
+
+      // Turn off linter for undefined variables because this code
+      // runs in Playwright's browser context, and has document and
+      // window available without declaration.
+      /* eslint-disable no-undef */
       const evalPromise = page.evaluate(({ index, content }) => {
         const iframes = document.querySelectorAll('iframe');
         const iframe = iframes[index];
@@ -460,6 +482,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
           iframe.replaceWith(div);
         }
       }, { index: i, content });
+      /* eslint-enable no-undef */
 
       try {
         await evalPromise;
@@ -485,6 +508,9 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 }
 
 const getHtmlFromError = async (page) => {
+  // Disable undefined variable linting for document variables
+  // which is available in Playwright's browser context.
+  /* eslint-disable no-undef */
   try {
     logger.debug(`Get HTML from error result on ${page.url()}`);
     const html = await page.evaluate(() => document.documentElement.outerHTML);
@@ -493,4 +519,5 @@ const getHtmlFromError = async (page) => {
     logger.error(`Failed to get HTML from error result, got another error: ${e}`);
     return null;
   }
+  /* eslint-enable no-undef */
 }

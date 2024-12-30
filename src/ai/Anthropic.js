@@ -1,7 +1,5 @@
 import AnthropicLib from '@anthropic-ai/sdk';
-import { logger } from '../log/logger.js';
 import { BaseAI } from './BaseAI.js';
-import { parseAnswer, sleep } from './util.js';
 
 export const Anthropic = class extends BaseAI {
   static apiKeyEnvVariable = 'ANTHROPIC_API_KEY';
@@ -55,7 +53,7 @@ export const Anthropic = class extends BaseAI {
     return { id, model, message, usage };
   }
 
-  async *inner(prompt, options) {
+  async *inner(prompt) {
     const anthropic = new AnthropicLib({ apiKey: this.apiKey });
     const completion = await anthropic.messages.create({
       max_tokens: this.maxTokensOut,
