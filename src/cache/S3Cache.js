@@ -1,7 +1,6 @@
 import { logger } from '../log/logger.js';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from "@smithy/node-http-handler";
-import { Readable } from 'stream';
 
 export const S3Cache = class {
   constructor(options) {

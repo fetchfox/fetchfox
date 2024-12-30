@@ -1,5 +1,4 @@
 import { logger } from '../log/logger.js';
-import { stepNames } from '../step/info.js';
 import { isPlainObject } from '../util.js';
 
 export const BaseWorkflow = class {
@@ -88,20 +87,21 @@ export const BaseWorkflow = class {
       }
     };
 
-    const end = new Promise((ok, err) => {
-      this.run(
-        args,
-        (r) => {
-          if (r.item) {
-            buffer.push(r.item);
-          }
-        })
-        .then((out) => {
-          done = true;
-          ok(out.items);
-        })
-        .catch(err);
-    });
+    const end = this.run(
+      args,
+      (r) => {
+        if (r.item) {
+          buffer.push(r.item);
+        }
+      })
+      .then((out) => {
+        done = true;
+        return out.items;
+      })
+      .catch((e) => {
+        logger.error(`${this} Error while running workflow: ${e}`);
+        throw e;
+      });
 
     const seen = [];
 

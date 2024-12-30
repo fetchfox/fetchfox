@@ -45,7 +45,6 @@ export const Planner = class {
     logger.debug(`Plan from array: ${stepsInput}`);
 
     const objs = [];
-    const stepsJson = [];
 
     const stringify = (input) => {
       if (typeof input == 'string') {

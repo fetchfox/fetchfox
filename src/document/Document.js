@@ -25,16 +25,19 @@ export const Document = class {
     };
 
     if (options?.presignedUrl) {
-      logger.info(`Dumping to presigned URL ${options?.presignedUrl}`);
-      const start = (new Date()).getTime();
-      const htmlUrl = await this.uploadHtml(options.presignedUrl);
-      const took = (new Date()).getTime() - start;
-      logger.debug(`Uploaded document to presigned URL, took=${took} msec`);
+      logger.info(`${this} Dumping to presigned URL ${options?.presignedUrl}`);
+      let htmlUrl;
+      try {
+        htmlUrl = await this.uploadHtml(options.presignedUrl);
+        data.htmlUrl = htmlUrl;
+        logger.debug(`${this} Uploaded document to presigned URL`);
+      } catch (e) {
+        logger.error(`${this} Error uploading HTML to presigned URL: ${e}`);
+      }
       delete data.body;
       delete data.html;
       delete data.text;
       delete data.links;
-      data.htmlUrl = htmlUrl;
     }
     if (this.req) {
       data.req = this.req;
@@ -49,7 +52,7 @@ export const Document = class {
       body: this.html,
     });
     this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
-    logger.debug(`Uploaded HTML to ${this.htmlUrl}`);
+    logger.debug(`${this} Uploaded HTML to ${this.htmlUrl}`);
     return this.htmlUrl;
   }
 
@@ -68,9 +71,14 @@ export const Document = class {
     }
 
     if (data.htmlUrl) {
-      logger.debug(`Loading HTML url ${data.htmlUrl}`);
-      const resp = await fetchRetry(data.htmlUrl);
-      await this.read(resp, null, null, data);
+      logger.debug(`${this} Loading HTML url ${data.htmlUrl}`);
+      try {
+        const resp = await fetchRetry(data.htmlUrl);
+        await this.read(resp, null, null, data);
+      } catch (e) {
+        logger.error(`${this} Error loading HTML from ${data.htmlUrl}: ${e}`);
+        throw e;
+      }
     }
   }
 
@@ -81,11 +89,16 @@ export const Document = class {
     } else {
       this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
     }
-    logger.info(`Loading document from response ${this.url}`);
+    logger.info(`${this} Loading document from response ${this.url}`);
     const start = (new Date()).getTime();
-    this.body = await resp.text();
+    try {
+      this.body = await resp.text();
+    } catch (e) {
+      logger.error(`${this} Error reading body: ${e}`);
+      throw e;
+    }
     const tookRead = (new Date()).getTime() - start;
-    logger.debug(`Done reading body for ${this.url}, took ${tookRead/1000} sec and got ${this.body.length} bytes`);
+    logger.debug(`${this} Done reading body for ${this.url}, took ${tookRead/1000} sec and got ${this.body.length} bytes`);
 
     let respHeaders = {};
     if (typeof resp.headers == 'function') {
@@ -101,7 +114,7 @@ export const Document = class {
     this.resp = {
       url: this.url,
       status: typeof resp.status == 'function' ? resp.status() : resp.status,
-      status: typeof resp.statusText == 'function' ? resp.statusText() : resp.statusText,
+      statusText: typeof resp.statusText == 'function' ? resp.statusText() : resp.statusText,
       headers: respHeaders,
     };
 
@@ -226,7 +239,7 @@ export const Document = class {
         try {
           url = new URL(href, this.url);
         } catch (e) {
-          logger.warn(`Skipping invalid link: ${this.url} href=${href} url=${this.url} html=${html.substr(0, 40)}: ${e}`);
+          logger.warn(`${this} Skipping invalid link: ${this.url} href=${href} url=${this.url} html=${html.substr(0, 40)}: ${e}`);
           continue;
         }
 
@@ -251,18 +264,18 @@ export const Document = class {
 
   requireHtml() {
     if (this.contentType != 'text/html') {
-      logger.error('Can only parse links for HTML');
+      logger.error('${this} Can only parse links for HTML');
       return;
     }
 
     if (!this.html) {
-      logger.error('No HTML');
+      logger.error('${this} No HTML');
       return;
     }
   }
 }
 
-async function fetchRetry(url, options={}, retries=3, delay=5000) {
+async function fetchRetry(url, options={}, retries=3, delay=4000) {
   let lastError;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -272,8 +285,9 @@ async function fetchRetry(url, options={}, retries=3, delay=5000) {
     } catch (e) {
       lastError = e;
       if (attempt < retries) {
-        logger.debug(`[Document] Retrying... attempt ${attempt + 1}`);
-        await new Promise((ok) => setTimeout(ok, delay));
+        const thisDelay = (attempt + 1) * delay;
+        logger.warn(`Retrying... attempt ${attempt + 1} delay=${thisDelay}: ${e}`);
+        await new Promise((ok) => setTimeout(ok, attempt * thisDelay));
       }
     }
   }

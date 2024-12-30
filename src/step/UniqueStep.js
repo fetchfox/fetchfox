@@ -25,7 +25,7 @@ export const UniqueStep = class extends BaseStep {
     this.seen = {};
   }
 
-  async process({ cursor, item }, cb) {
+  async process({ item }, cb) {
     const fields = this.fields || Object.keys(item).sort();
     const val = this.fields.map(f => item[f] || '(not found)').join('_');
     if (this.seen[val]) {

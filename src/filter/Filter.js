@@ -18,7 +18,6 @@ export const Filter = class {
     const maxBytes = this.ai.maxTokens / 2;
     const chunked = chunkList(copy, maxBytes);
 
-    let matches = [];
     let count = 0;
 
     for (let i = 0; i < chunked.length; i++) {
@@ -29,10 +28,8 @@ export const Filter = class {
       });
 
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
-      for await (const { delta, usage } of stream) {
-        const matchId = delta._ffid;
+      for await (const { delta } of stream) {
         for (let i = 0; i < copy.length; i++) {
-          const orig = items[i];
           const data = copy[i];
           if (data._ffid == delta._ffid) {
             count++;

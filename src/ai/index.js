@@ -1,7 +1,6 @@
 import { logger } from '../log/logger.js';
 import { OpenAI } from './OpenAI.js';
 import { Anthropic } from './Anthropic.js';
-import { Ollama } from './Ollama.js';
 import { Groq } from './Groq.js';
 import { Gemini } from './Gemini.js';
 export { BaseAI } from './BaseAI.js';
@@ -21,12 +20,9 @@ export const getAI = (which, options) => {
   let aiClass = {
     openai: OpenAI,
     anthropic: Anthropic,
-    ollama: Ollama,
     groq: Groq,
-
     gemini: Gemini,
     google: Gemini,
-
   }[provider];
   if (!aiClass) {
     logger.error(`Unknown AI provider: ${provider}`);

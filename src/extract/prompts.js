@@ -46,28 +46,6 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 {{extraRules}}
 `);
 
-export const iterative = new Template(
-  ['url', 'text', 'html', 'count', 'question'],
-  `You are a web scraping extraction program. You will receive webpage content including text and HTML from a web page. Your goal is to data matching a user's question. You will give only one answer. If you cannot answer the question, reply with (not found)
-
->>>> The URL of the website:
-{{url}}
-
->>>> Raw text from innerText of the page:
-{{text}}
-
->>>> HTML text from innerHTML of the page (first {{count}} characters):
-{{html}}
-
-Follow these important rules:
-- Do not give an explanation text, give ONLY the answer. MAKE SURE TO FOLLOW THIS RULE.
-- You will ONLY succeed if you give JUST the answer, with NO explanation text.
-- For numbers, do NOT include commmas. Give ONLY the digits.
-
->>>> The user's question is:
-{{question}}
-`);
-
 export const findMultiDescription = new Template(
   ['questions', 'url'],
   `You are part of a scraping program. You have user questions. Your goal is to figure out a 2-10 word description of the items the user is trying to scrape.

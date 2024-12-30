@@ -15,7 +15,11 @@ export const testCache = () => {
   };
 
   return new MultiCache([
-    new DiskCache('.test-cache'),
+    new DiskCache(
+      '.test-cache',
+      {
+        ttls: { base: 10 * 365 * 24 * 3600 },
+      }),
     new S3Cache(params),
   ]);
 }

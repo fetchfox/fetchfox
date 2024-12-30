@@ -18,7 +18,6 @@ export const SchemaStep = class extends BaseStep {
     // TODO: use batch mode once available
 
     const schema = new Schema(cursor.ctx);
-    const items = [item]
     logger.debug(`Schema transform ${item} items into ${JSON.stringify(this.schema)}`);
     const stream = schema.run([item], this.schema);
     for await (const output of stream) {

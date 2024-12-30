@@ -3,15 +3,12 @@ import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
-import { parseAnswer } from './util.js';
-import { get_encoding, encoding_for_model } from 'tiktoken';
-import { Timer } from '../log/timer.js';
 
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
 
-  async countTokens(str, options) {
+  async countTokens(str) {
     // tiktoken is slow and CPU intensive to run, so for now
     // just (over) estimate the nubmer of tokens. This is usually
     // fine, since the promps chunk and iterate anyways.
@@ -100,8 +97,6 @@ export const OpenAI = class extends BaseAI {
           return z.object(o);
         } else if (typeof x == 'number') {
           return z.number();
-        } else if (typeof x == 'integer') {
-          return z.integer();
         } else if (typeof x == 'boolean') {
           return z.boolean();
         } else {

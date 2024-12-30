@@ -1,7 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { logger } from '../log/logger.js';
 import { BaseAI } from './BaseAI.js';
-import { parseAnswer } from './util.js';
 
 export const Gemini = class extends BaseAI {
   static apiKeyEnvVariable = 'GEMINI_API_KEY';
@@ -32,8 +30,7 @@ export const Gemini = class extends BaseAI {
     return { model: this.model, message, usage };
   }
 
-  async *inner(prompt, options) {
-    options = Object.assign({ format: 'text' }, options);
+  async *inner(prompt) {
     const gemini = new GoogleGenerativeAI(this.apiKey);
     const model = gemini.getGenerativeModel({ model: this.model });
 

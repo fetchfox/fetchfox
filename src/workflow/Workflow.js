@@ -67,10 +67,7 @@ export const Workflow = class extends BaseWorkflow {
 
     }
 
-    const {
-      steps,
-      itemDescription,
-    } = await planPromise;
+    const { steps } = await planPromise;
 
     this.steps = steps;
     this._stepsInput = [];
@@ -123,22 +120,21 @@ export const Workflow = class extends BaseWorkflow {
 
     this.cursor = new Cursor(this.ctx, this.steps, cb);
     const last = this.steps[this.steps.length - 1];
-    const rest = this.steps.slice(0, this.steps.length - 1);
 
     let originalLimit = last.limit;
 
+    if (this.ctx.limit) {
+      last.limit = last.limit ? Math.min(this.ctx.limit, last.limit) : this.ctx.limit;
+    }
+
+    const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
+    logger.info('╔' + '═'.repeat(msg.length) + '╗');
+    logger.info('║' + msg + '║');
+    logger.info('╚' + '═'.repeat(msg.length) + '╝');
+    logger.info(`Running with global limit=${this.ctx.limit}`);
+
     try {
-      if (this.ctx.limit) {
-        last.limit = last.limit ? Math.min(this.ctx.limit, last.limit) : this.ctx.limit;
-      }
-
-      const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
-      logger.info('╔' + '═'.repeat(msg.length) + '╗');
-      logger.info('║' + msg + '║');
-      logger.info('╚' + '═'.repeat(msg.length) + '╝');
-      logger.info(`Running with global limit=${this.ctx.limit}`);
-
-      const out = await last.run(this.cursor, this.steps, this.steps.length - 1);
+      await last.run(this.cursor, this.steps, this.steps.length - 1);
       return this.cursor.out(true);
 
     } finally {

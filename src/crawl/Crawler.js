@@ -1,6 +1,6 @@
 import { logger } from '../log/logger.js';
 import { validate } from './util.js';
-import { shuffle, chunkList } from '../util.js';
+import { chunkList } from '../util.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
@@ -19,6 +19,9 @@ export const Crawler = class extends BaseCrawler {
     let done = false;
 
     // Start documents worker
+
+    // See https://github.com/fetchfox/fetchfox/issues/42
+    /* eslint-disable no-async-promise-executor */
     const docsPromise = new Promise(async (ok, bad) => {
       logger.info(`${this} Started pagination docs worker`);
       const gen = this.fetcher.fetch(url, { maxPages, ...fetchOptions });
@@ -44,8 +47,12 @@ export const Crawler = class extends BaseCrawler {
         docsChannel.end();
       }
     }); // end docsPromise
+    /* eslint-enable no-async-promise-executor */
 
     // Get documents, and start extraction worker for each
+
+    // See https://github.com/fetchfox/fetchfox/issues/42
+    /* eslint-disable no-async-promise-executor */
     const resultsPromise = new Promise(async (ok, bad) => {
       const workerPromises = [];
 
@@ -95,6 +102,7 @@ export const Crawler = class extends BaseCrawler {
         resultsChannel.end();
       }
     }); // resultsPromise
+    /* eslint-enable no-async-promise-executor */
 
     // Receive and yield results
     let count = 0;
@@ -137,9 +145,6 @@ export const Crawler = class extends BaseCrawler {
 
     const chunked = chunkList(links.map(slimmer), maxBytes);
 
-    let matches = [];
-    let count = 0;
-
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
       const prompt = gather.render({
@@ -156,26 +161,23 @@ export const Crawler = class extends BaseCrawler {
       }
 
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
-      try {
-        for await (const { delta, usage } of stream) {
-          if (!toLink[delta.id]) {
-            logger.warn(`${this} Could not find link with id ${delta.id}`);
-            continue;
-          }
 
-          const link = toLink[delta.id];
-
-          if (seen[link.url]) continue;
-          seen[link.url] = true;
-          delete link.id;
-
-          logger.info(`Found link ${link.url} in response to "${query}"`);
-
-          this.usage.count++;
-          yield Promise.resolve({ _url: link.url });
+      for await (const { delta } of stream) {
+        if (!toLink[delta.id]) {
+          logger.warn(`${this} Could not find link with id ${delta.id}`);
+          continue;
         }
-      } catch(e) {
-        throw e;
+
+        const link = toLink[delta.id];
+
+        if (seen[link.url]) continue;
+        seen[link.url] = true;
+        delete link.id;
+
+        logger.info(`Found link ${link.url} in response to "${query}"`);
+
+        this.usage.count++;
+        yield Promise.resolve({ _url: link.url });
       }
     }
   }
@@ -202,30 +204,4 @@ export const Crawler = class extends BaseCrawler {
       yield Promise.resolve(r);
     }
   }
-}
-
-const dedupeLinks = (l) => {
-  const u = [];
-  const seen = {};    
-  for (let item of cleanLinks(l)) {
-    if (seen[item.url]) continue;
-    seen[item.url] = true;
-    u.push(item);
-  }
-  return u;
-}
-
-const cleanLinks = (l) => {
-  const clean = [];
-  const seen = {};    
-  for (let item of l) {
-    if (!item.url) {
-      continue;
-    }
-
-    // De-dupe anchors for now. May want to revisit this later.
-    item.url = item.url.split('#')[0];
-    clean.push(item);
-  }
-  return clean;
 }
