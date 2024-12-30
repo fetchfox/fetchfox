@@ -12,12 +12,8 @@
   "scripts": {
     "lint": "eslint src/",
     "test": "mocha test/**/*.test.js -g @fast",
-    "bench": "mocha benchmark/**/*.bench.js -g @bench"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint && npm test"
-    }
+    "bench": "mocha benchmark/**/*.bench.js -g @bench",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
