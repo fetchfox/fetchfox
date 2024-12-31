@@ -6,9 +6,9 @@ export const OpenRouter = class extends OpenAI {
   static apiKeyEnvVariable = 'OPENROUTER_API_KEY';
   static defaultModel = 'openai/gpt-4o-mini';
 
-  constructor(option) {
-    option.baseURL ||= 'https://openrouter.ai/api/v1';
-    super(option);
+  constructor(options) {
+    options.baseURL ||= 'https://openrouter.ai/api/v1';
+    super(options);
   }
 
   async init() {
@@ -26,8 +26,10 @@ export const OpenRouter = class extends OpenAI {
     }
 
     if (!data) {
-      logger.debug(`${this} Calling ${url} to get model dat for ${this.model}`);
       const url = await this.baseURL + '/models';
+
+      logger.debug(`${this} Calling ${url} to get model dat for ${this.model}`);
+
       const resp = await fetch(url);
       const jsonData = await resp.json();
 
@@ -50,16 +52,9 @@ export const OpenRouter = class extends OpenAI {
       this.cache.set(key, data).catch(() => {});
     }
 
-    this.maxTokens = data.max_input_tokens;
+    this.maxTokens ??= data.max_input_tokens;
+    this.modelData = data;
 
     this.didInit = true;
-  }
-
-  async *inner(prompt, options) {
-    await this.maybeInit();
-
-    for await (const result of super.inner(prompt, options)) {
-      yield result;
-    }
   }
 }

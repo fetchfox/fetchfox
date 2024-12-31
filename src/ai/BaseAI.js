@@ -78,7 +78,7 @@ export const BaseAI = class {
 
     if (data) {
       this.modelData = data;
-      this.maxTokens = data.max_input_tokens;
+      this.maxTokens ??= data.max_input_tokens;
     } else {
       logger.warn(`Couldn't find model data for ${this.provider} ${this.model}`);
       this.maxTokens = 10000;
