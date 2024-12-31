@@ -1,7 +1,8 @@
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
-import { parseAnswer, getModelData, sleep } from './util.js';
+import { parseAnswer, sleep } from './util.js';
 import { shortObjHash } from '../util.js';
+import { models } from '../data/models.js';
 
 export const BaseAI = class {
   constructor(options) {
@@ -44,6 +45,7 @@ export const BaseAI = class {
       }
     }
 
+    this.provider = this.constructor.name.toLowerCase();
     this.model = model;
     this.apiKey = apiKey;
 
@@ -53,23 +55,36 @@ export const BaseAI = class {
     this.cost = { input: 0, output: 0, total: 0 };
     this.runtime = { sec: 0, msec: 0 };
 
-    const provider = this.constructor.name.toLowerCase();
-    const data = getModelData(provider, model);
-    if (data) {
-      this.modelData = data;
-      this.maxTokens = data.max_input_tokens;
-    } else {
-      logger.warn(`Couldn't find model data for ${provider} ${model}`);
-      this.maxTokens = 10000;
-    }
+    this.baseURL = options?.baseURL;
 
-    if (options?.maxTokens) this.maxTokens = maxTokens;
-
+    if (maxTokens) this.maxTokens = maxTokens;
     this.signal = options?.signal;
   }
 
   toString() {
     return `[${this.constructor.name} ${this.model}]`;
+  }
+
+  async init() {
+    if (this.didInit) {
+      return;
+    }
+
+    let modelStr = this.model;
+    if (['groq', 'mistral', 'ollama'].includes(this.provider)) {
+      modelStr = this.provider + '/' + this.model;
+    }
+    const data = models[modelStr];
+
+    if (data) {
+      this.modelData = data;
+      this.maxTokens = data.max_input_tokens;
+    } else {
+      logger.warn(`Couldn't find model data for ${this.provider} ${this.model}`);
+      this.maxTokens = 10000;
+    }
+
+    this.didInit = true;
   }
 
   async countTokens(str, options) {
@@ -128,6 +143,8 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
+    await this.init();
+
     let tokens;
     try {
       tokens = await this.countTokens(prompt);

@@ -1,8 +1,22 @@
 import assert from 'assert';
 import process from 'node:process';
 import { getAI } from '../../src/index.js';
+import { testCache } from '../lib/util.js';
 
 describe('OpenAI', function() {
+
+  it('should run query @run @slow', async () => {
+    const ai = getAI('openai:gpt-4o-mini');
+    const answer = await ai.ask('return the word test five times', { format: 'text' });
+    assert.ok(answer.partial.includes('test'));
+  });
+
+  it('should run query (cached) @run @fast', async () => {
+    const cache = testCache();
+    const ai = getAI('openai:gpt-4o-mini', { cache });
+    const answer = await ai.ask('return the word test five times', { format: 'text' });
+    assert.ok(answer.partial.includes('test'));
+  });
 
   it('should abort @run', async () => {
     const controller = new AbortController();
@@ -18,7 +32,7 @@ describe('OpenAI', function() {
     assert.ok(took < 500, 'fast abort');
   });
 
-  it('should receive base URL @run', async () => {
+  it('should receive base URL @run @slow', async () => {
     const controller = new AbortController();
     const signal = controller.signal;
     const ai = getAI(

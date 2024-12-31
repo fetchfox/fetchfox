@@ -8,13 +8,6 @@ export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
 
-  constructor(options) {
-    super(options);
-
-    this.baseURL = options?.baseURL;
-  }
-
-
   async countTokens(str) {
     // tiktoken is slow and CPU intensive to run, so for now
     // just (over) estimate the nubmer of tokens. This is usually
