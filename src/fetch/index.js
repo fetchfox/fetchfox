@@ -7,22 +7,27 @@ import { BaseFetcher } from './BaseFetcher.js';
 
 export const DefaultFetcher = Fetcher;
 
+const classes = {
+  f: Fetcher,
+  fetch: Fetcher,
+
+  p: PlaywrightFetcher,
+  playwright: PlaywrightFetcher,
+};
+
+export const registerFetcher = (tag, cls) => {
+  classes[tag] = cls;
+}
+
 export const getFetcher = (which, options) => {
   if (which instanceof BaseFetcher) {
     return which;
   }
-
   if (!which) {
     which = 'fetch';
   }
 
-  let fetcherClass = {
-    f: Fetcher,
-    fetch: Fetcher,
-
-    p: PlaywrightFetcher,
-    playwright: PlaywrightFetcher,
-  }[which];
+  let fetcherClass = classes[which];
   if (!fetcherClass) {
     logger.error(`Unknown fetcher: ${which}`);
     return;
