@@ -35,4 +35,16 @@ describe('OpenRouter', function() {
     }
   });
 
+
+  it('should use api key @run @fast', async () => {
+    const ai = getAI('openrouter:openai/gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 });
+    let err;
+    try {
+      await ai.ask('return the word test five times', { format: 'text' });
+    } catch (e) {
+      err = e;
+    }
+    assert.ok(!!err);
+  });
+
 });

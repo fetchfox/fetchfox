@@ -11,6 +11,17 @@ describe('OpenAI', function() {
     assert.ok(answer.partial.includes('test'));
   });
 
+  it('should use api key @run @fast', async () => {
+    const ai = getAI('openai:gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 });
+    let err;
+    try {
+      await ai.ask('return the word test five times', { format: 'text' });
+    } catch (e) {
+      err = e;
+    }
+    assert.ok(!!err);
+  });
+
   it('should run query (cached) @run @fast', async () => {
     const cache = testCache();
     const ai = getAI('openai:gpt-4o-mini', { cache });
