@@ -132,10 +132,6 @@ describe('PlaywrightFetcher', function() {
 
       let i = 1;
       for await (const doc of gen) {
-      // for (let i = 1; i <= 5; i++) {
-      //   const doc = (await gen.next()).value;
-        console.log(i, 'doc:' + doc);
-        // console.log(doc.html);
         assert.ok(doc.html.includes(`You are on page ${i}`), `page html ${i}`);
         i++;
       }
