@@ -43,7 +43,9 @@ describe('PlaywrightFetcher', function() {
     await new Promise(ok => server.listen(port, ok));
 
     try {
-      const fetcher = getFetcher('playwright', { loadWait: 1 });
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o-mini', { cache });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 1 });
       const gen = await fetcher.fetch(`http://localhost:${port}`);
       const doc = (await gen.next()).value;
       gen.return();
@@ -83,7 +85,9 @@ describe('PlaywrightFetcher', function() {
     await new Promise(ok => server.listen(port, ok));
 
     try {
-      const fetcher = getFetcher('playwright', { loadWait: 10 });
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o-mini', { cache });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 10 });
       const gen = await fetcher.fetch(`http://localhost:${port}`);
       const doc = (await gen.next()).value;
       gen.return();
