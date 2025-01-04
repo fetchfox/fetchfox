@@ -10,7 +10,7 @@ import { createChannel, abortable } from '../util.js';
 process.on('unhandledRejection', (e) => {
   if (e.name == 'TargetClosedError') {
     // These exceptions occur sometimes on browser launch, and we cannot
-    // catch them in thsi process.
+    // catch them in this as they happen.
     logger.error(`Ignore unhandled rejection: ${e}`);
   } else {
     throw e;
@@ -112,7 +112,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     try {
-      const gen = this.paginate(url, page, { ...options, timer });
+      const ctx = { page, timer };
+      const gen = this.paginate(url, ctx, options);
       for await (const doc of gen) {
         yield Promise.resolve(doc);
       }
@@ -128,8 +129,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async _docFromPage(page, options) {
-    const timer = options?.timer || new Timer();
+  async _docFromPage(page, timer) {
+    timer ||= new Timer();
 
     let html;
     let status;
@@ -181,7 +182,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     const doc = new Document();
     try {
-      await doc.read(resp, url, { ...options, timer });
+      await doc.read(resp, url, { timer });
     } catch (e) {
       logger.error(`${this} Error while reading document: ${e}`);
       return;
@@ -190,13 +191,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return doc;
   }
 
-  async *paginate(url, page, options) {
-    const timer = options?.timer || new Timer();
-
+  async goto(url, ctx) {
     try {
       const { aborted } = await abortable(
         this.signal,
-        page.goto(url, { waitUntil: 'domcontentloaded' }));
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -204,26 +203,35 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     } catch (e) {
       logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
+  }
 
+  async current(ctx) {
     let doc;
     let aborted;
     try {
-      const result = await abortable(
-        this.signal,
-        this._docFromPage(page, options));
+      const result = await abortable(this.signal, this._docFromPage(ctx.page, ctx.timer));
       aborted = result.aborted;
       doc = result.result;
     } catch (e) {
-      logger.error(`${this} Error while getting doc from page: ${e}`);
-      return;
-    }
-
-    if (!doc) {
-      logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
+      logger.error(`${this} Error while getting current doc: ${e}`);
       return;
     }
     if (aborted) {
-      logger.warn(`${this} Aborted on _docFromPage`);
+      logger.warn(`${this} Aborted while getting current doc`);
+      return;
+    }
+    return doc;
+  }
+
+  async *_paginate(url, ctx, options) {
+    const timer = ctx?.timer || new Timer();
+    const page = ctx.page;
+
+    await this.goto(url, ctx);
+
+    const doc = await this.current(ctx);
+    if (!doc) {
+      logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
       return;
     }
 
@@ -320,7 +328,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         try {
           const result = await abortable(
             this.signal,
-            this._docFromPage(page, options));
+            this._docFromPage(page, timer));
           aborted = result.aborted;
           doc = result.result;
         } catch (e) {

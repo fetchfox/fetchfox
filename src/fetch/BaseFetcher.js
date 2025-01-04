@@ -219,6 +219,12 @@ export const BaseFetcher = class {
     }
   }
 
+  async *paginate(url, ctx, options) {
+    for await (const doc of this._paginate(url, ctx, options)) {
+      yield Promise.resolve(doc);
+    }
+  }
+
   cacheOptions() {
     return {};
   }
