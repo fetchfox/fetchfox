@@ -202,21 +202,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         throw e;
       });
 
-    // const resultPromise = new Promise(async (ok, bad) => {
-    //   let result;
-    //   try {
-    //     result = await promise;
-    //   } catch (e) {
-    //     if (this.signal.aborted) {
-    //       ok({ aborted: true });
-    //       return;
-    //     }
-    //     logger.error(`${this} Abortable got error: ${e}`);
-    //     bad(e);
-    //   }
-    //   ok({ aborted: false, result });
-    // });
-
     if (!this.signal) {
       return resultPromise;
     }

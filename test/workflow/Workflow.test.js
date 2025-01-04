@@ -359,4 +359,27 @@ describe('Workflow', function() {
     }
   });
 
+  it('should use api key @run @fast', async () => {
+    const f = await fox
+      .config({
+        cache: testCache(),
+        ai: ['openai:gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 }],
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+      })
+      .limit(3);
+
+    let err;
+    try {
+      await wf.run();
+    } catch (e) {
+      err = e;
+    }
+
+    assert.ok(!!err);
+  });
+
 });
