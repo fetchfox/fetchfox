@@ -5,7 +5,7 @@ import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { analyzePagination } from './prompts.js';
-import { createChannel } from '../util.js';
+import { createChannel, abortable } from '../util.js';
 
 process.on('unhandledRejection', (e) => {
   if (e.name == 'TargetClosedError') {
@@ -190,54 +190,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return doc;
   }
 
-  async _abortable(promise) {
-    const resultPromise = promise
-      .then((result) => {
-        return { aborted: false, result }
-      })
-      .catch((e) => {
-        if (this.signal.aborted) {
-          return { aborted: true };
-        }
-        logger.error(`${this} Abortable got error: ${e}`);
-        throw e;
-      });
-
-    if (!this.signal) {
-      return resultPromise;
-    }
-
-    let abortListener;
-    const signalPromise = new Promise((ok) => {
-      if (this.signal.aborted) {
-        logger.debug(`${this} Already aborted`);
-        ok({ aborted: true });
-        return;
-      }
-
-      abortListener = () => {
-        logger.debug(`${this} Got abort signal`);
-        ok({ aborted: true });
-      }
-      this.signal.addEventListener('abort', abortListener);
-    });
-
-    try {
-      const result = await Promise.race([
-        resultPromise,
-        signalPromise,
-      ]);
-      return result;
-    } finally {
-      this.signal.removeEventListener('abort', abortListener);
-    }
-  }
-
   async *paginate(url, page, options) {
     const timer = options?.timer || new Timer();
 
     try {
-      const { aborted } = await this._abortable(page.goto(url, { waitUntil: 'domcontentloaded' }));
+      const { aborted } = await abortable(
+        this.signal,
+        page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -249,7 +208,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let doc;
     let aborted;
     try {
-      const result = await this._abortable(this._docFromPage(page, options));
+      const result = await abortable(
+        this.signal,
+        this._docFromPage(page, options));
       aborted = result.aborted;
       doc = result.result;
     } catch (e) {
@@ -357,7 +318,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         let doc;
         let aborted;
         try {
-          const result = await this._abortable(this._docFromPage(page, options));
+          const result = await abortable(
+            this.signal,
+            this._docFromPage(page, options));
           aborted = result.aborted;
           doc = result.result;
         } catch (e) {
@@ -439,7 +402,6 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       } catch {
         content = '[iframe unavailable]';
       }
-
 
       // Turn off linter for undefined variables because this code
       // runs in Playwright's browser context, and has document and
