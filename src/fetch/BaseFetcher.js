@@ -51,6 +51,12 @@ export const BaseFetcher = class {
     this.q.clear();
   }
 
+  async start() {
+  }
+
+  async finish() {
+  }
+
   async *fetch(target, options) {
     const timer = new Timer();
 
@@ -232,9 +238,10 @@ export const BaseFetcher = class {
   async *paginate(url, ctx, options) {
     const timer = ctx?.timer || new Timer();
 
-    await this.goto(url, ctx);
+    const gotoCtx = await this.goto(url, ctx);
+    const myCtx = { ...ctx, ...gotoCtx };
 
-    const doc = await this.current(ctx);
+    const doc = await this.current(myCtx);
     if (!doc) {
       logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
       return;
@@ -314,7 +321,7 @@ export const BaseFetcher = class {
         const fn = fns[fnIndex];
         logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
         try {
-          await this.evaluate(fn, ctx);
+          await this.evaluate(fn, myCtx);
           await new Promise(ok => setTimeout(ok, this.paginationWait));
 
         } catch (e) {
@@ -331,7 +338,7 @@ export const BaseFetcher = class {
         let doc;
         let aborted;
         try {
-          const result = await abortable(this.signal, this.current(ctx));
+          const result = await abortable(this.signal, this.current(myCtx));
           aborted = result.aborted;
           doc = result.result;
         } catch (e) {
@@ -366,6 +373,8 @@ export const BaseFetcher = class {
     } catch (e) {
       logger.error(`${this} Error while reading docs channel in pagination: ${e}`);
       throw e;
+    } finally {
+      this.finishGoto(myCtx);
     }
   }
 

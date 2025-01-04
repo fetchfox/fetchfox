@@ -42,10 +42,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async goto(url, ctx) {
+    const page = await ctx.browser.newPage()
+
     try {
       const { aborted } = await abortable(
         this.signal,
-        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
+        page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -53,6 +55,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     } catch (e) {
       logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
+
+    return { page };
+  }
+
+  async finishGoto() {
   }
 
   async current(ctx) {
@@ -127,16 +134,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     logger.debug(`${this} Got browser`);
-
-    timer.push('PlaywrightFetcher browser.newPage');
-    try {
-      ctx.page = await ctx.browser.newPage();
-    } catch(e) {
-      logger.error(`${this} Caught error while opening new page: ${e}`);
-      throw e;
-    } finally {
-      timer.pop();
-    }
   }
 
   async finish(ctx) {
