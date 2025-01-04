@@ -147,12 +147,10 @@ export const BaseFetcher = class {
         },
         { priority });
 
-      try {
-        await p;
-      } catch (e) {
+      p.catch((e) => {
         logger.debug(`${this} Caught error on fetcher queue: ${e}`);
         throw e;
-      }
+      });
 
       logger.debug(`${this} Fetch queue has ${this.q.size} requests ${debugStr()}`);
 

@@ -27,6 +27,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     // TODO: these options should be passed in in `fetch`
     this.loadWait = options?.loadWait || 4000;
+    this.paginationWait = options?.paginationWait || this.loadWait || 4000;
     this.timeoutWait = options?.timeoutWait || 15000;
     this.pullIframes = options?.pullIframes;
 
@@ -340,9 +341,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
         try {
           await page.evaluate(fn);
-          await new Promise(ok => setTimeout(ok, 40000));
-
-          console.log('url after pagination:', page.url());
+          await new Promise(ok => setTimeout(ok, this.paginationWait));
 
         } catch (e) {
           if (fnIndex >= fns.length) {
@@ -387,6 +386,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         if (val.end) {
           break;
         }
+
         yield Promise.resolve(val.doc);
       }
     } catch (e) {
