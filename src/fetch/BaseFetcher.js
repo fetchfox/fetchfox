@@ -52,6 +52,8 @@ export const BaseFetcher = class {
   }
 
   async *fetch(target, options) {
+    const timer = new Timer();
+
     logger.info(`${this} Fetch ${target} with ${this}`);
 
     let url;
@@ -133,8 +135,12 @@ export const BaseFetcher = class {
           /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok, bad) => {
             logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
+
+            const ctx = { timer };
+            await this.start(ctx);
+
             try {
-              for await (const doc of this._fetch(url, options)) {
+              for await (const doc of this.paginate(url, ctx, options)) {
                 channel.send({ doc });
               }
             } catch (e) {
@@ -143,6 +149,7 @@ export const BaseFetcher = class {
             }
             finally {
               channel.end();
+              await this.finish(ctx);
             }
             ok();
           });

@@ -41,7 +41,43 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
-  async launch(options) {
+  async goto(url, ctx) {
+    try {
+      const { aborted } = await abortable(
+        this.signal,
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
+      if (aborted) {
+        logger.warn(`${this} Aborted on goto`);
+        return;
+      }
+    } catch (e) {
+      logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
+    }
+  }
+
+  async current(ctx) {
+    let doc;
+    let aborted;
+    try {
+      const result = await abortable(this.signal, this._docFromPage(ctx.page, ctx.timer));
+      aborted = result.aborted;
+      doc = result.result;
+    } catch (e) {
+      logger.error(`${this} Error while getting current doc: ${e}`);
+      return;
+    }
+    if (aborted) {
+      logger.warn(`${this} Aborted while getting current doc`);
+      return;
+    }
+    return doc;
+  }
+
+  async evaluate(fn, ctx) {
+    return ctx.page.evaluate(fn);
+  }
+
+  async _launch(options) {
     const timer = options?.timer || new Timer();
     timer.push('PlaywrightFetcher.launch');
 
@@ -80,50 +116,33 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async *_fetch(url, options) {
-    const timer = new Timer();
-    timer.push('PlaywrightFetcher._fetch');
+  async start(ctx) {
+    const timer = ctx.timer || new Timer();
 
-    logger.info(`${this} Fetch ${url} with options ${options || '(none)'}`);
-    if (this.options?.proxy?.server) {
-      logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
-    }
-
-    let browser;
     try {
-      browser = await this.launch({ timer });
+      ctx.browser = await this._launch({ timer });
     } catch (e) {
       logger.error(`${this} Caught error while launching browser: ${e}`);
       throw e;
     }
+
     logger.debug(`${this} Got browser`);
 
     timer.push('PlaywrightFetcher browser.newPage');
-    let page;
     try {
-      page = await browser.newPage();
+      ctx.page = await ctx.browser.newPage();
     } catch(e) {
       logger.error(`${this} Caught error while opening new page: ${e}`);
       throw e;
     } finally {
       timer.pop();
     }
+  }
 
-    try {
-      const ctx = { page, timer };
-      const gen = this.paginate(url, ctx, options);
-      for await (const doc of gen) {
-        yield Promise.resolve(doc);
-      }
-    } catch (e) {
-      logger.error(`Playwright error: ${e}`);
-      throw e;
-    } finally {
-      if (browser) {
-        logger.debug(`Closing on ${url}`);
-        await browser.close();
-      }
-      timer.pop();
+  async finish(ctx) {
+    if (ctx.browser) {
+      logger.debug(`${this} Closing browser`);
+      await ctx.browser.close();
     }
   }
 
@@ -148,7 +167,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
 
-      logger.error(`Playwright could not get from ${page}: ${e}`);
+      logger.error(`Playwright could not get from ${page}: ${e.stack}`);
       logger.debug(`Trying to salvage results`);
       try {
         html = await getHtmlFromError(page);
@@ -188,45 +207,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     return doc;
   }
-
-  async goto(url, ctx) {
-    try {
-      const { aborted } = await abortable(
-        this.signal,
-        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
-      if (aborted) {
-        logger.warn(`${this} Aborted on goto`);
-        return;
-      }
-    } catch (e) {
-      logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
-    }
-  }
-
-  async current(ctx) {
-    let doc;
-    let aborted;
-    try {
-      const result = await abortable(this.signal, this._docFromPage(ctx.page, ctx.timer));
-      aborted = result.aborted;
-      doc = result.result;
-    } catch (e) {
-      logger.error(`${this} Error while getting current doc: ${e}`);
-      return;
-    }
-    if (aborted) {
-      logger.warn(`${this} Aborted while getting current doc`);
-      return;
-    }
-    return doc;
-  }
-
-  async evaluate(fn, ctx) {
-    return ctx.page.evaluate(fn);
-  }
-
-  // async *_paginate(url, ctx, options) {
-  // }
 }
 
 const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
