@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { logger } from './log/logger.js';
 
 export const shuffle = (l) => {
   // Deterministic shuffle to keep prompts stable
@@ -108,4 +109,47 @@ export const shortObjHash = (obj) => {
     .digest('hex')
     .substr(0, 16);
   return hash;
+}
+
+export const abortable = async (signal, promise) => {
+  const resultPromise = promise
+    .then((result) => {
+      return { aborted: false, result }
+    })
+    .catch((e) => {
+      if (signal.aborted) {
+        return { aborted: true };
+      }
+      logger.error(`Abortable got error: ${e}`);
+      throw e;
+    });
+
+  if (!signal) {
+    return resultPromise;
+  }
+
+  let abortListener;
+  const signalPromise = new Promise((ok) => {
+    if (signal.aborted) {
+      logger.debug(`Already aborted`);
+      ok({ aborted: true });
+      return;
+    }
+
+    abortListener = () => {
+      logger.debug(`Got abort signal`);
+      ok({ aborted: true });
+    }
+    signal.addEventListener('abort', abortListener);
+  });
+
+  try {
+    const result = await Promise.race([
+      resultPromise,
+      signalPromise,
+    ]);
+    return result;
+  } finally {
+    signal.removeEventListener('abort', abortListener);
+  }
 }
