@@ -239,7 +239,7 @@ export const BaseFetcher = class {
     const timer = ctx?.timer || new Timer();
 
     const gotoCtx = await this.goto(url, ctx);
-    const myCtx = { ...ctx, ...gotoCtx };
+    const myCtx = { ...ctx, url, ...gotoCtx };
 
     const doc = await this.current(myCtx);
     if (!doc) {
