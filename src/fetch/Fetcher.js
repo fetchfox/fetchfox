@@ -8,11 +8,19 @@ export const Fetcher = class extends BaseFetcher {
     super(options);
   }
 
-  async *_fetch(url, options) {
+  async goto(url) {
+    return { url };
+  }
+
+  async finishGoto() {
+  }
+
+  async current(ctx) {
+    const url = ctx.url;
     const doc = new Document();
     let resp;
     try {
-      resp = await fetch(url, { signal: this.signal, ...options });
+      resp = await fetch(url, { signal: this.signal });
     } catch (e) {
       if (e.name == 'AbortError') {
         logger.warn(`${this} Aborted fetch`);
@@ -23,7 +31,7 @@ export const Fetcher = class extends BaseFetcher {
     }
 
     logger.info(`Got response: ${resp.status} for ${resp.url}`);
-    await doc.read(resp, url, options);
-    yield Promise.resolve(doc);
+    await doc.read(resp, url);
+    return doc;
   }
 }

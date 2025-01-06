@@ -238,7 +238,7 @@ export const BaseFetcher = class {
   async *paginate(url, ctx, options) {
     const timer = ctx?.timer || new Timer();
 
-    const gotoCtx = await this.goto(url, ctx);
+    const gotoCtx = await this.goto(url, ctx, options);
     const myCtx = { ...ctx, url, ...gotoCtx };
 
     const doc = await this.current(myCtx);

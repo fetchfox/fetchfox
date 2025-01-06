@@ -29,7 +29,7 @@ describe('OpenAI', function() {
     assert.ok(answer.partial.includes('test'));
   });
 
-  it('should abort @run', async () => {
+  it('should abort @run @fast', async () => {
     const controller = new AbortController();
     const signal = controller.signal;
     const ai = getAI('openai:gpt-4o-mini', { signal });

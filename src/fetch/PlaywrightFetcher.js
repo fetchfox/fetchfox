@@ -151,23 +151,42 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     timer.push('PlaywrightFetcher _docFromPage');
     try {
-      const r = await getHtmlFromSuccess(
-        page,
-        {
-          loadWait: this.loadWait,
-          pullIframes: this.pullIframes,
-        });
-      status = 200;
-      html = r.html;
-    } catch(e) {
-      if (this.signal?.aborted) {
+      const result = await abortable(
+        this.signal,
+        getHtmlFromSuccess(
+          page,
+          {
+            loadWait: this.loadWait,
+            pullIframes: this.pullIframes,
+          }));
+
+      if (result.aborted) {
         return;
       }
+      status = 200;
+      html = result.result.html;
+    } catch(e) {
 
       logger.error(`Playwright could not get from ${page}: ${e.stack}`);
       logger.debug(`Trying to salvage results`);
       try {
-        html = await getHtmlFromError(page);
+
+        // html = await getHtmlFromError(page);
+        const result = await abortable(
+          this.signal,
+          getHtmlFromError(page));
+          // getHtmlFromSuccess(
+          //   page,
+          //   {
+          //     loadWait: this.loadWait,
+          //     pullIframes: this.pullIframes,
+        //   }));
+
+        if (result.aborted) {
+          return;
+        }
+        html = result.result.html;
+
       } catch (e) {
         logger.warn(`Could not salvage results, give up: ${e}`);
         return;

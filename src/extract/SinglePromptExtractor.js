@@ -39,12 +39,16 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let count = 0;
     for (const prompt of prompts) {
       logger.debug(`${this} Streaming prompt ${++count} of ${prompts.length}`);
+
       try {
         const stream = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of stream) {
-          if (delta.itemCount) continue;
+          if (delta.itemCount) {
+            continue;
+          }
           yield Promise.resolve(new Item(delta, doc));
         }
+
       } catch(e) {
         logger.error(`${this} Got error while streaming: ${e}`);
         throw e;
