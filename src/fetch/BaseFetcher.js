@@ -31,7 +31,7 @@ export const BaseFetcher = class {
     this.s3 = options?.s3;
     this.css = options?.css;
     this.signal = options?.signal;
-    this.loadTimeout = options?.loadTimeout || 30 * 1000;
+    this.loadTimeout = options?.loadTimeout || 15 * 1000;
   }
 
   toString() {
@@ -148,6 +148,7 @@ export const BaseFetcher = class {
             await this.start(ctx);
 
             try {
+              logger.debug(`${this} Starting at ${url}`);
               for await (const doc of this.paginate(url, ctx, options)) {
                 channel.send({ doc });
               }
@@ -243,7 +244,13 @@ export const BaseFetcher = class {
     const gotoCtx = await this.goto(url, ctx, options);
     const myCtx = { ...ctx, url, ...gotoCtx };
 
-    const doc = await pTimeout(this.current(myCtx), { milliseconds: this.loadTimeout });
+    let doc;
+    try {
+      doc = await pTimeout(this.current(myCtx), { milliseconds: this.loadTimeout });
+    } catch (e) {
+      logger.error(`${this} Error while getting current: ${e}`);
+      throw e;
+    }
 
     if (!doc) {
       // TODO: `finishGoto()` call is duplicated with the one at the
