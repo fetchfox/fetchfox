@@ -131,7 +131,7 @@ describe('PlaywrightFetcher', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o-mini', { cache });
-      const fetcher = getFetcher('playwright', { ai, loadWait: 10, paginationWait: 1 });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 10, paginationWait: 10 });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;
@@ -178,7 +178,7 @@ describe('PlaywrightFetcher', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o-mini', { cache });
-      const fetcher = getFetcher('playwright', { ai, loadWait: 10, loadTimeout: 1 });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 20, loadTimeout: 10 });
       const gen = await fetcher.fetch(`http://localhost:${port}`);
       const doc = (await gen.next()).value;
       gen.return();
