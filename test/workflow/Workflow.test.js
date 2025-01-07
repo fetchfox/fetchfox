@@ -325,24 +325,13 @@ describe('Workflow', function() {
     assert.ok(out.items.length >= 1);
   });
 
-  it('should abort @run @slow', async function () {
-
-    const cases = [
-      [1, 100],
-      [10, 200],
-      [100, 400],
-      [1000, 1500],
-      [2000, 3000],
-      [5000, 6500],
-      [10000, 12000],
-    ];
-
+  const runAbortCases = async (cases) => {
     for (const [timeout, limit] of cases) {
       const controller = new AbortController();
       const signal = controller.signal;
 
       const wf = await fox
-        .config({ signal })
+        .config({ signal, fetcher: 'playwright' })
         .init('https://news.ycombinator.com/news')
         .crawl({ query: 'Find links to articles', maxPages: 5 })
         .extract({ title: 'article title' })
@@ -357,6 +346,51 @@ describe('Workflow', function() {
 
       assert.ok(took < limit, `took=${took} timeout=${timeout} limit=${limit} quickly abort`);
     }
+  }
+
+  it('should abort @run @fast', async function () {
+    const cases = [
+      [1, 100],
+      [10, 200],
+      [100, 400],
+    ];
+    await runAbortCases(cases);
+  });
+
+  it('should abort @run @slow', async function () {
+    const cases = [
+      [1, 100],
+      [10, 200],
+      [100, 400],
+      [1000, 1500],
+      [2000, 3000],
+      [5000, 6500],
+      [10000, 12000],
+    ];
+    await runAbortCases(cases);
+  });
+
+  it('should use api key @run @fast', async () => {
+    const f = await fox
+      .config({
+        cache: testCache(),
+        ai: ['openai:gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 }],
+      })
+      .init('https://pokemondb.net/pokedex/national')
+      .extract({
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
+      })
+      .limit(3);
+
+    let err;
+    try {
+      await wf.run();
+    } catch (e) {
+      err = e;
+    }
+
+    assert.ok(!!err);
   });
 
 });

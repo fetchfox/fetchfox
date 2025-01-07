@@ -241,15 +241,14 @@ export const BaseStep = class {
           .then(tasks => Promise.all(tasks))
           .then(() => {
             completed += b.length;
-
-            if (done) {
-              ok();
-            } else {
+            if (!done) {
               done ||= maybeOk();
             }
+            return;
           })
           .catch((e) => {
             if (e.name == 'AbortError') {
+              ok();
               return;
             }
             logger.error(`${this} Got error while waiting for all: ${e}`);
@@ -260,6 +259,7 @@ export const BaseStep = class {
 
       const maybeOk = () => {
         logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
+
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);
@@ -303,8 +303,7 @@ export const BaseStep = class {
       if (parent) {
         parent.run(cursor, steps, index - 1);
       } else {
-        this.process(cursor, [], (output) => cursor.publish(output, index))
-          .then(ok);
+        ok(this.process(cursor, [], (output) => cursor.publish(output, index)));
       }
     }); // end processPromise
 
@@ -325,6 +324,7 @@ export const BaseStep = class {
       removeAbortListener();
       throw e;
     });
+
     await processPromise;
 
     const finishPromise = this._finish(cursor, index);

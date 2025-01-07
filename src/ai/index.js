@@ -1,4 +1,5 @@
 import { logger } from '../log/logger.js';
+import { OpenRouter } from './OpenRouter.js';
 import { OpenAI } from './OpenAI.js';
 import { Anthropic } from './Anthropic.js';
 import { Groq } from './Groq.js';
@@ -19,6 +20,7 @@ export const getAI = (which, options) => {
   options.model = model;
   let aiClass = {
     openai: OpenAI,
+    openrouter: OpenRouter,
     anthropic: Anthropic,
     groq: Groq,
     gemini: Gemini,

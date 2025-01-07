@@ -6,7 +6,10 @@ import { testCache } from '../lib/util.js';
 describe('ExtractStep', function() {
   it('should supplement items with subsequent extractions @run @fast', async () => {
     const f = await fox
-      .config({ cache: testCache() })
+      .config({
+        ai: 'openai:gpt-4o',
+        cache: testCache(),
+      })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         url: 'What is the URL of this pokemon',

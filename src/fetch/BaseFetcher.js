@@ -1,10 +1,14 @@
-import { getAI } from '../ai/index.js';
-import { logger } from '../log/logger.js';
-import { Document } from '../document/Document.js';
-import { presignS3 } from './util.js';
-import { createChannel, shortObjHash } from '../util.js';
 import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
+import pTimeout from 'p-timeout';
+import { getAI } from '../ai/index.js';
+import { logger } from '../log/logger.js';
+import { Timer } from '../log/timer.js';
+import { Document } from '../document/Document.js';
+import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
+import { createChannel, shortObjHash, abortable } from '../util.js';
+import { presignS3 } from './util.js';
+import { analyzePagination } from './prompts.js';
 
 export const BaseFetcher = class {
   constructor(options) {
@@ -27,6 +31,7 @@ export const BaseFetcher = class {
     this.s3 = options?.s3;
     this.css = options?.css;
     this.signal = options?.signal;
+    this.loadTimeout = options?.loadTimeout || 15 * 1000;
   }
 
   toString() {
@@ -48,7 +53,15 @@ export const BaseFetcher = class {
     this.q.clear();
   }
 
+  async start() {
+  }
+
+  async finish() {
+  }
+
   async *fetch(target, options) {
+    const timer = new Timer();
+
     logger.info(`${this} Fetch ${target} with ${this}`);
 
     let url;
@@ -128,31 +141,40 @@ export const BaseFetcher = class {
           // feeding into a channel.
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
-          return new Promise(async (ok, bad) => {
+          return new Promise(async (ok) => {
             logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
+
+            const ctx = { timer };
+            await this.start(ctx);
+
             try {
-              for await (const doc of this._fetch(url, options)) {
+              logger.debug(`${this} Starting at ${url}`);
+              for await (const doc of this.paginate(url, ctx, options)) {
+                if (this.signal?.aborted) {
+                  break;
+                }
                 channel.send({ doc });
               }
             } catch (e) {
-              logger.error(`${this} Caught error while getting documents: ${e}`);
-              bad(e);
+              logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
-            finally {
-              channel.end();
-            }
+
+            logger.debug(`${this} Closing docs channel`);
+            channel.end();
+            this.finish(ctx)
+              .catch((e) => {
+                logger.error(`${this} Error while finishing, ignoring: ${e}`);
+              });
             ok();
           });
           /* eslint-enable no-async-promise-executor */
         },
         { priority });
 
-      try {
-        await p;
-      } catch (e) {
+      p.catch((e) => {
         logger.debug(`${this} Caught error on fetcher queue: ${e}`);
         throw e;
-      }
+      });
 
       logger.debug(`${this} Fetch queue has ${this.q.size} requests ${debugStr()}`);
 
@@ -218,6 +240,164 @@ export const BaseFetcher = class {
             logger.error(`${this} Error while caching docs cache, ignoring: ${e}`);
           });
       }
+    }
+  }
+
+  async *paginate(url, ctx, options) {
+    const timer = ctx?.timer || new Timer();
+
+    if (this.signal?.aborted) {
+      return;
+    }
+
+    const gotoCtx = await this.goto(url, ctx, options);
+    const myCtx = { ...ctx, url, ...gotoCtx };
+
+    let doc;
+    try {
+      doc = await pTimeout(this.current(myCtx), { milliseconds: this.loadTimeout });
+    } catch (e) {
+      logger.error(`${this} Error while getting current: ${e}`);
+      throw e;
+    }
+
+    if (!doc) {
+      // TODO: `finishGoto()` call is duplicated with the one at the
+      // end of this function. Refactor remove this duplication.
+      await this.finishGoto(myCtx);
+      logger.warn(`${this} Could not get document for ${url}, bailing on pagination`);
+      return;
+    }
+
+    const iterations = options?.maxPages || 0;
+
+    // Kick off job for pages 2+
+    const channel = createChannel();
+    (async () => {
+      if (!iterations || iterations == 1) {
+        logger.info(`${this} Not paginating, return`);
+        channel.end();
+        return;
+      }
+
+      const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
+      const minDoc = await min.min(doc, { timer });
+      const fns = [];
+
+      const hostname = (new URL(url)).hostname;
+      let domainSpecific = {
+        'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+      }[hostname] || '';
+      if (domainSpecific) {
+        domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
+        logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
+      }
+
+      const context = {
+        html: minDoc.html,
+        domainSpecific,
+      };
+
+      let prompts;
+      try {
+        prompts = await analyzePagination.renderMulti(context, 'html', this.ai);
+      } catch (e) {
+        logger.error(`${this} Error while rendering prompts: ${e}`);
+        return;
+      }
+
+      logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
+      for (const prompt of prompts) {
+        let answer;
+        try {
+          answer = await this.ai.ask(prompt, { format: 'json' });
+        } catch(e) {
+          logger.error(`${this} Got AI error during pagination, ignore: ${e}`);
+          continue
+        }
+
+        logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
+
+        if (answer?.partial?.hasPagination &&
+          answer?.partial?.paginationJavascript
+        ) {
+          let fn;
+          try {
+            fn = new Function(answer.partial.paginationJavascript);
+          } catch(e) {
+            logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it: ${e}`);
+          }
+          if (fn) {
+            fns.push(fn);
+          }
+        }
+      }
+
+      if (!fns.length) {
+        logger.warn(`${this} Didn't find a way to paginate, bailing`);
+        channel.end();
+        return;
+      }
+
+      let fnIndex = 0;
+      for (let i = 1; i < iterations; i++) {
+        const fn = fns[fnIndex];
+        logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
+        try {
+          await this.evaluate(fn, myCtx);
+          await new Promise(ok => setTimeout(ok, this.paginationWait));
+
+        } catch (e) {
+          if (fnIndex >= fns.length) {
+            logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
+            break;
+          }
+
+          fnIndex++;
+          logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
+          continue;
+        }
+
+        let doc;
+        let aborted;
+        try {
+          const result = await abortable(this.signal, this.current(myCtx));
+          aborted = result.aborted;
+          doc = result.result;
+        } catch (e) {
+          logger.error(`${this} Error while getting docs from page: ${e}`);
+          throw e;
+        }
+        if (aborted) {
+          logger.warn(`${this} Aborted on _docFromPage during pagination`);
+          break;
+        }
+
+        logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
+        if (doc) {
+          channel.send({ doc });
+        }
+      }
+
+      channel.end();
+    })();
+
+    logger.info(`${this} yielding first page ${doc}`);
+    yield Promise.resolve(doc);
+
+    try {
+      for await (const val of channel.receive()) {
+        if (val.end) {
+          break;
+        }
+
+        yield Promise.resolve(val.doc);
+      }
+    } catch (e) {
+      logger.error(`${this} Error while reading docs channel in pagination: ${e}`);
+      throw e;
+    } finally {
+      await this.finishGoto(myCtx);
     }
   }
 

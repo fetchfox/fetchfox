@@ -24,7 +24,7 @@ Each field should be filled as follows:
 - "paginationJavascript": Javascript code that can be executed on the page to go to the next page
 
 Follow these important rules:
-- Make sure your paginationJavascript is re-usable for multilple iterations. Do NOT hardode references to specific pages numbers, specific URLs that only work on the first page
+- Make sure your paginationJavascript is re-usable for multilple iterations. Do NOT hardcode references to specific pages numbers, specific URLs that only work on the first page
 - Make your code robust, and do not paginate if it is not possible
 - If the page has pagination, you must always include paginationJavascript
 - Keep CSS selectors simple as possible
