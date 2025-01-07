@@ -150,11 +150,15 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${url}`);
               for await (const doc of this.paginate(url, ctx, options)) {
+                if (this.signal?.aborted) {
+                  break;
+                }
                 channel.send({ doc });
               }
             } catch (e) {
               logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
+
             logger.debug(`${this} Closing docs channel`);
             channel.end();
             this.finish(ctx)
@@ -241,6 +245,10 @@ export const BaseFetcher = class {
 
   async *paginate(url, ctx, options) {
     const timer = ctx?.timer || new Timer();
+
+    if (this.signal?.aborted) {
+      return;
+    }
 
     const gotoCtx = await this.goto(url, ctx, options);
     const myCtx = { ...ctx, url, ...gotoCtx };

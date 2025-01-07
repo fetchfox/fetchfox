@@ -142,6 +142,10 @@ export const Workflow = class extends BaseWorkflow {
       last.limit = originalLimit;
       this.cursor.finishAll();
 
+      if (this.controller) {
+        this.controller.abort();
+      }
+
       if (ctxSignal) {
         ctxSignal.removeEventListener('abort', abortListener);
       }
