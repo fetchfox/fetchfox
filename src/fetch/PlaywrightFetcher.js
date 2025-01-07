@@ -167,21 +167,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       html = result.result.html;
     } catch(e) {
 
-      logger.error(`Playwright could not get from ${page}: ${e.stack}`);
+      logger.error(`Playwright could not get from ${page.url()}: ${e}`);
       logger.debug(`Trying to salvage results`);
+
       try {
-
-        // html = await getHtmlFromError(page);
-        const result = await abortable(
-          this.signal,
-          getHtmlFromError(page));
-          // getHtmlFromSuccess(
-          //   page,
-          //   {
-          //     loadWait: this.loadWait,
-          //     pullIframes: this.pullIframes,
-        //   }));
-
+        const result = await abortable(this.signal, getHtmlFromError(page));
         if (result.aborted) {
           return;
         }
