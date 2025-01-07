@@ -10,8 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x]
-        attempt: [1, 2, 3]
+        node-version: [18.x, 20.x, 22.x]
 
     steps:
     - uses: actions/checkout@v4
@@ -27,12 +26,8 @@ jobs:
     - name: Run tests
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         FF_LOG: warn
-      run: npm run test
-      continue-on-error: ${{ matrix.attempt != 3 }}
-
-    - name: Skip further attempts if successful
-      if: ${{ matrix.attempt != 1 && steps.test.outcome == 'success' }}
-      run: exit 0
+      run: npm run test --timeout=5000
