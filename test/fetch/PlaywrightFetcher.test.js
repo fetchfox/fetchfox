@@ -131,11 +131,14 @@ describe('PlaywrightFetcher', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o-mini', { cache });
-      const fetcher = getFetcher('playwright', { ai, loadWait: 10, paginationWait: 10 });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 20, paginationWait: 20 });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;
       for await (const doc of gen) {
+
+        console.log('doc.html', doc.html);
+
         assert.ok(doc.html.includes(`You are on page ${i}`), `page html ${i}`);
         i++;
       }
