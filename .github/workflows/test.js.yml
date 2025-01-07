@@ -34,4 +34,4 @@ jobs:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
         FF_LOG: debug
-      run: npm run test --timeout=10000
+      run: npm run test -- --timeout=10000
