@@ -13,6 +13,7 @@ describe('github.com', function() {
     const wf = await fox
       .config({
         cache: testCache(),
+        ai: 'openai:gpt-4o',
         fetcher: [
           'playwright',
           { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 },
@@ -45,6 +46,7 @@ describe('github.com', function() {
 
     let locTotal = 0;
     for (const item of out.items) {
+      console.log('item', item);
       assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
       let loc = parseInt(item.loc);
       if (!isNaN(loc)) {

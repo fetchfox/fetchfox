@@ -147,7 +147,13 @@ export const Crawler = class extends BaseCrawler {
     const links = doc.links;
     doc.parseLinks();
 
-    const maxBytes = this.ai.maxTokens / 2;
+    // TODO: move this initailization to a better spot.
+    // maybe make getAI() async and put it there.
+    await this.ai.init();
+
+    // Cap max bytes to limit number of links examined a a time
+    const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
+
     const slimmer = item => ({
       id: item.id,
       html: item.html.substr(0, 200),
