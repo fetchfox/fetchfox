@@ -101,6 +101,7 @@ export const Workflow = class extends BaseWorkflow {
     // and listen to the signal in context if one exists.
     this.controller = new AbortController();
     setMaxListeners(10000, this.controller.signal);
+
     let ctxSignal;
     let abortListener;
     if (this.ctx.signal) {
@@ -140,6 +141,10 @@ export const Workflow = class extends BaseWorkflow {
     } finally {
       last.limit = originalLimit;
       this.cursor.finishAll();
+
+      if (this.controller) {
+        this.controller.abort();
+      }
 
       if (ctxSignal) {
         ctxSignal.removeEventListener('abort', abortListener);

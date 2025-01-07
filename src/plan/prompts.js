@@ -99,6 +99,8 @@ You will return a JSON object with the following fields, in this order:
 
 - "itemDescription": A 2-5 word description of the items the user is trying to scrape. Try to infer the general item based on the intent.
 
+- "singleOrMultiple": Is there a single item of this type on the page, or multiple?
+
 - "detailFields": An array defining the field(s) the user is looking for, based on "intentAnalysis" and the prompt. IF THERE IS A PROMPT GIVEN, base this off the prompt.
 - For "detailFields", follow these guidelines:
   - For URLs and links, that detail field SHOULD SPECIFY absolute URL format
@@ -119,6 +121,7 @@ Example output 1:
 {
   "intentAnalysis": "The user is likely looking for ratings and information about products to evaluate which one to buy",
   "itemDescription": "Product reviews and information",
+  "singleOrMultiple": "single",
   "detailFields": [
     "What is the name of this product?",
     "What is the rating of this product? Format: X.X/X",
@@ -142,6 +145,7 @@ Example output 2:
 {
   "intentAnalysis": "The user wants to find candidates for a job based on the results from a search page",
   "itemDescription": "Job applicant candidates",
+  "singleOrMultiple": "multiple"
   "detailFields": [
     "What is the name of this person?",
     "What is this person's current employer?",
@@ -174,6 +178,7 @@ export const guided = new Template(
     'prompt',
     'intent',
     'itemDescription',
+    'singleOrMultiple',
     'detailFields',
     'url',
     'shouldCrawl',
@@ -203,6 +208,8 @@ The user top level prompt is: {{prompt}}
 The intent of this scrape is: {{intent}}
 
 The user is looking for this type of item: {{itemDescription}}
+
+This is a guess of whether there is one item or multiple items: {{singleOrMultiple}}
 
 The user wants to extract these fields for each item:
 {{detailFields}}

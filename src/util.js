@@ -117,7 +117,7 @@ export const abortable = async (signal, promise) => {
       return { aborted: false, result }
     })
     .catch((e) => {
-      if (signal.aborted) {
+      if (signal?.aborted) {
         return { aborted: true };
       }
       logger.error(`Abortable got error: ${e}`);

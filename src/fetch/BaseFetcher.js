@@ -1,5 +1,6 @@
 import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
+import pTimeout from 'p-timeout';
 import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
@@ -30,6 +31,7 @@ export const BaseFetcher = class {
     this.s3 = options?.s3;
     this.css = options?.css;
     this.signal = options?.signal;
+    this.loadTimeout = options?.loadTimeout || 15 * 1000;
   }
 
   toString() {
@@ -139,24 +141,30 @@ export const BaseFetcher = class {
           // feeding into a channel.
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
-          return new Promise(async (ok, bad) => {
+          return new Promise(async (ok) => {
             logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
 
             const ctx = { timer };
             await this.start(ctx);
 
             try {
+              logger.debug(`${this} Starting at ${url}`);
               for await (const doc of this.paginate(url, ctx, options)) {
+                if (this.signal?.aborted) {
+                  break;
+                }
                 channel.send({ doc });
               }
             } catch (e) {
-              logger.error(`${this} Caught error while getting documents: ${e}`);
-              bad(e);
+              logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
-            finally {
-              channel.end();
-              await this.finish(ctx);
-            }
+
+            logger.debug(`${this} Closing docs channel`);
+            channel.end();
+            this.finish(ctx)
+              .catch((e) => {
+                logger.error(`${this} Error while finishing, ignoring: ${e}`);
+              });
             ok();
           });
           /* eslint-enable no-async-promise-executor */
@@ -238,12 +246,26 @@ export const BaseFetcher = class {
   async *paginate(url, ctx, options) {
     const timer = ctx?.timer || new Timer();
 
-    const gotoCtx = await this.goto(url, ctx);
+    if (this.signal?.aborted) {
+      return;
+    }
+
+    const gotoCtx = await this.goto(url, ctx, options);
     const myCtx = { ...ctx, url, ...gotoCtx };
 
-    const doc = await this.current(myCtx);
+    let doc;
+    try {
+      doc = await pTimeout(this.current(myCtx), { milliseconds: this.loadTimeout });
+    } catch (e) {
+      logger.error(`${this} Error while getting current: ${e}`);
+      throw e;
+    }
+
     if (!doc) {
-      logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
+      // TODO: `finishGoto()` call is duplicated with the one at the
+      // end of this function. Refactor remove this duplication.
+      await this.finishGoto(myCtx);
+      logger.warn(`${this} Could not get document for ${url}, bailing on pagination`);
       return;
     }
 
@@ -270,6 +292,7 @@ export const BaseFetcher = class {
         domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
         logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
       }
+
       const context = {
         html: minDoc.html,
         domainSpecific,
@@ -374,7 +397,7 @@ export const BaseFetcher = class {
       logger.error(`${this} Error while reading docs channel in pagination: ${e}`);
       throw e;
     } finally {
-      this.finishGoto(myCtx);
+      await this.finishGoto(myCtx);
     }
   }
 

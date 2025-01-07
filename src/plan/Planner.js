@@ -164,7 +164,7 @@ export const Planner = class {
       stepLibrary,
       prompt: scrapePrompt,
       url: (args.url || '').substr(0, 1000),
-      html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000))
+      html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000)),
     };
     if (this.user) {
       prePlanContext.user = userPrompt(this.user);

@@ -248,6 +248,7 @@ export const BaseStep = class {
           })
           .catch((e) => {
             if (e.name == 'AbortError') {
+              ok();
               return;
             }
             logger.error(`${this} Got error while waiting for all: ${e}`);
@@ -258,6 +259,7 @@ export const BaseStep = class {
 
       const maybeOk = () => {
         logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
+
         const isOk = (
           (parentDone && received == completed) ||
           nextDone);
@@ -322,6 +324,7 @@ export const BaseStep = class {
       removeAbortListener();
       throw e;
     });
+
     await processPromise;
 
     const finishPromise = this._finish(cursor, index);
