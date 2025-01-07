@@ -39,8 +39,9 @@ describe('PlaywrightFetcher', function() {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end('<html><body><h1>Hello, world!</h1></body></html>');
     });
-    const port = 3030;
-    await new Promise(ok => server.listen(port, ok));
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
 
     try {
       const cache = testCache();
@@ -53,7 +54,7 @@ describe('PlaywrightFetcher', function() {
       assert.ok(doc.text.includes('Hello, world!'));
       assert.ok(doc.html.includes('<h1>Hello, world!</h1>'));
     } finally {
-      await server.close();
+      server.close();
     }
   });
 
@@ -81,8 +82,8 @@ describe('PlaywrightFetcher', function() {
     `);
     });
 
-    const port = 3030;
-    await new Promise(ok => server.listen(port, ok));
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
 
     try {
       const cache = testCache();
@@ -96,7 +97,7 @@ describe('PlaywrightFetcher', function() {
       assert.ok(doc.text.includes('Dynamic Content Loaded'), 'dynamic content check');
       assert.ok(doc.html.includes('<div id="dynamic-content">Dynamic Content Loaded</div>'), 'dynamic html check');
     } finally {
-      await server.close();
+      server.close();
     }
   });
 
@@ -124,9 +125,8 @@ describe('PlaywrightFetcher', function() {
     `);
     });
 
-    const port = 3030;
-    await new Promise(ok => server.listen(port, ok));
-
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
 
     try {
       const cache = testCache();
@@ -143,7 +143,7 @@ describe('PlaywrightFetcher', function() {
       assert.equal(i - 1, 5, '5 pages');
 
     } finally {
-      await server.close();
+      server.close();
     }
   });
 
@@ -172,8 +172,8 @@ describe('PlaywrightFetcher', function() {
     `);
     });
 
-    const port = 3030;
-    await new Promise(ok => server.listen(port, ok));
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
 
     try {
       const cache = testCache();
@@ -186,7 +186,7 @@ describe('PlaywrightFetcher', function() {
       assert.equal(doc, null, 'timeout no error');
 
     } finally {
-      await server.close();
+      server.close();
     }
   });
 
