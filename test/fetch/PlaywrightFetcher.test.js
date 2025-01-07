@@ -53,7 +53,7 @@ describe('PlaywrightFetcher', function() {
       assert.ok(doc.text.includes('Hello, world!'));
       assert.ok(doc.html.includes('<h1>Hello, world!</h1>'));
     } finally {
-      server.close();
+      await server.close();
     }
   });
 
@@ -96,7 +96,7 @@ describe('PlaywrightFetcher', function() {
       assert.ok(doc.text.includes('Dynamic Content Loaded'), 'dynamic content check');
       assert.ok(doc.html.includes('<div id="dynamic-content">Dynamic Content Loaded</div>'), 'dynamic html check');
     } finally {
-      server.close();
+      await server.close();
     }
   });
 
@@ -143,7 +143,7 @@ describe('PlaywrightFetcher', function() {
       assert.equal(i - 1, 5, '5 pages');
 
     } finally {
-      server.close();
+      await server.close();
     }
   });
 
@@ -186,7 +186,7 @@ describe('PlaywrightFetcher', function() {
       assert.equal(doc, null, 'timeout no error');
 
     } finally {
-      server.close();
+      await server.close();
     }
   });
 
