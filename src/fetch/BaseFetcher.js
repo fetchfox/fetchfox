@@ -141,7 +141,7 @@ export const BaseFetcher = class {
           // feeding into a channel.
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
-          return new Promise(async (ok, bad) => {
+          return new Promise(async (ok) => {
             logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
 
             const ctx = { timer };
@@ -153,13 +153,14 @@ export const BaseFetcher = class {
                 channel.send({ doc });
               }
             } catch (e) {
-              logger.error(`${this} Caught error while getting documents: ${e}`);
-              bad(e);
+              logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
-            finally {
-              channel.end();
-              await this.finish(ctx);
-            }
+            logger.debug(`${this} Closing docs channel`);
+            channel.end();
+            this.finish(ctx)
+              .catch((e) => {
+                logger.error(`${this} Error while finishing, ignoring: ${e}`);
+              });
             ok();
           });
           /* eslint-enable no-async-promise-executor */

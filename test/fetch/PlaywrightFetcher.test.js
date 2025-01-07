@@ -147,4 +147,47 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
+  it('should timeout properly @run @fast', async () => {
+    const server = http.createServer(async (req, res) => {
+      await new Promise(ok => setTimeout(ok, 20));
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Test Page</title>
+          <script>
+            setTimeout(() => {
+              const dynamicContent = document.createElement('div');
+              dynamicContent.id = 'dynamic-content';
+              dynamicContent.textContent = 'Dynamic Content Loaded';
+              document.body.appendChild(dynamicContent);
+            }, 5);
+          </script>
+        </head>
+        <body>
+          <h1>Static Content</h1>
+        </body>
+      </html>
+    `);
+    });
+
+    const port = 3030;
+    await new Promise(ok => server.listen(port, ok));
+
+    try {
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o-mini', { cache });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 10, loadTimeout: 1 });
+      const gen = await fetcher.fetch(`http://localhost:${port}`);
+      const doc = (await gen.next()).value;
+      gen.return();
+
+      assert.equal(doc, null, 'timeout no error');
+
+    } finally {
+      server.close();
+    }
+  });
+
 });
