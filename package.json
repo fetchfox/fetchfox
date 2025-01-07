@@ -52,6 +52,7 @@
     "ollama": "^0.5.9",
     "openai": "^4.58.1",
     "p-queue": "^8.0.1",
+    "p-timeout": "^6.1.4",
     "papaparse": "^5.4.1",
     "playwright": "^1.48.0",
     "playwright-extra": "^4.3.6",
