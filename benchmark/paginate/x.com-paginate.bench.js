@@ -11,7 +11,7 @@ describe('paginate x.com', async function() {
 
   const wf = await fox
     .init('https://x.com/elonmusk')
-    .fetch({ pages: 10 })
+    .fetch({ maxPages: 10 })
     .extract({
       text: 'Post text',
     })

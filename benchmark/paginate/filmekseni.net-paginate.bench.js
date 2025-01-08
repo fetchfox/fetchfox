@@ -24,7 +24,7 @@ describe('paginate filmekseni.net', async function() {
 
   const wf = await fox
     .init('https://filmekseni.net/oyuncu/michael-jai-white/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

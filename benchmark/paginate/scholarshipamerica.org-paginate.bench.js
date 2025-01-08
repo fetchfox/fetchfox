@@ -19,7 +19,7 @@ describe('paginate scholarshipamerica', async function() {
 
   const wf = await fox
     .init('https://scholarshipamerica.org/students/browse-scholarships/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

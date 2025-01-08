@@ -19,7 +19,7 @@ describe('paginate uhrforum.de', async function() {
 
   const wf = await fox
     .init('https://uhrforum.de/forums/angebote.11/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

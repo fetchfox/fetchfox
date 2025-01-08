@@ -15,7 +15,7 @@ describe('paginate www.reddit.com/r/nfl/', async function() {
 
   const wf = await fox
     .init('https://www.reddit.com/r/nfl/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

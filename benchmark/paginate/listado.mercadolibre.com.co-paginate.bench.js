@@ -19,7 +19,7 @@ describe('paginate listado.mercadolibre.com.co', async function() {
 
   const wf = await fox
     .init('https://listado.mercadolibre.com.co/pantalla-vertical-pc')
-    .fetch({ pages: 4 })
+    .fetch({ maxPages: 4 })
     .plan();
 
   return itRunMatrix(
