@@ -11,7 +11,7 @@ describe('paginate github.com', async function() {
 
   const wf = await fox
     .init('https://github.com/fetchfox/fetchfox/commits/master/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

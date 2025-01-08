@@ -15,7 +15,7 @@ describe('paginate ebay.com nike search', async function() {
 
   const wf = await fox
     .init('https://www.ebay.com/sch/i.html?_nkw=nike+sneakers')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   const expected = [

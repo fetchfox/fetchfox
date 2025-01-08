@@ -19,7 +19,7 @@ describe('paginate catalog.mountainview.gov', async function() {
 
   const wf = await fox
     .init('https://catalog.mountainview.gov/Union/Search?view=list&showCovers=on&lookfor=garfield&searchIndex=Keyword&searchSource=local')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

@@ -19,7 +19,7 @@ describe('paginate news.ycombinator.com/news', async function() {
 
   const wf = await fox
     .init('https://news.ycombinator.com/news')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

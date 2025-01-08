@@ -32,7 +32,7 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
           await storeScores(scores);
         }
       } catch (e) {
-        logger.error(`Benchmark ${testName} had an error: ${e}`);
+        logger.error(`Benchmark ${testName} had an error: ${e} ${e.stack}`);
       }
     });
   }
@@ -77,14 +77,14 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       delete fullConfig.cache;
     }
 
-    const out = await fox
+    const wf = await fox
       .load(populate(json, config))
-      .config(fullConfig)
-      .run();
+      .config(fullConfig);
+    const out = await wf.run();
 
-    console.log(JSON.stringify(out.context.ai.usage, null, 2));
-    console.log(JSON.stringify(out.context.ai.cost, null, 2));
-    console.log(JSON.stringify(out.context.ai.runtime, null, 2));
+    console.log(JSON.stringify(wf.ctx.ai.usage, null, 2));
+    console.log(JSON.stringify(wf.ctx.ai.cost, null, 2));
+    console.log(JSON.stringify(wf.ctx.ai.runtime, null, 2));
 
     logger.info(``);
     logger.info(`  Running benchmark ${++i}/${matrix.length} with config ${JSON.stringify(config)}`);

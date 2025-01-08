@@ -21,7 +21,7 @@ describe('paginate eksisozluk', async function() {
 
   const wf = await fox
     .init('https://eksisozluk.com/halki-terorist-ilan-etme-cureti--6531818')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

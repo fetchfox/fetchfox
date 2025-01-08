@@ -19,7 +19,7 @@ describe('paginate danbooru.donmai.us', async function() {
 
   const wf = await fox
     .init('https://danbooru.donmai.us/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
