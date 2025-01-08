@@ -20,7 +20,7 @@ describe('paginate gurkhaskitchensunnyvale.com', async function() {
 
   const wf = await fox
     .init('https://gurkhaskitchensunnyvale.com/product-category/non-catering/?filters=product_tag[145]')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

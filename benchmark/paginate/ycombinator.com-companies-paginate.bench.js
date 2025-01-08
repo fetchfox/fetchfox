@@ -11,7 +11,7 @@ describe('paginate ycombinator.com/companies', async function() {
 
   const wf = await fox
     .init('https://www.ycombinator.com/companies')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(

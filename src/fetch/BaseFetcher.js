@@ -319,13 +319,13 @@ export const BaseFetcher = class {
         logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
         if (answer?.partial?.hasPagination &&
-          answer?.partial?.paginationJavascript
+          answer?.partial?.nextPageJavascript
         ) {
           let fn;
           try {
-            fn = new Function(answer.partial.paginationJavascript);
+            fn = new Function(answer.partial.nextPageJavascript);
           } catch(e) {
-            logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it: ${e}`);
+            logger.warn(`${this} Got invalid pagination function ${answer.partial.nextPageJavascript}, dropping it: ${e}`);
           }
           if (fn) {
             fns.push(fn);

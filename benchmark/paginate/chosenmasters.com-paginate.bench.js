@@ -11,7 +11,7 @@ describe('paginate chosenmasters.com/charts', async function() {
 
   const wf = await fox
     .init('https://chosenmasters.com/charts')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
