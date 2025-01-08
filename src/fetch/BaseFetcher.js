@@ -150,9 +150,6 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${url}`);
               for await (const doc of this.paginate(url, ctx, options)) {
-
-                console.log('Pagination gave doc: ' + doc);
-
                 if (this.signal?.aborted) {
                   break;
                 }
@@ -321,14 +318,11 @@ export const BaseFetcher = class {
 
         logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
-        console.log('answer.partial', answer.partial);
-
         if (answer?.partial?.hasPagination &&
           answer?.partial?.nextPageJavascript
         ) {
           let fn;
           try {
-            console.log('answer.partial.nextPageJavascript', answer.partial.nextPageJavascript);
             fn = new Function(answer.partial.nextPageJavascript);
           } catch(e) {
             logger.warn(`${this} Got invalid pagination function ${answer.partial.nextPageJavascript}, dropping it: ${e}`);

@@ -35,6 +35,8 @@ Follow these important rules:
 
 IMPORTANT:
 - "nextPageJavascript"  will be a parameter to new Function(). Therefore, do NOT give a function signature.
+- Do NOT wrap in new Function(...)
+- Instead, give Javascript that CAN BE executed
 
 >>>> Analyze this HTML:
 {{html}}
