@@ -148,7 +148,7 @@ export const BaseFetcher = class {
             try {
               await this.start(ctx);
             } catch (e) {
-              logger.error(`${this} Could not start, skipping ${url}: ${e}`);
+              logger.error(`${this} Caught error while starting, give up: ${e}`);
               ok();
               return;
             }
@@ -162,6 +162,7 @@ export const BaseFetcher = class {
                 channel.send({ doc });
               }
             } catch (e) {
+              // TODO: surface these errors in UI
               logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
 

@@ -26,7 +26,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // TODO: these options should be passed in in `fetch`
     this.loadWait = options?.loadWait || 4000;
     this.paginationWait = options?.paginationWait || this.loadWait || 4000;
-    this.timeoutWait = options?.timeoutWait || 15000;
+    this.timeoutWait = options?.timeoutWait || 60000;
     this.pullIframes = options?.pullIframes;
 
     this.options = options?.options || {};
