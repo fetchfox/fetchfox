@@ -238,22 +238,18 @@ export const BaseStep = class {
         }
 
         return Promise.all(qPromises)
-          .then(tasks => Promise.all(tasks))
-          .then(() => {
-            completed += b.length;
-            if (!done) {
-              done ||= maybeOk();
-            }
-            return;
-          })
+          .then(tasks => Promise.allSettled(tasks))
           .catch((e) => {
             if (e.name == 'AbortError') {
               ok();
               return;
             }
             logger.error(`${this} Got error while waiting for all: ${e}`);
+          })
+          .finally(() => {
+            completed += b.length;
+            done ||= maybeOk();
           });
-
 
       }; // end processBatch
 
