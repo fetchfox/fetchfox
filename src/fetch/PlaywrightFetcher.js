@@ -84,43 +84,32 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return ctx.page.evaluate(fn);
   }
 
-  async _launch(options) {
-    const timer = options?.timer || new Timer();
-    timer.push('PlaywrightFetcher.launch');
-
+  async _launch() {
     logger.debug(`Playwright launching...`);
 
-    let p;
-    if (this.cdp) {
-      logger.debug(`Playwright using CDP endpoint ${this.cdp}`);
-
-      for (let i = 0; i < 3; i++) {
-        try {
-          p = chromium.connectOverCDP(this.cdp);
-          break;
-        } catch(e) {
-          logger.warn(`Could not connect to CDP: ${e}`);
-          await new Promise(ok => setTimeout(ok, 5 * 1000));
-        }
-
-        if (!p) {
-          throw new Error('Could not connet to CDP, giving up');
-        }
+    let err;
+    for (let i = 0; i < 3; i++) {
+      let promise;
+      if (this.cdp) {
+        logger.debug(`Playwright using CDP endpoint ${this.cdp}`);
+        promise = chromium.connectOverCDP(this.cdp);
+      } else {
+        logger.debug(`Playwright using local Chromium`);
+        promise = chromium.launch({ ...this.options, headless: this.headless });
       }
-    } else {
-      logger.debug(`Playwright using local Chromium`);
-      p = chromium.launch({ ...this.options, headless: this.headless });
+
+      try {
+        const browser = await promise;
+        return browser;
+      } catch (e) {
+        logger.warn(`${this} Could not launch, retrying: ${e}`);
+        err = e;
+        await new Promise(ok => setTimeout(ok, i * 4000));
+      }
     }
 
-    timer.pop();
-
-    try {
-      const browser = await p;
-      return browser;
-    } catch (e) {
-      logger.error(`${this} Could not launch: ${e}`);
-      throw e;
-    }
+    logger.warn(`${this} Could not launch, throwing: ${err}`);
+    throw err;
   }
 
   async start(ctx) {

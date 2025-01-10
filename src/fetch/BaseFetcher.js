@@ -145,7 +145,13 @@ export const BaseFetcher = class {
             logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
 
             const ctx = { timer };
-            await this.start(ctx);
+            try {
+              await this.start(ctx);
+            } catch (e) {
+              logger.error(`${this} Could not start, skipping ${url}: ${e}`);
+              ok();
+              return;
+            }
 
             try {
               logger.debug(`${this} Starting at ${url}`);
