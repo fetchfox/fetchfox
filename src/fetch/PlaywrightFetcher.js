@@ -42,6 +42,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async goto(url, ctx) {
+    // if (Math.random() < 0.1) {
+    //   logger.error('throw test error');
+    //   throw new Error('test error goto');
+    // }
+
     const page = await ctx.browser.newPage()
 
     try {
@@ -63,6 +68,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async current(ctx) {
+    // if (Math.random() < 0.1) {
+    //   logger.error('throw test error');
+    //   throw new Error('test error current');
+    // }
+
     let doc;
     let aborted;
     try {

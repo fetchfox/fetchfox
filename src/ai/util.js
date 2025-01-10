@@ -33,14 +33,23 @@ export const parseAnswer = (text, format) => {
     const result = [];
     let leftover = '';
     for (const line of lines) {
+
+      console.log('jsonl line:    ', line);
+      console.log('jsonl leftover:', leftover);
+
       if (leftover) {
         leftover += line;
         continue;
       }
 
       try {
-        result.push(trimJson(JSON.parse(line))) }
-      catch {
+        // const obj = trimJson(JSON.parse(line));
+        const obj = JSON.parse(line);
+        // console.log('parsed json line:', line, JSON.stringify(obj, null, 2));
+        console.log('push jsonl obj...');
+        result.push(obj);
+      } catch {
+        console.log('could not parse jsonl');
         leftover = line;
       }
     }

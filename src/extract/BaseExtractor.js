@@ -10,6 +10,7 @@ export const BaseExtractor = class {
     const { ai, fetcher, minimizer, signal, cache, hardCapTokens } = options || {};
     this.signal = signal;
     this.cache = cache;
+    // this.cache = null;
     this.ai = getAI(ai, { cache, signal });
     this.fetcher = getFetcher(fetcher, { cache, signal });
     this.minimizer = getMinimizer(minimizer, { cache });
