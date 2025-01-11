@@ -18,29 +18,43 @@ export const learn = async ({ url, prompt, ...rest }) => {
 
   const stream = ai.stream(catPrompt, { format: 'jsonl' });
   const promises = [];
+  const seen = {};
 
   for await (const partial of stream) {
-    const result = partial.delta
+    const result = partial.delta;
     console.log('stream partial:', result);
-    const { regex } = result;
+    const { pattern } = result;
+
+    if (seen[pattern]) {
+      continue;
+    }
+    seen[pattern] = true;
+
+    console.log('pattern', pattern);
+    const regex = pattern.replace(/:[A-Za-z0-9-]+/g, '[^/]+');
+    console.log(`${pattern} -> ${regex}`);
     const matches = urls.filter(url => (new RegExp(regex)).test(url));
 
     if (matches.length == 0) {
       continue;
     }
-
     const pageUrl = matches[0];
 
+    if (seen[pageUrl]) {
+      continue;
+    }
+    seen[pageUrl] = true;
+
     // console.log(matches);
-    const pattern = {
+    const category = {
       example: pageUrl,
       name: result.categoryName,
-      pattern: result.urlPattern,
+      pattern: result.pattern,
       regex: result.regex,
     };
     const promise = learnUrl({ url: pageUrl, ...rest })
       .then((items) => {
-        return { items, pattern };
+        return { items, category };
       });
     promises.push(promise);
   }
@@ -48,7 +62,7 @@ export const learn = async ({ url, prompt, ...rest }) => {
   const knowledge = {};
   const results = await Promise.all(promises);
   for (const result of results) {
-    knowledge[result.pattern.pattern] = result;
+    knowledge[result.category.pattern] = result;
   }
   return knowledge;
 }

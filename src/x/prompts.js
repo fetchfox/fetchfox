@@ -5,8 +5,7 @@ export const categorize = new Template(
   `You are given a list of URLs, and your goal is to create rules for categorizing them. You will return the following:
 
 - "categoryName": The name of this URL category
-- "urlPattern": The URL pattern, with parameters indicated in :parameter format
-- "regex": A regex for matching this URL pattern. This regex should be a STRING that can be parsed by Javascript new RegExp();
+- "pattern": The URL pattern, with parameters indicated in :parameter format
 
 You should return under a dozen categories, and may exclude some URLs if they do not fit with the general pattern of categories.
 
@@ -14,8 +13,8 @@ Additionally, focus on URLs relevant to the user prompt. You may IGNORE urls tha
 
 Example of valid output:
 
-{"categoryName": "article", "urlPattern": "https://example.com/article/:date/:id", "regex": "https:\\/\\/example.com\\/article\\/[0-9]{4}-[0-9]{2}-[0-9]{2}/[a-f0-9]+"}
-{"categoryName": "author", "urlPattern": "https://example.com/author/:name", "regex": "https:\\/\\/example.com\\/author\\/[a-z\-]+"}
+{"categoryName": "article", "pattern": "https://example.com/article/:date/:id"}
+{"categoryName": "author", "pattern": "https://example.com/author/:name"}
 
 The list of URLs to categorize is below:
 {{urls}}
@@ -44,30 +43,9 @@ Additionally, focus on items relevant to the user prompt. You may IGNORE item ty
 
 Examples of valid output:
 
-{
-  "item": "book"
-  "schema": {
-    "title": "Title of the book",
-    "author": "Author of the book",
-    "reviews": [
-      {
-        "reviewer": "Name of the reviewer",
-        "stars": "Number of stars, X.X / 5",
-        "body": "Text of the review"
-      }
-    ]
-  }
-}
+{"item": "book" "schema": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ] } }
 
-{
-  "item": "comment"
-  "schema": {
-    "username": "Username of the commenter",
-    "points": "Number of points the comment received",
-    "timestamp": "Time that the comment was posted, in standard ISO format",
-    "text": "Text content of the review",
-  }
-}
+{"item": "comment" "schema": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review" } }
 
 URL of the page: {{url}}
 
