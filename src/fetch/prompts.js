@@ -22,8 +22,8 @@ Each field should be filled as follows:
 - "paginationAnalysis": 10-30 word english description of pagination setup on this page
 - "paginationStyle": One of these: "pageNumberUrl", "nextPageUrl", "pageNumberButton", "nextPageButton", "scroll"
 - "paginationSelector": CSS selector that picks out the pagination component on the page. Can be null if none is applicable, for exmple with infinite scrolling pagination
-- "nextPageButtonSelector": CSS selector that picks out the NEXT PAGE component on the page. Can be null if none is applicable, for exmple with infinite scrolling pagination
-- "nextPageJavascript": Javascript code that can be executed on the page to go to the next page
+- "nextPageButtonSelector": CSS selector that picks out the NEXT PAGE component on the page. Make sure it picks out ONLY the next button. Can be null if none is applicable, for exmple with infinite scrolling pagination
+- "nextPageJavascript": Javascript code that can be executed on the page to click the next button
 
 Follow these important rules:
 - Make sure your nextPageJavascript is re-usable for multiple iterations. Do NOT hardcode references to specific pages numbers
