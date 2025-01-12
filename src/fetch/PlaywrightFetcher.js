@@ -25,7 +25,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     // TODO: these options should be passed in in `fetch`
     this.loadWait = options?.loadWait || 4000;
-    this.paginationWait = options?.paginationWait || this.loadWait || 4000;
     this.timeoutWait = options?.timeoutWait || 15000;
     this.pullIframes = options?.pullIframes;
 
@@ -82,6 +81,23 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async evaluate(fn, ctx) {
     return ctx.page.evaluate(fn);
+  }
+
+  async click(css, ctx) {
+    return ctx.page.locator(`css=${css}`).click();
+  }
+
+  async scroll(type, ctx) {
+    switch (type) {
+      case 'window':
+        return ctx.page.keyboard.press('PageDown');
+      case 'bottom':
+        /* eslint-disable no-undef */
+        return ctx.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        /* eslint-enable no-undef */
+      default:
+        logger.error(`${this} Unhandled scroll type: ${type}`);
+    }
   }
 
   async _launch() {

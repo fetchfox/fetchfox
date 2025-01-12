@@ -1,42 +1,33 @@
 import { Template } from '../template/Template.js';
 
-
-export const analyzePagination = new Template(
+export const paginationAction = new Template(
   ['html', 'domainSpecific'],
   `You are part of a web scraping program. You are given some HTML, and your goal is to analyze the pagination style of this page.
 
 Response with JSON as follows:
 
 {
-  "hasPagination": boolean
   "paginationAnalysis": string,
-  "paginationStyle": null or string,
-  "paginationSelector": null or string,
-  "nextPageButtonSelector": null or string,
-  "nextPageJavascript": null or string,
+  "paginationCommand": string,
+  "paginationArgument": string,
 }
 
-Each field should be filled as follows:
-
-- "hasPagination": true or false
-- "paginationAnalysis": 10-30 word english description of pagination setup on this page
-- "paginationStyle": One of these: "pageNumberUrl", "nextPageUrl", "pageNumberButton", "nextPageButton", "scroll"
-- "paginationSelector": CSS selector that picks out the pagination component on the page. Can be null if none is applicable, for exmple with infinite scrolling pagination
-- "nextPageButtonSelector": CSS selector that picks out the NEXT PAGE component on the page. Make sure it picks out ONLY the next button. Can be null if none is applicable, for exmple with infinite scrolling pagination
-- "nextPageJavascript": Javascript code that can be executed on the page to click the next button
+- "paginationAnalysis": 10-30 word english desrption of how to paginate to the NEXT page page. If no pagination, say so.
+- "paginationCommand": If the page has pagination, this will be one these: "click", "scroll", or "evaluate"
+  - "click" if you need click a button or link to go to the next page
+  - "scroll" if you need to scroll down to paginate
+  - "evaluate" if clicking or scrolling doesn't work, and instead you need to execute some more complex javascript to paginate. Prefer click or scroll
+- "paginationArgument": the value depends on the command
+  - if command is "click", the CSS selector that selects the next page button to click
+  - if command is "scroll", how much to scroll: either "window" for window height, or "bottom" to scroll all the way to the bottom
+  - if command is "evaluate", give javascript that will paginate. This javascript will be a parameter to new Function(). Therefore, do NOT give a function signature.
 
 Follow these important rules:
-- Make sure your nextPageJavascript is re-usable for multiple iterations. Do NOT hardcode references to specific pages numbers
-- If the page has pagination, you must always include nextPageJavascript
+- Make sure your pagination command and argument is reusable for more pages. For example, if you see buttons for page 2, 3, 4, 5, etc.. and a "Next Page" button, make sure to click the next page button.
 - Keep CSS selectors simple as possible
 - KEEP IT SIMPLE
 
 {{domainSpecific}}
-
-IMPORTANT:
-- "nextPageJavascript"  will be a parameter to new Function(). Therefore, do NOT give a function signature.
-- Do NOT wrap in new Function(...)
-- Instead, give Javascript that CAN BE executed
 
 >>>> Analyze this HTML:
 {{html}}
