@@ -21,4 +21,15 @@ describe('x', function() {
     });
   });
 
+  it('should learn github', async () => {
+    const l = new Learner();
+    const data = await l.learn({
+      url: 'https://www.github.com',
+      prompt: 'open source repos',
+    });
+
+    console.log('== data ==');
+    console.log(JSON.stringify(data, null, 2));
+  });
+
 });

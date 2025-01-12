@@ -56,11 +56,8 @@ Focus on URLs relevant the user prompt below, and ignore ones that are unlikely 
 
 Guidlines:
 - Ignore general categories like "site navigation" or "site links", focus on content and data unique to this page and domain
-- Include AT MOST three (3) types of items
-- Rank the items in order of most salient
-- Schema fields and items MUST ONLY be for data on THIS PAGE
-- The DATA MUST be present on this page. This directive takes precedence over the user prompt instruction from above.
-- Do not return actual data, you must return a SCHEMA which is a DESCRIPTION of data
+- Include 1 to 3 types of items
+- Return data that is on *this page*, not data that is linked from it
 
 Follow these important rules:
 - Your response MUST be VALID JSONL
