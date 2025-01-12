@@ -1,96 +1,107 @@
+import { shuffle } from 'radash';
 import { getFetcher, getAI } from '../index.js';
+import { URL } from 'whatwg-url';
 import * as prompts from './prompts.js';
 
-export const learn = async ({ url, prompt, ...rest }) => {
-  const fetcher = rest?.fetcher || getFetcher();
-  const ai = rest?.ai || getAI();
+export class Learner {
+  constructor(options) {
+    this.kb = new KnowledgeBase(options)
+    this.fetcher = options?.fetcher || getFetcher();
+    this.ai = options?.ai || getAI();
+  }
 
-  const doc = await fetcher.first(url);
-  console.log('doc: ' + doc);
+  async learn({ url, prompt, ...rest }) {
+    const data = await this.kb.analyze({ url, prompt, ...rest });
+    console.log(JSON.stringify(data, null, 2));
+    const doc = await this.fetcher.first(url);
 
-  const urls = doc.links.map(it => it.url);
-  const context = { urls: urls.join('\n') };
-  const { prompt: catPrompt } = await prompts.categorize.renderCapped(context, 'urls', ai);
-
-  // console.log('prompt', prompt);
-  // const answer = await ai.ask(catPrompt, { format: 'jsonl' });
-  // console.log('answer', answer.partial);
-
-  const stream = ai.stream(catPrompt, { format: 'jsonl' });
-  const promises = [];
-  const seen = {};
-
-  for await (const partial of stream) {
-    const result = partial.delta;
-    console.log('stream partial:', result);
-    const { pattern } = result;
-
-    if (seen[pattern]) {
-      continue;
-    }
-    seen[pattern] = true;
-
-    console.log('pattern', pattern);
-    const regex = pattern.replace(/:[A-Za-z0-9-]+/g, '[^/]+');
-    console.log(`${pattern} -> ${regex}`);
-    const matches = urls.filter(url => (new RegExp(regex)).test(url));
-
-    if (matches.length == 0) {
-      continue;
-    }
-    const pageUrl = matches[0];
-
-    if (seen[pageUrl]) {
-      continue;
-    }
-    seen[pageUrl] = true;
-
-    // console.log(matches);
-    const category = {
-      example: pageUrl,
-      name: result.categoryName,
-      pattern: result.pattern,
-      regex: result.regex,
-    };
-    const promise = learnUrl({ url: pageUrl, ...rest })
-      .then((items) => {
-        return { items, category };
+    const relevant = await this.pickRelevant(doc, data, prompt);
+    for (const pattern of Object.keys(relevant)) {
+      const promises = relevant[pattern].map(url => {
+        return this.kb.analyze({ url, prompt, ...rest });
       });
-    promises.push(promise);
+      console.log('data', pattern);
+      console.log('relevant[pattern]', relevant[pattern]);
+      const datas = await Promise.all(promises);
+      console.log(datas);
+
+      const mergePrompt = `Merge these ${datas.length} similar objects, combining the data while eliminating redundancy.  Keep the same top level keys. Return ONLY JSON, your response will be machine parsed using JSON.parse(). No english comments.\n\n` + datas.map((it, idx) => `\n\nObject ${idx}:\n${JSON.stringify(it, null, 2)}`);
+
+      console.log('mergePrompt', mergePrompt);
+
+      console.log('== merged ==');
+      const merged = await this.ai.ask(mergePrompt, { format: 'json' });
+      console.log(JSON.stringify(merged, null, 2));
+    }
+
+    return {};
   }
 
-  const knowledge = {};
-  const results = await Promise.all(promises);
-  for (const result of results) {
-    knowledge[result.category.pattern] = result;
+  async pickRelevant(doc, data, prompt) {
+    const context = {
+      url: doc.url,
+      prompt,
+      linksTo: JSON.stringify(data.linksTo, null, 2),
+    };
+    const { prompt: catPrompt } = await prompts
+      .pickRelevant.renderCapped(context, 'linksTo', this.ai);
+    const answer = await this.ai.ask(catPrompt, { format: 'text' });
+    console.log(answer.partial);
+    const patterns = answer.partial.split('\n').map(it => it.trim()).filter(Boolean);
+    const urls = doc.links.map(it => it.url);
+    const categorized = categorizeUrls(patterns, urls);
+
+    const final = {};
+    for (const pattern of Object.keys(categorized)) {
+      final[pattern] = shuffle(categorized[pattern]).slice(0, 3);
+    }
+    
+    return final;
   }
-  return knowledge;
 }
 
-const learnUrl = async ({ url, prompt, ...rest }) => {
-  const fetcher = rest?.fetcher || getFetcher();
-  const ai = rest?.ai || getAI();
-
-  console.log('get url: ' + url);
-  const doc = await fetcher.first(url);
-  console.log('learn url doc: ' + doc);
-  const context = { url, prompt, html: doc.html };
-  const { prompt: itemsPrompt } = await prompts.availableItems.renderCapped(context, 'html', ai);
-
-  // console.log('prompt', prompt);
-
-  const items = [];
-  const stream = ai.stream(itemsPrompt, { format: 'jsonl' });
-  for await (const partial of stream) {
-    const result = partial.delta;
-    console.log('got learn url result for', url);
-    console.log('stream partial for url:', JSON.stringify(partial.delta, null, 2));
-    items.push({
-      item: result.item,
-      schema: result.schema,
-      // css: result.cssSelector,
-      // xpath: result.xpathSelector,
-    });
+function categorizeUrls(patterns, urls) {
+  const categorized = {};
+  for (const pattern of patterns) {
+    const regex = new RegExp(pattern.replace(/:[A-Za-z0-9-]+/g, '[^/]+') + '$');
+    categorized[pattern] = urls.filter(url => regex.test(url));
   }
-  return items;
+  return categorized;
+}
+
+export class KnowledgeBase {
+  constructor(options) {
+    this.data = {};
+    this.fetcher = options?.fetcher || getFetcher();
+    this.ai = options?.ai || getAI();
+  }
+
+  async analyze({ url, prompt, ...rest }) {
+    const linksTo = await this.analyzeLinksTo({ url, prompt, ...rest });
+    const items = await this.analyzeItems({ url, prompt, ...rest });
+    const data = { items, linksTo };
+    return data;
+  }
+
+  async analyzeLinksTo({ url, prompt, ...rest }) {
+    const doc = await this.fetcher.first(url);
+    const urls = doc.links.map(it => it.url);
+    urls.push(url);
+    const context = { urls: urls.join('\n') };
+    const { prompt: catPrompt } = await prompts
+      .categorize.renderCapped(context, 'urls', this.ai);
+    const answer = await this.ai.ask(catPrompt, { format: 'text' });
+    const patterns = answer.partial.split('\n').map(s => s.trim()).filter(Boolean);
+    return patterns;
+  }
+
+  async analyzeItems({ url, prompt, ...rest }) {
+    const doc = await this.fetcher.first(url);
+    const context = { url, prompt, html: doc.html };
+    const { prompt: itemsPrompt } = await prompts
+      .availableItems.renderCapped(context, 'html', this.ai);
+    const answer = await this.ai.ask(itemsPrompt, { format: 'jsonl' });
+    // console.log('answer', JSON.stringify(answer.partial, null, 2));
+    return answer.partial.result;
+  }
 }

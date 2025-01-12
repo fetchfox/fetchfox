@@ -2,19 +2,11 @@ import { Template } from '../template/Template.js';
 
 export const categorize = new Template(
   ['urls', 'prompt'],
-  `You are given a list of URLs, and your goal is to create rules for categorizing them. You will return the following:
+  `You are given a list of URLs, and your goal is to create rules for categorizing them. You will return a list of URL patterns. Url patterns precede parameters in the URLs with ":", and they can be used to match URLs and categorize them. The parameters describe what they typically contain: an ID, a name, a date, a username, etc.
 
-- "categoryName": The name of this URL category
-- "pattern": The URL pattern, with parameters indicated in :parameter format
-
-You should return under a dozen categories, and may exclude some URLs if they do not fit with the general pattern of categories.
+You should usually return under a dozen categories, and may exclude some URLs if they do not fit with the general pattern of categories.
 
 Additionally, focus on URLs relevant to the user prompt. You may IGNORE urls that aren't helpful for the search prompt (below).
-
-Example of valid output:
-
-{"categoryName": "article", "pattern": "https://example.com/article/:date/:id"}
-{"categoryName": "author", "pattern": "https://example.com/author/:name"}
 
 The list of URLs to categorize is below:
 {{urls}}
@@ -22,12 +14,19 @@ The list of URLs to categorize is below:
 Focus on URLs relevant the user prompt below, and ignore ones that are unlikely to be relevent:
 {{prompt}}
 
-Guidlines:
-- Keep your regex SIMPLE
-
 Follow these important rules:
-- Your response MUST be VALID JSONL
-- Each object must be a SINGLE link of JSON. Do NOT break JSON objects into multiple lines under any circumstances
+- Return ONLY the links, line-by-line
+- Your response will be machine parsed
+
+Example of valid output:
+
+https://example.com/article/:date/:id
+https://example.com/author/:name
+
+You can give precedence rules. For example, the two links below show a longer one that matches before the shorter, more general rule:
+
+https://example.com/article/global/:id
+https://example.com/article/:id
 `);
 
 export const availableItems = new Template(
@@ -43,30 +42,51 @@ Additionally, focus on items relevant to the user prompt. You may IGNORE item ty
 
 Examples of valid output:
 
-{"item": "book" "schema": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ] } }
+{"item": "book", "schema": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ] } }
+{"item": "comment", "schema": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review" } }
 
-{"item": "comment" "schema": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review" } }
-
-URL of the page: {{url}}
+URL of the page:
+{{url}}
 
 HTML of the page:
 {{html}}
 
-Focus on URLs relevant the user prompt below, and ignore ones that are unlikely to be relevent:
+Focus on URLs relevant the user prompt below, and ignore ones that are unlikely to be relevent
 {{prompt}}
 
 Guidlines:
 - Ignore general categories like "site navigation" or "site links", focus on content and data unique to this page and domain
+- Include AT MOST three (3) types of items
+- Rank the items in order of most salient
+- Schema fields and items MUST ONLY be for data on THIS PAGE
+- The DATA MUST be present on this page. This directive takes precedence over the user prompt instruction from above.
+- Do not return actual data, you must return a SCHEMA which is a DESCRIPTION of data
 
 Follow these important rules:
 - Your response MUST be VALID JSONL
 - Each object must be a SINGLE link of JSON. Do NOT break JSON objects into multiple lines under any circumstances
-
 `);
 
-// - "cssSelector": A CSS selector that will find all of these items on the page. If one cannot be constructured, leave as null
-// - "xpathSelector": An Xpath selector that will find all of these items on the page. If one cannot be constructured, leave as null
-  // "cssSelector": null,
-  // "xpathSelector": "//div[@class='comment-section']/div[@class='comment']"
-  // "cssSelector": ".content .book-item",
-  // "xpathSelector": null,
+export const pickRelevant = new Template(
+  ['url', 'prompt', 'linksTo'],
+  `You are given some data about a website, and a user data extraction prompt. The data about the website includes URL patterns that the website links to. Your goal is to pick out the URL patterns most likely to relate to the user's prompt.
+
+The website URL is:
+{{url}}
+
+The user prompt is:
+{{prompt}}
+
+The site data is:
+{{linksTo}}
+
+Follow these important rules:
+- Return ONLY the links, line-by-line
+- Your response will be machine parsed
+- Give only a handful of respoinses
+
+Example of valid output:
+
+https://example.com/article/:date/:id
+https://example.com/author/:name
+`);
