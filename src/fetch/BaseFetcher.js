@@ -8,7 +8,7 @@ import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { createChannel, shortObjHash, abortable } from '../util.js';
 import { presignS3 } from './util.js';
-import { analyzePagination } from './prompts.js';
+import { paginationAction } from './prompts.js';
 
 export const BaseFetcher = class {
   constructor(options) {
@@ -31,6 +31,7 @@ export const BaseFetcher = class {
     this.s3 = options?.s3;
     this.css = options?.css;
     this.signal = options?.signal;
+    this.paginationWait = options?.paginationWait || this.loadWait || 4000;
     this.loadTimeout = options?.loadTimeout || 15 * 1000;
   }
 
@@ -275,12 +276,12 @@ export const BaseFetcher = class {
       return;
     }
 
-    const iterations = options?.maxPages || 0;
+    const maxPages = options?.maxPages || 0;
 
     // Kick off job for pages 2+
     const channel = createChannel();
     (async () => {
-      if (!iterations || iterations == 1) {
+      if (!maxPages || maxPages == 1) {
         logger.info(`${this} Not paginating, return`);
         channel.end();
         return;
@@ -288,7 +289,6 @@ export const BaseFetcher = class {
 
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
       const minDoc = await min.min(doc, { timer });
-      const fns = [];
 
       const hostname = (new URL(url)).hostname;
       let domainSpecific = {
@@ -306,11 +306,13 @@ export const BaseFetcher = class {
 
       let prompts;
       try {
-        prompts = await analyzePagination.renderMulti(context, 'html', this.ai);
+        prompts = await paginationAction.renderMulti(context, 'html', this.ai);
       } catch (e) {
         logger.error(`${this} Error while rendering prompts: ${e}`);
         return;
       }
+
+      const commands = [];
 
       logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
       for (const prompt of prompts) {
@@ -322,66 +324,49 @@ export const BaseFetcher = class {
           continue
         }
 
-        logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
+        logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial)}`);
 
-        if (answer?.partial?.hasPagination &&
-          answer?.partial?.nextPageJavascript
-        ) {
-          let fn;
-          try {
-            fn = new Function(answer.partial.nextPageJavascript);
-          } catch(e) {
-            logger.warn(`${this} Got invalid pagination function ${answer.partial.nextPageJavascript}, dropping it: ${e}`);
-          }
-          if (fn) {
-            fns.push(fn);
-          }
+        if (answer.partial?.paginationCommand && answer.partial?.paginationArgument) {
+          commands.push({
+            command: answer.partial.paginationCommand,
+            arg: answer.partial.paginationArgument,
+          });
         }
       }
 
-      if (!fns.length) {
-        logger.warn(`${this} Didn't find a way to paginate, bailing`);
-        channel.end();
-        return;
-      }
-
-      let fnIndex = 0;
-      for (let i = 1; i < iterations; i++) {
-        const fn = fns[fnIndex];
-        logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
+      let index = 0;
+      let iteration = 1;  // Already got the first page
+      let { result: before } = await abortable(this.signal, this.current(myCtx));
+      while (index < commands.length && iteration < maxPages) {
+        const { command, arg } = commands[index];
+        logger.info(`${this} Paginate with action: ${command} ${arg}, index=${index}, iteration=${iteration}`);
         try {
-          await this.evaluate(fn, myCtx);
-          await new Promise(ok => setTimeout(ok, this.paginationWait));
-
-        } catch (e) {
-          if (fnIndex >= fns.length) {
-            logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
-            break;
+          switch (command) {
+            case 'click':
+              await this.click(arg, myCtx);
+              break;
+            case 'scroll':
+              await this.scroll(arg, myCtx);
+              break;
+            default:
+              logger.error(`${this} Unhandled command: ${command} ${arg}`);
+              break;
           }
-
-          fnIndex++;
-          logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
-          continue;
-        }
-
-        let doc;
-        let aborted;
-        try {
-          const result = await abortable(this.signal, this.current(myCtx));
-          aborted = result.aborted;
-          doc = result.result;
         } catch (e) {
-          logger.error(`${this} Error while getting docs from page: ${e}`);
-          throw e;
+          logger.error(`${this} Error while executing pagination action ${command} ${arg}, ignoring: ${e}`);
         }
-        if (aborted) {
-          logger.warn(`${this} Aborted on _docFromPage during pagination`);
-          break;
-        }
+        await new Promise(ok => setTimeout(ok, this.paginationWait));
+        const { result: after } = await abortable(this.signal, this.current(myCtx));
 
-        logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
-        if (doc) {
-          channel.send({ doc });
+        const didPaginate = await this.didPaginate(before, after);
+        if (didPaginate) {
+          logger.debug(`${this} Pagination success`);
+          channel.send({ doc: after });
+          before = after;
+          iteration++;
+        } else {
+          logger.debug(`${this} Pagination did NOT work`);
+          index++;
         }
       }
 
@@ -448,6 +433,10 @@ export const BaseFetcher = class {
     } else {
       return null;
     }
+  }
+
+  async didPaginate(before, after) {
+    return before.html != after.html;
   }
 
   async setCache(url, options, val) {
