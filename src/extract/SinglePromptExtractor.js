@@ -16,6 +16,8 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     if (single) {
       extraRules = `These rules OVERRIDE previous instructions:
 - You must find ONLY ONE result`;
+    } else {
+      extraRules = `- Make sure to find ALL the results`;
     }
     const context = {
       url: doc.url,
