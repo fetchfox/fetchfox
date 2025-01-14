@@ -10,9 +10,10 @@ export const Gemini = class extends BaseAI {
   }
 
   async countTokens(str) {
-    const gemini = new GoogleGenerativeAI(this.apiKey);
-    const model = gemini.getGenerativeModel({ model: this.model });
-    return model.countTokens(str);
+    return str.length / 2;
+    // const gemini = new GoogleGenerativeAI(this.apiKey);
+    // const model = gemini.getGenerativeModel({ model: this.model });
+    // return model.countTokens(str);
   }
 
   normalizeChunk(chunk) {

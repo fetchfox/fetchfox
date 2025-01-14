@@ -11,63 +11,162 @@ export class Learner {
     this.ai = options?.ai || getAI();
   }
 
-  async learn({ url, prompt, ...rest }) {
-    console.log('learn about:', url);
-    const data = await this.kb.analyze({ url, prompt, ...rest });
-    console.log('got analysis for', url);
-    console.log(JSON.stringify(data, null, 2));
-    const doc = await this.fetcher.first(url);
-
-    const relevant = await this.pickRelevant(doc, data, prompt);
-
-    const out = {};
-
-    for (const pattern of Object.keys(relevant)) {
-      const examples = relevant[pattern];
-      console.log('analyze relevant pattern:', pattern, examples);
-      const promises = relevant[pattern].map(url => {
-        return this.kb.analyze({ url, prompt, ...rest });
-      });
-      // console.log('data', pattern);
-      // console.log('relevant[pattern]', relevant[pattern]);
-      const datas = await Promise.all(promises);
-      console.log(datas);
-
+  async learnMulti({ urls, prompt, ...rest }) {
+    const promises = urls.map(url => {
+      return this.analyze({ url, prompt, ...rest });
+    });
+    const datas = await Promise.all(promises);
+    let data;
+    if (datas.length == 1) {
+      data = datas[0];
+    } else {
       const mergePrompt = `Merge these ${datas.length} similar objects, combining the data while eliminating redundancy.  Keep the same top level keys. Return ONLY JSON, your response will be machine parsed using JSON.parse(). No english comments.\n\n` + datas.map((it, idx) => `\n\nObject ${idx + 1}:\n${JSON.stringify(it, null, 2)}`);
-
-      // console.log('mergePrompt', mergePrompt);
-      // console.log('== merged ==');
-
       const merged = await this.ai.ask(mergePrompt, { format: 'json' });
-
-      out[pattern] = merged.partial;
+      data = merged.partial;
     }
-
-    return out;
+    return data;
   }
 
-  async pickRelevant(doc, data, prompt) {
+  async learn({ url, prompt, ...rest }) {
+    url = (new URL(url)).toString();
+    const iterations = 4;
+    const numRelevant = 3;
+    const maxPerIteration = 10;
+    let targets = [{ url, pattern: url }];
+    const data = {};
+
+    for (let i = 0; i < iterations; i++) {
+      console.log(`== Iteration ${i} ==`);
+      targets = shuffle(targets).slice(0, maxPerIteration);
+      console.log('Targets:', targets.length);
+      const docs = await Promise.all(targets.map(({ url }) => {
+        return this.fetcher.first(url);
+      }));
+      const analyses = await Promise.all(targets.map(async ({ pattern }, idx) => {
+        const analysis = await this.analyze({ doc: docs[idx], prompt, ...rest });
+        data[pattern] = analysis;
+        return analysis;
+      }));
+      const relevants = await Promise.all(docs.map((doc, idx) => {
+        return this._pickRelevant(doc, analyses[idx].linksTo, prompt, numRelevant);
+      }));
+      const relevant = {};
+      for (const r of relevants) {
+        for (const key of Object.keys(r)) {
+          relevant[key] = r[key];  // This may override data
+        }
+      }
+      console.log('relevant links:');
+      console.log(JSON.stringify(relevant, null, 2));
+      targets = [];
+      for (const pattern of Object.keys(relevant)) {
+        const urls = relevant[pattern].slice(0, 3);
+        targets.push(...(urls.map(url => ({ url, pattern }))));
+      }
+    }
+
+    return data;
+  }
+
+  async analyze({ doc, prompt, ...rest }) {
+    console.log('kb analyze:', doc.url);
+    const description = await this.analyzeDescription({ doc, ...rest });
+    const linksTo = await this.analyzeLinksTo({ doc, prompt, ...rest });
+    const items = await this.analyzeItems({ doc, prompt, ...rest });
+    const data = { description, items, linksTo };
+    return data;
+  }
+
+  async analyzeDescription({ doc, ...rest }) {
+    const context = { html: doc.html };
+    const { prompt } = await prompts.description.renderCapped(
+      context, 'html', this.ai);
+    const answer = await this.ai.ask(prompt, { format: 'json' });
+    return answer.partial;
+  }
+
+  async analyzeLinksTo({ doc, prompt, ...rest }) {
+    const urls = doc.links.map(it => it.url);
+    urls.push(doc.url);
+    const context = { urls: urls.join('\n'), prompt };
+    const { prompt: catPrompt } = await prompts
+      .categorize.renderCapped(context, 'urls', this.ai);
+    const results = [];
+    const stream = this.ai.stream(catPrompt, { format: 'jsonl' });
+    for await (const { delta } of stream) {
+      console.log('found ->', delta.pattern);
+      results.push(delta);
+    }
+    return results;
+  }
+
+  async analyzeItems({ doc, prompt, ...rest }) {
+    const context = { url: doc.url, prompt, html: doc.html };
+    const { prompt: itemsPrompt } = await prompts
+      .availableItems.renderCapped(context, 'html', this.ai);
+    const answer = await this.ai.ask(itemsPrompt, { format: 'jsonl' });
+
+    console.log('analyze items answer.partial:', answer.partial);
+
+    return answer.partial.result;
+  }
+
+  async _pickRelevant(doc, linksTo, prompt, count) {
     const context = {
       url: doc.url,
       prompt,
-      linksTo: JSON.stringify(data.linksTo, null, 2),
+      linksTo: JSON.stringify(linksTo, null, 2),
     };
     const { prompt: catPrompt } = await prompts
       .pickRelevant.renderCapped(context, 'linksTo', this.ai);
-    const answer = await this.ai.ask(catPrompt, { format: 'text' });
-    console.log(answer.partial);
-    const patterns = answer.partial.split('\n').map(it => it.trim()).filter(Boolean);
-    const urls = doc.links.map(it => it.url);
-    const categorized = categorizeUrls(patterns, urls);
+    const stream = this.ai.stream(catPrompt, { format: 'jsonl' });
 
-    // console.log('categorized', categorized);
-
-    const final = {};
-    for (const pattern of Object.keys(categorized)) {
-      final[pattern] = shuffle(categorized[pattern]).slice(0, 3);
+    const results = [];
+    for await (const { delta } of stream) {
+      console.log('pick relevant ->', delta);
+      results.push(delta);
     }
-    
-    return final;
+
+    console.log(JSON.stringify(results, null, 2));
+
+    const top = results
+      .sort((a, b) => parseInt(b.rating) - parseInt(a.rating))
+      .slice(0, count)
+      .map(result => result.pattern);
+
+    console.log('returning patterns top:', top);
+    console.log('linksTo', linksTo);
+
+    const urls = doc.links.map(it => it.url);
+    const matched = await this._matchToPatterns(top, urls, prompt);
+    console.log('matched', matched);
+    return matched;
+
+    // const categorized = categorizeUrls(top, urls);
+    // console.log('categorized', categorized);
+    // const final = {};
+    // for (const pattern of Object.keys(categorized)) {
+    //   final[pattern] = shuffle(categorized[pattern]).slice(0, 3);
+    // }
+    // return final;
+  }
+
+  async _matchToPatterns(patterns, urls, prompt) {
+    const context = {
+      patterns: JSON.stringify(patterns, null, 2),
+      urls: JSON.stringify(urls, null, 2),
+      prompt,
+    };
+    const { prompt: matchPrompt } = await prompts
+      .matchToPatterns.renderCapped(context, 'urls', this.ai);
+    const categorized = {};
+    const stream = this.ai.stream(matchPrompt, { format: 'jsonl' });
+    for await (const { delta: { url, pattern } } of stream) {
+      console.log(`match pattern -> ${url} / ${pattern}`);
+      categorized[pattern] ||= [];
+      categorized[pattern].push(url);
+    }
+    return categorized;
   }
 }
 
@@ -77,10 +176,10 @@ function categorizeUrls(patterns, urls) {
   patterns.sort((a, b) => {
     const patternA = new UrlPattern(a.replace(/^https:/, 'https\\:'));
     const patternB = new UrlPattern(b.replace(/^https:/, 'https\\:'));
-    const isAMatchedByB = urls.some(url => patternB.match(url) && patternA.match(url));
-    const isBMatchedByA = urls.some(url => patternA.match(url) && patternB.match(url));
-    if (isAMatchedByB && !isBMatchedByA) return 1;
-    if (isBMatchedByA && !isAMatchedByB) return -1;
+    const aMatches = urls.some(url => patternB.match(url) && patternA.match(url));
+    const bMatches = urls.some(url => patternA.match(url) && patternB.match(url));
+    if (aMatches && !bMatches) return 1;
+    if (bMatches && !aMatches) return -1;
     return 0;
   });
 
@@ -98,34 +197,11 @@ export class KnowledgeBase {
     this.fetcher = options?.fetcher || getFetcher();
     this.ai = options?.ai || getAI();
   }
+}
 
-  async analyze({ url, prompt, ...rest }) {
-    console.log('kb analyze:', url);
-    const linksTo = await this.analyzeLinksTo({ url, prompt, ...rest });
-    const items = await this.analyzeItems({ url, prompt, ...rest });
-    const data = { items, linksTo };
-    return data;
-  }
-
-  async analyzeLinksTo({ url, prompt, ...rest }) {
-    const doc = await this.fetcher.first(url);
-    const urls = doc.links.map(it => it.url);
-    urls.push(url);
-    const context = { urls: urls.join('\n'), prompt };
-    const { prompt: catPrompt } = await prompts
-      .categorize.renderCapped(context, 'urls', this.ai);
-    const answer = await this.ai.ask(catPrompt, { format: 'text' });
-    const patterns = answer.partial.split('\n').map(s => s.trim()).filter(Boolean);
-    return patterns;
-  }
-
-  async analyzeItems({ url, prompt, ...rest }) {
-    const doc = await this.fetcher.first(url);
-    const context = { url, prompt, html: doc.html };
-    const { prompt: itemsPrompt } = await prompts
-      .availableItems.renderCapped(context, 'html', this.ai);
-    const answer = await this.ai.ask(itemsPrompt, { format: 'jsonl' });
-    // console.log('answer', JSON.stringify(answer.partial, null, 2));
-    return answer.partial.result;
-  }
+const splitLinks = (text) => {
+  return text
+    .split('\n')
+    .map(it => it.trim())
+    .filter(it => ('' + it).startsWith('http'));
 }

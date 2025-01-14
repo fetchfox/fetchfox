@@ -3,7 +3,7 @@ import assert from 'assert';
 import { KnowledgeBase, Learner } from '../../src/x/index.js';
 
 describe('x', function() {
-  this.timeout(60 * 1000);
+  this.timeout(5 * 60 * 1000);
 
   it('should learn pokemon', async () => {
     const l = new Learner();
@@ -25,7 +25,7 @@ describe('x', function() {
     const l = new Learner();
     const data = await l.learn({
       url: 'https://www.github.com',
-      prompt: 'open source repos',
+      prompt: 'open source repo details',
     });
 
     console.log('== data ==');
