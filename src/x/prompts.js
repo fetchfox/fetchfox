@@ -1,8 +1,8 @@
 import { Template } from '../template/Template.js';
 
 export const description = new Template(
-  ['html'],
-  `Given the HTML below, provide a brief analysis and description of the page. Your response will be in JSON format, with the following fields:
+  ['htmls'],
+  `Given the HTML samples below, provide a brief analysis and description of the page. Your response will be in JSON format, with the following fields:
 
 - "description": A description of the page contents and main data it contains. 5-10 words, plain English
 - "name": A short name for this type of page, 1-3 words, dash-case
@@ -14,10 +14,11 @@ Example:
   "name": "example-page"
 }
 
+- Provide a SINGLE result for the multiple page samples you give. Look for COMMONALITIES between the pages.
 - Return ONLY JSON. Your response will be machine parsed using JSON.parse()
 
-Page HTML:
-{{html}}
+Pages HTML samples:
+{{htmls}}
 `);
 
 export const categorize = new Template(
@@ -36,6 +37,8 @@ Each JSONL object contains these fields:
 Follow these important rules and guidelines:
 - Return ONLY JSONL. Your response will be machine parsed using JSON.parse() on a line-by-line basis, splitting in \n
 - Avoid long, overly specific matchers
+- Patterns must ONLY split on /
+- Pattern variable names must have ONLY alphabetical characters
 - Return at most a dozen or so matchers
 
 Example of valid output:
@@ -53,8 +56,8 @@ Focus on URLs relevant the user prompt below, and ignore ones that are unlikely 
 `);
 
 export const availableItems = new Template(
-  ['url', 'html', 'prompt'],
-  `You are part of a web scraping program, and you are analyzing a page for available data to scrape. Your goal is to see what information on the page could be turned into structured data.
+  ['urls', 'htmls', 'prompt'],
+  `You are part of a web scraping program, and you are analyzing a set of pages for available data to scrape. Your goal is to see what information on the page could be turned into structured data. The pages are expected to be similar.
 
 You should return a list of JSON objects in JSONL format, where each object has the following fields
 
@@ -68,11 +71,11 @@ Examples of valid output:
 {"item": "book", "schema": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ] } }
 {"item": "comment", "schema": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review" } }
 
-URL of the page:
-{{url}}
+URLs of the pages:
+{{urls}}
 
-HTML of the page:
-{{html}}
+HTML samples of the page:
+{{htmls}}
 
 Focus on URLs relevant the user prompt below, and ignore ones that are unlikely to be relevent
 {{prompt}}
@@ -83,6 +86,7 @@ Guidlines:
 - Return data that is on *this page*, not data that is linked from it
 
 Follow these important rules:
+- Provide a SINGLE result for the multiple page samples you give. Look for COMMONALITIES between the pages.
 - Your response MUST be VALID JSONL
 - Each object must be a SINGLE link of JSON. Do NOT break JSON objects into multiple lines under any circumstances
 `);

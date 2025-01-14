@@ -32,4 +32,15 @@ describe('x', function() {
     console.log(JSON.stringify(data, null, 2));
   });
 
+  it('should learn the-numbers.com', async () => {
+    const l = new Learner();
+    const data = await l.learn({
+      url: 'https://www.the-numbers.com/',
+      prompt: 'movie financial data',
+    });
+
+    console.log('== data ==');
+    console.log(JSON.stringify(data, null, 2));
+  });
+
 });

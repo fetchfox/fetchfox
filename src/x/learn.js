@@ -4,6 +4,8 @@ import { URL } from 'whatwg-url';
 import UrlPattern from 'url-pattern';
 import * as prompts from './prompts.js';
 
+const urlPatternOptions = { segmentValueCharset: 'a-zA-Z0-9-_~ %()' };
+
 export class Learner {
   constructor(options) {
     this.kb = new KnowledgeBase(options)
@@ -20,9 +22,7 @@ export class Learner {
     if (datas.length == 1) {
       data = datas[0];
     } else {
-      const mergePrompt = `Merge these ${datas.length} similar objects, combining the data while eliminating redundancy.  Keep the same top level keys. Return ONLY JSON, your response will be machine parsed using JSON.parse(). No english comments.\n\n` + datas.map((it, idx) => `\n\nObject ${idx + 1}:\n${JSON.stringify(it, null, 2)}`);
-      const merged = await this.ai.ask(mergePrompt, { format: 'json' });
-      data = merged.partial;
+      data = await aiMerge(datas, this.ai);
     }
     return data;
   }
@@ -31,24 +31,32 @@ export class Learner {
     url = (new URL(url)).toString();
     const iterations = 4;
     const numRelevant = 3;
+    const maxPerCategory = 3;
     const maxPerIteration = 10;
-    let targets = [{ url, pattern: url }];
+    let targets = [{ urls: [url], pattern: url }];
     const data = {};
 
     for (let i = 0; i < iterations; i++) {
       console.log(`== Iteration ${i} ==`);
       targets = shuffle(targets).slice(0, maxPerIteration);
       console.log('Targets:', targets.length);
-      const docs = await Promise.all(targets.map(({ url }) => {
-        return this.fetcher.first(url);
+
+      await Promise.all(targets.map(async (target) => {
+        const urls = target.urls.slice(0, maxPerCategory);
+        const docs = await Promise.all(urls.map(url => this.fetcher.first(url)));
+        target.docs = docs;
       }));
-      const analyses = await Promise.all(targets.map(async ({ pattern }, idx) => {
-        const analysis = await this.analyze({ doc: docs[idx], prompt, ...rest });
+      const analyses = await Promise.all(targets.map(async ({ docs, pattern }) => {
+        const analysis = await this.analyze({ docs, prompt, ...rest });
         data[pattern] = analysis;
         return analysis;
       }));
-      const relevants = await Promise.all(docs.map((doc, idx) => {
-        return this._pickRelevant(doc, analyses[idx].linksTo, prompt, numRelevant);
+
+      console.log('Data so far:');
+      console.log(JSON.stringify(data, null, 2));
+
+      const relevants = await Promise.all(targets.map((target, idx) => {
+        return this._pickRelevant(target.docs[0], analyses[idx].linksTo, prompt, numRelevant);
       }));
       const relevant = {};
       for (const r of relevants) {
@@ -60,50 +68,63 @@ export class Learner {
       console.log(JSON.stringify(relevant, null, 2));
       targets = [];
       for (const pattern of Object.keys(relevant)) {
-        const urls = relevant[pattern].slice(0, 3);
-        targets.push(...(urls.map(url => ({ url, pattern }))));
+        const urls = relevant[pattern].slice(0, maxPerCategory);
+        targets.push({ urls, pattern });
       }
     }
 
     return data;
   }
 
-  async analyze({ doc, prompt, ...rest }) {
-    console.log('kb analyze:', doc.url);
-    const description = await this.analyzeDescription({ doc, ...rest });
-    const linksTo = await this.analyzeLinksTo({ doc, prompt, ...rest });
-    const items = await this.analyzeItems({ doc, prompt, ...rest });
+  async analyze({ docs, prompt, ...rest }) {
+    console.log('docs', docs.map(doc => '' + doc));
+
+    const doc = docs[0];
+    console.log('kb analyze:', doc?.url);
+    if (!doc) {
+      return null;
+    }
+
+    const description = await this.analyzeDescription({ docs, ...rest });
+    const linksTo = await this.analyzeLinksTo({ docs, prompt, ...rest });
+    const items = await this.analyzeItems({ docs, prompt, ...rest });
     const data = { description, items, linksTo };
     return data;
   }
 
-  async analyzeDescription({ doc, ...rest }) {
-    const context = { html: doc.html };
+  async analyzeDescription({ docs, ...rest }) {
+    const context = { htmls: joinDocsHtml(docs) };
     const { prompt } = await prompts.description.renderCapped(
-      context, 'html', this.ai);
+      context, 'htmls', this.ai);
     const answer = await this.ai.ask(prompt, { format: 'json' });
     return answer.partial;
   }
 
-  async analyzeLinksTo({ doc, prompt, ...rest }) {
-    const urls = doc.links.map(it => it.url);
-    urls.push(doc.url);
+  async analyzeLinksTo({ docs, prompt, ...rest }) {
+    let urls = [];
+    for (const doc of docs) {
+      urls.push(...doc.links.map(it => it.url));
+    }
+    // console.log(docs);
+    docs.map(doc => urls.push(doc.url));
+    urls = new Array(...(new Set(urls)));
     const context = { urls: urls.join('\n'), prompt };
     const { prompt: catPrompt } = await prompts
       .categorize.renderCapped(context, 'urls', this.ai);
     const results = [];
     const stream = this.ai.stream(catPrompt, { format: 'jsonl' });
     for await (const { delta } of stream) {
+      delta.pattern = cleanPattern(delta.pattern);
       console.log('found ->', delta.pattern);
       results.push(delta);
     }
     return results;
   }
 
-  async analyzeItems({ doc, prompt, ...rest }) {
-    const context = { url: doc.url, prompt, html: doc.html };
+  async analyzeItems({ docs, prompt, ...rest }) {
+    const context = { urls: joinDocsUrl(docs), prompt, htmls: joinDocsHtml(docs) };
     const { prompt: itemsPrompt } = await prompts
-      .availableItems.renderCapped(context, 'html', this.ai);
+      .availableItems.renderCapped(context, 'htmls', this.ai);
     const answer = await this.ai.ask(itemsPrompt, { format: 'jsonl' });
 
     console.log('analyze items answer.partial:', answer.partial);
@@ -131,8 +152,8 @@ export class Learner {
 
     const top = results
       .sort((a, b) => parseInt(b.rating) - parseInt(a.rating))
-      .slice(0, count)
-      .map(result => result.pattern);
+      .slice(0, count);
+      // .map(result => result.pattern);
 
     console.log('returning patterns top:', top);
     console.log('linksTo', linksTo);
@@ -162,7 +183,12 @@ export class Learner {
     const categorized = {};
     const stream = this.ai.stream(matchPrompt, { format: 'jsonl' });
     for await (const { delta: { url, pattern } } of stream) {
-      console.log(`match pattern -> ${url} / ${pattern}`);
+      console.log(`match pattern -> url=${url} pattern=${pattern}`);
+      const p = new UrlPattern(pattern.replace(/^https:/, 'https\\:'), urlPatternOptions);
+      if (!p.match(url)) {
+        console.log('AI made a mistake, skip it');
+        continue;
+      }
       categorized[pattern] ||= [];
       categorized[pattern].push(url);
     }
@@ -174,8 +200,8 @@ function categorizeUrls(patterns, urls) {
   const categorized = {};
 
   patterns.sort((a, b) => {
-    const patternA = new UrlPattern(a.replace(/^https:/, 'https\\:'));
-    const patternB = new UrlPattern(b.replace(/^https:/, 'https\\:'));
+    const patternA = new UrlPattern(a.replace(/^https:/, 'https\\:'), urlPatternOptions);
+    const patternB = new UrlPattern(b.replace(/^https:/, 'https\\:'), urlPatternOptions);
     const aMatches = urls.some(url => patternB.match(url) && patternA.match(url));
     const bMatches = urls.some(url => patternA.match(url) && patternB.match(url));
     if (aMatches && !bMatches) return 1;
@@ -184,7 +210,7 @@ function categorizeUrls(patterns, urls) {
   });
 
   for (const pattern of patterns) {
-    const p = new UrlPattern(pattern.replace(/^https:/, 'https\\:'));
+    const p = new UrlPattern(pattern.replace(/^https:/, 'https\\:'), urlPatternOptions);
     // const regex = new RegExp(pattern.replace(/:[A-Za-z0-9-]+/g, '[^/]+') + '$');
     categorized[pattern] = urls.filter(url => p.match(url));
   }
@@ -199,9 +225,27 @@ export class KnowledgeBase {
   }
 }
 
+const aiMerge = async (objects) => {
+  const mergePrompt = `Merge these ${objects.length} similar objects, combining the data while eliminating redundancy.  Keep the same top level keys. Return ONLY JSON, your response will be machine parsed using JSON.parse(). No english comments.\n\n` + objects.map((it, idx) => `\n\nObject ${idx + 1}:\n${JSON.stringify(it, null, 2)}`);
+  const merged = await ai.ask(mergePrompt, { format: 'json' });
+  return merged.partial;
+}
+
 const splitLinks = (text) => {
   return text
     .split('\n')
     .map(it => it.trim())
     .filter(it => ('' + it).startsWith('http'));
+}
+
+const cleanPattern = (pattern) => {
+  return pattern.replace(/:(\w+(?:-\w+)+)/g, (_, part) => `:${part.replace(/-/g, '')}`);
+}
+
+const joinDocsHtml = (docs) => {
+  return docs.map((doc, idx) => `HTML ${idx}:\n${doc.html}`).join('\n\n');
+}
+
+const joinDocsUrl = (docs) => {
+  return docs.map((doc, idx) => `URL ${idx}:\n${doc.url}`).join('\n');
 }
