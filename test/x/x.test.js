@@ -1,6 +1,5 @@
 import assert from 'assert';
-
-import { KnowledgeBase, Learner } from '../../src/x/index.js';
+import { Learner } from '../../src/x/index.js';
 
 describe('x', function() {
   this.timeout(5 * 60 * 1000);
@@ -21,7 +20,7 @@ describe('x', function() {
     });
   });
 
-  it('should learn github', async () => {
+  it('should learn github repos', async () => {
     const l = new Learner();
     const data = await l.learn({
       url: 'https://www.github.com',
@@ -32,6 +31,26 @@ describe('x', function() {
     console.log(JSON.stringify(data, null, 2));
   });
 
+  it('should learn github commits', async () => {
+    const l = new Learner();
+    const data = await l.learn({
+      url: 'https://www.github.com/',
+      prompt: 'find popular repos, and the get their latest commits with metadata'
+    });
+
+    console.log('== data ==');
+    const ser = JSON.stringify(data, null, 2);
+    console.log(ser);
+
+    for (const key of Object.keys(data)) {
+      console.log('pattern:', key);
+      console.log('examples:\n- ' + data[key].examples.join('\n- '));
+      console.log('');
+    }
+
+    console.log('Data bytes:', ser.length / 1000, 'kb');
+  });
+       
   it('should learn the-numbers.com', async () => {
     const l = new Learner();
     const data = await l.learn({

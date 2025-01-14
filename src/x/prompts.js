@@ -23,35 +23,34 @@ Pages HTML samples:
 
 export const categorize = new Template(
   ['urls', 'prompt'],
-  `You are given a list of URLs, and your goal is to create rules for categorizing them. You will return a list of URL patterns in JSONL format. URLs patterns precede parameters in the URLs with ":", and they can be used to match URLs and categorize them. The parameters describe what they typically contain: an ID, a name, a date, a username, etc.
+  `You are given a list of URLs with their inner text and HTML, and your goal is to create rules for categorizing them. You will return a list of URL patterns in JSONL format. URLs patterns precede parameters in the URLs with ":", and they can be used to match URLs and categorize them. The parameters describe what they typically contain: an ID, a name, a date, a username, etc.
 
-You should usually return under a dozen categories, and may exclude some URLs if they do not fit with the general pattern of categories.
-
-Additionally, focus on URLs relevant to the user prompt. You may IGNORE urls that aren't helpful for the search prompt (below).
+Additionally, try to focus on URLs relevant to the user prompt. Relevant URLs are ones that directly relate to the user prompt, or they can contain indirectly link to the user prompt.
 
 Each JSONL object contains these fields:
 - "description": A description of the URL pattern, 4-10 words, plain English
+- "relevancy": Describe if and how the URL pattern relates to the user scraping prompt, 4-10 words, plain English
 - "category": A category name for the URL pattern, 1-4 words, dash-case
 - "pattern": The URL pattern itself, full absolute matcher starting with http:// or https://
+- "regex": A regex to match URLs to this pattern, full absolute matcher starting with http:// or https://
+- "examples": An array of a few representative examples from the given data
 
 Follow these important rules and guidelines:
 - Return ONLY JSONL. Your response will be machine parsed using JSON.parse() on a line-by-line basis, splitting in \n
 - Avoid long, overly specific matchers
-- Patterns must ONLY split on /
 - Pattern variable names must have ONLY alphabetical characters
-- Return at most a dozen or so matchers
+- Find ALL the URL patterns you notice. Use contextual and domain knowledge that you have.
 
 Example of valid output:
 
-{"description": "an individual artical page", "category": "article", "pattern": "https://example.com/article/:date/:id"}
-{"description": "an author's profile page", "category": "author-profile", "pattern": "https://example.com/author/:name" }
+{"description": "an individual article page", "relevancy": "articles may contain data about gold market", "category": "article", "pattern": "https://example.com/article/:date/:id", "regex": "...", "examples": ["https://example.com/article/2024-01-05/4444", "https://example.com/article/2022-05-11/5555"]}
+{"description": "an author's profile page", "relevancy": "low relevance, but authors may be experts in gold market", "category": "author-profile", "pattern": "https://example.com/author/:name", "regex": "...",, "examples": ["https://example.com/author/john-smith", "https://example.com/author/sally-green"] }
 
-Precedence is based on order. The first rule to match takes precedence. Thus, put the more specific rules first, and general / catch-all rules last.
 
-The list of URLs to categorize is below:
+The list of URLs with inner text and HTML to categorize is below:
 {{urls}}
 
-Focus on URLs relevant the user prompt below, and ignore ones that are unlikely to be relevent:
+Focus on URLs relevant the user prompt below:
 {{prompt}}
 `);
 

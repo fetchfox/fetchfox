@@ -1,16 +1,20 @@
 import { shuffle } from 'radash';
-import { getFetcher, getAI } from '../index.js';
+import { shuffle as stableShuffle } from '../util.js';
+import { getFetcher, getAI, DiskCache } from '../index.js';
+import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { URL } from 'whatwg-url';
 import UrlPattern from 'url-pattern';
 import * as prompts from './prompts.js';
 
 const urlPatternOptions = { segmentValueCharset: 'a-zA-Z0-9-_~ %()' };
 
+let cache = new DiskCache('/tmp/ff-cache');
+// cache = null;
+
 export class Learner {
   constructor(options) {
-    this.kb = new KnowledgeBase(options)
-    this.fetcher = options?.fetcher || getFetcher();
-    this.ai = options?.ai || getAI();
+    this.fetcher = options?.fetcher || getFetcher(null, { cache });
+    this.ai = options?.ai || getAI(null, { cache });
   }
 
   // Learn about a single URL
@@ -21,11 +25,11 @@ export class Learner {
     const maxPerCategory = 3;
     const maxPerIteration = 10;
     let targets = [{ urls: [url], pattern: url }];
-    const data = {};
+    let data = {};
 
     for (let i = 0; i < iterations; i++) {
       console.log(`== Iteration ${i} ==`);
-      targets = shuffle(targets).slice(0, maxPerIteration);
+      targets = stableShuffle(targets).slice(0, maxPerIteration);
       console.log('Targets:', targets.length);
 
       await Promise.all(targets.map(async (target) => {
@@ -34,8 +38,13 @@ export class Learner {
         target.docs = docs;
       }));
       const analyses = await Promise.all(targets.map(async ({ docs, pattern }) => {
+        console.log('\n');
+        for (const doc of docs) {
+          console.log('\t=> Analyze:', pattern, doc.url);
+        }
+        console.log('\n');
         const analysis = await this.analyze({ docs, prompt, ...rest });
-        data[pattern] = analysis;
+        data = await this.update(data, pattern, analysis);
         return analysis;
       }));
 
@@ -51,6 +60,7 @@ export class Learner {
           relevant[key] = r[key];  // This may override data
         }
       }
+
       console.log('relevant links:');
       console.log(JSON.stringify(relevant, null, 2));
       targets = [];
@@ -63,18 +73,45 @@ export class Learner {
     return data;
   }
 
+  // Update knowledge base based on new analysis
+  async update(kb, pattern, delta) {
+    for (const it of delta.linksTo) {
+      kb[it.pattern] ||= { examples: [] };
+      const existing = kb[it.pattern].examples;
+      const add = it.examples;
+      const set = new Set([...add, ...existing]);
+      kb[it.pattern].examples = new Array(...set).sort();
+      kb[it.pattern].examples = stableShuffle(kb[it.pattern].examples).slice(0, 10);
+      // console.log('udated examples:', it.pattern, kb[it.pattern].examples);
+    }
+
+    if (kb[pattern]) {
+      // // TODO: should not use AI to merge this, it is too big
+      // kb[pattern] = await aiMerge(this.ai, [delta, kb[pattern]]);
+
+      const before = kb[pattern].examples || [];
+      kb[pattern] = delta;
+      kb[pattern].examples = before;
+    } else {
+      kb[pattern] = delta;
+    }
+    kb[pattern].pattern = pattern;
+    return kb;
+  }
+
   // Analyze several documents
   async analyze({ docs, prompt, ...rest }) {
     const doc = docs[0];
-    console.log('kb analyze:', doc?.url);
     if (!doc) {
       return null;
     }
 
+    const urls = docs.map(it => it.url);
+
     const description = await this.analyzeDescription({ docs, ...rest });
     const linksTo = await this.analyzeLinksTo({ docs, prompt, ...rest });
     const items = await this.analyzeItems({ docs, prompt, ...rest });
-    const data = { description, items, linksTo };
+    const data = { description, items, linksTo, examples: urls };
     return data;
   }
 
@@ -88,21 +125,42 @@ export class Learner {
   }
 
   async analyzeLinksTo({ docs, prompt, ...rest }) {
-    let urls = [];
+    const urls = [];
+    const min = new TagRemovingMinimizer();
+    const seen = {};
     for (const doc of docs) {
-      urls.push(...doc.links.map(it => it.url));
+      // console.log(doc.links);
+      const minDoc = await min.min(doc);
+      for (const link of minDoc.links) {
+        if (seen[link.url]) {
+          continue;
+        }
+        seen[link.url] = true;
+        urls.push({
+          url: link.url.substring(0, 200),
+          text: link.text.substring(0, 200),
+          html: link.html.substring(0, 200),
+        });
+      }
     }
-    docs.map(doc => urls.push(doc.url));
-    urls = new Array(...(new Set(urls)));
-    const context = { urls: urls.join('\n'), prompt };
+
+    const subset = stableShuffle(urls).slice(0, 100);
+    console.log('categorizing this subset of links:');
+    for (const it of subset) {
+      console.log('- url=' + it.url);
+    }
+    const context = { urls: JSON.stringify(subset, null, 2), prompt };
     const { prompt: catPrompt } = await prompts
       .categorize
       .renderCapped(context, 'urls', this.ai);
     const results = [];
+
+    // console.log(catPrompt);
+
     const stream = this.ai.stream(catPrompt, { format: 'jsonl' });
     for await (const { delta } of stream) {
       delta.pattern = cleanPattern(delta.pattern);
-      console.log('found ->', delta.pattern);
+      console.log('found ->', delta);
       results.push(delta);
     }
     return results;
@@ -126,10 +184,11 @@ export class Learner {
       prompt,
       linksTo: JSON.stringify(linksTo, null, 2),
     };
-    const { prompt: catPrompt } = await prompts
+    const { prompt: pickPrompt } = await prompts
       .pickRelevant
       .renderCapped(context, 'linksTo', this.ai);
-    const stream = this.ai.stream(catPrompt, { format: 'jsonl' });
+    console.log('pick relevant prompt:', pickPrompt);
+    const stream = this.ai.stream(pickPrompt, { format: 'jsonl' });
 
     const results = [];
     for await (const { delta } of stream) {
@@ -143,8 +202,15 @@ export class Learner {
       .sort((a, b) => parseInt(b.rating) - parseInt(a.rating))
       .slice(0, count);
 
-    console.log('returning patterns top:', top);
-    console.log('linksTo', linksTo);
+    // console.log('returning patterns top:', top);
+    // console.log('linksTo', linksTo);
+    for (const it of top) {
+      for (const linkTo of linksTo) {
+        if (it.pattern == linkTo.pattern) {
+          it.regex = linkTo.regex;
+        }
+      }
+    }
 
     const urls = doc.links.map(it => it.url);
     const matched = await this._matchToPatterns(top, urls, prompt);
@@ -153,11 +219,32 @@ export class Learner {
   }
 
   async _matchToPatterns(patterns, urls, prompt) {
+    // Regex matcher
+    // console.log('_matchToPatterns', patterns);
+    // const categorized = {};
+    // for (const url of urls) {
+    //   for (const pattern of patterns) {
+    //     const re = new RegExp(pattern.regex);
+    //     // console.log(re);
+    //     if (re.test(url)) {
+    //       console.log('re match ->', pattern.regex, url);
+    //       categorized[pattern.pattern] ||= [];
+    //       categorized[pattern.pattern].push(url);
+    //     }
+    //   }
+    // }
+    // return categorized;
+
+    // AI matcher
     const context = {
-      patterns: JSON.stringify(patterns, null, 2),
+      patterns: JSON.stringify(patterns.map(it => ({
+        pattern: it.pattern,
+        description: it.analysis,
+      })), null, 2),
       urls: JSON.stringify(urls, null, 2),
       prompt,
     };
+    // console.log('match patterns with ai:', context);
     const { prompt: matchPrompt } = await prompts
       .matchToPatterns
       .renderCapped(context, 'urls', this.ai);
@@ -165,11 +252,6 @@ export class Learner {
     const stream = this.ai.stream(matchPrompt, { format: 'jsonl' });
     for await (const { delta: { url, pattern } } of stream) {
       console.log(`match pattern -> url=${url} pattern=${pattern}`);
-      const p = new UrlPattern(pattern.replace(/^https:/, 'https\\:'), urlPatternOptions);
-      if (!p.match(url)) {
-        console.log('AI made a mistake, skip it');
-        continue;
-      }
       categorized[pattern] ||= [];
       categorized[pattern].push(url);
     }
@@ -177,7 +259,7 @@ export class Learner {
   }
 }
 
-const aiMerge = async (objects) => {
+const aiMerge = async (ai, objects) => {
   const mergePrompt = `Merge these ${objects.length} similar objects, combining the data while eliminating redundancy.  Keep the same top level keys. Return ONLY JSON, your response will be machine parsed using JSON.parse(). No english comments.\n\n` + objects.map((it, idx) => `\n\nObject ${idx + 1}:\n${JSON.stringify(it, null, 2)}`);
   const merged = await ai.ask(mergePrompt, { format: 'json' });
   return merged.partial;
