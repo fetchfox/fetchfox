@@ -13,20 +13,7 @@ export class Learner {
     this.ai = options?.ai || getAI();
   }
 
-  async learnMulti({ urls, prompt, ...rest }) {
-    const promises = urls.map(url => {
-      return this.analyze({ url, prompt, ...rest });
-    });
-    const datas = await Promise.all(promises);
-    let data;
-    if (datas.length == 1) {
-      data = datas[0];
-    } else {
-      data = await aiMerge(datas, this.ai);
-    }
-    return data;
-  }
-
+  // Learn about a single URL
   async learn({ url, prompt, ...rest }) {
     url = (new URL(url)).toString();
     const iterations = 4;
@@ -76,9 +63,8 @@ export class Learner {
     return data;
   }
 
+  // Analyze several documents
   async analyze({ docs, prompt, ...rest }) {
-    console.log('docs', docs.map(doc => '' + doc));
-
     const doc = docs[0];
     console.log('kb analyze:', doc?.url);
     if (!doc) {
@@ -94,8 +80,9 @@ export class Learner {
 
   async analyzeDescription({ docs, ...rest }) {
     const context = { htmls: joinDocsHtml(docs) };
-    const { prompt } = await prompts.description.renderCapped(
-      context, 'htmls', this.ai);
+    const { prompt } = await prompts
+      .description
+      .renderCapped(context, 'htmls', this.ai);
     const answer = await this.ai.ask(prompt, { format: 'json' });
     return answer.partial;
   }
@@ -105,12 +92,12 @@ export class Learner {
     for (const doc of docs) {
       urls.push(...doc.links.map(it => it.url));
     }
-    // console.log(docs);
     docs.map(doc => urls.push(doc.url));
     urls = new Array(...(new Set(urls)));
     const context = { urls: urls.join('\n'), prompt };
     const { prompt: catPrompt } = await prompts
-      .categorize.renderCapped(context, 'urls', this.ai);
+      .categorize
+      .renderCapped(context, 'urls', this.ai);
     const results = [];
     const stream = this.ai.stream(catPrompt, { format: 'jsonl' });
     for await (const { delta } of stream) {
@@ -124,7 +111,8 @@ export class Learner {
   async analyzeItems({ docs, prompt, ...rest }) {
     const context = { urls: joinDocsUrl(docs), prompt, htmls: joinDocsHtml(docs) };
     const { prompt: itemsPrompt } = await prompts
-      .availableItems.renderCapped(context, 'htmls', this.ai);
+      .availableItems
+      .renderCapped(context, 'htmls', this.ai);
     const answer = await this.ai.ask(itemsPrompt, { format: 'jsonl' });
 
     console.log('analyze items answer.partial:', answer.partial);
@@ -139,7 +127,8 @@ export class Learner {
       linksTo: JSON.stringify(linksTo, null, 2),
     };
     const { prompt: catPrompt } = await prompts
-      .pickRelevant.renderCapped(context, 'linksTo', this.ai);
+      .pickRelevant
+      .renderCapped(context, 'linksTo', this.ai);
     const stream = this.ai.stream(catPrompt, { format: 'jsonl' });
 
     const results = [];
@@ -153,7 +142,6 @@ export class Learner {
     const top = results
       .sort((a, b) => parseInt(b.rating) - parseInt(a.rating))
       .slice(0, count);
-      // .map(result => result.pattern);
 
     console.log('returning patterns top:', top);
     console.log('linksTo', linksTo);
@@ -162,14 +150,6 @@ export class Learner {
     const matched = await this._matchToPatterns(top, urls, prompt);
     console.log('matched', matched);
     return matched;
-
-    // const categorized = categorizeUrls(top, urls);
-    // console.log('categorized', categorized);
-    // const final = {};
-    // for (const pattern of Object.keys(categorized)) {
-    //   final[pattern] = shuffle(categorized[pattern]).slice(0, 3);
-    // }
-    // return final;
   }
 
   async _matchToPatterns(patterns, urls, prompt) {
@@ -179,7 +159,8 @@ export class Learner {
       prompt,
     };
     const { prompt: matchPrompt } = await prompts
-      .matchToPatterns.renderCapped(context, 'urls', this.ai);
+      .matchToPatterns
+      .renderCapped(context, 'urls', this.ai);
     const categorized = {};
     const stream = this.ai.stream(matchPrompt, { format: 'jsonl' });
     for await (const { delta: { url, pattern } } of stream) {
@@ -193,35 +174,6 @@ export class Learner {
       categorized[pattern].push(url);
     }
     return categorized;
-  }
-}
-
-function categorizeUrls(patterns, urls) {
-  const categorized = {};
-
-  patterns.sort((a, b) => {
-    const patternA = new UrlPattern(a.replace(/^https:/, 'https\\:'), urlPatternOptions);
-    const patternB = new UrlPattern(b.replace(/^https:/, 'https\\:'), urlPatternOptions);
-    const aMatches = urls.some(url => patternB.match(url) && patternA.match(url));
-    const bMatches = urls.some(url => patternA.match(url) && patternB.match(url));
-    if (aMatches && !bMatches) return 1;
-    if (bMatches && !aMatches) return -1;
-    return 0;
-  });
-
-  for (const pattern of patterns) {
-    const p = new UrlPattern(pattern.replace(/^https:/, 'https\\:'), urlPatternOptions);
-    // const regex = new RegExp(pattern.replace(/:[A-Za-z0-9-]+/g, '[^/]+') + '$');
-    categorized[pattern] = urls.filter(url => p.match(url));
-  }
-  return categorized;
-}
-
-export class KnowledgeBase {
-  constructor(options) {
-    this.data = {};
-    this.fetcher = options?.fetcher || getFetcher();
-    this.ai = options?.ai || getAI();
   }
 }
 
