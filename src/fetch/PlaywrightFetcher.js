@@ -84,7 +84,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async click(css, ctx) {
-    return ctx.page.locator(`css=${css}`).click();
+    const loc = ctx.page.locator(`css=${css}`);
+    if (!await loc.count()) {
+      logger.warn(`${this} Couldn't find css=${css}, not clicking`);
+      return;
+    }
+    return loc.first().click();
   }
 
   async scroll(type, ctx) {
@@ -303,7 +308,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   try {
     html = await page.content();
   } catch (e) {
-    logger.error(`${this} Error getting page content: ${e}`);
+    logger.error(`Error getting page content: ${e}`);
     throw e;
   }
   const took = (new Date()).getTime() - start;

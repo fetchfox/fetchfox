@@ -24,6 +24,7 @@ Response with JSON as follows:
 
 Follow these important rules:
 - Make sure your pagination command and argument is reusable for more pages. For example, if you see buttons for page 2, 3, 4, 5, etc.. and a "Next Page" button, make sure to click the next page button.
+- Avoird hardcoding href references to specific URLs, instead find a way to go to the next page
 - Keep CSS selectors simple as possible
 - KEEP IT SIMPLE
 

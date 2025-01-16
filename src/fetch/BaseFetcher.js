@@ -436,6 +436,9 @@ export const BaseFetcher = class {
   }
 
   async didPaginate(before, after) {
+    if (!before?.html || !after?.html) {
+      return false;
+    }
     return before.html != after.html;
   }
 
