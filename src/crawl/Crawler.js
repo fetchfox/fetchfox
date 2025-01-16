@@ -195,7 +195,7 @@ export const Crawler = class extends BaseCrawler {
         logger.info(`Found link ${link.url} in response to "${query}"`);
 
         this.usage.count++;
-        yield Promise.resolve({ _url: link.url });
+        yield Promise.resolve({ url: link.url });
       }
     }
   }

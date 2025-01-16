@@ -43,7 +43,8 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       try {
         const stream = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of stream) {
-          if (delta.itemCount) {
+          logger.info(`${this} Found: ${delta}`);
+          if (delta.itemCount != undefined) {
             continue;
           }
           yield Promise.resolve(new Item(delta, doc));

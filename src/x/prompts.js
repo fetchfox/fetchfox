@@ -64,6 +64,7 @@ Additionally, focus on items relevant to the user prompt. You may IGNORE item ty
 
 - "item": 1-5 word description of the item that is available to scrape
 - "schema": A dictionary showing the schema of this item. May have nested dictionaries/arrays
+- "perPage": Either "single" if there is one of these item per page, or "multiple" if there is multiple of these items per page
 
 Examples of valid output:
 
@@ -150,3 +151,131 @@ The user prompt is:
 Remember:
 - Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \n
 `);
+
+export const plan = new Template(
+  ['url', 'prompt', 'kb'],
+  `You are planning a scrape of a website. You will receive a starting URL, a user prompt, and knowledge about the site layout. Your goal is plan out steps for this scrape. Steps are executd sequentially, in a workflow.
+
+The scrape should start a the initial URL. From there, it can do zero, one, or more iterations of following links. Then, it can extract data from the pages it finds.
+
+More information about finding links:
+- Link finders are tied to a specific URL pattern
+- You can have more than one link finder per URL pattern
+- Start at the first URL
+- Follow links based on the site layout, looking for specific URL patterns
+
+More information about extracting data:
+- Data extractors are tied to a URL patterns
+- You can have more than one data extractor per URL pattern
+- Data extractors take in the page HTML, and output structurd data in the form of a JSON object
+- Data extractors also pick a field that uniquely identifies the JSON they found. This field is used to combine data across multiple pages.
+
+Your output will consist of JSONL steps, with JSON objects matchin one of the two formats below:
+
+JSON definition for finding links:
+- "type": this is "findLinks"
+- "filterType": either "ai" or "regex"
+  - if filterType is "ai", this link finder will use an AI prompt to find links on this pages. This is useful if the links we need to find do *not* follow a particular pattern or regex, for example they could be across multiple domains, or several kinds of pages on one domains
+  - if filterType is "regex", this link finder will use a regex to find links on this page. The regex will match the full, absolute URL
+- "prompt": for "ai" link finders, this is the prompt we will use to match outbound URLs
+- "linkRegex": for "regex" link finders, this is the regex we will use to match outbound URLs
+
+Example link finders:
+{"type": "findLinks", "filterType": "ai", "prompt": "find links to books" }
+{"type": "findLinks", "filterType": "regex", "linkRegex": "https://github\\.com/([^/?#]+)$" }
+
+JSON definition for extracting data:
+- "type": this is "extract"
+- "perPage": either "single" to find one item per page, or "multiple" to find multiple items per page
+- "schema": A JSON definition of the schema for data to extract. May contain nested objects or arrays
+- "uniqueId": The field in the schema which uniquely identifies this object, and can be used as a key for merging data
+
+Example extractors:
+{ "type": "extract", "perPage": "single", "schema": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" }, "uniqueId": "title" }
+{ "type": "extract", "perPage": "multiple", "schema": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review", "commentId": "ID of the comment" }, "uniqueId": "commentId" }
+
+Generate a plan for the prompt and input below:
+
+Knowledge base about site layout:
+{{kb}}
+
+Starting URL:
+{{url}}
+
+User prompt:
+{{prompt}}
+
+Follow these important rules:
+- Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \n
+- Your response MUST be VALID JSONL
+`);
+
+export const nextStep = new Template(
+  ['url', 'text', 'steps', 'prompt', 'kb'],
+  `You are planning a scrape of a website. You will receive a starting URL, a user prompt, and knowledge about the site layout. You will also receive the steps executed so far. Your goal is to figure what next step should be taken, if any, to complete the scrape. Suggest steps and stop when the scrape is done, or down a wrong step.
+
+You will use one of the following functions in the next step.
+
+- findLinks(prompt): Look for links on the current page matching "prompt". An AI LLM is used to execute this step. Call this step if the current page links to relevant pages.
+- extractData(jsonSchema): Extract data from the current page in the format "jsonSchema". May have nested objects or array. An AI LLM is used to execute this step. Call this step if there is relevant data to extract on the current page, AND we have not yet extracted data this type of page/data
+- abort(): end the scrape because we are down a wrong path that is unlikely to give the item we need
+- success(): end the scrape because we have figured out a set of steps that will give the needed data. Return this when there is at least one extractData steps, and the sample data it returns looks like it satisfies the user prompt
+
+For any of these, give an "intent" field that explains the intent of this step
+
+Give your response in JSON format, like this:
+
+{"intent": "...intent of this step...", "start": ["https://example.com/a", "https://example.com/b"]}
+{"intent": "...intent of this step...", "findLinks": "Find links to books"}
+{"intent": "...intent of this step...", "findLinks": "Find links to comments about this book"}
+{"intent": "...intent of this step...", "extractData": {"username": "username of the commenter", "timestamp": "ISO timestamp of the comment"}}
+{"intent": "...intent of this step...", "abort": true}
+{"intent": "...intent of this step...", "success": true}
+
+Guidelines:
+- Steps are executed in sequence
+- You already have some steps executed
+- Your goal is to figure out the NEXT step
+
+Generate a plan for the prompt and input below:
+
+Knowledge base about site layout:
+{{kb}}
+
+Current page URL:
+{{url}}
+
+Current page text:
+{{text}}
+
+User prompt:
+{{prompt}}
+
+Step history so far:
+{{steps}}
+
+Notes:
+- Your next step will be executed on the CURRENT page
+- Look at the step history so far to avoid redundancy and pointless loops
+- There are a few other scrapers running on the same task, trying different approaches. If it seems like you are down a wrong path, simply stop
+- But if you are on a good path, continue
+
+Given the above, what is the NEXT step the user should take? Respond in JSON format.
+
+Follow these important rules:
+- Return ONLY JSON, no commentary. Your response will be machine parsed by JSON.parse() splitting on \n
+- Your response MUST be VALID JSON
+`);
+
+// {"intent": "...intent of this step...", "start": ["https://example.com/a", "https://example.com/b"]}
+// {"intent": "...intent of this step...", "findLinks": "Find links to books"}
+// {"intent": "...intent of this step...", "findLinks": "Find links to comments about this book"}
+// {"intent": "...intent of this step...", "extractData": {"username": "username of the commenter", "timestamp": "ISO timestamp of the comment"}}
+// {"intent": "...intent of this step...", "stop": true}
+
+
+// - start([urls]): Always the first step, and only used as the first step. The list of URLs to start at
+// {"start": ["https://example.com/a", "https://example.com/b"]}
+
+
+// - findLinksRegex(urlRegex): Look for links on the current page that match a URL regex

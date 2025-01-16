@@ -23,6 +23,8 @@ const trimJson = (data) => {
 export const parseAnswer = (text, format) => {
   if (!text) return;
 
+  // console.log('parseAnswer', text);
+
   const clean = text
         .replace(/```jsonl?/, '')
         .replaceAll('```', '')

@@ -1,14 +1,10 @@
-import { shuffle } from 'radash';
 import { shuffle as stableShuffle } from '../util.js';
 import { getFetcher, getAI, DiskCache } from '../index.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { URL } from 'whatwg-url';
-import UrlPattern from 'url-pattern';
 import * as prompts from './prompts.js';
 
-const urlPatternOptions = { segmentValueCharset: 'a-zA-Z0-9-_~ %()' };
-
-let cache = new DiskCache('/tmp/ff-cache');
+let cache = new DiskCache('/tmp/ff-cache', { ttls: { base: 1e50 } });
 // cache = null;
 
 export class Learner {
@@ -28,7 +24,8 @@ export class Learner {
     let data = {};
 
     for (let i = 0; i < iterations; i++) {
-      console.log(`== Iteration ${i} ==`);
+      console.log(`\n\n\t== Iteration ${i} ==\n`);
+
       targets = stableShuffle(targets).slice(0, maxPerIteration);
       console.log('Targets:', targets.length);
 
@@ -126,7 +123,7 @@ export class Learner {
 
   async analyzeLinksTo({ docs, prompt, ...rest }) {
     const urls = [];
-    const min = new TagRemovingMinimizer();
+    const min = new TagRemovingMinimizer({ cache });
     const seen = {};
     for (const doc of docs) {
       // console.log(doc.links);
