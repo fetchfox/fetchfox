@@ -65,6 +65,7 @@ export const Planner = class {
       } else if (isPlainObject(input) && input.name) {
         logger.debug(
           `Planner parsing JSON input ${JSON.stringify(input)} into steps`,
+          `Planner parsing JSON input ${JSON.stringify(input)} into steps`,
         );
         objs.push(this.fromJson(input));
       } else {
@@ -158,7 +159,9 @@ export const Planner = class {
 
   async fromPrompt(scrapePrompt, args) {
     logger.debug(
-      `Plan from prompt: prompt=${scrapePrompt} args=${JSON.stringify(args).substr(0, 120)}`,
+      `Plan from prompt: prompt=${scrapePrompt} args=${JSON.stringify(
+        args,
+      ).substr(0, 120)}`,
     );
 
     const prePlanContext = {
@@ -215,6 +218,7 @@ export const Planner = class {
     return {
       steps,
       itemDescription: prePlanAnswer.itemDescription,
+      prompt: scrapePrompt,
     };
   }
 };

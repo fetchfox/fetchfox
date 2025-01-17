@@ -44,6 +44,7 @@ export const Workflow = class extends BaseWorkflow {
     let planPromise;
 
     if (args.prompt != undefined) {
+      this.ctx.originalPrompt = args.prompt;
       logger.debug(`Plan workflow from prompt`);
       planPromise = planner.fromPrompt(args.prompt, {
         url: args.url,
@@ -128,6 +129,7 @@ export const Workflow = class extends BaseWorkflow {
     }
 
     const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map((s) => ("" + s).replace("Step", "")).join(" -> ")} `;
+
     logger.info("╔" + "═".repeat(msg.length) + "╗");
     logger.info("║" + msg + "║");
     logger.info("╚" + "═".repeat(msg.length) + "╝");
