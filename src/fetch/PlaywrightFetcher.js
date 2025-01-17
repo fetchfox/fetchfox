@@ -84,7 +84,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async click(selector, ctx) {
-    if (!selector.startsWith('text=') && selector.startsWith('css=')) {
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       logger.warn(`{this} Invalid selector: ${selector}`);
       return;
     }
