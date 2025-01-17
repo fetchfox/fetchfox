@@ -36,7 +36,7 @@ Each JSONL object contains these fields:
 - "examples": An array of a few representative examples from the given data
 
 Follow these important rules and guidelines:
-- Return ONLY JSONL. Your response will be machine parsed using JSON.parse() on a line-by-line basis, splitting in \n
+- Return ONLY JSONL. Your response will be machine parsed using JSON.parse() on a line-by-line basis, splitting in \\n
 - Avoid long, overly specific matchers
 - Pattern variable names must have ONLY alphabetical characters
 - Find ALL the URL patterns you notice. Use contextual and domain knowledge that you have.
@@ -117,7 +117,7 @@ The site data is:
 {{linksTo}}
 
 Follow these important rules:
-- Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \n
+- Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \\n
 - Give only a handful of relevant responses
 `);
 
@@ -149,7 +149,7 @@ The user prompt is:
 {{prompt}}
 
 Remember:
-- Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \n
+- Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \\n
 `);
 
 export const plan = new Template(
@@ -206,7 +206,7 @@ User prompt:
 {{prompt}}
 
 Follow these important rules:
-- Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \n
+- Return ONLY JSONL, no commentary. Your response will be machine parsed by JSON.parse() splitting on \\n
 - Your response MUST be VALID JSONL
 `);
 
@@ -263,19 +263,46 @@ Notes:
 Given the above, what is the NEXT step the user should take? Respond in JSON format.
 
 Follow these important rules:
-- Return ONLY JSON, no commentary. Your response will be machine parsed by JSON.parse() splitting on \n
+- Return ONLY JSON, no commentary. Your response will be machine parsed by JSON.parse() splitting on \\n
 - Your response MUST be VALID JSON
 `);
 
-// {"intent": "...intent of this step...", "start": ["https://example.com/a", "https://example.com/b"]}
-// {"intent": "...intent of this step...", "findLinks": "Find links to books"}
-// {"intent": "...intent of this step...", "findLinks": "Find links to comments about this book"}
-// {"intent": "...intent of this step...", "extractData": {"username": "username of the commenter", "timestamp": "ISO timestamp of the comment"}}
-// {"intent": "...intent of this step...", "stop": true}
+export const crawl = new Template(
+  ['url', 'text', 'links', 'prompt', 'kb'],
+  `You are crawling a website as part of a web scraper. You are looking for pages that will have items the user is looking for. The user prompt is below.
 
+You will return URLs that are helpful to this crawl. URLs can be helpful in one of two ways. First, they are helpful if they contain the item the user is looking to scrape. Second, they are helpful if they will link to pages that contain the item the user is looking for.
 
-// - start([urls]): Always the first step, and only used as the first step. The list of URLs to start at
-// {"start": ["https://example.com/a", "https://example.com/b"]}
+Return a JSONL list of URLs that are helpful, with the following fields:
 
+- "url": the exact full absolute URL that is helpful
+- "ratingHasItem": a rating from 1 to 100 of how likely this URL is to have items matching the user prompt
+- "ratingHasLinks": a rating from 1 to 100 of how likely this URL is to link to other helpful pages
 
-// - findLinksRegex(urlRegex): Look for links on the current page that match a URL regex
+Examples of valid output:
+
+{"url": "https://example.com/page/1", "ratingHasItem": 20, "ratingHasLinks": 85}
+{"url": "https://example.com/item/xyz-abc", "ratingHasItem": 90, "ratingHasLinks": 30}
+
+Knowledge base about site layout:
+{{kb}}
+
+Current page URL:
+{{url}}
+
+Current page text:
+{{text}}
+
+Current page links:
+{{links}}
+
+User prompt:
+{{prompt}}
+
+Notes:
+- You should NOT return every URL. Only return ones that are helpful, either because they have the items matching the prompt, or they are likely to link to helpful pages
+
+Follow these important rules:
+- Return ONLY JSONL, no commentary.
+- Your response will be machine parsed by JSON.parse() splitting on \\n
+`);

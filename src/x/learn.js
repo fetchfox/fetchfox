@@ -4,7 +4,7 @@ import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { URL } from 'whatwg-url';
 import * as prompts from './prompts.js';
 
-let cache = new DiskCache('/tmp/ff-cache', { ttls: { base: 1e50 } });
+let cache = new DiskCache('/tmp/ff-cache', { ttls: { base: 1e100 } });
 // cache = null;
 
 export class Learner {
@@ -16,7 +16,7 @@ export class Learner {
   // Learn about a single URL
   async learn({ url, prompt, ...rest }) {
     url = (new URL(url)).toString();
-    const iterations = 4;
+    const iterations = 3;
     const numRelevant = 3;
     const maxPerCategory = 3;
     const maxPerIteration = 10;

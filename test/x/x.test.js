@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { Learner, Planner, Runner } from '../../src/x/index.js';
+import { Learner, Planner, Runner, Crawler2 } from '../../src/x/index.js';
 
 describe('x', function() {
   this.timeout(5 * 60 * 1000);
@@ -20,12 +20,14 @@ describe('x', function() {
   const run = async (url, prompt) => {
     const l = new Learner();
     const kb = await l.learn({ url, prompt });
-
     printKnowledgeBase(kb);
 
-    const r = new Runner();
-    await r.run({ url, prompt, kb });
+    // const kb = {};
+    // const c = new Crawler2();
+    // await c.crawl({ url: 'https://github.com/AmruthPillai', prompt, kb });
 
+    // const r = new Runner();
+    // await r.run({ url, prompt, kb });
     // const p = new Planner();
     // const plan = await p.plan({ url, prompt, kb });
     // console.log('plan:');
@@ -55,7 +57,7 @@ describe('x', function() {
 
   it('should learn github commits', async () => {
     await run (
-      'https://www.github.com/',
+      'https://www.github.com',
       'find popular repos, and the get their latest commits with metadata',
     );
   });
