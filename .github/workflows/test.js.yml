@@ -10,8 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x]
-        attempt: [1, 2, 3]
+        node-version: [18.x, 20.x, 22.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -22,17 +21,18 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm ci
+      - run: npx playwright install-deps
       - run: npx playwright install
       - run: npm run build --if-present
       - name: Run tests
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          FF_LOG: warn
-        run: npm run test
-        continue-on-error: ${{ matrix.attempt != 3 }}
 
-      - name: Skip further attempts if successful
-        if: ${{ matrix.attempt != 1 && steps.test.outcome == 'success' }}
-        run: exit 0
+          FF_LOG: debug
+        run: npm run test -- --timeout=10000

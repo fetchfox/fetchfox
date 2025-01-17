@@ -1,14 +1,4 @@
-import { models } from '../data/models.js';
-
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export const getModelData = (provider, model) => {
-  let modelStr = model;
-  if (['groq', 'mistral', 'ollama'].includes(provider)) {
-    modelStr = provider + '/' + model;
-  }
-  return models[modelStr];
-};
 
 const normalizeText = (text) => {
   const norm = text

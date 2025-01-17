@@ -13,6 +13,7 @@ describe('github.com', function () {
     const wf = await fox
       .config({
         cache: testCache(),
+        ai: 'openai:gpt-4o',
         fetcher: ['playwright', { headless: true, loadWait: 1000, interval: 1000, intervalCap: 1 }],
       })
       .init('https://github.com/bitcoin/bitcoin/commits/master')

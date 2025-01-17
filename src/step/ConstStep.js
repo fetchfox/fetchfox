@@ -28,7 +28,7 @@ export const ConstStep = class extends BaseStep {
         delete copy.url;
       }
       const output = new Item(copy);
-      cursor.publish(null, output, index);
+      cursor.publish(null, { ...output, _meta: { status: 'done' } }, index);
       this.trigger('item', output);
     }
     cursor.finish(index);

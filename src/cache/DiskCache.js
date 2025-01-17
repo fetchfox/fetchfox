@@ -14,7 +14,13 @@ export const DiskCache = class {
     return `[${this.constructor.name}]`;
   }
 
+  _cleanKey(key) {
+    return key.replaceAll('/', '-');
+  }
+
   async set(key, val, label) {
+    key = this._cleanKey(key);
+
     const filepath = path.join(this.dirname, key);
     const ttl = this.ttls[label] || this.ttls.base || 2 * 3600;
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
@@ -22,7 +28,7 @@ export const DiskCache = class {
   }
 
   async get(key) {
-    logger.trace(`path: ${path}`);
+    key = this._cleanKey(key);
 
     const filepath = path.join(this.dirname, key);
     let file;
@@ -51,6 +57,8 @@ export const DiskCache = class {
   }
 
   async del(key) {
+    key = this._cleanKey(key);
+
     const filepath = path.join(this.dirname, key);
     try {
       await fs.promises.unlink(filepath);

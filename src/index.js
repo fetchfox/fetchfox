@@ -4,7 +4,7 @@ events.EventEmitter.defaultMaxListeners = 50;
 export { getAI } from './ai/index.js';
 export { getCrawler } from './crawl/index.js';
 export { getExtractor } from './extract/index.js';
-export { getFetcher } from './fetch/index.js';
+export { getFetcher, registerFetcher } from './fetch/index.js';
 export { getMinimizer } from './min/index.js';
 
 export { Context } from './context/Context.js';

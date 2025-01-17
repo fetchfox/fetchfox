@@ -1,6 +1,6 @@
 {
   "name": "fetchfox",
-  "version": "0.0.36",
+  "version": "0.0.37",
   "description": "AI based web scraping library",
   "main": "src/index.js",
   "type": "module",
@@ -10,6 +10,7 @@
     "./server": "./src/server.js"
   },
   "scripts": {
+    "lint": "eslint src/",
     "test": "mocha test/**/*.test.js -g @fast",
     "bench": "mocha benchmark/**/*.bench.js -g @bench",
     "prepare": "husky"
@@ -28,11 +29,10 @@
     "@eslint/js": "^9.17.0",
     "chai": "^5.1.1",
     "eslint": "^9.17.0",
+    "eslint-plugin-promise": "^7.2.1",
     "globals": "^15.14.0",
     "husky": "^9.1.7",
-    "lint-staged": "^15.4.1",
-    "mocha": "^10.7.3",
-    "prettier": "^3.4.2"
+    "mocha": "^10.7.3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.2",
@@ -52,6 +52,7 @@
     "ollama": "^0.5.9",
     "openai": "^4.58.1",
     "p-queue": "^8.0.1",
+    "p-timeout": "^6.1.4",
     "papaparse": "^5.4.1",
     "playwright": "^1.48.0",
     "playwright-extra": "^4.3.6",
@@ -63,8 +64,5 @@
     "url-polyfill": "^1.1.12",
     "whatwg-url": "^14.0.0",
     "ws": "^8.18.0"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx,css,md}": "prettier --write"
   }
 }
