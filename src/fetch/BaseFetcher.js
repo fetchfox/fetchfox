@@ -292,7 +292,8 @@ export const BaseFetcher = class {
 
       const hostname = (new URL(url)).hostname;
       let domainSpecific = {
-        'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+        'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
+        'www.producthunt.com': `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`,
       }[hostname] || '';
       if (domainSpecific) {
         domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
