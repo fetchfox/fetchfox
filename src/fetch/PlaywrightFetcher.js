@@ -83,13 +83,21 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return ctx.page.evaluate(fn);
   }
 
-  async click(css, ctx) {
-    const loc = ctx.page.locator(`css=${css}`);
-    if (!await loc.count()) {
-      logger.warn(`${this} Couldn't find css=${css}, not clicking`);
+  async click(selector, ctx) {
+    if (!selector.startsWith('text=') && selector.startsWith('css=')) {
+      logger.warn(`{this} Invalid selector: ${selector}`);
       return;
     }
-    return loc.first().click();
+
+    const loc = ctx.page.locator(selector);
+    if (!await loc.count()) {
+      logger.warn(`${this} Couldn't find selector=${selector}, not clicking`);
+      return;
+    }
+
+    const el = loc.first();
+    await el.scrollIntoViewIfNeeded();
+    return el.click();
   }
 
   async scroll(type, ctx) {
