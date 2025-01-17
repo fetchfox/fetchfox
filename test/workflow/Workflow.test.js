@@ -1,53 +1,51 @@
-import assert from "assert";
-import os from "os";
-import { fox } from "../../src/index.js";
-import { redditSampleHtml } from "./data.js";
-import { testCache } from "../lib/util.js";
-import { OpenAI } from "../../src/index.js";
-import { Fetcher } from "../../src/index.js";
+import assert from 'assert';
+import os from 'os';
+import { fox } from '../../src/index.js';
+import { redditSampleHtml } from './data.js';
+import { testCache } from '../lib/util.js';
+import { OpenAI } from '../../src/index.js';
+import { Fetcher } from '../../src/index.js';
 
-describe("Workflow", function () {
+describe('Workflow', function () {
   this.timeout(30 * 1000);
 
-  it("should load steps from json @run @fast", async () => {
+  it('should load steps from json @run @fast', async () => {
     const data = {
       steps: [
         {
-          name: "const",
+          name: 'const',
           args: {
             items: [
               {
-                url: "https://thehackernews.com/",
+                url: 'https://thehackernews.com/',
               },
             ],
-            maxPages: "10",
+            maxPages: '10',
           },
         },
         {
-          name: "crawl",
+          name: 'crawl',
           args: {
-            query:
-              "Find links to articles about malware and other vulnerabilities",
-            limit: "5",
-            maxPages: "10",
+            query: 'Find links to articles about malware and other vulnerabilities',
+            limit: '5',
+            maxPages: '10',
           },
         },
         {
-          name: "extract",
+          name: 'extract',
           args: {
             questions: {
-              summary: "Summarize the malware/vulnerability in 5-20 words",
-              technical:
-                "What are the technical identifiers like filenames, indicators of compromise, etc.?",
-              url: "What is the URL? Format: Absolute URL",
+              summary: 'Summarize the malware/vulnerability in 5-20 words',
+              technical: 'What are the technical identifiers like filenames, indicators of compromise, etc.?',
+              url: 'What is the URL? Format: Absolute URL',
             },
-            maxPages: "10",
+            maxPages: '10',
           },
         },
         {
-          name: "limit",
+          name: 'limit',
           args: {
-            limit: "2",
+            limit: '2',
           },
         },
       ],
@@ -55,19 +53,16 @@ describe("Workflow", function () {
 
     const f = await fox.config({ cache: testCache() }).load(data);
 
-    assert.equal(
-      JSON.stringify(f.dump().steps, null, 2),
-      JSON.stringify(data.steps, null, 2),
-    );
+    assert.equal(JSON.stringify(f.dump().steps, null, 2), JSON.stringify(data.steps, null, 2));
   });
 
-  it("should publish all steps @run @fast", async () => {
+  it('should publish all steps @run @fast', async () => {
     const f = await fox
       .config({ cache: testCache() })
-      .init("https://pokemondb.net/pokedex/national")
+      .init('https://pokemondb.net/pokedex/national')
       .extract({
-        name: "What is the name of the pokemon?",
-        number: "What is the pokedex number?",
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
       })
       .limit(3);
 
@@ -76,23 +71,23 @@ describe("Workflow", function () {
 
     await f.run(null, (partial) => {
       count++;
-      if (partial.item?._meta?.status == "loading") {
+      if (partial.item?._meta?.status == 'loading') {
         countLoading2++;
       }
     });
 
     assert.equal(count, 3);
-    assert.equal(countLoading, 0, "loading by default should not publish");
+    assert.equal(countLoading, 0, 'loading by default should not publish');
 
     const f2 = await fox
       .config({
         cache: testCache(),
         publishAllSteps: true,
       })
-      .init("https://pokemondb.net/pokedex/national")
+      .init('https://pokemondb.net/pokedex/national')
       .extract({
-        name: "What is the name of the pokemon?",
-        number: "What is the pokedex number?",
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
       })
       .limit(3);
 
@@ -101,53 +96,51 @@ describe("Workflow", function () {
 
     await f2.run(null, (partial) => {
       count2++;
-      if (partial.item?._meta?.status == "loading") {
+      if (partial.item?._meta?.status == 'loading') {
         countLoading2++;
       }
     });
 
-    assert.equal(count2, 16, "all partials received");
-    assert.ok(countLoading2 >= 3, "all loading received");
+    assert.equal(count2, 16, 'all partials received');
+    assert.ok(countLoading2 >= 3, 'all loading received');
 
     f2.abort();
   });
 
-  it("should describe @run @fast", async () => {
+  it('should describe @run @fast', async () => {
     const data = {
       steps: [
         {
-          name: "const",
+          name: 'const',
           args: {
             items: [
               {
-                url: "https://thehackernews.com/",
+                url: 'https://thehackernews.com/',
               },
             ],
           },
         },
         {
-          name: "crawl",
+          name: 'crawl',
           args: {
-            query:
-              "Find links to articles about malware and other vulnerabilities",
-            limit: "5",
+            query: 'Find links to articles about malware and other vulnerabilities',
+            limit: '5',
           },
         },
         {
-          name: "extract",
+          name: 'extract',
           args: {
             questions: {
-              summary: "Summarize the malware/vulnerability in 5-20 words",
-              technical:
-                "What are the technical identifiers like filenames, indicators of compromise, etc.?",
-              url: "What is the URL? Format: Absolute URL",
+              summary: 'Summarize the malware/vulnerability in 5-20 words',
+              technical: 'What are the technical identifiers like filenames, indicators of compromise, etc.?',
+              url: 'What is the URL? Format: Absolute URL',
             },
           },
         },
         {
-          name: "limit",
+          name: 'limit',
           args: {
-            limit: "2",
+            limit: '2',
           },
         },
       ],
@@ -157,48 +150,43 @@ describe("Workflow", function () {
     await wf.describe();
 
     assert.ok(
-      wf.name.toLowerCase().indexOf("hacker") != -1 ||
-        wf.name.toLowerCase().indexOf("vuln") != -1 ||
-        wf.name.toLowerCase().indexOf("malware") != -1,
-      "name sanity check",
+      wf.name.toLowerCase().indexOf('hacker') != -1 ||
+        wf.name.toLowerCase().indexOf('vuln') != -1 ||
+        wf.name.toLowerCase().indexOf('malware') != -1,
+      'name sanity check',
     );
-    assert.ok(
-      wf.description.toLowerCase().indexOf("hacker") != -1,
-      "description sanity check",
-    );
+    assert.ok(wf.description.toLowerCase().indexOf('hacker') != -1, 'description sanity check');
   });
 
-  it("should use global limit @run @fast", async function () {
+  it('should use global limit @run @fast', async function () {
     const data = {
       options: {
         limit: 2,
       },
       steps: [
         {
-          name: "const",
+          name: 'const',
           args: {
             items: [
               {
-                url: "https://thehackernews.com/",
+                url: 'https://thehackernews.com/',
               },
             ],
           },
         },
         {
-          name: "crawl",
+          name: 'crawl',
           args: {
-            query:
-              "Find links to articles about malware and other vulnerabilities",
+            query: 'Find links to articles about malware and other vulnerabilities',
           },
         },
         {
-          name: "extract",
+          name: 'extract',
           args: {
             questions: {
-              summary: "Summarize the malware/vulnerability in 5-20 words",
-              technical:
-                "What are the technical identifiers like filenames, indicators of compromise, etc.?",
-              url: "What is the URL? Format: Absolute URL",
+              summary: 'Summarize the malware/vulnerability in 5-20 words',
+              technical: 'What are the technical identifiers like filenames, indicators of compromise, etc.?',
+              url: 'What is the URL? Format: Absolute URL',
             },
           },
         },
@@ -211,7 +199,7 @@ describe("Workflow", function () {
       count++;
 
       if (count > 2) {
-        assert.ok(false, "over limit in partials callback");
+        assert.ok(false, 'over limit in partials callback');
       }
     });
 
@@ -221,7 +209,7 @@ describe("Workflow", function () {
     f.abort();
   });
 
-  it("should finish with flakey fetcher @run", async function () {
+  it('should finish with flakey fetcher @run', async function () {
     this.timeout(45 * 1000);
 
     let count = 0;
@@ -229,7 +217,7 @@ describe("Workflow", function () {
       async *fetch(...args) {
         for await (const out of super.fetch(...args)) {
           if (++count % 2 == 0) {
-            throw new Error("flakey fetch");
+            throw new Error('flakey fetch');
           } else {
             yield Promise.resolve(out);
           }
@@ -246,11 +234,11 @@ describe("Workflow", function () {
           interval: 1000,
         }),
       })
-      .init("https://pokemondb.net/pokedex/national")
-      .crawl("find links to individual character pokemon pages")
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl('find links to individual character pokemon pages')
       .extract({
-        name: "What is the name of the pokemon? Start with the first one",
-        number: "What is the pokedex number?",
+        name: 'What is the name of the pokemon? Start with the first one',
+        number: 'What is the pokedex number?',
       })
       .limit(5);
 
@@ -258,7 +246,7 @@ describe("Workflow", function () {
     assert.equal(out.items.length, 5);
   });
 
-  it("should finish incomplete with flakey AI @run @slow", async function () {
+  it('should finish incomplete with flakey AI @run @slow', async function () {
     this.timeout(45 * 1000);
 
     let count = 0;
@@ -266,7 +254,7 @@ describe("Workflow", function () {
       async *inner(...args) {
         for await (const out of super.inner(...args)) {
           if (++count % 50 == 0) {
-            throw new Error("flakey AI");
+            throw new Error('flakey AI');
           } else {
             yield Promise.resolve(out);
           }
@@ -279,10 +267,10 @@ describe("Workflow", function () {
         cache: testCache(),
         ai: new FlakeyAI(),
       })
-      .init("https://pokemondb.net/pokedex/national")
+      .init('https://pokemondb.net/pokedex/national')
       .extract({
-        name: "What is the name of the pokemon? Start with the first one",
-        number: "What is the pokedex number?",
+        name: 'What is the name of the pokemon? Start with the first one',
+        number: 'What is the pokedex number?',
       })
       .limit(5);
 
@@ -292,7 +280,7 @@ describe("Workflow", function () {
     assert.equal(out.items.length, 2);
   });
 
-  it("should finish crawl with flakey AI @run @slow", async function () {
+  it('should finish crawl with flakey AI @run @slow', async function () {
     this.timeout(45 * 1000);
 
     let count = 0;
@@ -300,7 +288,7 @@ describe("Workflow", function () {
       async *inner(...args) {
         for await (const out of super.inner(...args)) {
           if (++count % 50 == 0) {
-            throw new Error("flakey AI");
+            throw new Error('flakey AI');
           } else {
             yield Promise.resolve(out);
           }
@@ -313,11 +301,11 @@ describe("Workflow", function () {
         cache: testCache(),
         ai: new FlakeyAI(),
       })
-      .init("https://pokemondb.net/pokedex/national")
-      .crawl("find links to individual character pokemon pages")
+      .init('https://pokemondb.net/pokedex/national')
+      .crawl('find links to individual character pokemon pages')
       .extract({
-        name: "What is the name of the pokemon? Start with the first one",
-        number: "What is the pokedex number?",
+        name: 'What is the name of the pokemon? Start with the first one',
+        number: 'What is the pokedex number?',
       })
       .limit(5);
 
@@ -327,7 +315,7 @@ describe("Workflow", function () {
     assert.ok(out.items.length >= 1);
   });
 
-  it("should abort @run @slow", async function () {
+  it('should abort @run @slow', async function () {
     const cases = [
       [1, 100],
       [10, 200],
@@ -344,9 +332,9 @@ describe("Workflow", function () {
 
       const wf = await fox
         .config({ signal })
-        .init("https://news.ycombinator.com/news")
-        .crawl({ query: "Find links to articles", maxPages: 5 })
-        .extract({ title: "article title" })
+        .init('https://news.ycombinator.com/news')
+        .crawl({ query: 'Find links to articles', maxPages: 5 })
+        .extract({ title: 'article title' })
         .limit(100)
         .plan();
 
@@ -356,10 +344,7 @@ describe("Workflow", function () {
       const out = await wf.run();
       const took = new Date().getTime() - start;
 
-      assert.ok(
-        took < limit,
-        `took=${took} timeout=${timeout} limit=${limit} quickly abort`,
-      );
+      assert.ok(took < limit, `took=${took} timeout=${timeout} limit=${limit} quickly abort`);
     }
   });
 });

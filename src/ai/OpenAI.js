@@ -1,12 +1,12 @@
-import OpenAILib from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
-import { z } from "zod";
-import { BaseAI } from "./BaseAI.js";
-import { logger } from "../log/logger.js";
+import OpenAILib from 'openai';
+import { zodResponseFormat } from 'openai/helpers/zod';
+import { z } from 'zod';
+import { BaseAI } from './BaseAI.js';
+import { logger } from '../log/logger.js';
 
 export const OpenAI = class extends BaseAI {
-  static apiKeyEnvVariable = "OPENAI_API_KEY";
-  static defaultModel = "gpt-4o-mini";
+  static apiKeyEnvVariable = 'OPENAI_API_KEY';
+  static defaultModel = 'gpt-4o-mini';
 
   async countTokens(str) {
     // tiktoken is slow and CPU intensive to run, so for now
@@ -61,26 +61,24 @@ export const OpenAI = class extends BaseAI {
 
     const args = {
       model: this.model,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: 'user', content: prompt }],
       stream: true,
       stream_options: { include_usage: true },
     };
 
     if (options?.imageUrl) {
-      logger.debug(
-        `Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`,
-      );
+      logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
       const existing = args.messages[0].content;
       args.messages[0].content = [
         existing,
         {
-          type: "image_url",
+          type: 'image_url',
           image_url: { url: options.imageUrl },
         },
       ];
     }
 
-    const canStream = this.model.indexOf("o1") == -1;
+    const canStream = this.model.indexOf('o1') == -1;
     if (!canStream) {
       delete args.stream;
       delete args.stream_options;
@@ -89,17 +87,17 @@ export const OpenAI = class extends BaseAI {
     if (options?.schema) {
       const toZod = (x) => {
         if (Array.isArray(x)) {
-          const first = x.length == 0 ? "" : x[0];
+          const first = x.length == 0 ? '' : x[0];
           return z.array(toZod(first));
-        } else if (typeof x == "object") {
+        } else if (typeof x == 'object') {
           const o = {};
           for (const key of Object.keys(x)) {
             o[key] = toZod(x[key]);
           }
           return z.object(o);
-        } else if (typeof x == "number") {
+        } else if (typeof x == 'number') {
           return z.number();
-        } else if (typeof x == "boolean") {
+        } else if (typeof x == 'boolean') {
           return z.boolean();
         } else {
           // Fall back to string
@@ -107,7 +105,7 @@ export const OpenAI = class extends BaseAI {
         }
       };
 
-      args.response_format = zodResponseFormat(toZod(options.schema), "item");
+      args.response_format = zodResponseFormat(toZod(options.schema), 'item');
     }
 
     const aiOptions = {};
@@ -124,7 +122,7 @@ export const OpenAI = class extends BaseAI {
       listener = () => {
         controller.abort();
       };
-      this.signal.addEventListener("abort", listener);
+      this.signal.addEventListener('abort', listener);
       aiOptions.signal = localSignal;
     }
 
@@ -141,7 +139,7 @@ export const OpenAI = class extends BaseAI {
         yield Promise.resolve(answer);
       }
     } catch (e) {
-      if (e.constructor.name == "APIUserAbortError") {
+      if (e.constructor.name == 'APIUserAbortError') {
         logger.warn(`${this} Aborted while creating: ${e}`);
         return;
       }
@@ -150,7 +148,7 @@ export const OpenAI = class extends BaseAI {
       throw e;
     } finally {
       if (listener) {
-        this.signal.removeEventListener("abort", listener);
+        this.signal.removeEventListener('abort', listener);
       }
     }
   }

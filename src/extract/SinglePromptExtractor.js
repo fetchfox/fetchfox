@@ -1,7 +1,7 @@
-import { Item } from "../item/Item.js";
-import { logger } from "../log/logger.js";
-import { BaseExtractor } from "./BaseExtractor.js";
-import { scrapeOnce } from "./prompts.js";
+import { Item } from '../item/Item.js';
+import { logger } from '../log/logger.js';
+import { BaseExtractor } from './BaseExtractor.js';
+import { scrapeOnce } from './prompts.js';
 
 export const SinglePromptExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -9,12 +9,10 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   }
 
   async *_run(doc, questions, options) {
-    logger.info(
-      `Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`,
-    );
+    logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     let { description, single } = options || {};
-    let extraRules = "";
+    let extraRules = '';
     if (single) {
       extraRules = `These rules OVERRIDE previous instructions:
 - You must find ONLY ONE result`;
@@ -24,18 +22,14 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
       html: doc.html,
       extraRules,
-      description: description
-        ? `You are looking for this type of item(s):\n\n${description}`
-        : "",
+      description: description ? `You are looking for this type of item(s):\n\n${description}` : '',
     };
 
-    let prompts = await scrapeOnce.renderMulti(context, "html", this.ai);
+    let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
 
     const max = 50;
     if (prompts.length > max) {
-      logger.warn(
-        `${this} Got too many prompts (${prompts.length}), only processing ${max}`,
-      );
+      logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
       prompts = prompts.slice(0, max);
     }
 
@@ -43,7 +37,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     for (const prompt of prompts) {
       logger.debug(`${this} Streaming prompt ${++count} of ${prompts.length}`);
       try {
-        const stream = this.ai.stream(prompt, { format: "jsonl" });
+        const stream = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of stream) {
           if (delta.itemCount) continue;
           yield Promise.resolve(new Item(delta, doc));

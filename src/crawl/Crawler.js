@@ -1,9 +1,9 @@
-import { logger } from "../log/logger.js";
-import { validate } from "./util.js";
-import { shuffle, chunkList } from "../util.js";
-import { BaseCrawler } from "./BaseCrawler.js";
-import { gather } from "./prompts.js";
-import { createChannel } from "../util.js";
+import { logger } from '../log/logger.js';
+import { validate } from './util.js';
+import { shuffle, chunkList } from '../util.js';
+import { BaseCrawler } from './BaseCrawler.js';
+import { gather } from './prompts.js';
+import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
@@ -59,26 +59,17 @@ export const Crawler = class extends BaseCrawler {
 
           const doc = val.doc;
           const myIndex = workerPromises.length;
-          logger.info(
-            `${this} Starting new link worker on ${doc} (${myIndex}) done=${done}`,
-          );
+          logger.info(`${this} Starting new link worker on ${doc} (${myIndex}) done=${done}`);
 
           // Start an extraction worker
           workerPromises.push(
             new Promise(async (ok, bad) => {
               try {
-                for await (const r of this._processDoc(
-                  doc,
-                  query,
-                  seen,
-                  options,
-                )) {
+                for await (const r of this._processDoc(doc, query, seen, options)) {
                   resultsChannel.send({ result: r });
                 }
 
-                logger.debug(
-                  `${this} Link worker done ${myIndex} (${workerPromises.length})`,
-                );
+                logger.debug(`${this} Link worker done ${myIndex} (${workerPromises.length})`);
                 ok();
               } catch (e) {
                 logger.error(`${this} Error in link promise: ${e}`);
@@ -159,7 +150,7 @@ export const Crawler = class extends BaseCrawler {
         toLink[link.id] = link;
       }
 
-      const stream = this.ai.stream(prompt, { format: "jsonl" });
+      const stream = this.ai.stream(prompt, { format: 'jsonl' });
       try {
         for await (const { delta, usage } of stream) {
           if (!toLink[delta.id]) {
@@ -228,7 +219,7 @@ const cleanLinks = (l) => {
     }
 
     // De-dupe anchors for now. May want to revisit this later.
-    item.url = item.url.split("#")[0];
+    item.url = item.url.split('#')[0];
     clean.push(item);
   }
   return clean;

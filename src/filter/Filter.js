@@ -1,8 +1,8 @@
-import { logger } from "../log/logger.js";
-import { Item } from "../item/Item.js";
-import { getAI } from "../ai/index.js";
-import { chunkList } from "../util.js";
-import { filter } from "./prompts.js";
+import { logger } from '../log/logger.js';
+import { Item } from '../item/Item.js';
+import { getAI } from '../ai/index.js';
+import { chunkList } from '../util.js';
+import { filter } from './prompts.js';
 
 export const Filter = class {
   constructor(options) {
@@ -28,7 +28,7 @@ export const Filter = class {
         items: JSON.stringify(chunk, null, 2),
       });
 
-      const stream = this.ai.stream(prompt, { format: "jsonl" });
+      const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
         for (let i = 0; i < copy.length; i++) {
           const data = copy[i];

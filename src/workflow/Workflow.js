@@ -1,11 +1,11 @@
-import { setMaxListeners } from "events";
-import { logger } from "../log/logger.js";
-import { Cursor } from "../cursor/Cursor.js";
-import { Context } from "../context/Context.js";
-import { Planner } from "../plan/Planner.js";
-import { BaseWorkflow } from "./BaseWorkflow.js";
-import { isPlainObject } from "../util.js";
-import { classMap, stepNames, BaseStep } from "../step/index.js";
+import { setMaxListeners } from 'events';
+import { logger } from '../log/logger.js';
+import { Cursor } from '../cursor/Cursor.js';
+import { Context } from '../context/Context.js';
+import { Planner } from '../plan/Planner.js';
+import { BaseWorkflow } from './BaseWorkflow.js';
+import { isPlainObject } from '../util.js';
+import { classMap, stepNames, BaseStep } from '../step/index.js';
 
 export const Workflow = class extends BaseWorkflow {
   constructor() {
@@ -20,7 +20,7 @@ export const Workflow = class extends BaseWorkflow {
 
   toString() {
     const len = (this.steps || []).length;
-    return `[${this.constructor.name}: ${len} step${len == 1 ? "" : "s"}]`;
+    return `[${this.constructor.name}: ${len} step${len == 1 ? '' : 's'}]`;
   }
 
   async describe() {
@@ -32,9 +32,7 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   async plan(...args) {
-    logger.info(
-      `Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`,
-    );
+    logger.info(`Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`);
 
     if (args && args.length == 1 && args[0].prompt != undefined) {
       args = args[0];
@@ -107,7 +105,7 @@ export const Workflow = class extends BaseWorkflow {
       abortListener = () => {
         this.controller.abort();
       };
-      ctxSignal.addEventListener("abort", abortListener);
+      ctxSignal.addEventListener('abort', abortListener);
     }
     this.ctx.update({ signal: this.controller.signal });
 
@@ -122,15 +120,13 @@ export const Workflow = class extends BaseWorkflow {
     let originalLimit = last.limit;
 
     if (this.ctx.limit) {
-      last.limit = last.limit
-        ? Math.min(this.ctx.limit, last.limit)
-        : this.ctx.limit;
+      last.limit = last.limit ? Math.min(this.ctx.limit, last.limit) : this.ctx.limit;
     }
 
-    const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map((s) => ("" + s).replace("Step", "")).join(" -> ")} `;
-    logger.info("╔" + "═".repeat(msg.length) + "╗");
-    logger.info("║" + msg + "║");
-    logger.info("╚" + "═".repeat(msg.length) + "╝");
+    const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map((s) => ('' + s).replace('Step', '')).join(' -> ')} `;
+    logger.info('╔' + '═'.repeat(msg.length) + '╗');
+    logger.info('║' + msg + '║');
+    logger.info('╚' + '═'.repeat(msg.length) + '╝');
     logger.info(`Running with global limit=${this.ctx.limit}`);
 
     try {
@@ -141,7 +137,7 @@ export const Workflow = class extends BaseWorkflow {
       this.cursor.finishAll();
 
       if (ctxSignal) {
-        ctxSignal.removeEventListener("abort", abortListener);
+        ctxSignal.removeEventListener('abort', abortListener);
       }
     }
   }
@@ -161,7 +157,7 @@ for (const stepName of stepNames) {
     const name = stepName;
     const cls = classMap[name];
 
-    if (name == "extract") {
+    if (name == 'extract') {
       // TODO: generalize + test this
       // TODO: This is a major tech debt, FIXME
       if (prompt.questions) {
@@ -174,17 +170,17 @@ for (const stepName of stepNames) {
         }
         return this.step(new cls(args));
       }
-    } else if (name == "crawl") {
-      if (typeof prompt == "string") {
+    } else if (name == 'crawl') {
+      if (typeof prompt == 'string') {
         return this.step(new cls({ query: prompt }));
       }
-    } else if (name == "fetch") {
+    } else if (name == 'fetch') {
       const args = prompt;
       return this.step(new cls(args));
-    } else if (name == "limit") {
+    } else if (name == 'limit') {
       if (prompt.limit) {
         return this.step(new cls(prompt));
-      } else if (typeof prompt == "number") {
+      } else if (typeof prompt == 'number') {
         return this.step(new cls({ limit: prompt }));
       }
     }

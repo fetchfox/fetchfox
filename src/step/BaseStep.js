@@ -1,6 +1,6 @@
-import PQueue from "p-queue";
-import { logger } from "../log/logger.js";
-import { stepDescriptionsMap, nameMap } from "./info.js";
+import PQueue from 'p-queue';
+import { logger } from '../log/logger.js';
+import { stepDescriptionsMap, nameMap } from './info.js';
 
 // Some steps will need a larger batch size, but otherwise keep
 // step batches to size of 1 so that items are passed to next
@@ -70,7 +70,7 @@ export const BaseStep = class {
   }
 
   _checkEvent(event) {
-    if (!["item", "done"].includes(event)) {
+    if (!['item', 'done'].includes(event)) {
       throw new Error(`Unhandled event ${event}`);
     }
   }
@@ -101,8 +101,8 @@ export const BaseStep = class {
     try {
       return this._run(cursor, steps, index);
     } catch (e) {
-      await cursor.error("" + e, index);
-      this.trigger("done");
+      await cursor.error('' + e, index);
+      this.trigger('done');
       this._finish(cursor, index);
       throw e;
     }
@@ -145,7 +145,7 @@ export const BaseStep = class {
 
         const qPromises = [];
         for (const item of b) {
-          const meta = { status: "loading", sourceUrl: item._url };
+          const meta = { status: 'loading', sourceUrl: item._url };
 
           // Create placeholder item for the *first* output
           let firstId = cursor.publish(null, { _meta: meta }, index, done);
@@ -156,63 +156,48 @@ export const BaseStep = class {
                 return;
               }
 
-              const itemPromise = this.process(
-                { cursor, item, index, batch: b },
-                (output) => {
-                  this.results.push(output);
-                  const hitLimit =
-                    this.limit && this.results.length >= this.limit;
+              const itemPromise = this.process({ cursor, item, index, batch: b }, (output) => {
+                this.results.push(output);
+                const hitLimit = this.limit && this.results.length >= this.limit;
 
-                  if (hitLimit) {
-                    logger.info(
-                      `${this} Hit limit with ${this.results.length} results`,
-                    );
-                  }
+                if (hitLimit) {
+                  logger.info(`${this} Hit limit with ${this.results.length} results`);
+                }
 
-                  meta.status = "done";
-                  if (!done) {
-                    cursor.publish(
-                      firstId,
-                      { ...output, _meta: meta },
-                      index,
-                      done,
-                    );
+                meta.status = 'done';
+                if (!done) {
+                  cursor.publish(firstId, { ...output, _meta: meta }, index, done);
 
-                    // Only the *first* output should be an update, so set
-                    // use a null ID for the remainder
-                    firstId = null;
+                  // Only the *first* output should be an update, so set
+                  // use a null ID for the remainder
+                  firstId = null;
 
-                    this.trigger("item", output);
-                  }
+                  this.trigger('item', output);
+                }
 
-                  done ||= hitLimit;
+                done ||= hitLimit;
 
-                  if (done) {
-                    logger.debug(
-                      `${this} Received done signal inside callback`,
-                    );
-                    ok();
-                  } else {
-                    done = maybeOk();
-                  }
+                if (done) {
+                  logger.debug(`${this} Received done signal inside callback`);
+                  ok();
+                } else {
+                  done = maybeOk();
+                }
 
-                  return done;
-                },
-              );
+                return done;
+              });
 
               itemPromise.catch((e) => {
                 logger.error(`${this} Got error while processing: ${e}`);
 
-                meta.status = "error";
+                meta.status = 'error';
                 meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
                 cursor.publish(firstId, { _meta: meta }, index, done);
 
                 if (process.env.STRICT_ERRORS) {
                   throw e;
                 } else {
-                  logger.warn(
-                    `${this} Strict mode not enabled, swallowing error: ${e.stack}`,
-                  );
+                  logger.warn(`${this} Strict mode not enabled, swallowing error: ${e.stack}`);
                 }
               });
 
@@ -228,7 +213,7 @@ export const BaseStep = class {
             // all.push(task);
             qPromises.push(p);
           } catch (e) {
-            if (e.name == "AbortError") {
+            if (e.name == 'AbortError') {
               logger.debug(`${this} Promise queue task aborted: ${e}`);
             } else {
               logger.error(`${this} Promise queue gave an error: ${e}`);
@@ -248,7 +233,7 @@ export const BaseStep = class {
             }
           })
           .catch((e) => {
-            if (e.name == "AbortError") {
+            if (e.name == 'AbortError') {
               return;
             }
             logger.error(`${this} Got error while waiting for all: ${e}`);
@@ -270,25 +255,23 @@ export const BaseStep = class {
 
       onNextDone =
         next &&
-        next.on("done", () => {
+        next.on('done', () => {
           nextDone = true;
           maybeOk();
         });
 
-      onParentDone = parent.on("done", () => {
+      onParentDone = parent.on('done', () => {
         parentDone = true;
         processBatch();
         maybeOk();
       });
 
-      onParentItem = parent.on("item", async (item) => {
+      onParentItem = parent.on('item', async (item) => {
         if (cursor.ctx.signal?.aborted) {
           return;
         }
 
-        logger.debug(
-          `${this} Pushing onto batch, current=${batch.length}, batch size=${batchSize}`,
-        );
+        logger.debug(`${this} Pushing onto batch, current=${batch.length}, batch size=${batchSize}`);
         batch.push(item);
 
         if (batch.length >= batchSize) {
@@ -300,9 +283,7 @@ export const BaseStep = class {
       if (parent) {
         parent.run(cursor, steps, index - 1);
       } else {
-        this.process(cursor, [], (output) =>
-          cursor.publish(output, index),
-        ).then(ok);
+        this.process(cursor, [], (output) => cursor.publish(output, index)).then(ok);
       }
     }); // end processPromise
 
@@ -311,11 +292,11 @@ export const BaseStep = class {
       done = true;
     };
     if (cursor.ctx.signal) {
-      cursor.ctx.signal.addEventListener("abort", abortListener);
+      cursor.ctx.signal.addEventListener('abort', abortListener);
     }
     const removeAbortListener = () => {
       if (cursor.ctx.signal) {
-        cursor.ctx.signal.removeEventListener("abort", abortListener);
+        cursor.ctx.signal.removeEventListener('abort', abortListener);
       }
     };
     processPromise.catch((e) => {
@@ -337,7 +318,7 @@ export const BaseStep = class {
     parent.remove(onParentItem);
     parent.remove(onParentDone);
 
-    this.trigger("done");
+    this.trigger('done');
 
     return this.results;
   }

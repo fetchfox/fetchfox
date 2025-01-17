@@ -1,7 +1,7 @@
-import { Template } from "../template/Template.js";
+import { Template } from '../template/Template.js';
 
 export const scrapeOnce = new Template(
-  ["extraRules", "description", "questions", "url", "html"],
+  ['extraRules', 'description', 'questions', 'url', 'html'],
   `You are a web scraping extraction program. You will receive webpage content including HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar. 
 
 If you're unable to answer a question fill in the value "(not found)", but make your best guess. Prefer to give an answer if one seems plausible.
@@ -48,7 +48,7 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 );
 
 export const findMultiDescription = new Template(
-  ["questions", "url"],
+  ['questions', 'url'],
   `You are part of a scraping program. You have user questions. Your goal is to figure out a 2-10 word description of the items the user is trying to scrape.
 
 Respond in JSON format like this:
@@ -68,7 +68,7 @@ Your response MUST be valid JSON and only JSON. It will be parsed with JSON.pars
 );
 
 export const codeGenMulti = new Template(
-  ["num", "htmls", "itemDescription", "questions", "samples"],
+  ['num', 'htmls', 'itemDescription', 'questions', 'samples'],
   `You writing Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data.
 
 Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments.
@@ -114,7 +114,7 @@ Make sure to RETURN the result at the end
 );
 
 export const codeGenFeedback = new Template(
-  ["htmls", "samples", "actuals", "itemDescription", "questions", "code"],
+  ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code'],
   `You are a code reviewer, and you are asked to evaluate scraping extract code. You will receive HTML of the target page for extraction, the data to be extracted, the proposed code for doing the extract, and expected and actual results.
 
 You will give feedback in JSON format on the code:
@@ -155,15 +155,7 @@ Below is your task:
 );
 
 export const codeGenIterate = new Template(
-  [
-    "htmls",
-    "samples",
-    "actuals",
-    "itemDescription",
-    "questions",
-    "code",
-    "feedback",
-  ],
+  ['htmls', 'samples', 'actuals', 'itemDescription', 'questions', 'code', 'feedback'],
   `You working on Javascript code that will be part of a scraping program. You are a master scraping coder, and you have good intuition about what selectors and code to use to find data. Your response will be directly executed, so respond ONLY with code, no english explanation or formatting. If you do want to give explanation, put it in comments. You will be writing Javascript.
 
 Your goal is to write Javascript code that finds items the user is looking for, and fills in the fields the users asks for.

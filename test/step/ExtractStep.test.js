@@ -1,26 +1,26 @@
-import assert from "assert";
-import os from "os";
-import { fox } from "../../src/index.js";
-import { testCache } from "../lib/util.js";
+import assert from 'assert';
+import os from 'os';
+import { fox } from '../../src/index.js';
+import { testCache } from '../lib/util.js';
 
-describe("ExtractStep", function () {
-  it("should supplement items with subsequent extractions @run @fast", async () => {
+describe('ExtractStep', function () {
+  it('should supplement items with subsequent extractions @run @fast', async () => {
     const f = await fox
       .config({ cache: testCache() })
-      .init("https://pokemondb.net/pokedex/national")
+      .init('https://pokemondb.net/pokedex/national')
       .extract({
-        url: "What is the URL of this pokemon",
-        name: "What is the name of the pokemon?",
-        number: "What is the pokedex number?",
+        url: 'What is the URL of this pokemon',
+        name: 'What is the name of the pokemon?',
+        number: 'What is the pokedex number?',
       })
       .extract({
-        height: "What is the height of this pokemon?",
+        height: 'What is the height of this pokemon?',
       })
       .limit(3);
 
     const out = await f.run();
 
-    const expectedKeys = ["url", "name", "number", "height"];
+    const expectedKeys = ['url', 'name', 'number', 'height'];
 
     assert.equal(out.items.length, 3);
 

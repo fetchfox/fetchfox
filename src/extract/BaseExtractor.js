@@ -1,14 +1,13 @@
-import { logger } from "../log/logger.js";
-import { getAI } from "../ai/index.js";
-import { getFetcher } from "../fetch/index.js";
-import { getMinimizer } from "../min/index.js";
-import { Document } from "../document/Document.js";
-import { createChannel } from "../util.js";
+import { logger } from '../log/logger.js';
+import { getAI } from '../ai/index.js';
+import { getFetcher } from '../fetch/index.js';
+import { getMinimizer } from '../min/index.js';
+import { Document } from '../document/Document.js';
+import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, minimizer, signal, cache, hardCapTokens } =
-      options || {};
+    const { ai, fetcher, minimizer, signal, cache, hardCapTokens } = options || {};
     this.signal = signal;
     this.cache = cache;
     this.ai = getAI(ai, { cache, signal });
@@ -37,7 +36,7 @@ export const BaseExtractor = class {
     }
 
     let url;
-    if (typeof target == "string") {
+    if (typeof target == 'string') {
       url = target;
     } else if (target?.url) {
       url = target.url;
@@ -96,9 +95,7 @@ export const BaseExtractor = class {
         try {
           for await (const doc of gen) {
             if (done) break;
-            logger.debug(
-              `${this} Sending doc ${doc} onto channel done=${done}`,
-            );
+            logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
             docsChannel.send({ doc });
           }
           ok();
@@ -131,9 +128,7 @@ export const BaseExtractor = class {
 
             const doc = val.doc;
             const myIndex = workerPromises.length;
-            logger.info(
-              `${this} Starting new worker on ${doc} (${myIndex}) done=${done}`,
-            );
+            logger.info(`${this} Starting new worker on ${doc} (${myIndex}) done=${done}`);
 
             // Start an extraction worker
             workerPromises.push(
@@ -158,9 +153,7 @@ export const BaseExtractor = class {
                     resultsChannel.send({ result: r });
                   }
 
-                  logger.debug(
-                    `${this} Extraction worker done ${myIndex} (${workerPromises.length})`,
-                  );
+                  logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
                   ok();
                 } catch (e) {
                   logger.error(`${this} Error in extraction promise: ${e}`);
@@ -225,7 +218,7 @@ export const BaseExtractor = class {
   }
 
   isMissing(data, question) {
-    return !data[question] || data[question] == "(not found)";
+    return !data[question] || data[question] == '(not found)';
   }
 
   countMissing(data, questions) {

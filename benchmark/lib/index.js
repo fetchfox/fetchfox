@@ -1,7 +1,7 @@
-import { logger } from "../../src/log/logger.js";
-import { fox } from "../../src/index.js";
-import { S3Cache } from "../../src/cache/S3Cache.js";
-import { storeScores } from "./store.js";
+import { logger } from '../../src/log/logger.js';
+import { fox } from '../../src/index.js';
+import { S3Cache } from '../../src/cache/S3Cache.js';
+import { storeScores } from './store.js';
 
 const populate = (json, config) => {
   let str = JSON.stringify(json);
@@ -12,11 +12,11 @@ const populate = (json, config) => {
 };
 
 export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
-  console.log("Running benchmark matrix", name, matrix);
+  console.log('Running benchmark matrix', name, matrix);
   for (const config of matrix) {
     const testName = `${name} { ${Object.keys(config)
-      .map((k) => k + "=" + JSON.stringify(config[k]))
-      .join("; ")} } @bench`;
+      .map((k) => k + '=' + JSON.stringify(config[k]))
+      .join('; ')} } @bench`;
 
     it(testName, async function () {
       console.log(testName);
@@ -38,10 +38,10 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
 export const runMatrix = async (name, json, matrix, checks, options) => {
   const scores = [];
 
-  const date = new Date().toISOString().split("T")[0];
+  const date = new Date().toISOString().split('T')[0];
   const timestamp = new Date().getTime();
-  const commit = process.env.COMMIT || "local";
-  const branch = process.env.BRANCH || "local";
+  const commit = process.env.COMMIT || 'local';
+  const branch = process.env.BRANCH || 'local';
 
   let i = 0;
 
@@ -51,19 +51,19 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     if (process.env.S3_CACHE_BUCKET) {
       const params = {
         bucket: process.env.S3_CACHE_BUCKET,
-        prefix: "benchmarks/",
-        acl: "public-read",
+        prefix: 'benchmarks/',
+        acl: 'public-read',
         ttls: { base: 10 * 365 * 24 * 3600 },
       };
       const cache = new S3Cache(params);
 
       // Only cache in fetcher
-      if (typeof fullConfig.fetcher == "string") {
+      if (typeof fullConfig.fetcher == 'string') {
         fullConfig.fetcher = [fullConfig.fetcher, { cache }];
       } else if (Array.isArray(fullConfig.fetcher)) {
         fullConfig.fetcher[1].cache = cache;
       } else {
-        throw "Unhandled: TODO";
+        throw 'Unhandled: TODO';
       }
     }
 
@@ -78,9 +78,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     console.log(JSON.stringify(out.context.ai.runtime, null, 2));
 
     logger.info(``);
-    logger.info(
-      `  Running benchmark ${++i}/${matrix.length} with config ${JSON.stringify(config)}`,
-    );
+    logger.info(`  Running benchmark ${++i}/${matrix.length} with config ${JSON.stringify(config)}`);
     logger.info(``);
 
     const score = [0, 0];

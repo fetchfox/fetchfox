@@ -1,5 +1,5 @@
-import chalk from "chalk";
-import { logger } from "./logger.js";
+import chalk from 'chalk';
+import { logger } from './logger.js';
 
 // Usage:
 //
@@ -73,10 +73,10 @@ class TimerScope {
     this.time = now;
   }
 
-  logString(s, level = "debug") {
-    const indentation = "    ".repeat(this.depth);
-    const name = this.name ?? "<unnamed>";
-    const output = `${indentation}<${this.id.toString().padStart(4, "0")} ${name}> ${s}`;
+  logString(s, level = 'debug') {
+    const indentation = '    '.repeat(this.depth);
+    const name = this.name ?? '<unnamed>';
+    const output = `${indentation}<${this.id.toString().padStart(4, '0')} ${name}> ${s}`;
 
     logger[level](output);
   }

@@ -1,5 +1,5 @@
-import { logger } from "../log/logger.js";
-import { isPlainObject } from "../util.js";
+import { logger } from '../log/logger.js';
+import { isPlainObject } from '../util.js';
 
 export const BaseWorkflow = class {
   constructor() {
@@ -38,11 +38,11 @@ export const BaseWorkflow = class {
   }
 
   init(prompt) {
-    return this.step({ name: "const", args: prompt });
+    return this.step({ name: 'const', args: prompt });
   }
 
   parseRunArgs(args) {
-    if (typeof args == "string") {
+    if (typeof args == 'string') {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];

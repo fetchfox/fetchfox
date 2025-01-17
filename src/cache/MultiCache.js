@@ -1,4 +1,4 @@
-import { logger } from "../log/logger.js";
+import { logger } from '../log/logger.js';
 
 export const MultiCache = class {
   constructor(caches) {
@@ -12,7 +12,7 @@ export const MultiCache = class {
   }
 
   async set(key, val, label) {
-    logger.info(`${this} Set caches ${key}: ${this.caches.map((c) => "" + c)}`);
+    logger.info(`${this} Set caches ${key}: ${this.caches.map((c) => '' + c)}`);
 
     try {
       await Promise.allSettled(this.caches.map((c) => c.set(key, val, label)));
@@ -23,7 +23,7 @@ export const MultiCache = class {
   }
 
   async get(key) {
-    logger.info(`${this} Get from caches: ${this.caches.map((c) => "" + c)}`);
+    logger.info(`${this} Get from caches: ${this.caches.map((c) => '' + c)}`);
 
     let result;
     let i;
@@ -58,9 +58,7 @@ export const MultiCache = class {
   }
 
   async del(key) {
-    logger.info(
-      `${this} Delete from caches ${key}: ${this.caches.map((c) => "" + c)}`,
-    );
+    logger.info(`${this} Delete from caches ${key}: ${this.caches.map((c) => '' + c)}`);
 
     try {
       await Promise.allSettled(this.caches.map((c) => c.del(key, val, label)));

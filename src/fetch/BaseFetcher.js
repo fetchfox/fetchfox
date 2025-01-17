@@ -1,10 +1,10 @@
-import { getAI } from "../ai/index.js";
-import { logger } from "../log/logger.js";
-import { Document } from "../document/Document.js";
-import { presignS3 } from "./util.js";
-import { createChannel, shortObjHash } from "../util.js";
-import ShortUniqueId from "short-unique-id";
-import PQueue from "p-queue";
+import { getAI } from '../ai/index.js';
+import { logger } from '../log/logger.js';
+import { Document } from '../document/Document.js';
+import { presignS3 } from './util.js';
+import { createChannel, shortObjHash } from '../util.js';
+import ShortUniqueId from 'short-unique-id';
+import PQueue from 'p-queue';
 
 export const BaseFetcher = class {
   constructor(options) {
@@ -53,11 +53,11 @@ export const BaseFetcher = class {
 
     let url;
 
-    if (typeof target == "string") {
+    if (typeof target == 'string') {
       url = target;
-    } else if (typeof target.url == "string") {
+    } else if (typeof target.url == 'string') {
       url = target.url;
-    } else if (typeof target._url == "string") {
+    } else if (typeof target._url == 'string') {
       url = target._url;
     }
 
@@ -97,7 +97,7 @@ export const BaseFetcher = class {
         return;
       }
 
-      this.signal.addEventListener("abort", abortListener);
+      this.signal.addEventListener('abort', abortListener);
     }
 
     try {
@@ -107,15 +107,14 @@ export const BaseFetcher = class {
         return null;
       }
 
-      const exclude = ["javascript:", "mailto:"];
+      const exclude = ['javascript:', 'mailto:'];
       for (const e of exclude) {
         if (url.indexOf(e) == 0) {
           return null;
         }
       }
 
-      const debugStr = () =>
-        `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
+      const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
       logger.debug(`${this} Adding to fetch queue: ${url} ${debugStr()}`);
       const priority = options?.priority || 1;
 
@@ -130,17 +129,13 @@ export const BaseFetcher = class {
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok, bad) => {
-            logger.debug(
-              `${this} Queue is starting fetch of: ${url} ${debugStr()}`,
-            );
+            logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
             try {
               for await (const doc of this._fetch(url, options)) {
                 channel.send({ doc });
               }
             } catch (e) {
-              logger.error(
-                `${this} Caught error while getting documents: ${e}`,
-              );
+              logger.error(`${this} Caught error while getting documents: ${e}`);
               bad(e);
             } finally {
               channel.end();
@@ -159,9 +154,7 @@ export const BaseFetcher = class {
         throw e;
       }
 
-      logger.debug(
-        `${this} Fetch queue has ${this.q.size} requests ${debugStr()}`,
-      );
+      logger.debug(`${this} Fetch queue has ${this.q.size} requests ${debugStr()}`);
 
       this.usage.completed++;
 
@@ -182,22 +175,20 @@ export const BaseFetcher = class {
           if (this.s3) {
             const bucket = this.s3.bucket;
             const region = this.s3.region;
-            const keyTemplate = this.s3.key || "fetchfox-docs/{id}/{url}.html";
-            const acl = this.s3.acl || "";
+            const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
+            const acl = this.s3.acl || '';
             const id = new ShortUniqueId({
               length: 10,
-              dictionary: "alphanum_lower",
+              dictionary: 'alphanum_lower',
             }).rnd();
-            const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, "-");
-            const key = keyTemplate
-              .replaceAll("{id}", id)
-              .replaceAll("{url}", cleanUrl);
+            const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
+            const key = keyTemplate.replaceAll('{id}', id).replaceAll('{url}', cleanUrl);
 
             try {
               const presignedUrl = await presignS3({
                 bucket,
                 key,
-                contentType: "text/html",
+                contentType: 'text/html',
                 acl,
                 region,
               });
@@ -211,14 +202,12 @@ export const BaseFetcher = class {
           yield Promise.resolve(doc);
         }
       } catch (e) {
-        logger.error(
-          `${this} Error while reading from documents channel: ${e}`,
-        );
+        logger.error(`${this} Error while reading from documents channel: ${e}`);
         throw e;
       }
     } finally {
       if (this.signal) {
-        this.signal.removeEventListener("abort", abortListener);
+        this.signal.removeEventListener('abort', abortListener);
       }
       const took = new Date().getTime() - start;
       this.usage.runtime += took;
@@ -227,9 +216,7 @@ export const BaseFetcher = class {
         Promise.all(docs.map((doc) => doc.dump()))
           .then((all) => this.setCache(url, cacheOptions, all))
           .catch((e) => {
-            logger.error(
-              `${this} Error while caching docs cache, ignoring: ${e}`,
-            );
+            logger.error(`${this} Error while caching docs cache, ignoring: ${e}`);
           });
       }
     }
@@ -241,7 +228,7 @@ export const BaseFetcher = class {
 
   cacheKey(url, options) {
     const hash = shortObjHash({ url, options, ...this.cacheOptions() });
-    return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, "-").substr(0, 120)}-${hash}`;
+    return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;
   }
 
   async getCache(url, options) {
@@ -256,10 +243,8 @@ export const BaseFetcher = class {
       return;
     }
     const hit = Array.isArray(result) && result.length > 0;
-    const outcome = hit ? "(hit)" : "(miss)";
-    logger.debug(
-      `${this} Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`,
-    );
+    const outcome = hit ? '(hit)' : '(miss)';
+    logger.debug(`${this} Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
 
     if (hit) {
       const docs = [];
@@ -273,9 +258,7 @@ export const BaseFetcher = class {
         }
         docs.push(doc);
       }
-      logger.debug(
-        `${this} Fetch cache loaded ${docs.map((d) => "" + d).join(", ")}`,
-      );
+      logger.debug(`${this} Fetch cache loaded ${docs.map((d) => '' + d).join(', ')}`);
       return docs;
     } else {
       return null;
@@ -288,6 +271,6 @@ export const BaseFetcher = class {
     logger.debug(
       `${this} Set fetch cache for ${url} to "${JSON.stringify(val).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`,
     );
-    return this.cache.set(key, val, "fetch");
+    return this.cache.set(key, val, 'fetch');
   }
 };

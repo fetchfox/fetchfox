@@ -1,6 +1,6 @@
-import { logger } from "../log/logger.js";
-import { getAI } from "../ai/index.js";
-import { getFetcher } from "../fetch/index.js";
+import { logger } from '../log/logger.js';
+import { getAI } from '../ai/index.js';
+import { getFetcher } from '../fetch/index.js';
 
 export const BaseCrawler = class {
   constructor(options) {
