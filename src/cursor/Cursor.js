@@ -42,7 +42,6 @@ export const Cursor = class {
 
   didStart(stepIndex) {
     this.full[stepIndex].loading = true;
-    this.full[stepIndex].didStart = true;
     this.full[stepIndex].done = false;
     this.full[stepIndex].items = [];
 

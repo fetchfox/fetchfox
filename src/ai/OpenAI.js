@@ -57,7 +57,10 @@ export const OpenAI = class extends BaseAI {
       return;
     }
 
-    const openai = new OpenAILib({ apiKey: this.apiKey });
+    const openai = new OpenAILib({
+      apiKey: this.apiKey,
+      baseURL: this.baseURL,
+    });
 
     const args = {
       model: this.model,

@@ -74,7 +74,7 @@ You should return under a dozen categories, and may exclude some URLs if they do
 Example of valid output:
 
 {"categoryName": "article", "urlPattern": "https://example.com/article/:date/:id", "regex": "https:\\/\\/example.com\\/article\\/[0-9]{4}-[0-9]{2}-[0-9]{2}/[a-f0-9]+"}
-{"categoryName": "author", "urlPattern": "https://example.com/author/:name", "regex": "https:\\/\\/example.com\\/author\\/[a-z\-]+"}
+{"categoryName": "author", "urlPattern": "https://example.com/author/:name", "regex": "https:\\/\\/example.com\\/author\\/[a-z\\-]+"}
 
 Follow these important rules:
 - The entire array should be JSONL, with a single object per link

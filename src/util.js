@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { logger } from './log/logger.js';
 
 export const shuffle = (l) => {
   // Deterministic shuffle to keep prompts stable
@@ -26,26 +27,6 @@ export const chunkList = (list, maxBytes) => {
 export const isPlainObject = (obj) =>
   Object.prototype.toString.call(obj) === '[object Object]' &&
   (obj.constructor === Object || typeof obj.constructor === 'undefined');
-
-let _WebSocket = null;
-export async function getWebSocket() {
-  if (_WebSocket) return _WebSocket;
-
-  try {
-    _WebSocket = WebSocket;
-    return _WebSocket;
-  } catch (e) {}
-
-  try {
-    _WebSocket = window.WebSocket;
-    return _WebSocket;
-  } catch (e) {}
-
-  // Load it from module
-  const wsModule = await import('ws');
-  _WebSocket = wsModule.default;
-  return _WebSocket;
-}
 
 export const createBlocker = () => {
   let doneResolvers = [];
@@ -119,4 +100,44 @@ export const createChannel = () => {
 export const shortObjHash = (obj) => {
   const hash = crypto.createHash('sha256').update(JSON.stringify(obj)).digest('hex').substr(0, 16);
   return hash;
+};
+
+export const abortable = async (signal, promise) => {
+  const resultPromise = promise
+    .then((result) => {
+      return { aborted: false, result };
+    })
+    .catch((e) => {
+      if (signal?.aborted) {
+        return { aborted: true };
+      }
+      logger.error(`Abortable got error: ${e}`);
+      throw e;
+    });
+
+  if (!signal) {
+    return resultPromise;
+  }
+
+  let abortListener;
+  const signalPromise = new Promise((ok) => {
+    if (signal.aborted) {
+      logger.debug(`Already aborted`);
+      ok({ aborted: true });
+      return;
+    }
+
+    abortListener = () => {
+      logger.debug(`Got abort signal`);
+      ok({ aborted: true });
+    };
+    signal.addEventListener('abort', abortListener);
+  });
+
+  try {
+    const result = await Promise.race([resultPromise, signalPromise]);
+    return result;
+  } finally {
+    signal.removeEventListener('abort', abortListener);
+  }
 };
