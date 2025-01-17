@@ -1,9 +1,9 @@
-import assert from "assert";
-import os from "os";
-import { createChannel } from "../../src/util.js";
+import assert from 'assert';
+import os from 'os';
+import { createChannel } from '../../src/util.js';
 
-describe("channels", function () {
-  it("should send and receive @run", async () => {
+describe('channels', function () {
+  it('should send and receive @run', async () => {
     const c1 = createChannel();
     const c2 = createChannel();
 
@@ -37,7 +37,7 @@ describe("channels", function () {
     assert.equal(got[3].seq, 20);
   });
 
-  it("should end properly @run", async () => {
+  it('should end properly @run', async () => {
     const c1 = createChannel();
 
     const p1 = new Promise(async (ok) => {
@@ -54,7 +54,7 @@ describe("channels", function () {
       ok();
     });
 
-    c1.send({ abc: "xyz" });
+    c1.send({ abc: 'xyz' });
     c1.end();
 
     await p1;
@@ -70,7 +70,7 @@ describe("channels", function () {
     await p3;
   });
 
-  it("should send all messages before end @run", async () => {
+  it('should send all messages before end @run', async () => {
     const c = createChannel();
 
     const got = [];

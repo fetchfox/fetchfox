@@ -1,18 +1,18 @@
-import { logger } from "../log/logger.js";
-import { BaseStep } from "./BaseStep.js";
-import { Filter } from "../filter/Filter.js";
+import { logger } from '../log/logger.js';
+import { BaseStep } from './BaseStep.js';
+import { Filter } from '../filter/Filter.js';
 
 export const FilterStep = class extends BaseStep {
   constructor(args) {
     super(args);
 
     let query;
-    if (typeof args == "string") {
+    if (typeof args == 'string') {
       query = args;
     } else {
       query = args.query;
     }
-    if (!query) throw new Error("no query");
+    if (!query) throw new Error('no query');
 
     this.query = query;
   }

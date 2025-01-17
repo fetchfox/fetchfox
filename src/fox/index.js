@@ -1,1 +1,1 @@
-export { fox } from "./fox.js";
+export { fox } from './fox.js';

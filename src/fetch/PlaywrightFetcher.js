@@ -1,14 +1,14 @@
-import { chromium } from "playwright-extra";
-import { Timer } from "../log/timer.js";
-import { logger } from "../log/logger.js";
-import { Document } from "../document/Document.js";
-import { TagRemovingMinimizer } from "../min/TagRemovingMinimizer.js";
-import { BaseFetcher } from "./BaseFetcher.js";
-import { analyzePagination } from "./prompts.js";
-import { createChannel } from "../util.js";
+import { chromium } from 'playwright-extra';
+import { Timer } from '../log/timer.js';
+import { logger } from '../log/logger.js';
+import { Document } from '../document/Document.js';
+import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
+import { BaseFetcher } from './BaseFetcher.js';
+import { analyzePagination } from './prompts.js';
+import { createChannel } from '../util.js';
 
-process.on("unhandledRejection", (e) => {
-  if (e.name == "TargetClosedError") {
+process.on('unhandledRejection', (e) => {
+  if (e.name == 'TargetClosedError') {
     // These exceptions occur sometimes on browser launch, and we cannot
     // catch them in thsi process.
     logger.error(`Ignore unhandled rejection: ${e}`);
@@ -21,7 +21,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
     this.headless = options?.headless === undefined ? true : options?.headless;
-    this.browser = options?.browser || "chromium";
+    this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
 
     // TODO: these options should be passed in in `fetch`
@@ -34,7 +34,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   cacheOptions() {
     return {
-      browser: "chromium",
+      browser: 'chromium',
       loadWait: this.loadWait,
       timeoutWait: this.timeoutWait,
       waitForText: this.waitForText,
@@ -43,7 +43,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async launch(options) {
     const timer = options?.timer || new Timer();
-    timer.push("PlaywrightFetcher.launch");
+    timer.push('PlaywrightFetcher.launch');
 
     logger.debug(`Playwright launching...`);
 
@@ -61,7 +61,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         }
 
         if (!p) {
-          throw new Error("Could not connet to CDP, giving up");
+          throw new Error('Could not connet to CDP, giving up');
         }
       }
     } else {
@@ -82,13 +82,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
   async *_fetch(url, options) {
     const timer = new Timer();
-    timer.push("PlaywrightFetcher._fetch");
+    timer.push('PlaywrightFetcher._fetch');
 
-    logger.info(`${this} Fetch ${url} with options ${options || "(none)"}`);
+    logger.info(`${this} Fetch ${url} with options ${options || '(none)'}`);
     if (this.options?.proxy?.server) {
-      logger.debug(
-        `Playwright using proxy server ${this.options?.proxy?.server}`,
-      );
+      logger.debug(`Playwright using proxy server ${this.options?.proxy?.server}`);
     }
 
     let browser;
@@ -100,7 +98,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
     logger.debug(`${this} Got browser`);
 
-    timer.push("PlaywrightFetcher browser.newPage");
+    timer.push('PlaywrightFetcher browser.newPage');
     let page;
     try {
       page = await browser.newPage();
@@ -134,7 +132,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let html;
     let status;
 
-    timer.push("PlaywrightFetcher _docFromPage");
+    timer.push('PlaywrightFetcher _docFromPage');
     try {
       const r = await getHtmlFromSuccess(page, {
         loadWait: this.loadWait,
@@ -173,7 +171,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       html: () => html,
       text: () => html,
       headers: {
-        "content-type": "text/html",
+        'content-type': 'text/html',
       },
     };
 
@@ -235,14 +233,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         logger.debug(`${this} Got abort signal`);
         ok({ aborted: true });
       };
-      this.signal.addEventListener("abort", abortListener);
+      this.signal.addEventListener('abort', abortListener);
     });
 
     try {
       const result = await Promise.race([resultPromise, signalPromise]);
       return result;
     } finally {
-      this.signal.removeEventListener("abort", abortListener);
+      this.signal.removeEventListener('abort', abortListener);
     }
   }
 
@@ -250,9 +248,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     const timer = options?.timer || new Timer();
 
     try {
-      const { aborted } = await this._abortable(
-        page.goto(url, { waitUntil: "domcontentloaded" }),
-      );
+      const { aborted } = await this._abortable(page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -273,9 +269,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     if (!doc) {
-      logger.warn(
-        `${this} could not get document for ${url}, bailing on pagination`,
-      );
+      logger.warn(`${this} could not get document for ${url}, bailing on pagination`);
       return;
     }
     if (aborted) {
@@ -294,23 +288,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
 
-      const min = new TagRemovingMinimizer(["style", "script", "meta", "link"]);
+      const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
       const minDoc = await min.min(doc, { timer });
       const fns = [];
 
       const hostname = new URL(url).hostname;
       let domainSpecific =
         {
-          "x.com":
-            "You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.",
-        }[hostname] || "";
+          'x.com':
+            'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
+        }[hostname] || '';
       if (domainSpecific) {
-        domainSpecific =
-          ">>>> Follow this important domain specific guidance:\n\n" +
-          domainSpecific;
-        logger.debug(
-          `${this} adding domain specific prompt: ${domainSpecific}`,
-        );
+        domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
+        logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
       }
       const context = {
         html: minDoc.html,
@@ -319,7 +309,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       let prompts;
       try {
-        prompts = await analyzePagination.renderMulti(context, "html", this.ai);
+        prompts = await analyzePagination.renderMulti(context, 'html', this.ai);
       } catch (e) {
         logger.error(`${this} Error while rendering prompts: ${e}`);
         return;
@@ -329,20 +319,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       for (const prompt of prompts) {
         let answer;
         try {
-          answer = await this.ai.ask(prompt, { format: "json" });
+          answer = await this.ai.ask(prompt, { format: 'json' });
         } catch (e) {
           logger.error(`${this} Got AI error during pagination, ignore: ${e}`);
           continue;
         }
 
-        logger.debug(
-          `${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`,
-        );
+        logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
-        if (
-          answer?.partial?.hasPagination &&
-          answer?.partial?.paginationJavascript
-        ) {
+        if (answer?.partial?.hasPagination && answer?.partial?.paginationJavascript) {
           let fn;
           try {
             fn = new Function(answer.partial.paginationJavascript);
@@ -371,12 +356,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           await page.evaluate(fn);
           await new Promise((ok) => setTimeout(ok, 40000));
 
-          console.log("url after pagination:", page.url());
+          console.log('url after pagination:', page.url());
         } catch (e) {
           if (fnIndex >= fns.length) {
-            logger.warn(
-              `${this} got pagination error on iteration #${i}, bailing: ${e}`,
-            );
+            logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
             break;
           }
 
@@ -390,9 +373,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         let doc;
         let aborted;
         try {
-          const result = await this._abortable(
-            this._docFromPage(page, options),
-          );
+          const result = await this._abortable(this._docFromPage(page, options));
           aborted = result.aborted;
           doc = result.result;
         } catch (e) {
@@ -424,9 +405,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         yield Promise.resolve(val.doc);
       }
     } catch (e) {
-      logger.error(
-        `${this} Error while reading docs channel in pagination: ${e}`,
-      );
+      logger.error(`${this} Error while reading docs channel in pagination: ${e}`);
       throw e;
     }
   }
@@ -460,7 +439,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       } catch {
         continue;
       }
-      if (tagName == "IFRAME") {
+      if (tagName == 'IFRAME') {
         iframes.push(frame);
       }
     }
@@ -473,7 +452,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       try {
         content = await iframe.content();
       } catch {
-        content = "[iframe unavailable]";
+        content = '[iframe unavailable]';
       }
 
       // Turn off linter for undefined variables because this code
@@ -482,19 +461,19 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       /* eslint-disable no-undef */
       const evalPromise = page.evaluate(
         ({ index, content }) => {
-          const iframes = document.querySelectorAll("iframe");
+          const iframes = document.querySelectorAll('iframe');
           const iframe = iframes[index];
           if (iframe) {
             let policy;
             if (window.trustedTypes.defaultPolicy) {
               policy = window.trustedTypes.defaultPolicy;
             } else {
-              policy = window.trustedTypes.createPolicy("default", {
+              policy = window.trustedTypes.createPolicy('default', {
                 createHTML: (html) => html,
               });
             }
 
-            const div = document.createElement("div");
+            const div = document.createElement('div');
             div.innerHTML = policy.createHTML(content);
 
             iframe.replaceWith(div);
@@ -507,9 +486,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       try {
         await evalPromise;
       } catch (e) {
-        logger.warn(
-          `${this} Error while updating trusted policy, ignoring: ${e}`,
-        );
+        logger.warn(`${this} Error while updating trusted policy, ignoring: ${e}`);
       }
     }
   }
@@ -538,9 +515,7 @@ const getHtmlFromError = async (page) => {
     const html = await page.evaluate(() => document.documentElement.outerHTML);
     return html;
   } catch (e) {
-    logger.error(
-      `Failed to get HTML from error result, got another error: ${e}`,
-    );
+    logger.error(`Failed to get HTML from error result, got another error: ${e}`);
     return null;
   }
   /* eslint-enable no-undef */

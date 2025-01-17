@@ -1,7 +1,7 @@
-import { logger } from "../log/logger.js";
-import { Timer } from "../log/timer.js";
-import { Document } from "../document/Document.js";
-import { shortObjHash } from "../util.js";
+import { logger } from '../log/logger.js';
+import { Timer } from '../log/timer.js';
+import { Document } from '../document/Document.js';
+import { shortObjHash } from '../util.js';
 
 export const BaseMinimizer = class {
   constructor(options) {
@@ -15,7 +15,7 @@ export const BaseMinimizer = class {
   async cacheKey(doc, options) {
     const dump = await doc.dump();
     const hash = shortObjHash({ doc: dump, options });
-    return `min-${this.constructor.name}-${doc.url.replace(/\//g, "-").substr(0, 100)}-${hash}`;
+    return `min-${this.constructor.name}-${doc.url.replace(/\//g, '-').substr(0, 100)}-${hash}`;
   }
 
   async getCache(doc, options) {
@@ -36,7 +36,7 @@ export const BaseMinimizer = class {
       logger.error(`${this} Error getting cache ${key}: ${e}`);
       return;
     }
-    const outcome = result ? "(hit)" : "(miss)";
+    const outcome = result ? '(hit)' : '(miss)';
     logger.debug(`Minimizer cache ${outcome} for ${doc}`);
 
     if (!result) return;
@@ -63,12 +63,12 @@ export const BaseMinimizer = class {
       return;
     }
     logger.debug(`Set minimizer cache for ${doc}`);
-    return this.cache.set(key, await min.dump(), "min");
+    return this.cache.set(key, await min.dump(), 'min');
   }
 
   async min(doc, options) {
     const timer = options?.timer || new Timer();
-    timer.push("Template.renderCappedFromMemory");
+    timer.push('Template.renderCappedFromMemory');
 
     const cacheOptions = { removeTags: this.removeTags };
     let cached;
@@ -94,9 +94,7 @@ export const BaseMinimizer = class {
 
     timer.pop();
 
-    logger.info(
-      `Minimized doc from ${(before / 1000).toFixed(1)} kB -> ${(after / 1000).toFixed(1)} kB`,
-    );
+    logger.info(`Minimized doc from ${(before / 1000).toFixed(1)} kB -> ${(after / 1000).toFixed(1)} kB`);
 
     this.setCache(doc, cacheOptions, min).catch((e) => {
       logger.error(`${this} Error caching: ${e}`);

@@ -28,29 +28,29 @@ npx playwright install
 Then use it. Here is the callback style:
 
 ```javascript
-import { fox } from "fetchfox";
+import { fox } from 'fetchfox';
 
 const results = await fox
-  .init("https://pokemondb.net/pokedex/national")
-  .extract({ name: "Pokemon name", number: "Pokemon number" })
+  .init('https://pokemondb.net/pokedex/national')
+  .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
   .run(null, (delta) => {
     console.log(delta.item);
   });
 
 for (const result of results) {
-  console.log("Item:", result.item);
+  console.log('Item:', result.item);
 }
 ```
 
 If you prefer, you can use the streaming style:
 
 ```javascript
-import { fox } from "fetchfox";
+import { fox } from 'fetchfox';
 
 const stream = fox
-  .init("https://pokemondb.net/pokedex/national")
-  .extract({ name: "Pokemon name", number: "Pokemon number" })
+  .init('https://pokemondb.net/pokedex/national')
+  .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .stream();
 
 for await (const delta of stream) {
@@ -73,13 +73,11 @@ OPENAI_API_KEY=sk-your-key node index.js
 Alternatively, you can pass in your API key in code, like this:
 
 ```javascript
-import { fox } from "fetchfox";
+import { fox } from 'fetchfox';
 
 const results = await fox
-  .config({ ai: { model: "openai:gpt-4o-mini", apiKey: "sk-your-key" } })
-  .run(
-    `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`,
-  );
+  .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' } })
+  .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
 ```
 
 This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can pass in other models, including models from other providers like this:
@@ -88,13 +86,11 @@ This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can
 const results = await fox
   .config({
     ai: {
-      model: "anthropic:claude-3-5-sonnet-20240620",
-      apiKey: "your-anthropic-key",
+      model: 'anthropic:claude-3-5-sonnet-20240620',
+      apiKey: 'your-anthropic-key',
     },
   })
-  .run(
-    `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`,
-  );
+  .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
 ```
 
 Choose the AI model that best suits your needs.
@@ -104,7 +100,7 @@ Choose the AI model that best suits your needs.
 Easiest is to use a single prompt, like in the example below.
 
 ```javascript
-import { fox } from "fetchfox";
+import { fox } from 'fetchfox';
 
 const results = await fox.run(
   `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`,
@@ -114,16 +110,14 @@ const results = await fox.run(
 For more control, you can specify the steps like below.
 
 ```javascript
-import { fox } from "fetchfox";
+import { fox } from 'fetchfox';
 
 const results = await fox
-  .init("https://github.com/bitcoin/bitcoin/commits/master")
-  .crawl("find links to the comment pages")
-  .extract(
-    "get the following data: article name, top comment text, top commenter username",
-  )
-  .schema({ articleName: "", commentText: "", username: "" })
-  .export("out.jsonl");
+  .init('https://github.com/bitcoin/bitcoin/commits/master')
+  .crawl('find links to the comment pages')
+  .extract('get the following data: article name, top comment text, top commenter username')
+  .schema({ articleName: '', commentText: '', username: '' })
+  .export('out.jsonl');
 ```
 
 You can chain steps to do more complicated scrapes. The example below does the following:
@@ -137,17 +131,17 @@ You can chain steps to do more complicated scrapes. The example below does the f
 This scrape will take some time, so there is an option to output incremental results.
 
 ```javascript
-import { fox } from "fetchfox";
+import { fox } from 'fetchfox';
 
 const f = await fox
-  .config({ diskCache: "/tmp/fetchfox_cache" })
-  .init("https://github.com/bitcoin/bitcoin/commits/master")
-  .crawl("find urls commits, limit: 10")
-  .extract("get commit hash, author, and loc changed")
-  .filter("commits that changed at least 10 lines")
-  .crawl("get urls of the authors of those commits")
-  .extract("get username and repos they commit to")
-  .schema({ username: "username", repos: ["array of repos"] });
+  .config({ diskCache: '/tmp/fetchfox_cache' })
+  .init('https://github.com/bitcoin/bitcoin/commits/master')
+  .crawl('find urls commits, limit: 10')
+  .extract('get commit hash, author, and loc changed')
+  .filter('commits that changed at least 10 lines')
+  .crawl('get urls of the authors of those commits')
+  .extract('get username and repos they commit to')
+  .schema({ username: 'username', repos: ['array of repos'] });
 
 const results = f.run(null, ({ delta, index }) => {
   console.log(`Got incremental result on step ${index}: ${delta}`);
@@ -157,22 +151,22 @@ const results = f.run(null, ({ delta, index }) => {
 The library is modular, and you can use the component individually.
 
 ```javascript
-import { Crawler, SinglePromptExtractor } from "fetchfox";
+import { Crawler, SinglePromptExtractor } from 'fetchfox';
 
-const ai = "openai:gpt-4o-mini";
+const ai = 'openai:gpt-4o-mini';
 const crawler = new Crawler({ ai });
 const extractor = new SinglePromptExtractor({ ai });
 
-const url = "https://news.ycombinator.com";
+const url = 'https://news.ycombinator.com';
 const questions = [
-  "what is the article title?",
-  "how many points does this submission have? only number",
-  "how many comments does this submission have? only number",
-  "when was this article submitted? convert to YYYY-MM-DD HH:mm{am/pm} format",
+  'what is the article title?',
+  'how many points does this submission have? only number',
+  'how many comments does this submission have? only number',
+  'when was this article submitted? convert to YYYY-MM-DD HH:mm{am/pm} format',
 ];
 
-for await (const link of crawler.stream(url, "comment links")) {
-  console.log("Extract from:", link.url);
+for await (const link of crawler.stream(url, 'comment links')) {
+  console.log('Extract from:', link.url);
   for await (const item of extractor.stream(link.url, questions)) {
     console.log(item);
   }

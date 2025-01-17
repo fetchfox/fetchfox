@@ -1,12 +1,12 @@
-import { chunkList } from "../util.js";
+import { chunkList } from '../util.js';
 
 export const validate = (url) => {
-  return url && url.indexOf("javascript:") != 0;
+  return url && url.indexOf('javascript:') != 0;
 };
 
 export const normalize = (url) => {
   const obj = new URL(url);
-  obj.hash = "";
+  obj.hash = '';
   return obj.toString();
 };
 
@@ -28,7 +28,7 @@ export const decodeLinks = (links, ids) => {
   const l = [];
   for (const id of ids) {
     for (const link of links) {
-      if ("" + link.id == "" + id) {
+      if ('' + link.id == '' + id) {
         l.push(link);
       }
     }

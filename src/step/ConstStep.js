@@ -1,12 +1,12 @@
-import { logger } from "../log/logger.js";
-import { BaseStep } from "./BaseStep.js";
-import { Item } from "../item/Item.js";
+import { logger } from '../log/logger.js';
+import { BaseStep } from './BaseStep.js';
+import { Item } from '../item/Item.js';
 
 export const ConstStep = class extends BaseStep {
   constructor(args) {
     super(args);
 
-    if (typeof args == "string") {
+    if (typeof args == 'string') {
       if (args.match(/^https?:\/\//)) {
         this.items = [{ url: args }];
       } else {
@@ -29,9 +29,9 @@ export const ConstStep = class extends BaseStep {
       }
       const output = new Item(copy);
       cursor.publish(null, output, index);
-      this.trigger("item", output);
+      this.trigger('item', output);
     }
     cursor.finish(index);
-    this.trigger("done");
+    this.trigger('done');
   }
 };

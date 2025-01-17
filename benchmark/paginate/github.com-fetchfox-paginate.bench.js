@@ -1,29 +1,26 @@
-import { fox } from "../../src/index.js";
-import { itRunMatrix, runMatrix } from "../lib/index.js";
-import { standardMatrix } from "../lib/matrix.js";
-import { checkExcludeUrls } from "../lib/checks.js";
-import { storeScores } from "../lib/store.js";
+import { fox } from '../../src/index.js';
+import { itRunMatrix, runMatrix } from '../lib/index.js';
+import { standardMatrix } from '../lib/matrix.js';
+import { checkExcludeUrls } from '../lib/checks.js';
+import { storeScores } from '../lib/store.js';
 
-describe("paginate github.com", async function () {
+describe('paginate github.com', async function () {
   const matrix = standardMatrix({
-    fetcher: ["playwright"],
+    fetcher: ['playwright'],
   });
 
-  const wf = await fox
-    .init("https://github.com/fetchfox/fetchfox/commits/master/")
-    .fetch({ pages: 5 })
-    .plan();
+  const wf = await fox.init('https://github.com/fetchfox/fetchfox/commits/master/').fetch({ pages: 5 }).plan();
 
   return itRunMatrix(
     it,
-    "paginate github.com",
+    'paginate github.com',
     wf.dump(),
     matrix,
     [
       (items) => {
         const score = [0, 5];
 
-        const first = "https://github.com/fetchfox/fetchfox/commits/master/";
+        const first = 'https://github.com/fetchfox/fetchfox/commits/master/';
         if ((items[0] || {})._sourceUrl == first) {
           score[0]++;
         }

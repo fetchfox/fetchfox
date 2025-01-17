@@ -1,6 +1,6 @@
-import { getAI } from "../ai/index.js";
-import { chunkList } from "../util.js";
-import { schema } from "./prompts.js";
+import { getAI } from '../ai/index.js';
+import { chunkList } from '../util.js';
+import { schema } from './prompts.js';
 
 export const Schema = class {
   constructor(options) {
@@ -19,7 +19,7 @@ export const Schema = class {
       });
 
       const answer = await this.ai.ask(prompt, {
-        format: "json",
+        format: 'json',
         schema: { items: [targetSchema] },
       });
 

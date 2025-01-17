@@ -1,6 +1,6 @@
-import ShortUniqueId from "short-unique-id";
-import { shortObjHash } from "../../src/util.js";
-import { getKV } from "../../src/kv/index.js";
+import ShortUniqueId from 'short-unique-id';
+import { shortObjHash } from '../../src/util.js';
+import { getKV } from '../../src/kv/index.js';
 
 export const storeScores = async (scores) => {
   const kv = getKV(process.env.BENCH_KV);

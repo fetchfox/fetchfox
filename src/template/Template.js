@@ -1,5 +1,5 @@
-import { logger } from "../log/logger.js";
-import { Timer } from "../log/timer.js";
+import { logger } from '../log/logger.js';
+import { Timer } from '../log/timer.js';
 
 export const Template = class {
   constructor(args, base) {
@@ -26,7 +26,7 @@ export const Template = class {
   }
 
   toString() {
-    return "[Template]";
+    return '[Template]';
   }
 
   validate(args, base) {
@@ -40,19 +40,15 @@ export const Template = class {
     const allFound = args.every((arg) => found.includes(arg));
     const noExtra = found.every((arg) => args.includes(arg));
 
-    if (!allFound)
-      throw new Error(
-        `Missing expected args. Expected: ${args}, Found: ${found}`,
-      );
-    if (!noExtra)
-      throw new Error(`Found extra args Expected: ${args}, Found: ${found}`);
+    if (!allFound) throw new Error(`Missing expected args. Expected: ${args}, Found: ${found}`);
+    if (!noExtra) throw new Error(`Found extra args Expected: ${args}, Found: ${found}`);
   }
 
   render(context) {
     let prompt = this.base;
     for (const key of Object.keys(context)) {
-      const val = context[key] || "";
-      prompt = prompt.replaceAll("{{" + key + "}}", val);
+      const val = context[key] || '';
+      prompt = prompt.replaceAll('{{' + key + '}}', val);
     }
     return prompt;
   }
@@ -61,11 +57,7 @@ export const Template = class {
     const copy = { ...context };
     const prompts = [];
     while (true) {
-      const { prompt, bytesUsed, done } = await this.renderCapped(
-        copy,
-        flexField,
-        ai,
-      );
+      const { prompt, bytesUsed, done } = await this.renderCapped(copy, flexField, ai);
       prompts.push(prompt);
       if (done) {
         break;
@@ -77,15 +69,13 @@ export const Template = class {
 
   async renderCapped(context, flexField, ai) {
     const timer = new Timer();
-    timer.push("Template.renderCapped");
+    timer.push('Template.renderCapped');
 
     const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
     const countFn = async (str) => ai.countTokens(str, { timer });
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
-    logger.debug(
-      `${this} Memory=${this.bytesPerTokenMemory.length} target=${this.memorySize}`,
-    );
+    logger.debug(`${this} Memory=${this.bytesPerTokenMemory.length} target=${this.memorySize}`);
 
     // TODO: re-enable this
 
@@ -115,9 +105,7 @@ export const Template = class {
       tokens = await countFn(prompt);
 
       const diff = maxTokens - tokens;
-      logger.debug(
-        `${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`,
-      );
+      logger.debug(`${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`);
 
       if (tokens < maxTokens && (guess == len || diff < accuracyTokens)) {
         lowerBound = guess;
@@ -152,7 +140,7 @@ export const Template = class {
 
   async renderCappedFromMemory(context, flexField, ai, options) {
     const timer = options?.timer || new Timer();
-    timer.push("Template.renderCappedFromMemory");
+    timer.push('Template.renderCappedFromMemory');
 
     const maxTokens = ai.maxTokens || 128000;
 
@@ -163,9 +151,7 @@ export const Template = class {
       return;
     }
 
-    logger.debug(
-      `${this} Rendering from memory with bytes per token=${bytesPerTokenAvg.toFixed(2)}`,
-    );
+    logger.debug(`${this} Rendering from memory with bytes per token=${bytesPerTokenAvg.toFixed(2)}`);
 
     const render = (size) => {
       const copy = { ...context };
@@ -176,11 +162,10 @@ export const Template = class {
     const emptyTokens = render(0).length / bytesPerTokenAvg;
 
     if (emptyTokens > maxTokens) {
-      throw new Error("Prompt without context likely larger than max tokens");
+      throw new Error('Prompt without context likely larger than max tokens');
     }
 
-    const availableTokens =
-      (maxTokens - emptyTokens) * this.safetyMarginPercent;
+    const availableTokens = (maxTokens - emptyTokens) * this.safetyMarginPercent;
     const len = context[flexField].length;
     const bytes = Math.min(len, availableTokens * bytesPerTokenAvg);
     const final = render(bytes);

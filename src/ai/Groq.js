@@ -1,9 +1,9 @@
-import { Groq as GroqLib } from "groq-sdk";
-import { BaseAI } from "./BaseAI.js";
+import { Groq as GroqLib } from 'groq-sdk';
+import { BaseAI } from './BaseAI.js';
 
 export const Groq = class extends BaseAI {
-  static apiKeyEnvVariable = "GROQ_API_KEY";
-  static defaultModel = "llama3-8b-8192";
+  static apiKeyEnvVariable = 'GROQ_API_KEY';
+  static defaultModel = 'llama3-8b-8192';
 
   normalizeChunk(chunk) {
     const { model } = chunk;
@@ -34,7 +34,7 @@ export const Groq = class extends BaseAI {
     const groq = new GroqLib({ apiKey: this.apiKey });
     const completion = await groq.chat.completions.create({
       model: this.model,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: 'user', content: prompt }],
       stream: true,
     });
 

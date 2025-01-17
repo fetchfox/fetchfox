@@ -1,14 +1,14 @@
-import { logger } from "../log/logger.js";
-import { Timer } from "../log/timer.js";
-import { URL } from "whatwg-url";
-import { parse } from "node-html-parser";
+import { logger } from '../log/logger.js';
+import { Timer } from '../log/timer.js';
+import { URL } from 'whatwg-url';
+import { parse } from 'node-html-parser';
 
 // TODO: refactor Document entirely
 export const Document = class {
   constructor() {}
 
   toString() {
-    return `[Document: ${this.url} ${(this.html || "").length} bytes]`;
+    return `[Document: ${this.url} ${(this.html || '').length} bytes]`;
   }
 
   async dump(options) {
@@ -48,14 +48,14 @@ export const Document = class {
   async uploadHtml(presignedUrl) {
     try {
       await fetchRetry(presignedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "text/html" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/html' },
         body: this.html,
       });
     } catch (e) {
       throw e;
     }
-    this.htmlUrl = presignedUrl.replace(/\?.*$/, "");
+    this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
     logger.debug(`${this} Uploaded HTML to ${this.htmlUrl}`);
     return this.htmlUrl;
   }
@@ -91,7 +91,7 @@ export const Document = class {
     if (options?.url) {
       this.url = options?.url;
     } else {
-      this.url = typeof resp.url == "function" ? resp.url() : resp.url;
+      this.url = typeof resp.url == 'function' ? resp.url() : resp.url;
     }
     logger.info(`${this} Loading document from response ${this.url}`);
     const start = new Date().getTime();
@@ -107,23 +107,20 @@ export const Document = class {
     );
 
     let respHeaders = {};
-    if (typeof resp.headers == "function") {
+    if (typeof resp.headers == 'function') {
       respHeaders = resp.headers();
     } else if (resp.headers?.forEach) {
       resp.headers.forEach((value, key) => {
         respHeaders[key] = value;
       });
-    } else if (typeof resp.headers == "object") {
+    } else if (typeof resp.headers == 'object') {
       respHeaders = resp.headers;
     }
 
     this.resp = {
       url: this.url,
-      status: typeof resp.status == "function" ? resp.status() : resp.status,
-      status:
-        typeof resp.statusText == "function"
-          ? resp.statusText()
-          : resp.statusText,
+      status: typeof resp.status == 'function' ? resp.status() : resp.status,
+      status: typeof resp.statusText == 'function' ? resp.statusText() : resp.statusText,
       headers: respHeaders,
     };
 
@@ -141,12 +138,9 @@ export const Document = class {
 
   parse() {
     const timer = new Timer();
-    timer.push("Document.parse");
-    const contentType =
-      this.contentType ||
-      (this.resp?.headers || {})["content-type"] ||
-      "text/plain";
-    if (this.html || contentType.indexOf("text/html") != -1) {
+    timer.push('Document.parse');
+    const contentType = this.contentType || (this.resp?.headers || {})['content-type'] || 'text/plain';
+    if (this.html || contentType.indexOf('text/html') != -1) {
       this.parseHtml(null, { timer });
     }
     timer.pop();
@@ -154,14 +148,14 @@ export const Document = class {
 
   parseHtml(selector, options) {
     const timer = options?.timer || new Timer();
-    timer.push("Document.parseHtml");
+    timer.push('Document.parseHtml');
 
-    this.contentType = "text/html";
+    this.contentType = 'text/html';
 
     let html = this.html || this.body;
 
     if (selector) {
-      let selected = "";
+      let selected = '';
       const root = parse(html);
       root.querySelectorAll(selector).forEach((el) => {
         selected += el.outerHTML; // Append the outer HTML of each element to selected.
@@ -179,13 +173,13 @@ export const Document = class {
 
   parseTextFromHtml(options) {
     const timer = options?.timer || new Timer();
-    timer.push("Document.parseTextFromHtml");
+    timer.push('Document.parseTextFromHtml');
 
     this.requireHtml();
 
     const root = parse(this.html);
 
-    ["style", "script", "svg"].forEach((tag) => {
+    ['style', 'script', 'svg'].forEach((tag) => {
       root.querySelectorAll(tag).forEach((el) => {
         el.replaceWith(`[[${tag} removed]]`);
       });
@@ -198,9 +192,9 @@ export const Document = class {
         const text2 = wrapper.structuredText.trim();
         return text2;
       } else if (node.nodeType == 1) {
-        return node.childNodes.map(getText).join(" ");
+        return node.childNodes.map(getText).join(' ');
       }
-      return "";
+      return '';
     };
 
     this.text = getText(root);
@@ -210,7 +204,7 @@ export const Document = class {
 
   parseLinks(css, options) {
     const timer = options?.timer || new Timer();
-    timer.push("Document.parseLinks");
+    timer.push('Document.parseLinks');
 
     this.requireHtml();
 
@@ -228,18 +222,18 @@ export const Document = class {
 
     for (const el of els) {
       const as = [];
-      if (el.tagName == "A") {
+      if (el.tagName == 'A') {
         as.push(el);
       }
 
-      el.querySelectorAll("a").forEach((a) => {
+      el.querySelectorAll('a').forEach((a) => {
         as.push(a);
       });
 
       for (const a of as) {
         const html = a.outerHTML;
         const text = a.text.trim();
-        const href = a.getAttribute("href");
+        const href = a.getAttribute('href');
 
         if (href == undefined) {
           continue;
@@ -275,13 +269,13 @@ export const Document = class {
   }
 
   requireHtml() {
-    if (this.contentType != "text/html") {
-      logger.error("${this} Can only parse links for HTML");
+    if (this.contentType != 'text/html') {
+      logger.error('${this} Can only parse links for HTML');
       return;
     }
 
     if (!this.html) {
-      logger.error("${this} No HTML");
+      logger.error('${this} No HTML');
       return;
     }
   }
@@ -298,9 +292,7 @@ async function fetchRetry(url, options = {}, retries = 3, delay = 4000) {
       lastError = e;
       if (attempt < retries) {
         const thisDelay = (attempt + 1) * delay;
-        logger.warn(
-          `Retrying... attempt ${attempt + 1} delay=${thisDelay}: ${e}`,
-        );
+        logger.warn(`Retrying... attempt ${attempt + 1} delay=${thisDelay}: ${e}`);
         await new Promise((ok) => setTimeout(ok, attempt * thisDelay));
       }
     }

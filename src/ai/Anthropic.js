@@ -1,9 +1,9 @@
-import AnthropicLib from "@anthropic-ai/sdk";
-import { BaseAI } from "./BaseAI.js";
+import AnthropicLib from '@anthropic-ai/sdk';
+import { BaseAI } from './BaseAI.js';
 
 export const Anthropic = class extends BaseAI {
-  static apiKeyEnvVariable = "ANTHROPIC_API_KEY";
-  static defaultModel = "claude-3-haiku-20240307";
+  static apiKeyEnvVariable = 'ANTHROPIC_API_KEY';
+  static defaultModel = 'claude-3-haiku-20240307';
 
   constructor(options) {
     super(options);
@@ -22,22 +22,22 @@ export const Anthropic = class extends BaseAI {
     if (chunk.content) {
       const content = chunk.content[0];
       switch (content.type) {
-        case "text":
+        case 'text':
           message = content.text;
           break;
         default:
-          throw "Unhandled: " + content.type;
+          throw 'Unhandled: ' + content.type;
       }
     }
 
-    if (chunk.delta && chunk.type != "message_delta") {
+    if (chunk.delta && chunk.type != 'message_delta') {
       const content = chunk.delta;
       switch (chunk.delta.type) {
-        case "text_delta":
+        case 'text_delta':
           message = content.text;
           break;
         default:
-          throw "Unhandled: " + chunk.delta.type;
+          throw 'Unhandled: ' + chunk.delta.type;
       }
     }
 
@@ -57,7 +57,7 @@ export const Anthropic = class extends BaseAI {
     const anthropic = new AnthropicLib({ apiKey: this.apiKey });
     const completion = await anthropic.messages.create({
       max_tokens: this.maxTokensOut,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: 'user', content: prompt }],
       model: this.model,
       stream: true,
     });

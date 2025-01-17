@@ -1,7 +1,7 @@
-import { logger } from "../log/logger.js";
-import { CodeGenExtractor } from "../extract/CodeGenExtractor.js";
-import { BaseStep } from "./BaseStep.js";
-import { isPlainObject } from "../util.js";
+import { logger } from '../log/logger.js';
+import { CodeGenExtractor } from '../extract/CodeGenExtractor.js';
+import { BaseStep } from './BaseStep.js';
+import { isPlainObject } from '../util.js';
 
 export const ExtractStep = class extends BaseStep {
   constructor(args) {
@@ -13,7 +13,7 @@ export const ExtractStep = class extends BaseStep {
     }
 
     let questions;
-    if (typeof args == "string") {
+    if (typeof args == 'string') {
       questions = [args];
     } else if (args.questions) {
       questions = args.questions;
@@ -21,7 +21,7 @@ export const ExtractStep = class extends BaseStep {
       questions = args;
     }
 
-    if (!questions) throw new Error("No questions for extract step");
+    if (!questions) throw new Error('No questions for extract step');
 
     this.questions = questions;
 
@@ -33,9 +33,7 @@ export const ExtractStep = class extends BaseStep {
   }
 
   async process({ cursor, item, batch, index }, cb) {
-    logger.debug(
-      `${this} Getting ${JSON.stringify(this.questions)} from ${item}`,
-    );
+    logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
     const start = new Date().getTime();
 
     const ex = cursor.ctx.extractor;
@@ -56,7 +54,7 @@ export const ExtractStep = class extends BaseStep {
         }
 
         if (!this.examples.length) {
-          throw new Error("no examples");
+          throw new Error('no examples');
         }
       }
 
@@ -81,13 +79,9 @@ export const ExtractStep = class extends BaseStep {
       });
       for await (const output of stream) {
         const took = new Date().getTime() - start;
-        logger.debug(
-          `${this} Extract took ${(took / 1000).toFixed(1)} sec so far`,
-        );
+        logger.debug(`${this} Extract took ${(took / 1000).toFixed(1)} sec so far`);
         const combined = { ...item, ...output };
-        logger.debug(
-          `${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`,
-        );
+        logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
 
         const done = cb(combined);
         if (done) {
