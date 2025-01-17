@@ -7,9 +7,9 @@ export const paginationAction = new Template(
 Response with JSON as follows:
 
 {
-  \`paginationAnalysis\`: \`string...\`,
-  \`paginationCommand\`: \`string...\`,
-  \`paginationArgument\`: \`string...\`
+  "paginationAnalysis": "string...",
+  "paginationCommand": "string...",
+  "paginationArgument": "string..."
 }
 
 - "paginationAnalysis": 10-30 word english desrption of how to paginate to the NEXT page page. If no pagination, say so.
@@ -21,7 +21,7 @@ Response with JSON as follows:
   - "evaluate" if clicking or scrolling doesn't work, and instead you need to execute some more complex javascript to paginate. Prefer click or scroll
 - "paginationArgument": the value depends on the command
   - if command is "click", the text or CSS selector of the next page button. prepend "text=" or "css="
-  - if command is "scroll", how much to scroll: either "window" for window height, or "bottom" to scroll all the way to the bottom1
+  - if command is "scroll", how much to scroll: either "window" for window height, or "bottom" to scroll all the way to the bottom
   - if command is "evaluate", give javascript that will paginate. This javascript will be a parameter to new Function(). Therefore, do NOT give a function signature.
 
 Follow these important rules:
