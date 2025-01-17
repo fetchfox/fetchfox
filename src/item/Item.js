@@ -26,25 +26,24 @@ export const Item = class {
   publicOnly() {
     const copy = { ...this };
     for (const key of Object.keys(this)) {
-      if (key.startsWith('_')) {
+      if (key.startsWith("_")) {
         delete copy[key];
       }
     }
     return copy;
   }
 
-  async finish() {
-  }
+  async finish() {}
 
   clean(val) {
-    val = '' + val;
+    val = "" + val;
     val = val.trim();
     if (/^[0-9,]+$/.test(val)) {
-      val = val.replace(/,/g, '');
+      val = val.replace(/,/g, "");
     }
-    if (val == 'not found') {
-      val = '(not found)';
+    if (val == "not found") {
+      val = "(not found)";
     }
     return val;
   }
-}
+};

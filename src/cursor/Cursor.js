@@ -1,6 +1,6 @@
-import { logger } from '../log/logger.js';
-import { Context } from '../context/Context.js';
-import { Item } from '../item/Item.js';
+import { logger } from "../log/logger.js";
+import { Context } from "../context/Context.js";
+import { Item } from "../item/Item.js";
 
 export const Cursor = class {
   constructor(args, steps, cb) {
@@ -9,10 +9,12 @@ export const Cursor = class {
     this.full = [];
     this.items = [];
     this.deferCb = [];
-    steps.map((step) => this.full.push({
-      items: [],
-      step: step.dump(),
-    }));
+    steps.map((step) =>
+      this.full.push({
+        items: [],
+        step: step.dump(),
+      }),
+    );
 
     this._itemMap = {};
     this._nextId = 1;
@@ -21,7 +23,7 @@ export const Cursor = class {
   out(markDone) {
     const out = {
       done: this.done,
-      items: this.items.filter(it => it._meta?.status != 'loading'),
+      items: this.items.filter((it) => it._meta?.status != "loading"),
       full: this.full,
     };
 
@@ -53,7 +55,9 @@ export const Cursor = class {
     if (id) {
       // Got id, update
       if (!this._itemMap[id]) {
-        throw new Error(`${this} Tried to publish item with id ${id}, not found`);
+        throw new Error(
+          `${this} Tried to publish item with id ${id}, not found`,
+        );
       }
       for (const key of Object.keys(item)) {
         this._itemMap[id][key] = item[key];
@@ -61,7 +65,6 @@ export const Cursor = class {
 
       item._meta ||= {};
       item._meta.id = id;
-
     } else {
       // No id, create
       let copy;
@@ -89,9 +92,8 @@ export const Cursor = class {
       this.items = this.full[stepIndex].items;
     }
 
-    const shouldPublish = (
-      (isLast && item._meta?.status == 'done') ||
-      this.ctx.publishAllSteps);
+    const shouldPublish =
+      (isLast && item._meta?.status == "done") || this.ctx.publishAllSteps;
 
     if (shouldPublish) {
       this.cb({ ...this.out(), item, stepIndex });
@@ -101,16 +103,19 @@ export const Cursor = class {
   }
 
   error(message, stepIndex) {
-    message = '' + message;
+    message = "" + message;
     this.full[stepIndex].error = message;
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
 
-    return this.cb && this.cb({
-      ...this.out(),
-      stepIndex,
-      error: { index: stepIndex, message },
-    });
+    return (
+      this.cb &&
+      this.cb({
+        ...this.out(),
+        stepIndex,
+        error: { index: stepIndex, message },
+      })
+    );
   }
 
   finish(stepIndex) {
@@ -140,4 +145,4 @@ export const Cursor = class {
       cb();
     }
   }
-}
+};

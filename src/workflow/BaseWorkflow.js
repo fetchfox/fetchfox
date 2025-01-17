@@ -1,5 +1,5 @@
-import { logger } from '../log/logger.js';
-import { isPlainObject } from '../util.js';
+import { logger } from "../log/logger.js";
+import { isPlainObject } from "../util.js";
 
 export const BaseWorkflow = class {
   constructor() {
@@ -38,11 +38,11 @@ export const BaseWorkflow = class {
   }
 
   init(prompt) {
-    return this.step({ name: 'const', args: prompt });
+    return this.step({ name: "const", args: prompt });
   }
 
   parseRunArgs(args) {
-    if (typeof args == 'string') {
+    if (typeof args == "string") {
       this._stepsInput.push(args);
     } else if (Array.isArray(args)) {
       this._stepsInput = [...this._stepsInput, ...args];
@@ -76,7 +76,7 @@ export const BaseWorkflow = class {
       },
       consume: function (cb) {
         logger.debug(`Stream got consume callback`);
-        if(this.items.length) {
+        if (this.items.length) {
           logger.debug(`Stream sending to consume callback`);
           cb(this.items);
           this.items = [];
@@ -84,17 +84,15 @@ export const BaseWorkflow = class {
           logger.debug(`Stream storing consume callback`);
           this.cb = cb;
         }
-      }
+      },
     };
 
     const end = new Promise((ok, err) => {
-      this.run(
-        args,
-        (r) => {
-          if (r.item) {
-            buffer.push(r.item);
-          }
-        })
+      this.run(args, (r) => {
+        if (r.item) {
+          buffer.push(r.item);
+        }
+      })
         .then((out) => {
           done = true;
           ok(out.items);
@@ -104,17 +102,14 @@ export const BaseWorkflow = class {
 
     const seen = [];
 
-    while(!done) {
+    while (!done) {
       const next = new Promise((ok) => {
-        buffer.consume(r => {
-          ok(r)
+        buffer.consume((r) => {
+          ok(r);
         });
       });
 
-      const result = await Promise.race([
-        end,
-        next,
-      ]);
+      const result = await Promise.race([end, next]);
 
       for (const r of result) {
         if (seen[r._meta.id]) {
@@ -129,4 +124,4 @@ export const BaseWorkflow = class {
 
     logger.info(`${this} Streaming done`);
   }
-}
+};

@@ -11,7 +11,8 @@
   },
   "scripts": {
     "test": "mocha test/**/*.test.js -g @fast",
-    "bench": "mocha benchmark/**/*.bench.js -g @bench"
+    "bench": "mocha benchmark/**/*.bench.js -g @bench",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -28,7 +29,10 @@
     "chai": "^5.1.1",
     "eslint": "^9.17.0",
     "globals": "^15.14.0",
-    "mocha": "^10.7.3"
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.1",
+    "mocha": "^10.7.3",
+    "prettier": "^3.4.2"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.2",
@@ -59,5 +63,8 @@
     "url-polyfill": "^1.1.12",
     "whatwg-url": "^14.0.0",
     "ws": "^8.18.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,css,md}": "prettier --write"
   }
 }

@@ -1,14 +1,12 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
 export const shuffle = (l) => {
   // Deterministic shuffle to keep prompts stable
-  const h = (v) => crypto
-    .createHash('sha256')
-    .update(JSON.stringify(v))
-    .digest('hex');
+  const h = (v) =>
+    crypto.createHash("sha256").update(JSON.stringify(v)).digest("hex");
   l.sort((a, b) => h(a).localeCompare(h(b)));
   return l;
-}
+};
 
 export const chunkList = (list, maxBytes) => {
   const chunks = [];
@@ -26,10 +24,9 @@ export const chunkList = (list, maxBytes) => {
   return chunks;
 };
 
-export const isPlainObject = (obj) => (
-  Object.prototype.toString.call(obj) === '[object Object]' &&
-  (obj.constructor === Object || typeof obj.constructor === 'undefined')
-);
+export const isPlainObject = (obj) =>
+  Object.prototype.toString.call(obj) === "[object Object]" &&
+  (obj.constructor === Object || typeof obj.constructor === "undefined");
 
 let _WebSocket = null;
 export async function getWebSocket() {
@@ -38,17 +35,15 @@ export async function getWebSocket() {
   try {
     _WebSocket = WebSocket;
     return _WebSocket;
-  } catch(e) {
-  }
+  } catch (e) {}
 
   try {
     _WebSocket = window.WebSocket;
     return _WebSocket;
-  } catch(e) {
-  }
+  } catch (e) {}
 
   // Load it from module
-  const wsModule = await import('ws');
+  const wsModule = await import("ws");
   _WebSocket = wsModule.default;
   return _WebSocket;
 }
@@ -77,7 +72,7 @@ export const createBlocker = () => {
       isDone = false;
     },
   };
-}
+};
 
 export const createChannel = () => {
   const messages = [];
@@ -95,7 +90,7 @@ export const createChannel = () => {
     },
     send(value) {
       if (done) {
-        throw new Error('Cannot send on done channel');
+        throw new Error("Cannot send on done channel");
       }
 
       if (resolvers.length > 0) {
@@ -118,15 +113,15 @@ export const createChannel = () => {
           yield await promise;
         }
       }
-    }
+    },
   };
-}
+};
 
 export const shortObjHash = (obj) => {
   const hash = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(JSON.stringify(obj))
-    .digest('hex')
+    .digest("hex")
     .substr(0, 16);
   return hash;
-}
+};

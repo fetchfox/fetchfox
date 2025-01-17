@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { logger } from '../log/logger.js';
+import fs from "fs";
+import path from "path";
+import { logger } from "../log/logger.js";
 
 export const DiskCache = class {
   constructor(dirname, options) {
@@ -18,26 +18,25 @@ export const DiskCache = class {
     const filepath = path.join(this.dirname, key);
     const ttl = this.ttls[label] || this.ttls.base || 2 * 3600;
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
-    return await fs.promises.writeFile(filepath, JSON.stringify(data), 'utf8');
+    return await fs.promises.writeFile(filepath, JSON.stringify(data), "utf8");
   }
 
   async get(key) {
-
     logger.trace(`path: ${path}`);
 
     const filepath = path.join(this.dirname, key);
     let file;
     try {
-      file = await fs.promises.readFile(filepath, 'utf8');
+      file = await fs.promises.readFile(filepath, "utf8");
     } catch (e) {
-      if (e.code == 'ENOENT') return null;
+      if (e.code == "ENOENT") return null;
       throw e;
     }
 
     let data;
     try {
       data = JSON.parse(file);
-    } catch(e) {
+    } catch (e) {
       logger.warn(`Failed to parse JSON for cache file ${filepath}: ${e}`);
       this.del(key);
       return null;
@@ -56,8 +55,8 @@ export const DiskCache = class {
     try {
       await fs.promises.unlink(filepath);
     } catch (e) {
-      if (e.code == 'ENOENT') return;
+      if (e.code == "ENOENT") return;
       throw e;
     }
   }
-}
+};

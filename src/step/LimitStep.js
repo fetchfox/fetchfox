@@ -1,5 +1,5 @@
-import { logger } from '../log/logger.js';
-import { BaseStep } from './BaseStep.js';
+import { logger } from "../log/logger.js";
+import { BaseStep } from "./BaseStep.js";
 
 export const LimitStep = class extends BaseStep {
   constructor(args) {
@@ -13,4 +13,4 @@ export const LimitStep = class extends BaseStep {
     logger.info(`Limit step on ${JSON.stringify(item).substr(0, 100)}`);
     cb(item);
   }
-}
+};

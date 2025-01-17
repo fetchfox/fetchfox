@@ -1,16 +1,16 @@
-import { logger } from '../log/logger.js';
-import { Item } from '../item/Item.js';
-import { BaseExtractor } from './BaseExtractor.js';
-import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
+import { logger } from "../log/logger.js";
+import { Item } from "../item/Item.js";
+import { BaseExtractor } from "./BaseExtractor.js";
+import { TagRemovingMinimizer } from "../min/TagRemovingMinimizer.js";
 import {
   findMultiDescription,
   codeGenMulti,
   codeGenFeedback,
   codeGenIterate,
-} from './prompts.js';
-import { getExtractor } from './index.js';
-import * as nodeHtmlParser from 'node-html-parser';
-import { createBlocker } from '../util.js';
+} from "./prompts.js";
+import { getExtractor } from "./index.js";
+import * as nodeHtmlParser from "node-html-parser";
+import { createBlocker } from "../util.js";
 
 export const CodeGenExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -46,52 +46,51 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
     const maxIterations = options?.maxIterations || 5;
     const junkAccuracy = options?.junkAccuracy || 40;
-    const targetAccuracy = options?.targetAccuracy || 80
+    const targetAccuracy = options?.targetAccuracy || 80;
     const targetQuality = options?.targetQuality || 60;
 
     if (!this.state) {
-      throw new Error('Need to init before learning');
+      throw new Error("Need to init before learning");
     }
 
     // Use up to 3 examples
     const num = 3;
 
     const docs = await Promise.all(
-      this.state.examples
-        .slice(0, num)
-        .map((example) => {
-          return new Promise((ok) => {
-            this.getDocs(example)
-              .then(gen => {
-                const p = gen.next();
-                return [p, gen]
-              })
-              .then(([result, gen]) => {
-                gen.return().catch((e) => {
-                  logger.error(`${this} Returning generator gave: ${e}`);
-                });
-                return result.value;
-              })
-              .then((doc) => {
-                const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
-                const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
-                ok(minDoc);
+      this.state.examples.slice(0, num).map((example) => {
+        return new Promise((ok) => {
+          this.getDocs(example)
+            .then((gen) => {
+              const p = gen.next();
+              return [p, gen];
+            })
+            .then(([result, gen]) => {
+              gen.return().catch((e) => {
+                logger.error(`${this} Returning generator gave: ${e}`);
               });
-          });
-        }));
+              return result.value;
+            })
+            .then((doc) => {
+              const removeTags = ["script", "style", "svg", "meta", "link"];
+              const minDoc = new TagRemovingMinimizer(removeTags).min(doc);
+              ok(minDoc);
+            });
+        });
+      }),
+    );
 
     logger.debug(`Getting sample for code generation`);
     const sampleSize = 5;
     const getSample = async (doc) => {
       const helperStream = this.helper.stream(doc, questions, { single });
       const sample = [];
-      for await (const result of helperStream)  {
+      for await (const result of helperStream) {
         const copy = new Item(result);
         sample.push(copy.publicOnly());
         if (sample.length >= sampleSize) break;
       }
       return sample;
-    }
+    };
 
     const samples = await Promise.all(docs.map(getSample));
 
@@ -101,15 +100,22 @@ export const CodeGenExtractor = class extends BaseExtractor {
     }
 
     const itemDescription = await this.findDescription(
-      docs[0], samples[0], questions);
+      docs[0],
+      samples[0],
+      questions,
+    );
     logger.debug(`Got item description: ${itemDescription}`);
 
-    logger.info(`Learn how to answer ${JSON.stringify(this.state.questions).substr(0, 100)} on ${JSON.stringify(this.state.examples)}`);
+    logger.info(
+      `Learn how to answer ${JSON.stringify(this.state.questions).substr(0, 100)} on ${JSON.stringify(this.state.examples)}`,
+    );
 
     let genFn = () => this.firstAttempt(docs, samples, questions);
 
     for (let i = 0; i < maxIterations; i++) {
-      logger.info(`Code generation iteration ${i + 1} of ${maxIterations}, current best score is: ${this.state.feedback.accuracy}`);
+      logger.info(
+        `Code generation iteration ${i + 1} of ${maxIterations}, current best score is: ${this.state.feedback.accuracy}`,
+      );
 
       const candidate = await genFn();
       const actuals = [];
@@ -119,11 +125,13 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
       const ser = (arr) => {
         return JSON.stringify(
-          arr.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+          arr.sort((a, b) =>
+            JSON.stringify(a).localeCompare(JSON.stringify(b)),
+          ),
           null,
-          2
+          2,
         );
-      }
+      };
 
       logger.debug(`${this} Actuals: ${ser(actuals)}`);
       logger.debug(`${this} Samples: ${ser(samples)}`);
@@ -139,26 +147,33 @@ export const CodeGenExtractor = class extends BaseExtractor {
         };
       } else {
         logger.debug(`${this} Code gen and samples differ, getting feedback`);
-        const start = (new Date()).getTime();
+        const start = new Date().getTime();
         feedback = await this.feedback(
           docs,
           itemDescription,
           questions,
           candidate.code,
           samples,
-          actuals);
+          actuals,
+        );
         candidate.feedback = feedback;
-        const took = (new Date()).getTime() - start;
-        logger.debug(`${this} Got feedback (${took} msec): ${JSON.stringify(feedback, null, 2)}`);
+        const took = new Date().getTime() - start;
+        logger.debug(
+          `${this} Got feedback (${took} msec): ${JSON.stringify(feedback, null, 2)}`,
+        );
       }
 
       if (feedback.accuracy < this.state.feedback.accuracy) {
-        logger.debug(`${this} Accuracy below previous best, throw away iteration`);
+        logger.debug(
+          `${this} Accuracy below previous best, throw away iteration`,
+        );
         continue;
       }
 
       if (feedback.accuracy <= junkAccuracy) {
-        logger.debug(`${this} Accuracy below threshold ${junkAccuracy}, start again on next iteration`);
+        logger.debug(
+          `${this} Accuracy below threshold ${junkAccuracy}, start again on next iteration`,
+        );
         genFn = () => this.firstAttempt(docs, samples, questions);
         continue;
       }
@@ -167,24 +182,30 @@ export const CodeGenExtractor = class extends BaseExtractor {
       this.state.results = candidate.results;
       this.state.code = candidate.code;
       this.state.feedback = feedback;
-      this.fn = candidate.fn
+      this.fn = candidate.fn;
 
-      logger.debug(`${this} Check accuracy and quality: feedback=(${feedback.accuracy}, ${feedback.quality}), targets=(${targetAccuracy}, ${targetQuality})`);
-      if (feedback.accuracy >= targetAccuracy && feedback.quality >= targetQuality) {
+      logger.debug(
+        `${this} Check accuracy and quality: feedback=(${feedback.accuracy}, ${feedback.quality}), targets=(${targetAccuracy}, ${targetQuality})`,
+      );
+      if (
+        feedback.accuracy >= targetAccuracy &&
+        feedback.quality >= targetQuality
+      ) {
         logger.debug(`${this} Hit targets, stop iteration`);
         break;
       }
 
       logger.debug(`${this} Below targets, iterate and try again`);
-      genFn = () => this.iterate(
-        docs,
-        itemDescription,
-        questions,
-        this.state.code,
-        samples,
-        actuals,
-        feedback);
-
+      genFn = () =>
+        this.iterate(
+          docs,
+          itemDescription,
+          questions,
+          this.state.code,
+          samples,
+          actuals,
+          feedback,
+        );
     }
 
     this.isReady = true;
@@ -193,7 +214,11 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
   async feedback(docs, itemDescription, questions, code, samples, actuals) {
     // TODO: use renderCapped with multiple fields that can flex
-    const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(docs, samples, actuals);
+    const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(
+      docs,
+      samples,
+      actuals,
+    );
     const context = {
       htmls: htmlsPrompt,
       samples: samplesPrompt,
@@ -202,19 +227,35 @@ export const CodeGenExtractor = class extends BaseExtractor {
       code,
       questions: JSON.stringify(questions, null, 2),
     };
-    const { prompt } = await codeGenFeedback.renderCapped(context, 'htmls', this.ai);
+    const { prompt } = await codeGenFeedback.renderCapped(
+      context,
+      "htmls",
+      this.ai,
+    );
 
     logger.debug(`Asking for feedback using ${this.ai}`);
-    const start = (new Date()).getTime();
-    const answer = await this.ai.ask(prompt, { format: 'json' });
-    const took = (new Date()).getTime() - start;
+    const start = new Date().getTime();
+    const answer = await this.ai.ask(prompt, { format: "json" });
+    const took = new Date().getTime() - start;
     logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to get feedback`);
 
     return answer.partial;
   }
 
-  async iterate(docs, itemDescription, questions, code, samples, actuals, feedback) {
-    const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(docs, samples, actuals);
+  async iterate(
+    docs,
+    itemDescription,
+    questions,
+    code,
+    samples,
+    actuals,
+    feedback,
+  ) {
+    const [htmlsPrompt, samplesPrompt, actualsPrompt] = toPrompt(
+      docs,
+      samples,
+      actuals,
+    );
     const context = {
       htmls: htmlsPrompt,
       samples: samplesPrompt,
@@ -224,13 +265,19 @@ export const CodeGenExtractor = class extends BaseExtractor {
       questions: JSON.stringify(questions, null, 2),
       feedback: JSON.stringify(feedback, null, 2),
     };
-    const { prompt } = await codeGenIterate.renderCapped(context, 'htmls', this.ai);
+    const { prompt } = await codeGenIterate.renderCapped(
+      context,
+      "htmls",
+      this.ai,
+    );
 
     logger.debug(`Iterating on code using ${this.ai}`);
-    const start = (new Date()).getTime();
-    const answer = await this.ai.ask(prompt, { format: 'text' });
-    const took = (new Date()).getTime() - start;
-    logger.debug(`Took ${(took / 1000).toFixed(1)} seconds to iterate on the code`);
+    const start = new Date().getTime();
+    const answer = await this.ai.ask(prompt, { format: "text" });
+    const took = new Date().getTime() - start;
+    logger.debug(
+      `Took ${(took / 1000).toFixed(1)} seconds to iterate on the code`,
+    );
     logger.debug(`Code iteration gave:\n${answer.partial}`);
 
     const out = codeToFn(answer.partial);
@@ -243,8 +290,17 @@ export const CodeGenExtractor = class extends BaseExtractor {
   }
 
   async firstAttempt(docs, samples, questions) {
-    const itemDescription = await this.findDescription(docs[0], samples[0], questions);
-    const { fn, code } = await this.writeCode(docs, samples, questions, itemDescription);
+    const itemDescription = await this.findDescription(
+      docs[0],
+      samples[0],
+      questions,
+    );
+    const { fn, code } = await this.writeCode(
+      docs,
+      samples,
+      questions,
+      itemDescription,
+    );
     const results = [];
     for (const doc of docs) {
       results.push(runFn(fn, doc.html));
@@ -254,13 +310,17 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
   async findDescription(doc, sample, questions) {
     const context = {
-      url: '',
+      url: "",
       text: doc.text,
       sample: JSON.stringify(sample, null, 2),
       questions: JSON.stringify(questions, null, 2),
     };
-    const { prompt } = await findMultiDescription.renderCapped(context, 'text', this.ai);
-    const answer = await this.ai.ask(prompt, { format: 'json' });
+    const { prompt } = await findMultiDescription.renderCapped(
+      context,
+      "text",
+      this.ai,
+    );
+    const answer = await this.ai.ask(prompt, { format: "json" });
     return answer.partial.itemDescription;
   }
 
@@ -273,12 +333,16 @@ export const CodeGenExtractor = class extends BaseExtractor {
       htmls: htmlsPrompt,
       samples: samplesPrompt,
     };
-    const { prompt } = await codeGenMulti.renderCapped(context, 'htmls', this.ai);
+    const { prompt } = await codeGenMulti.renderCapped(
+      context,
+      "htmls",
+      this.ai,
+    );
 
     logger.info(`Writing code with ${this.ai}`);
-    const start = (new Date()).getTime();
-    const answer = await this.ai.ask(prompt, { format: 'text' });
-    const took = (new Date()).getTime() - start;
+    const start = new Date().getTime();
+    const answer = await this.ai.ask(prompt, { format: "text" });
+    const took = new Date().getTime() - start;
     logger.debug(`Took ${took} msec to write code`);
 
     const { fn, code } = codeToFn(answer.partial);
@@ -287,11 +351,13 @@ export const CodeGenExtractor = class extends BaseExtractor {
 
   async *_run(doc, questions) {
     if (!this.state) {
-      throw new Error('Code gen must learn a state before running');
+      throw new Error("Code gen must learn a state before running");
     }
 
     if (JSON.stringify(questions) != JSON.stringify(this.state.questions)) {
-      throw new Error(`Question mismatch in code gen run: ${JSON.stringify(questions)} != ${JSON.stringify(this.state.questions)}`);
+      throw new Error(
+        `Question mismatch in code gen run: ${JSON.stringify(questions)} != ${JSON.stringify(this.state.questions)}`,
+      );
     }
 
     const { fn } = codeToFn(this.state.code);
@@ -302,19 +368,17 @@ export const CodeGenExtractor = class extends BaseExtractor {
       yield Promise.resolve(new Item(item));
     }
   }
-}
+};
 
 const codeToFn = (text) => {
-  const code = text
-    .replace(/^```(javascript)?/, '')
-    .replace(/```/g, '');
+  const code = text.replace(/^```(javascript)?/, "").replace(/```/g, "");
 
   logger.debug(`AI wrote this code: ${code}`);
 
   let fn;
   try {
-    fn = new Function('nodeHtmlParser', 'html', code);
-  } catch(e) {
+    fn = new Function("nodeHtmlParser", "html", code);
+  } catch (e) {
     logger.error(`Could not create function from code ${code}: ${e}`);
     return { fn: null, code };
   }
@@ -324,32 +388,36 @@ const codeToFn = (text) => {
   logger.debug(`Returning function: ${fn}`);
 
   return { fn: fnHtml, code };
-}
+};
 
 const runFn = (fn, html) => {
   let results;
   try {
     results = fn(html);
-  } catch(e) {
+  } catch (e) {
     logger.error(`Could not run AI function: ${e}`);
     return;
   }
 
   if (!results || !Array.isArray(results) || results.length == 0) {
-    logger.warn(`AI generated code ran, but gave unusable reults: ${JSON.stringify(results || '').substr(0, 400)}`);
+    logger.warn(
+      `AI generated code ran, but gave unusable reults: ${JSON.stringify(results || "").substr(0, 400)}`,
+    );
   } else {
-    logger.debug(`Got results from AI generated code, first few: ${JSON.stringify(results.slice(0, 5), null, 2).substr(0, 1000)}`);
+    logger.debug(
+      `Got results from AI generated code, first few: ${JSON.stringify(results.slice(0, 5), null, 2).substr(0, 1000)}`,
+    );
   }
 
   return results;
-}
+};
 
 const toPrompt = (docs, samples, actuals) => {
   const tokensPerDoc = 30000;
   const bytesPerDoc = tokensPerDoc * 4;
-  let h = '';
-  let s = '';
-  let a = ''
+  let h = "";
+  let s = "";
+  let a = "";
   for (let i = 0; i < docs.length; i++) {
     const html = docs[i].html.substr(0, bytesPerDoc);
 
@@ -363,4 +431,4 @@ const toPrompt = (docs, samples, actuals) => {
     }
   }
   return [h, s, a];
-}
+};

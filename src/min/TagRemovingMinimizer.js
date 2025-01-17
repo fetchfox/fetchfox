@@ -1,36 +1,43 @@
-import { parse } from 'node-html-parser';
-import pretty from 'pretty';
-import { logger } from '../log/logger.js';
-import { Document } from '../document/Document.js';
-import { BaseMinimizer } from './BaseMinimizer.js';
+import { parse } from "node-html-parser";
+import pretty from "pretty";
+import { logger } from "../log/logger.js";
+import { Document } from "../document/Document.js";
+import { BaseMinimizer } from "./BaseMinimizer.js";
 
 export const TagRemovingMinimizer = class extends BaseMinimizer {
   constructor(options) {
     super(options);
-    this.removeTags = (options || {}).removeTags || ['script', 'style', 'svg', 'symbol', 'link', 'meta'];
+    this.removeTags = (options || {}).removeTags || [
+      "script",
+      "style",
+      "svg",
+      "symbol",
+      "link",
+      "meta",
+    ];
   }
 
   async _min(doc) {
     let removeTags = this.removeTags;
-    if (doc.url && doc.url.indexOf('youtube.com') != -1) {
+    if (doc.url && doc.url.indexOf("youtube.com") != -1) {
       logger.debug(`Not removing <script> on youtube.com`);
-      removeTags = removeTags.filter(t => t != 'script');
+      removeTags = removeTags.filter((t) => t != "script");
     }
 
-    logger.info(`Minimizing ${doc} by removing tags: ${removeTags.join(', ')}`);
+    logger.info(`Minimizing ${doc} by removing tags: ${removeTags.join(", ")}`);
 
-    let initial = (doc.html || '').replace(/[ \t\n]+/g, ' '); // remove extra whitespace
+    let initial = (doc.html || "").replace(/[ \t\n]+/g, " "); // remove extra whitespace
     const root = parse(initial);
 
-    removeTags.forEach(tag => {
-      root.querySelectorAll(tag).forEach(element => {
-        element.replaceWith('');
+    removeTags.forEach((tag) => {
+      root.querySelectorAll(tag).forEach((element) => {
+        element.replaceWith("");
       });
     });
 
-    const removeAttributes = ['style'];
-    root.querySelectorAll('*').forEach(element => {
-      removeAttributes.forEach(attr => {
+    const removeAttributes = ["style"];
+    root.querySelectorAll("*").forEach((element) => {
+      removeAttributes.forEach((attr) => {
         element.removeAttribute(attr);
       });
     });
@@ -58,4 +65,4 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
 
     return min;
   }
-}
+};

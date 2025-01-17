@@ -1,7 +1,12 @@
-import { logger } from '../log/logger.js';
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { logger } from "../log/logger.js";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
-import { Readable } from 'stream';
+import { Readable } from "stream";
 
 export const S3Cache = class {
   constructor(options) {
@@ -36,14 +41,18 @@ export const S3Cache = class {
     const objectKey = `${this.prefix}${key}`;
 
     try {
-      await this.s3.send(new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-        Body: body,
-        ACL: this.acl,
-        ContentType: 'application/json',
-      }));
-      logger.info(`${this} Successfully set cache for key: ${this.url(objectKey)}`);
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+          Body: body,
+          ACL: this.acl,
+          ContentType: "application/json",
+        }),
+      );
+      logger.info(
+        `${this} Successfully set cache for key: ${this.url(objectKey)}`,
+      );
     } catch (e) {
       logger.error(`${this} Error while setting cache: ${e}`);
     }
@@ -53,14 +62,18 @@ export const S3Cache = class {
     const objectKey = `${this.prefix}${key}`;
     let body;
     try {
-      const resp = await this.s3.send(new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-      }));
+      const resp = await this.s3.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+        }),
+      );
       body = await this.streamToString(resp.Body);
     } catch (e) {
-      if (e.name === 'NoSuchKey') return null;
-      logger.error(`${this} Failed get cache object ${this.url(objectKey)}: ${e}`);
+      if (e.name === "NoSuchKey") return null;
+      logger.error(
+        `${this} Failed get cache object ${this.url(objectKey)}: ${e}`,
+      );
       throw e;
     }
 
@@ -68,7 +81,9 @@ export const S3Cache = class {
     try {
       data = JSON.parse(body);
     } catch (e) {
-      logger.warn(`${this} Failed to parse JSON for cache object ${this.url(objectKey)}: ${e}`);
+      logger.warn(
+        `${this} Failed to parse JSON for cache object ${this.url(objectKey)}: ${e}`,
+      );
       this.del(key);
       return null;
     }
@@ -78,7 +93,9 @@ export const S3Cache = class {
       return null;
     }
 
-    logger.info(`${this} Successfully got cache for key: ${this.url(objectKey)}`);
+    logger.info(
+      `${this} Successfully got cache for key: ${this.url(objectKey)}`,
+    );
     return data.val;
   }
 
@@ -89,14 +106,20 @@ export const S3Cache = class {
 
     const objectKey = `${this.prefix}${key}`;
     try {
-      await this.s3.send(new DeleteObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-      }));
-      logger.debug(`${this} Successfully deleted cache for key: ${this.url(objectKey)}`);
+      await this.s3.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+        }),
+      );
+      logger.debug(
+        `${this} Successfully deleted cache for key: ${this.url(objectKey)}`,
+      );
     } catch (e) {
-      if (e.name === 'NoSuchKey') return;
-      logger.error(`${this} Failed to delete cache for key: ${this.url(objectKey)}: ${e}`);
+      if (e.name === "NoSuchKey") return;
+      logger.error(
+        `${this} Failed to delete cache for key: ${this.url(objectKey)}: ${e}`,
+      );
     }
   }
 
@@ -109,10 +132,10 @@ export const S3Cache = class {
     } catch (e) {
       logger.error(`${this} Error while streaming strings: ${e}`);
     }
-    return Buffer.concat(chunks).toString('utf-8');
+    return Buffer.concat(chunks).toString("utf-8");
   }
 
   url(objectKey) {
     return `https://${this.bucket}.s3.amazonaws.com/${objectKey}`;
   }
-}
+};

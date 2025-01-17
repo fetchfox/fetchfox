@@ -1,18 +1,18 @@
-import { logger } from '../log/logger.js';
-import { validate } from './util.js';
-import { shuffle, chunkList } from '../util.js';
-import { BaseCrawler } from './BaseCrawler.js';
-import { gather } from './prompts.js';
-import { createChannel } from '../util.js';
+import { logger } from "../log/logger.js";
+import { validate } from "./util.js";
+import { shuffle, chunkList } from "../util.js";
+import { BaseCrawler } from "./BaseCrawler.js";
+import { gather } from "./prompts.js";
+import { createChannel } from "../util.js";
 
 export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
-    this.usage.requests++
+    this.usage.requests++;
     const maxPages = options?.maxPages;
     const fetchOptions = options?.fetchOptions || {};
     const seen = {};
 
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     const docsChannel = createChannel();
     const resultsChannel = createChannel();
@@ -33,11 +33,9 @@ export const Crawler = class extends BaseCrawler {
           docsChannel.send({ doc });
         }
         ok();
-
-      } catch(e) {
+      } catch (e) {
         logger.error(`${this} Error in documents worker: ${e}`);
         bad(e);
-
       } finally {
         logger.debug(`${this} Done with docs worker`);
         gen.return();
@@ -61,35 +59,42 @@ export const Crawler = class extends BaseCrawler {
 
           const doc = val.doc;
           const myIndex = workerPromises.length;
-          logger.info(`${this} Starting new link worker on ${doc} (${myIndex}) done=${done}`);
+          logger.info(
+            `${this} Starting new link worker on ${doc} (${myIndex}) done=${done}`,
+          );
 
           // Start an extraction worker
           workerPromises.push(
             new Promise(async (ok, bad) => {
               try {
-                for await (const r of this._processDoc(doc, query, seen, options)) {
+                for await (const r of this._processDoc(
+                  doc,
+                  query,
+                  seen,
+                  options,
+                )) {
                   resultsChannel.send({ result: r });
                 }
 
-                logger.debug(`${this} Link worker done ${myIndex} (${workerPromises.length})`);
+                logger.debug(
+                  `${this} Link worker done ${myIndex} (${workerPromises.length})`,
+                );
                 ok();
-
-              } catch(e) {
+              } catch (e) {
                 logger.error(`${this} Error in link promise: ${e}`);
                 bad(e);
               }
-            }));
+            }),
+          );
         }
 
         // Got all documents, now wait for workers to complete
         logger.debug(`${this} Wait for link workers`);
         await Promise.all(workerPromises);
         ok();
-
       } catch (e) {
         logger.error(`${this} Error in link worker: ${e}`);
         bad(e);
-
       } finally {
         logger.debug(`${this} All link workers done ${done}`);
         resultsChannel.end();
@@ -110,13 +115,11 @@ export const Crawler = class extends BaseCrawler {
 
       await docsPromise;
       await resultsPromise;
-
     } catch (e) {
       logger.error(`${this} Crawler caught error: ${e}`);
       throw e;
-
     } finally {
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       this.usage.runtime += took;
       done = true;
     }
@@ -128,7 +131,7 @@ export const Crawler = class extends BaseCrawler {
     doc.parseLinks();
 
     const maxBytes = this.ai.maxTokens / 2;
-    const slimmer = item => ({
+    const slimmer = (item) => ({
       id: item.id,
       html: item.html.substr(0, 200),
       text: item.text,
@@ -145,9 +148,10 @@ export const Crawler = class extends BaseCrawler {
       const prompt = gather.render({
         query,
         links: JSON.stringify(
-          chunk.filter(l => validate(l.url)),
+          chunk.filter((l) => validate(l.url)),
           null,
-          2),
+          2,
+        ),
       });
 
       const toLink = {};
@@ -155,7 +159,7 @@ export const Crawler = class extends BaseCrawler {
         toLink[link.id] = link;
       }
 
-      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+      const stream = this.ai.stream(prompt, { format: "jsonl" });
       try {
         for await (const { delta, usage } of stream) {
           if (!toLink[delta.id]) {
@@ -174,14 +178,14 @@ export const Crawler = class extends BaseCrawler {
           this.usage.count++;
           yield Promise.resolve({ _url: link.url });
         }
-      } catch(e) {
+      } catch (e) {
         throw e;
       }
     }
   }
 
   async all(url, query, options) {
-    options = {...options, stream: false };
+    options = { ...options, stream: false };
     let result = [];
     for await (const r of this.run(url, query, options)) {
       result.push(r);
@@ -190,42 +194,42 @@ export const Crawler = class extends BaseCrawler {
   }
 
   async one(url, query, options) {
-    options = {...options, stream: true };
+    options = { ...options, stream: true };
     for await (const r of this.run(url, query, options)) {
       return r;
     }
   }
 
   async *stream(url, query, options) {
-    options = {...options, stream: true };
+    options = { ...options, stream: true };
     for await (const r of this.run(url, query, options)) {
       yield Promise.resolve(r);
     }
   }
-}
+};
 
 const dedupeLinks = (l) => {
   const u = [];
-  const seen = {};    
+  const seen = {};
   for (let item of cleanLinks(l)) {
     if (seen[item.url]) continue;
     seen[item.url] = true;
     u.push(item);
   }
   return u;
-}
+};
 
 const cleanLinks = (l) => {
   const clean = [];
-  const seen = {};    
+  const seen = {};
   for (let item of l) {
     if (!item.url) {
       continue;
     }
 
     // De-dupe anchors for now. May want to revisit this later.
-    item.url = item.url.split('#')[0];
+    item.url = item.url.split("#")[0];
     clean.push(item);
   }
   return clean;
-}
+};

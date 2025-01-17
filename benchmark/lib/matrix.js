@@ -3,13 +3,13 @@ export const standardMatrix = (extra, options) => {
 
   let fetcher;
   if (process.env.BENCH_MATRIX_AI) {
-    ai = process.env.BENCH_MATRIX_AI.split(',');
+    ai = process.env.BENCH_MATRIX_AI.split(",");
   } else {
     ai = [
-      'openai:gpt-4o-mini',
-      'openai:gpt-4o',
-      'google:gemini-1.5-flash',
-      'google:gemini-1.5-pro',
+      "openai:gpt-4o-mini",
+      "openai:gpt-4o",
+      "google:gemini-1.5-flash",
+      "google:gemini-1.5-pro",
 
       // 'anthropic:claude-3-5-sonnet-latest',
       // 'anthropic:claude-3-5-haiku-latest',
@@ -20,19 +20,20 @@ export const standardMatrix = (extra, options) => {
   }
 
   if (process.env.BENCH_MATRIX_FETCHER) {
-    fetcher = process.env.BENCH_MATRIX_FETCHER.split(',');
+    fetcher = process.env.BENCH_MATRIX_FETCHER.split(",");
   } else {
-    fetcher = [
-      'playwright',
-    ];
+    fetcher = ["playwright"];
   }
 
-  return createMatrix({
-    ai,
-    fetcher,
-    ...extra,
-  }, options);
-}
+  return createMatrix(
+    {
+      ai,
+      fetcher,
+      ...extra,
+    },
+    options,
+  );
+};
 
 export const createMatrix = (configs, options) => {
   const cdp = process.env.CDP_URL;
@@ -42,7 +43,7 @@ export const createMatrix = (configs, options) => {
   for (const key of Object.keys(configs)) {
     const newMatrix = [];
     for (let val of configs[key]) {
-      if (['ai', 'fetcher'].includes(key)) {
+      if (["ai", "fetcher"].includes(key)) {
         if (!Array.isArray(val)) {
           val = [val];
         }
@@ -54,7 +55,7 @@ export const createMatrix = (configs, options) => {
       for (const existing of matrix) {
         const updated = { ...existing };
         updated[key] = val;
-        if (key == 'fetcher') {
+        if (key == "fetcher") {
           if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
             val[1].cdp = cdp;
           }
@@ -66,4 +67,4 @@ export const createMatrix = (configs, options) => {
   }
 
   return matrix;
-}
+};

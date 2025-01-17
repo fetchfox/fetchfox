@@ -1,9 +1,9 @@
-import { logger } from '../log/logger.js';
-import { Fetcher } from './Fetcher.js';
-import { PlaywrightFetcher } from './PlaywrightFetcher.js';
+import { logger } from "../log/logger.js";
+import { Fetcher } from "./Fetcher.js";
+import { PlaywrightFetcher } from "./PlaywrightFetcher.js";
 
-export { BaseFetcher } from './BaseFetcher.js';
-import { BaseFetcher } from './BaseFetcher.js';
+export { BaseFetcher } from "./BaseFetcher.js";
+import { BaseFetcher } from "./BaseFetcher.js";
 
 export const DefaultFetcher = Fetcher;
 
@@ -13,7 +13,7 @@ export const getFetcher = (which, options) => {
   }
 
   if (!which) {
-    which = 'fetch';
+    which = "fetch";
   }
 
   let fetcherClass = {
@@ -28,4 +28,4 @@ export const getFetcher = (which, options) => {
     return;
   }
   return new fetcherClass(options);
-}
+};

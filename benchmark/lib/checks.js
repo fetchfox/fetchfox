@@ -2,20 +2,17 @@ export const checkExcludeUrls = (items, str) => {
   const score = [0, 0];
   for (const item of items) {
     score[1]++;
-    if (typeof item.url != 'string') continue;
+    if (typeof item.url != "string") continue;
     if (item.url.indexOf(str) != -1) continue;
     score[0]++;
   }
   return score;
-}
+};
 
 export const checkAtLeast = (items, num) => {
-  console.log('checkAtLeast', items);
-  return [
-    Math.min(num, (items || []).length),
-    num
-  ];
-}
+  console.log("checkAtLeast", items);
+  return [Math.min(num, (items || []).length), num];
+};
 
 export const checkItemsExact = (items, expected, fields) => {
   const score = [0, 0];
@@ -24,7 +21,7 @@ export const checkItemsExact = (items, expected, fields) => {
     const copy = {};
     for (const key of Object.keys(item)) {
       if (!fields) {
-        if (key.startsWith('_')) continue;
+        if (key.startsWith("_")) continue;
         copy[key] = item[key];
 
         continue;
@@ -35,11 +32,13 @@ export const checkItemsExact = (items, expected, fields) => {
     }
 
     return copy;
-  }
+  };
 
   // Un-ordered check, so sort them as JSON
-  const itemsJson = items.map(x => JSON.stringify(removePrivate(x))).sort();
-  const expectedJson = expected.map(x => JSON.stringify(removePrivate(x))).sort();
+  const itemsJson = items.map((x) => JSON.stringify(removePrivate(x))).sort();
+  const expectedJson = expected
+    .map((x) => JSON.stringify(removePrivate(x)))
+    .sort();
 
   // Check that all expected are found
   for (let i = 0; i < expectedJson.length; i++) {
@@ -66,7 +65,7 @@ export const checkItemsExact = (items, expected, fields) => {
   }
 
   return score;
-}
+};
 
 export const checkIncreasingSize = (items, minIncrease = 1000) => {
   const score = [1, 5];
@@ -81,4 +80,4 @@ export const checkIncreasingSize = (items, minIncrease = 1000) => {
   }
 
   return score;
-}
+};

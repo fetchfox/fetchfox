@@ -1,7 +1,7 @@
-import { Template } from '../template/Template.js';
+import { Template } from "../template/Template.js";
 
 export const gather = new Template(
-  ['query', 'links'],
+  ["query", "links"],
   `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
 
 Your response will be ONLY the "id" field of matching items. The "id" field will be used to generate the results later, you only need to include the "id" field.
@@ -23,11 +23,11 @@ Example of valid output:
 Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}`);
-
+{{links}}`,
+);
 
 export const rate = new Template(
-  ['query', 'links'],
+  ["query", "links"],
   `You are part of a web scraping program, and your goal is to rate links based on the chance that they contain a target item.
 
 You will receive a list of links with ID's, and you will return a rating result as follows:
@@ -58,10 +58,11 @@ Example of valid output:
 Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}`);
+{{links}}`,
+);
 
 export const categorize = new Template(
-  ['urls'],
+  ["urls"],
   `You are given a list of URLs, and your goal is to create rules for categorizing them. You will return the following:
 
 - "categoryName": The name of this URL category
@@ -82,10 +83,11 @@ Follow these important rules:
 
 The list of URLs to categorize is below:
 {{urls}}
-`);
+`,
+);
 
 export const score = new Template(
-  ['html', 'questions'],
+  ["html", "questions"],
   `You part of a web scrapign program, and you are scoring a data source for completeness.
 
 You will receive HTML, a scraping target, and a list of questions for extraction. You are to determine whether the targetted data is present on the page, or not. You are one of several raters like this, and your rating will be used to determine the best pages to extract data from.
@@ -109,4 +111,5 @@ Below is the USER PROMPT that you are responding to:
 {{html}}
 
 >>>> The user is extracting this data:
-{{questions}}`);
+{{questions}}`,
+);

@@ -1,7 +1,7 @@
-import { Template } from '../template/Template.js';
+import { Template } from "../template/Template.js";
 
 export const schema = new Template(
-  ['schema', 'items'],
+  ["schema", "items"],
   `You are part of a workflow pipeline, and you are a schema step. You will receive a list of items and a user desired schema. You must take at the list of items, and reformat EACH item into the desired schema.
 
 Your response items MUST match the desired schema. If all the fields cannot be completed from input data, use your best guess or return null value, empty list, empty object, empty string, as appropriate. Do whatever seems the most reasonable, but you MUST match the scheme and give ONE output per ONE item.
@@ -26,4 +26,5 @@ The REAL user desired schema is:
 
 The REAL inputs to reformat is:
 {{items}}
-`);
+`,
+);

@@ -1,22 +1,21 @@
-import { logger } from '../log/logger.js';
-import { getAI, BaseAI } from '../ai/index.js';
-import { getCrawler, BaseCrawler } from '../crawl/index.js';
-import { getExtractor, BaseExtractor } from '../extract/index.js';
-import { getFetcher, BaseFetcher } from '../fetch/index.js';
-import { DiskCache } from '../cache/DiskCache.js';
-import { S3Cache } from '../cache/S3Cache.js';
-import { copyKeys } from './constants.js';
+import { logger } from "../log/logger.js";
+import { getAI, BaseAI } from "../ai/index.js";
+import { getCrawler, BaseCrawler } from "../crawl/index.js";
+import { getExtractor, BaseExtractor } from "../extract/index.js";
+import { getFetcher, BaseFetcher } from "../fetch/index.js";
+import { DiskCache } from "../cache/DiskCache.js";
+import { S3Cache } from "../cache/S3Cache.js";
+import { copyKeys } from "./constants.js";
 
 // Order matters for `decodeableKeys`
 export const decodeableKeys = [
-  ['ai', getAI, BaseAI],
-  ['fetcher', getFetcher, BaseFetcher],
-  ['crawler', getCrawler, BaseCrawler],
-  ['extractor', getExtractor, BaseExtractor],
+  ["ai", getAI, BaseAI],
+  ["fetcher", getFetcher, BaseFetcher],
+  ["crawler", getCrawler, BaseCrawler],
+  ["extractor", getExtractor, BaseExtractor],
 ];
 
 const decodeArgs = (args, cache) => {
-
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
   decoded.signal = args.signal;
@@ -41,7 +40,7 @@ const decodeArgs = (args, cache) => {
 
     if (args && args[key]) {
       const v = args[key];
-      if (typeof v == 'string') {
+      if (typeof v == "string") {
         which = v;
       } else if (Array.isArray(v)) {
         [which, options] = v;
@@ -60,12 +59,13 @@ const decodeArgs = (args, cache) => {
   }
 
   for (const [key, initVal] of copyKeys) {
-    const val = args && args[key] ? JSON.parse(JSON.stringify(args[key])) : initVal;
+    const val =
+      args && args[key] ? JSON.parse(JSON.stringify(args[key])) : initVal;
     decoded[key] = val;
   }
 
   return decoded;
-}
+};
 
 export const Context = class {
   constructor(args) {
@@ -109,4 +109,4 @@ export const Context = class {
 
     return this;
   }
-}
+};

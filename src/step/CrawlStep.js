@@ -1,25 +1,25 @@
-import { logger } from '../log/logger.js';
-import { BaseStep } from './BaseStep.js';
+import { logger } from "../log/logger.js";
+import { BaseStep } from "./BaseStep.js";
 
 export const CrawlStep = class extends BaseStep {
   constructor(args) {
     super(args);
 
     let query;
-    if (typeof args == 'string') {
+    if (typeof args == "string") {
       this.query = args;
     } else {
       query = args.query;
     }
-    if (!query) throw new Error('no query');
+    if (!query) throw new Error("no query");
 
-    this.query= query;
+    this.query = query;
     this.css = args?.css;
   }
 
   async process({ cursor, item, index }, cb) {
     const crawler = cursor.ctx.crawler;
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     const options = {
       css: this.css,
@@ -37,8 +37,8 @@ export const CrawlStep = class extends BaseStep {
           continue;
         }
 
-        const took = (new Date()).getTime() - start;
-        logger.debug(`Crawl took ${took/1000} sec so far`);
+        const took = new Date().getTime() - start;
+        logger.debug(`Crawl took ${took / 1000} sec so far`);
         const done = cb(output);
         if (done) break;
       }
@@ -47,4 +47,4 @@ export const CrawlStep = class extends BaseStep {
       throw e;
     }
   }
-}
+};

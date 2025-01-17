@@ -1,11 +1,11 @@
-import { logger } from '../log/logger.js';
-import { BaseStep } from './BaseStep.js';
-import { Item } from '../item/Item.js';
+import { logger } from "../log/logger.js";
+import { BaseStep } from "./BaseStep.js";
+import { Item } from "../item/Item.js";
 
 export const FetchStep = class extends BaseStep {
   constructor(args) {
     super(args);
-    this.urlFields = args?.urlFields || ['url', '_url'];
+    this.urlFields = args?.urlFields || ["url", "_url"];
     this.waitForText = args?.waitForText;
     this.active = args?.active;
     this.css = args?.css;
@@ -41,4 +41,4 @@ export const FetchStep = class extends BaseStep {
       }
     }
   }
-}
+};

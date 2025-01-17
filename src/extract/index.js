@@ -1,22 +1,22 @@
-import { logger } from '../log/logger.js';
-import { SinglePromptExtractor } from './SinglePromptExtractor.js';
-import { CodeGenExtractor } from './CodeGenExtractor.js';
+import { logger } from "../log/logger.js";
+import { SinglePromptExtractor } from "./SinglePromptExtractor.js";
+import { CodeGenExtractor } from "./CodeGenExtractor.js";
 
-export { BaseExtractor } from './BaseExtractor.js';
+export { BaseExtractor } from "./BaseExtractor.js";
 export const DefaultExtractor = SinglePromptExtractor;
 
 export const getExtractor = (which, options) => {
   if (!which) {
     return new SinglePromptExtractor(options);
   }
-  if (typeof which != 'string') return which;
+  if (typeof which != "string") return which;
 
   let extractorClass = {
     sp: SinglePromptExtractor,
-    'single-prompt': SinglePromptExtractor,
+    "single-prompt": SinglePromptExtractor,
 
     cg: CodeGenExtractor,
-    'code-gen': CodeGenExtractor,
+    "code-gen": CodeGenExtractor,
   }[which];
 
   if (!extractorClass) {
@@ -25,4 +25,4 @@ export const getExtractor = (which, options) => {
   }
 
   return new extractorClass(options);
-}
+};

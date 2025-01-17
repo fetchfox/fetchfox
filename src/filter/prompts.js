@@ -1,7 +1,7 @@
-import { Template } from '../template/Template.js';
+import { Template } from "../template/Template.js";
 
 export const filter = new Template(
-  ['query', 'items'],
+  ["query", "items"],
   `You are part of a workflow pipeline, and you are a filter step. You will receive a list of items and a user filter prompt. Return the _ffid field of items that pass the filter.
 
 The entire array should be JSONL, with a single object per item
@@ -15,4 +15,5 @@ Example of valid output:
 The user filter is: {{query}}
 
 Apply this filter to these items:
-{{items}}`);
+{{items}}`,
+);

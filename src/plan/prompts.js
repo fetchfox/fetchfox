@@ -1,7 +1,7 @@
-import { Template } from '../template/Template.js';
+import { Template } from "../template/Template.js";
 
 export const singleStep = new Template(
-  ['stepLibrary', 'allSteps', 'step', 'user'],
+  ["stepLibrary", "allSteps", "step", "user"],
   `You are planning a single step in a scraping or web automation program. You will receive a series of user promps, each of which indicates one step in the automation. Then, you will provide a JSON definition of the proper step to take.
 
 Your JSON definition will be based on the available steps in the scraping library, which are described below. You must select both the proper step type, as well as the arguments to the step.
@@ -22,10 +22,11 @@ Your task is to return JSON definition for this step:
 {{step}}
 
 Make sure to ONLY return JSON, with no explanation. Your output will parsed using JSON.parse()
-`);
+`,
+);
 
 export const combined = new Template(
-  ['stepLibrary', 'prompt', 'user', 'url', 'html'],
+  ["stepLibrary", "prompt", "user", "url", "html"],
   `You are generating a plan for a web scraping program. You will receive a user prompt, and your goal is to output a JSON definition that plans out that scrape.
 
 Your JSON definition will be based on the available steps in the scraping library, which are described below. You must select both the proper step type, as well as the arguments to the step. You MUST only use steps from this library.
@@ -58,10 +59,11 @@ The user prompt is:
 {{prompt}}
 
 Make sure to ONLY return JSON, with no explanation. Your output will parsed using JSON.parse()
-`);
+`,
+);
 
 export const describe = new Template(
-  ['job'],
+  ["job"],
   `Suggest a description, name, and slug for the scraping job below.
 
 Respond in JSON format:
@@ -83,10 +85,11 @@ Respond in JSON format:
 
 The scrape job you are describing and naming is:
 {{job}}
-`);
+`,
+);
 
 export const prePlan = new Template(
-  ['url', 'html', 'prompt'],
+  ["url", "html", "prompt"],
   `You are part of a web scraping program, and your job is to take a "master prompt" from the user, and generate the JSON job definition for the web scrape.
 
 You will receive a prompt from the user, describing what they wish to scrape.
@@ -166,18 +169,19 @@ Page HTML: {{html}}
 
 User prompt: {{prompt}}
 
-You MUST respond with ONLY the JSON object, no comments, no explanation. Otherwise you fail the task.`);
+You MUST respond with ONLY the JSON object, no comments, no explanation. Otherwise you fail the task.`,
+);
 
 export const guided = new Template(
   [
-    'stepLibrary',
-    'prompt',
-    'intent',
-    'itemDescription',
-    'detailFields',
-    'url',
-    'shouldCrawl',
-    'itemsPerPage',
+    "stepLibrary",
+    "prompt",
+    "intent",
+    "itemDescription",
+    "detailFields",
+    "url",
+    "shouldCrawl",
+    "itemsPerPage",
   ],
   `You are generating a plan for a web scraping program. You will receive a user prompt, and your goal is to output a JSON definition that plans out that scrape.
 
@@ -212,4 +216,5 @@ Page URL is: {{url}}
 {{shouldCrawl}}
 
 {{itemsPerPage}}
-`);
+`,
+);

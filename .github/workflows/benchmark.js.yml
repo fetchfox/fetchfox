@@ -2,11 +2,10 @@ name: Benchmarks
 
 on:
   push:
-    branches: [ 'dev', 'master' ]
+    branches: ["dev", "master"]
 
 jobs:
   benchmark:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -24,39 +23,38 @@ jobs:
           - anthropic:claude-3-5-haiku-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Extract branch name
-      id: get_branch
-      run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      - name: Extract branch name
+        id: get_branch
+        run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npx playwright install
-    - run: npm run build --if-present
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+      - run: npm ci
+      - run: npx playwright install
+      - run: npm run build --if-present
 
+      - name: Run benchmarks
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          CDP_URL: ${{ secrets.CDP_URL }}
 
-    - name: Run benchmarks
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        CDP_URL: ${{ secrets.CDP_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-        REDIS_URL: ${{ secrets.REDIS_URL }}
-        COMMIT: ${{ github.sha }}
-        BRANCH: ${{ env.BRANCH }}
-        FF_LOG: debug
-        BENCH_KV: redis
-        BENCH_USE_CDP: true
-        BENCH_MATRIX_AI: ${{ matrix.ai }}
-      run: npm run bench
-      continue-on-error: true
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          COMMIT: ${{ github.sha }}
+          BRANCH: ${{ env.BRANCH }}
+          FF_LOG: debug
+          BENCH_KV: redis
+          BENCH_USE_CDP: true
+          BENCH_MATRIX_AI: ${{ matrix.ai }}
+        run: npm run bench
+        continue-on-error: true
