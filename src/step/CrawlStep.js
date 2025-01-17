@@ -25,8 +25,6 @@ export const CrawlStep = class extends BaseStep {
       css: this.css,
       maxPages: this.maxPages,
       fetchOptions: { priority: index },
-      userPrompt: cursor.ctx.originalPrompt,
-      ai: cursor.ctx.ai,
     };
 
     // TODO: modular/intelligent selection of URL field

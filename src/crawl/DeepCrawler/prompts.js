@@ -56,7 +56,7 @@ Besides arrays, nested types are not allowed, and arrays cannot contain other
 arrays.
 `;
 
-const SCRAPE_TYPE_PROMPT = `
+export const SCRAPE_TYPE_PROMPT = `
 ${BASE_PROMPT_INTRO}
 
 The user has provided a prompt of what he wants to scrape. Your job is to
@@ -92,7 +92,8 @@ Here's the user's prompt:
 
 {{prompt}}
 `;
-const GENERATE_SCHEMA_PROMPT = `
+
+export const GENERATE_SCHEMA_PROMPT = `
 ${BASE_PROMPT_INTRO}
 
 I'll give you a prompt from the user describing what he wants scraped. Your job
@@ -131,7 +132,7 @@ Here's the user's prompt:
 {{prompt}}
 `;
 
-const ANALYZE_PAGE_PROMPT = `
+export const ANALYZE_PAGE_PROMPT = `
 ${BASE_PROMPT_INTRO}
 
 I'll give you an html page and a prompt from the user describing what he wants
@@ -216,7 +217,7 @@ ${str}
   }
 }
 
-const SCRAPE_PAGE_PROMPT = `
+export const SCRAPE_PAGE_PROMPT = `
 ${BASE_PROMPT_INTRO}
 
 Your job is to take a page of html and a schema describing what needs to be

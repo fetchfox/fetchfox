@@ -1,1 +1,1 @@
-export { DeepCrawler } from "./DeepCrawler";
+export { DeepCrawler } from './DeepCrawler.js';

@@ -203,7 +203,6 @@ export const Planner = class {
     return {
       steps,
       itemDescription: prePlanAnswer.itemDescription,
-      prompt: scrapePrompt,
     };
   }
 };
