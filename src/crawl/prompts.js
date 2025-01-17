@@ -20,10 +20,12 @@ Example of valid output:
 { "id": 18 }
 { "id": 45 }
 
-Find links matching the user query: {{query}}
-
 The list to find this is below:
-{{links}}`);
+{{links}}
+
+Find links matching the user query:
+{{query}}
+`);
 
 
 export const rate = new Template(
