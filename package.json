@@ -45,6 +45,7 @@
     "csv-stringify": "^6.5.1",
     "groq-sdk": "^0.7.0",
     "ioredis": "^5.4.1",
+    "lint-staged": "^15.4.1",
     "loglevel": "^1.9.2",
     "loglevel-plugin-prefix": "^0.8.4",
     "node-fetch": "^3.3.2",
@@ -64,5 +65,8 @@
     "url-polyfill": "^1.1.12",
     "whatwg-url": "^14.0.0",
     "ws": "^8.18.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,css,md}": "prettier --write"
   }
 }
