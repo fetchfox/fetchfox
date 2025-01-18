@@ -17,6 +17,10 @@ export const CrawlStep = class extends BaseStep {
     this.css = args?.css;
   }
 
+  before() {
+    this.seen = {};
+  }
+
   async process({ cursor, item, index }, cb) {
     const crawler = cursor.ctx.crawler;
     const start = (new Date()).getTime();
@@ -36,6 +40,11 @@ export const CrawlStep = class extends BaseStep {
           logger.error(`No URL found for item ${item}`);
           continue;
         }
+
+        if (this.seen[output._url]) {
+          continue;
+        }
+        this.seen[output._url] = true;
 
         const took = (new Date()).getTime() - start;
         logger.debug(`Crawl took ${took/1000} sec so far`);
