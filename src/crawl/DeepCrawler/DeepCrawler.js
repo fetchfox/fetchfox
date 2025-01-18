@@ -1,60 +1,56 @@
-import * as cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 
 import { BaseCrawler } from '../BaseCrawler.js';
-import { SCRAPE_PAGE_PROMPT, SCRAPE_TYPE_PROMPT, ANALYZE_PAGE_PROMPT, GENERATE_SCHEMA_PROMPT } from './prompts.js';
+import * as prompts from './prompts.js';
 
 export class DeepCrawler extends BaseCrawler {
   // TODO(pilvcc): what is `query` and what do we do with it?
   async *run(url, query, options) {
     const fetchOptions = options?.fetchOptions || {};
+    const maxDepth = options?.maxDepth ?? 10;
 
-    const userPrompt = options.originalPrompt;
+    const promises = [getPromptScrapeType(query), generateSchemaFromPrompt(query)];
+    const [scrapeType, schema] = await Promise.all(promises);
 
-    const scrapeType = await getPromptScrapeType(userPrompt);
     console.log(`prompt has scrape type: ${scrapeType}`);
-
-    const schema = await generateSchemaFromPrompt(userPrompt);
     console.log('schema generated', JSON.stringify(schema, null, 2));
 
-    const seenUrls = new Set();
+    const seen = new Set();
     const urlStack = [url];
 
-    while (true) {
+    for (let i = 0; i < maxDepth; i++) {
       const latestUrl = urlStack[urlStack.length - 1];
       console.log('processing', latestUrl);
 
-      // we've seen this url, we're just going in circles now
-      if (seenUrls.has(latestUrl)) return null;
+      seen.add(latestUrl);
 
-      seenUrls.add(latestUrl);
+      const doc = await this.fetcher.first(latestUrl, fetchOptions);
+      const pageInfo = await analyzePage(doc.html, query);
 
-      const { html } = await this.fetcher.first(latestUrl, fetchOptions);
-
-      const pageInfo = await analyzePage(html, userPrompt);
       console.log(JSON.stringify(pageInfo, null, 2));
 
       switch (pageInfo.pageType) {
         case 'list_view':
-          // now that we're at a list view, use fetcher to do pagination & grab all pages
-          const paginatedDocs = await this.fetcher.fetch(latestUrl, fetchOptions);
-
-          // we're scraping the data from the listview itself, so just return the paginated pages themselves
+          // we're scraping the data from the listview itself, so just return the page itself
           if (pageInfo.hasAllFields || !pageInfo.detailViewUrlSelector || !pageInfo.detailViewUrlAttribute) {
-            for (const doc of paginatedDocs) {
-              yield Promise.resolve({ _url: doc.url });
-            }
+            yield Promise.resolve({ _url: latestUrl });
             return;
           }
 
           // otherwise, we need to grab the detail views
 
+          // paginate the current page
+          const paginatedDocs = await this.fetcher.fetch(latestUrl, fetchOptions);
+
           for (const doc of paginatedDocs) {
-            const $ = cheerio.load(doc.html);
             const detailUrls = [];
 
-            $(pageInfo.detailViewUrlSelector).each((_, elem) => {
-              detailUrls.push(this.normalizeUrl($(elem).attr(pageInfo.detailViewUrlAttribute), url));
-            });
+            const root = parse(doc.html);
+            const elems = root.querySelectorAll(pageInfo.detailViewUrlSelector);
+            for (const elem of elems) {
+              const relativeUrl = elem.getAttribute(pageInfo.detailViewUrlAttribute);
+              detailUrls.push(this.normalizeUrl(relativeUrl, url));
+            }
 
             for (const it of detailUrls) {
               yield Promise.resolve({ _url: it });
@@ -66,7 +62,8 @@ export class DeepCrawler extends BaseCrawler {
         case 'detail_view':
           if (scrapeType === 'fetch_many') {
             if (pageInfo.listViewUrl) {
-              urlStack.push(this.normalizeUrl(pageInfo.listViewUrl, url));
+              const newUrl = this.normalizeUrl(pageInfo.listViewUrl, url);
+              if (!seen.has(newUrl)) urlStack.push(newUrl);
               break;
             }
             // if it can't find the list view url, just continue to fetch the current page as a single entry
@@ -75,65 +72,36 @@ export class DeepCrawler extends BaseCrawler {
           return;
 
         case 'unknown':
-          if (!pageInfo.guessUrl) return null;
+          if (!pageInfo.guessUrl) return;
 
-          urlStack.push(this.normalizeUrl(pageInfo.guessUrl, url));
+          const newUrl = this.normalizeUrl(pageInfo.guessUrl, url);
+          if (!seen.has(newUrl)) urlStack.push(newUrl);
           break;
       }
     }
   }
 
   normalizeUrl(url, originalUrl) {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
     const origin = new URL(originalUrl).origin;
-    if (url.startsWith('//')) {
-      url = url.slice(1);
-    }
     return new URL(url, origin).toString();
   }
 
-  async analyzePage(html, userPrompt) {
-    let rawPrompt = ANALYZE_PAGE_PROMPT;
-    rawPrompt = rawPrompt.replace('{{html}}', html);
-    rawPrompt = rawPrompt.replace('{{prompt}}', userPrompt);
-
-    const { answer, truncatedPrompt } = await this.ai.ask(rawPrompt, {
-      format: 'json',
-    });
-
-    writeFileSync('logs/analyze-page-prompt.txt', truncatedPrompt);
-
-    return tryParseJson(answer);
-  }
-
-  async scrapePage(scrapeType, schema, html) {
-    let rawPrompt = SCRAPE_PAGE_PROMPT;
-    rawPrompt = rawPrompt.replace('{{scrapeType}}', scrapeType);
-    rawPrompt = rawPrompt.replace('{{schema}}', JSON.stringify(schema));
-    rawPrompt = rawPrompt.replace('{{html}}', html);
-
-    const { answer } = await this.ai.ask(rawPrompt, { format: 'json' });
-    try {
-      return tryParseJson(answer);
-    } catch (err) {
-      console.log('invalid response', answer);
-      throw err;
-    }
+  async analyzePage(html, prompt) {
+    const aiPrompt = prompts.analyzePage.render({ html, prompt });
+    const answer = await this.ai.ask(aiPrompt, { format: 'json' });
+    return answer.partial;
   }
 
   async getPromptScrapeType(prompt) {
-    const rawPrompt = SCRAPE_TYPE_PROMPT.replace('{{prompt}}', prompt);
-    const { answer } = await this.ai.ask(rawPrompt, { format: 'json' });
-    const parsed = tryParseJson(answer);
-    return parsed.type;
+    const aiPrompt = prompts.scrapeType.render({ prompt });
+    const answer = await this.ai.ask(aiPrompt, { format: 'json' });
+    return answer.partial.type;
   }
 
   async generateSchemaFromPrompt(prompt) {
-    const rawPrompt = GENERATE_SCHEMA_PROMPT.replace('{{prompt}}', prompt);
-    const { answer } = await this.ai.ask(rawPrompt, { format: 'json' });
-    return tryParseJson(answer);
+    const aiPrompt = prompts.generateSchema.render({ prompt });
+    const answer = await this.ai.ask(aiPrompt, { format: 'json' });
+    return answer.partial;
   }
 
   async all(url, query, options) {

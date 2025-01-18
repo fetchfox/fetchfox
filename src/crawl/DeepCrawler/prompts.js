@@ -1,3 +1,5 @@
+import { Template } from '../../template/Template.js';
+
 const BASE_PROMPT_INTRO = `
 You're part of an AI-powered web crawler.
 `;
@@ -56,7 +58,9 @@ Besides arrays, nested types are not allowed, and arrays cannot contain other
 arrays.
 `;
 
-export const SCRAPE_TYPE_PROMPT = `
+export const scrapeType = new Template(
+  ['prompt'],
+  `
 ${BASE_PROMPT_INTRO}
 
 The user has provided a prompt of what he wants to scrape. Your job is to
@@ -91,9 +95,12 @@ ${BASE_PROMPT_JSON_INSTRUCTIONS}
 Here's the user's prompt:
 
 {{prompt}}
-`;
+`,
+);
 
-export const GENERATE_SCHEMA_PROMPT = `
+export const generateSchema = new Template(
+  ['prompt'],
+  `
 ${BASE_PROMPT_INTRO}
 
 I'll give you a prompt from the user describing what he wants scraped. Your job
@@ -130,9 +137,12 @@ ${BASE_PROMPT_JSON_INSTRUCTIONS}
 Here's the user's prompt:
 
 {{prompt}}
-`;
+`,
+);
 
-export const ANALYZE_PAGE_PROMPT = `
+export const analyzePage = new Template(
+  ['prompt', 'html'],
+  `
 ${BASE_PROMPT_INTRO}
 
 I'll give you an html page and a prompt from the user describing what he wants
@@ -203,85 +213,5 @@ Here's the user's prompt:
 Here's the HTML:
 
 {{html}}
-`;
-
-function tryParseJson(str) {
-  try {
-    return JSON.parse(str);
-  } catch (err) {
-    console.log(`invalid json:
-===
-${str}
-===`);
-    throw err;
-  }
-}
-
-export const SCRAPE_PAGE_PROMPT = `
-${BASE_PROMPT_INTRO}
-
-Your job is to take a page of html and a schema describing what needs to be
-scraped, and return the data in the shape of the schema.
-
-${BASE_PROMPT_SCHEMA_INFO}
-
-You should return data in the following format (in pseudo-TypeScript):
-
-    {
-      "data": any; // data in the same shape as the schema
-      "comments": string; // any extra comments related to the scrape
-    }
-
-You should return data in the same shape as the schema, with each
-{"description": "...", "type": "..."} replaced with the actual value. If we
-were scraping pokemon and you had the schema:
-
-    {
-      "name": {
-        "description": "the name of the pokemon",
-        "type": "string"
-      },
-      "weight": {
-        "description": "the weight of the pokemon in kg",
-        "type": "number"
-      },
-      "traits": {
-        "description": "the traits of the pokemon",
-        "type": "array"
-        "subtype": "string"
-      }
-    }
-
-You should return
-
-    {
-      "data": {
-        "name": "Pidgeot",
-        "weight": 39.5,
-        "traits": ["Normal", "Flying"]
-      },
-      "comments": "comments here"
-    }
-
-(with the real info, of course)
-
-If any fields aren't available on the page, just fill in null.
-
-${BASE_PROMPT_JSON_INSTRUCTIONS}
-
-I'll also tell you whether the desired scrape type is fetch_one, fetch_many, or
-either. If it's fetch_one, return a single item. If it's fetch_many, return
-multiple. If it's either, use your judgment to see what should be done. In any
-case, return a JSON array of objects. Even for fetch_one, just return an array
-containing the single object. If you can't find anything, return an empty array.
-
-The scrape type is: {{scrapeType}}
-
-The schema is:
-
-{{schema}}
-
-The html is:
-
-{{html}}
-`;
+`,
+);
