@@ -9,6 +9,25 @@ import { Fetcher } from '../../src/index.js';
 describe('Workflow', function () {
   this.timeout(30 * 1000);
 
+  it('should run the deep crawler correctly', async () => {
+    const wf = fox
+      .init('https://pokemondb.net/pokedex/national')
+      .deepcrawl('scrape pokemon with name, weight, and a list of traits')
+      .limit(4);
+
+    const results = await wf.run();
+    const urls = results.items.map((it) => it._url);
+
+    const expected = [
+      'https://pokemondb.net/pokedex/bulbasaur',
+      'https://pokemondb.net/pokedex/ivysaur',
+      'https://pokemondb.net/pokedex/venusaur',
+      'https://pokemondb.net/pokedex/charmander',
+    ];
+
+    assert.equal(JSON.stringify(urls), JSON.stringify(expected));
+  });
+
   it('should load steps from json @run @fast', async () => {
     const data = {
       steps: [

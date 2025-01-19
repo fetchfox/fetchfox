@@ -3,27 +3,34 @@ import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
+import { encoding_for_model } from 'tiktoken';
+
+const ENCODINGS_CACHE = {};
+
+function getTiktokenEncoder(model) {
+  if (!ENCODINGS_CACHE[model]) {
+    ENCODINGS_CACHE[model] = encoding_for_model(model);
+  }
+  return ENCODINGS_CACHE[model];
+}
 
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
+  static truncateAvailable = true;
+
+  async truncateStringToMaxTokens(string, maxTokens) {
+    const encoder = getTiktokenEncoder(this.model);
+
+    const encoded = encoder.encode(string);
+    const truncatedTokens = encoded.slice(0, maxTokens - 16); // give it a little buffer (not sure why there's a disparity sometimes)
+
+    return new TextDecoder().decode(encoder.decode(truncatedTokens));
+  }
 
   async countTokens(str) {
-    // tiktoken is slow and CPU intensive to run, so for now
-    // just (over) estimate the nubmer of tokens. This is usually
-    // fine, since the promps chunk and iterate anyways.
-    // TODO: find a way to efficiently count tokens
-    return str.length / 2;
-
-    // const timer = options?.timer || new Timer();
-    // timer.push(`${this}.countTokens`);
-    // try {
-    //   // Override this in derived classes
-    //   const enc = encoding_for_model(this.model);
-    //   return enc.encode(str).length;
-    // } finally {
-    //   timer.pop();
-    // }
+    const encoder = getTiktokenEncoder(this.model);
+    return encoder.encode(str).length;
   }
 
   normalizeChunk(chunk) {

@@ -32,6 +32,7 @@ export { Planner } from './plan/Planner.js';
 
 export { ConstStep } from './step/ConstStep.js';
 export { CrawlStep } from './step/CrawlStep.js';
+export { DeepCrawlStep } from './step/DeepCrawlStep.js';
 
 export { stepDescriptions } from './step/info.js';
 

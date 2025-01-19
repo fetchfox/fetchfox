@@ -9,7 +9,7 @@ export class DeepCrawler extends BaseCrawler {
     const fetchOptions = options?.fetchOptions || {};
     const maxDepth = options?.maxDepth ?? 10;
 
-    const promises = [getPromptScrapeType(query), generateSchemaFromPrompt(query)];
+    const promises = [this.getPromptScrapeType(query), this.generateSchemaFromPrompt(query)];
     const [scrapeType, schema] = await Promise.all(promises);
 
     console.log(`prompt has scrape type: ${scrapeType}`);
@@ -25,7 +25,7 @@ export class DeepCrawler extends BaseCrawler {
       seen.add(latestUrl);
 
       const doc = await this.fetcher.first(latestUrl, fetchOptions);
-      const pageInfo = await analyzePage(doc.html, query);
+      const pageInfo = await this.analyzePage(doc.html, query);
 
       console.log(JSON.stringify(pageInfo, null, 2));
 
@@ -42,7 +42,7 @@ export class DeepCrawler extends BaseCrawler {
           // paginate the current page
           const paginatedDocs = await this.fetcher.fetch(latestUrl, fetchOptions);
 
-          for (const doc of paginatedDocs) {
+          for await (const doc of paginatedDocs) {
             const detailUrls = [];
 
             const root = parse(doc.html);
@@ -87,7 +87,7 @@ export class DeepCrawler extends BaseCrawler {
   }
 
   async analyzePage(html, prompt) {
-    const aiPrompt = prompts.analyzePage.render({ html, prompt });
+    const { prompt: aiPrompt } = await prompts.analyzePage.renderCapped({ html, prompt }, 'html', this.ai);
     const answer = await this.ai.ask(aiPrompt, { format: 'json' });
     return answer.partial;
   }

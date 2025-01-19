@@ -68,6 +68,28 @@ export const Template = class {
   }
 
   async renderCapped(context, flexField, ai) {
+    if (ai.constructor.truncateAvailable) {
+      const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
+
+      // render with the flexField blank to see how many tokens we have left
+      const copy = { ...context };
+      copy[flexField] = '';
+      const output = this.render(copy);
+      const availableTokens = maxTokens * 0.75 - (await ai.countTokens(output));
+
+      // now render with the truncated flex field
+      copy[flexField] = await ai.truncateStringToMaxTokens(context[flexField], availableTokens);
+
+      const prompt = this.render(copy);
+      const bytesUsed = copy[flexField].length;
+
+      return {
+        prompt,
+        bytesUsed,
+        done: bytesUsed == context[flexField].length,
+      };
+    }
+
     const timer = new Timer();
     timer.push('Template.renderCapped');
 
