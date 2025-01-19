@@ -1,62 +1,14 @@
 import { Template } from '../../template/Template.js';
 
 const BASE_PROMPT_INTRO = `
-You're part of an AI-powered web crawler.
-`;
+You're part of an AI-powered web crawler.`;
 
 const BASE_PROMPT_JSON_INSTRUCTIONS = `
 Please output JSON, and just the JSON (don't include any text before or after),
 because your output will be parsed programmatically. Don't output a code block
 either; literally just output the raw JSON text.
 
-Make sure to output VALID JSON. Your response must be parsable by a JSON parser.
-`;
-
-const BASE_PROMPT_SCHEMA_INFO = `
-The schema format is a JSON object. The keys of the object are the fields, and
-the values describe the types. The format of the value should be:
-
-    {
-      "description": "<a string describing the field>",
-      "type": "<the type of the field>"
-    }
-
-Type can be one of the primitive types: string, number, and boolean. For
-instance, if we were scraping pokemons, a possible schema would be:
-
-    {
-      "name": {
-        "description": "The name of the Pokemon",
-        "type": "string"
-      },
-      "weight": {
-        "description": "The weight of the Pokemon",
-        "type": "number"
-      },
-      "is_new_generation": {
-        "description": "Whether the Pokemon is from the new generation",
-        "type": "boolean"
-      }
-    }
-
-The type can also be an array:
-
-    { "type": "array", "subtype": <a primitive type> }
-
-So for instance, if the user wanted to get a list of all the traits of each
-pokemon:
-
-    {
-      "traits": {
-        "description": "The Pokemon's traits",
-        "type": "array",
-        "subtype": "string"
-      }
-    }
-
-Besides arrays, nested types are not allowed, and arrays cannot contain other
-arrays.
-`;
+Make sure to output VALID JSON. Your response must be parsable by a JSON parser.`;
 
 export const scrapeType = new Template(
   ['prompt'],
@@ -94,50 +46,7 @@ ${BASE_PROMPT_JSON_INSTRUCTIONS}
 
 Here's the user's prompt:
 
-{{prompt}}
-`,
-);
-
-export const generateSchema = new Template(
-  ['prompt'],
-  `
-${BASE_PROMPT_INTRO}
-
-I'll give you a prompt from the user describing what he wants scraped. Your job
-is to interpret it and generate a formal schema.
-
-${BASE_PROMPT_SCHEMA_INFO}
-
-Assume the user is scraping one thing. The root level schema should just be the
-thing the user is scraping. For instance, if the user wants to scrape pokemon,
-the schema should describe a single pokemon, and the root schema fields should
-just be
-
-    {
-      "name": ...,
-      "weight": ...,
-      // whatever else
-    }
-
-and NOT:
-
-    {
-      "pokemons": {
-        "name": ...,
-        "weight": ...,
-        // whatever else
-      }
-    }
-
-In other words, do NOT wrap the schema in another object of its own with the
-list of things being scraped in its own field.
-
-${BASE_PROMPT_JSON_INSTRUCTIONS}
-
-Here's the user's prompt:
-
-{{prompt}}
-`,
+{{prompt}}`,
 );
 
 export const analyzePage = new Template(
@@ -212,6 +121,5 @@ Here's the user's prompt:
 
 Here's the HTML:
 
-{{html}}
-`,
+{{html}}`,
 );

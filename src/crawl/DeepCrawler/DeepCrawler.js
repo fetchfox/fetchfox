@@ -3,21 +3,14 @@ import * as prompts from './prompts.js';
 import { TagRemovingMinimizer } from '../../min/TagRemovingMinimizer.js';
 
 export class DeepCrawler extends BaseCrawler {
-  // TODO(pilvcc): what is `query` and what do we do with it?
   async *run(url, query, options) {
     const fetchOptions = options?.fetchOptions || {};
     const maxDepth = options?.maxDepth ?? 10;
 
     const scrapeTypePrompt = prompts.scrapeType.render({ prompt: query });
-    const generateSchemaPrompt = prompts.generateSchema.render({ prompt: query });
-
-    const [scrapeType, schema] = await Promise.all([
-      this.ai.ask(scrapeTypePrompt, { format: 'json' }).then((answer) => answer.partial.type),
-      this.ai.ask(generateSchemaPrompt, { format: 'json' }).then((answer) => answer.partial),
-    ]);
-
+    const scrapeTypeAnswer = await this.ai.ask(scrapeTypePrompt, { format: 'json' });
+    const scrapeType = scrapeTypeAnswer.partial.type;
     console.log(`prompt has scrape type: ${scrapeType}`);
-    console.log('schema generated', JSON.stringify(schema, null, 2));
 
     const seen = new Set();
     const urlStack = [url];
@@ -29,7 +22,6 @@ export class DeepCrawler extends BaseCrawler {
       seen.add(latestUrl);
 
       const _doc = await this.fetcher.first(latestUrl, fetchOptions);
-
       const doc = await new TagRemovingMinimizer().min(_doc);
 
       const { prompt: aiPrompt } = await prompts.analyzePage.renderCapped(
@@ -68,7 +60,7 @@ export class DeepCrawler extends BaseCrawler {
         case 'detail_view':
           if (scrapeType === 'fetch_many') {
             if (pageInfo.listViewUrl) {
-              const nextUrl = this.normalizeUrl(pageInfo.listViewUrl, url);
+              const nextUrl = new URL(pageInfo.listViewUrl, url).toString();
               if (!seen.has(nextUrl)) urlStack.push(nextUrl);
               break;
             }
@@ -80,16 +72,11 @@ export class DeepCrawler extends BaseCrawler {
         case 'unknown':
           if (!pageInfo.guessUrl) return;
 
-          const nextUrl = this.normalizeUrl(pageInfo.guessUrl, url);
+          const nextUrl = new URL(pageInfo.guessUrl, url).toString();
           if (!seen.has(nextUrl)) urlStack.push(nextUrl);
           break;
       }
     }
-  }
-
-  normalizeUrl(url, originalUrl) {
-    const origin = new URL(originalUrl).origin;
-    return new URL(url, origin).toString();
   }
 
   async all(url, query, options) {

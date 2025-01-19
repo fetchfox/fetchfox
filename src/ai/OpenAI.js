@@ -5,32 +5,23 @@ import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
 import { encoding_for_model } from 'tiktoken';
 
-const ENCODINGS_CACHE = {};
-
-function getTiktokenEncoder(model) {
-  if (!ENCODINGS_CACHE[model]) {
-    ENCODINGS_CACHE[model] = encoding_for_model(model);
-  }
-  return ENCODINGS_CACHE[model];
-}
-
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
   static truncateAvailable = true;
 
   async truncateStringToMaxTokens(string, maxTokens) {
-    const encoder = getTiktokenEncoder(this.model);
+    // give it a little buffer (not sure why there's a disparity sometimes)
+    const maxTokensWithBuffer = maxTokens - 16;
 
-    const encoded = encoder.encode(string);
-    const truncatedTokens = encoded.slice(0, maxTokens - 16); // give it a little buffer (not sure why there's a disparity sometimes)
-
-    return new TextDecoder().decode(encoder.decode(truncatedTokens));
+    const enc = encoding_for_model(this.model);
+    const tokens = enc.encode(string);
+    const truncated = tokens.slice(0, maxTokensWithBuffer);
+    return new TextDecoder().decode(enc.decode(truncated));
   }
 
   async countTokens(str) {
-    const encoder = getTiktokenEncoder(this.model);
-    return encoder.encode(str).length;
+    return encoding_for_model(this.model).encode(str).length;
   }
 
   normalizeChunk(chunk) {
