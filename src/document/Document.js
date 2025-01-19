@@ -275,6 +275,13 @@ export const Document = class {
       return;
     }
   }
+
+  getLinks(selector, attribute) {
+    const root = parse(this.html);
+    return root.querySelectorAll(selector).map((elem) => {
+      return new URL(elem.getAttribute(attribute), this.url).toString();
+    });
+  }
 };
 
 async function fetchRetry(url, options = {}, retries = 3, delay = 4000) {

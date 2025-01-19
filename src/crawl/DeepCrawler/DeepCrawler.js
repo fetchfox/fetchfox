@@ -1,7 +1,6 @@
-import { parse } from 'node-html-parser';
-
 import { BaseCrawler } from '../BaseCrawler.js';
 import * as prompts from './prompts.js';
+import { TagRemovingMinimizer } from '../../min/TagRemovingMinimizer.js';
 
 export class DeepCrawler extends BaseCrawler {
   // TODO(pilvcc): what is `query` and what do we do with it?
@@ -9,8 +8,13 @@ export class DeepCrawler extends BaseCrawler {
     const fetchOptions = options?.fetchOptions || {};
     const maxDepth = options?.maxDepth ?? 10;
 
-    const promises = [this.getPromptScrapeType(query), this.generateSchemaFromPrompt(query)];
-    const [scrapeType, schema] = await Promise.all(promises);
+    const scrapeTypePrompt = prompts.scrapeType.render({ prompt: query });
+    const generateSchemaPrompt = prompts.generateSchema.render({ prompt: query });
+
+    const [scrapeType, schema] = await Promise.all([
+      this.ai.ask(scrapeTypePrompt, { format: 'json' }).then((answer) => answer.partial.type),
+      this.ai.ask(generateSchemaPrompt, { format: 'json' }).then((answer) => answer.partial),
+    ]);
 
     console.log(`prompt has scrape type: ${scrapeType}`);
     console.log('schema generated', JSON.stringify(schema, null, 2));
@@ -24,8 +28,18 @@ export class DeepCrawler extends BaseCrawler {
 
       seen.add(latestUrl);
 
-      const doc = await this.fetcher.first(latestUrl, fetchOptions);
-      const pageInfo = await this.analyzePage(doc.html, query);
+      const _doc = await this.fetcher.first(latestUrl, fetchOptions);
+
+      const doc = await new TagRemovingMinimizer().min(_doc);
+
+      const { prompt: aiPrompt } = await prompts.analyzePage.renderCapped(
+        { html: doc.html, prompt: query },
+        'html',
+        this.ai,
+      );
+
+      const answer = await this.ai.ask(aiPrompt, { format: 'json' });
+      const pageInfo = answer.partial;
 
       console.log(JSON.stringify(pageInfo, null, 2));
 
@@ -43,15 +57,7 @@ export class DeepCrawler extends BaseCrawler {
           const paginatedDocs = await this.fetcher.fetch(latestUrl, fetchOptions);
 
           for await (const doc of paginatedDocs) {
-            const detailUrls = [];
-
-            const root = parse(doc.html);
-            const elems = root.querySelectorAll(pageInfo.detailViewUrlSelector);
-            for (const elem of elems) {
-              const relativeUrl = elem.getAttribute(pageInfo.detailViewUrlAttribute);
-              detailUrls.push(this.normalizeUrl(relativeUrl, url));
-            }
-
+            const detailUrls = doc.getLinks(pageInfo.detailViewUrlSelector, pageInfo.detailViewUrlAttribute);
             for (const it of detailUrls) {
               yield Promise.resolve({ _url: it });
             }
@@ -62,8 +68,8 @@ export class DeepCrawler extends BaseCrawler {
         case 'detail_view':
           if (scrapeType === 'fetch_many') {
             if (pageInfo.listViewUrl) {
-              const newUrl = this.normalizeUrl(pageInfo.listViewUrl, url);
-              if (!seen.has(newUrl)) urlStack.push(newUrl);
+              const nextUrl = this.normalizeUrl(pageInfo.listViewUrl, url);
+              if (!seen.has(nextUrl)) urlStack.push(nextUrl);
               break;
             }
             // if it can't find the list view url, just continue to fetch the current page as a single entry
@@ -74,8 +80,8 @@ export class DeepCrawler extends BaseCrawler {
         case 'unknown':
           if (!pageInfo.guessUrl) return;
 
-          const newUrl = this.normalizeUrl(pageInfo.guessUrl, url);
-          if (!seen.has(newUrl)) urlStack.push(newUrl);
+          const nextUrl = this.normalizeUrl(pageInfo.guessUrl, url);
+          if (!seen.has(nextUrl)) urlStack.push(nextUrl);
           break;
       }
     }
@@ -84,24 +90,6 @@ export class DeepCrawler extends BaseCrawler {
   normalizeUrl(url, originalUrl) {
     const origin = new URL(originalUrl).origin;
     return new URL(url, origin).toString();
-  }
-
-  async analyzePage(html, prompt) {
-    const { prompt: aiPrompt } = await prompts.analyzePage.renderCapped({ html, prompt }, 'html', this.ai);
-    const answer = await this.ai.ask(aiPrompt, { format: 'json' });
-    return answer.partial;
-  }
-
-  async getPromptScrapeType(prompt) {
-    const aiPrompt = prompts.scrapeType.render({ prompt });
-    const answer = await this.ai.ask(aiPrompt, { format: 'json' });
-    return answer.partial.type;
-  }
-
-  async generateSchemaFromPrompt(prompt) {
-    const aiPrompt = prompts.generateSchema.render({ prompt });
-    const answer = await this.ai.ask(aiPrompt, { format: 'json' });
-    return answer.partial;
   }
 
   async all(url, query, options) {
