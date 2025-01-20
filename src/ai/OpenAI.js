@@ -9,18 +9,25 @@ export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
 
+  // tiktoken is slow and CPU intensive to run, so for now
+  // just (over) estimate the nubmer of tokens. This is usually
+  // fine, since the promps chunk and iterate anyways.
+  // TODO: find a way to efficiently count tokens
   async truncateStringToMaxTokens(string, maxTokens) {
-    // give it a little buffer (not sure why there's a disparity sometimes)
-    const maxTokensWithBuffer = maxTokens - 16;
+    const maxBytes = Math.floor(maxTokens * 2);
+    return string.substring(0, maxBytes);
 
-    const enc = encoding_for_model(this.model);
-    const tokens = enc.encode(string);
-    const truncated = tokens.slice(0, maxTokensWithBuffer);
-    return new TextDecoder().decode(enc.decode(truncated));
+    // // Give it a little buffer
+    // const maxTokensWithBuffer = maxTokens - 16;
+    // const enc = encoding_for_model(this.model);
+    // const tokens = enc.encode(string);
+    // const truncated = tokens.slice(0, maxTokensWithBuffer);
+    // return new TextDecoder().decode(enc.decode(truncated));
   }
 
   async countTokens(str) {
     return str.length / 2;
+
     // return encoding_for_model(this.model).encode(str).length;
   }
 

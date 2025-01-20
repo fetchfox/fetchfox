@@ -34,7 +34,7 @@ export class DeepCrawler extends BaseCrawler {
       logger.debug(`${this} Page info: ${JSON.stringify(pageInfo, null, 2)}`);
 
       switch (pageInfo.pageType) {
-        case 'list_view':
+        case 'relevant_list_view':
           // We're scraping the data from the listview itself, so just return
           // the page itself
           if (pageInfo.everyFieldIsPresent ||
@@ -59,7 +59,7 @@ export class DeepCrawler extends BaseCrawler {
 
           return;
 
-        case 'detail_view':
+        case 'relevant_detail_view':
           if (scrapeType == 'fetch_many') {
             if (pageInfo.listViewUrl) {
               const nextUrl = new URL(pageInfo.listViewUrl, url).toString();
@@ -72,7 +72,7 @@ export class DeepCrawler extends BaseCrawler {
           yield Promise.resolve({ _url: latestUrl });
           return;
 
-        case 'unknown':
+        case 'irrelevant':
           if (!pageInfo.guessUrl) return;
 
           const nextUrl = new URL(pageInfo.guessUrl, url).toString();

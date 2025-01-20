@@ -65,6 +65,9 @@ type BaseResponse = {
     // products from an online store, this might be "store product" or "product"
     thingBeingScraped: string; 
     
+    // what is the main item type on this page?
+    thingOnThisPage: string; 
+
     // what fields are being scraped? for instance, if the prompt is to scrape
     // products and their names and prices, this would be ["name", "price"]
     fieldsBeingScraped: string[];
@@ -72,12 +75,10 @@ type BaseResponse = {
 
 You can respond with one of the following extensions of BaseResponse.
 
-1. The current page is the "list view." If we were scraping X, this would be the page
-containing a list of X. You should only return this if it is the list view specifically for
-the thing we're scraping for. If it's a list view for some different data, do not return this
+1. The current page is the "list view" and it is relevant to the scrape. If we were scraping X, this would be the page containing a list of X. You should only return this if it is the list view specifically for the thing we're scraping for. If it's a list view for some different data, do not return this
 
     type ListViewResponse = BaseResponse & {
-      pageType: "list_view";
+      pageType: "relevant_list_view";
 
       // indicates whether all the data the user wants scraped is present on
       // the current page. the information for EVERY field must be present, if only
@@ -102,11 +103,10 @@ the thing we're scraping for. If it's a list view for some different data, do no
       comments: string;
     }
 
-2. The current page is the "detail view." For instance, if we were scraping
-store items this could be the page for a single item.
+2. The current page is the "detail view" and it is relevant to the current scrape. For instance, if we were scraping store items this could be the page for a single item.
 
     type DetailViewResponse = BaseResponse & {
-      pageType: "detail_view";
+      pageType: "relevant_detail_view";
 
       // the url to go back to the general "list view," if it exists
       listViewUrl: string | null;
@@ -115,11 +115,10 @@ store items this could be the page for a single item.
       comments: string;
     }
 
-3. The current page is none of the above. Return this if there are no instances
-of the thing the user wants to scrape for.
+3. The current page is a list view, detail view, or other, but most importantly it is irrelevant to the current scrape.
 
-    type UnknownResponse = BaseResponse & {
-      pageType: "unknown",
+    type IrrelevantResponse = BaseResponse & {
+      pageType: "irrelevant",
 
       // the next url to try next based on the user's prompt; for instance,
       // if the user wants to scrape pokemon and there's there's a url marked
