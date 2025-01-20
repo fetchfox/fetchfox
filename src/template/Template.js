@@ -68,96 +68,25 @@ export const Template = class {
   }
 
   async renderCapped(context, flexField, ai) {
-    if (ai.constructor.truncateAvailable) {
-      const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
-
-      // render with the flexField blank to see how many tokens we have left
-      const copy = { ...context };
-      copy[flexField] = '';
-      const output = this.render(copy);
-      const availableTokens = maxTokens * 0.75 - (await ai.countTokens(output));
-
-      // now render with the truncated flex field
-      copy[flexField] = await ai.truncateStringToMaxTokens(context[flexField], availableTokens);
-
-      const prompt = this.render(copy);
-      const bytesUsed = copy[flexField].length;
-
-      return {
-        prompt,
-        bytesUsed,
-        done: bytesUsed == context[flexField].length,
-      };
-    }
-
-    const timer = new Timer();
-    timer.push('Template.renderCapped');
-
     const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
-    const countFn = async (str) => ai.countTokens(str, { timer });
-    const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
-    logger.debug(`${this} Memory=${this.bytesPerTokenMemory.length} target=${this.memorySize}`);
+    // render with the flexField blank to see how many tokens we have left
+    const copy = { ...context };
+    copy[flexField] = '';
+    const output = this.render(copy);
+    const availableTokens = maxTokens * 0.75 - (await ai.countTokens(output));
 
-    // TODO: re-enable this
+    // now render with the truncated flex field
+    copy[flexField] = await ai.truncateStringToMaxTokens(context[flexField], availableTokens);
 
-    // if (
-    //   this.bytesPerTokenMemory.length >= this.memorySize &&
-    //   Math.random() > this.memorySampleRate
-    // ) {
-    //   return this.renderCappedFromMemory(context, flexField, ai, { timer });
-    // }
+    const prompt = this.render(copy);
+    const bytesUsed = copy[flexField].length;
 
-    const len = context[flexField].length;
-
-    let prompt;
-    let tokens;
-    let guess = Math.min(len, maxTokens * 4);
-    let lowerBound = 0;
-    let upperBound = Math.min(len, maxTokens * 8);
-
-    const render = (size) => {
-      const copy = { ...context };
-      copy[flexField] = context[flexField].substr(0, size);
-      return this.render(copy);
+    return {
+      prompt,
+      bytesUsed,
+      done: bytesUsed == context[flexField].length,
     };
-
-    for (let i = 0; i < 10; i++) {
-      prompt = render(guess);
-      tokens = await countFn(prompt);
-
-      const diff = maxTokens - tokens;
-      logger.debug(`${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`);
-
-      if (tokens < maxTokens && (guess == len || diff < accuracyTokens)) {
-        lowerBound = guess;
-        break;
-      }
-
-      if (tokens > maxTokens) {
-        upperBound = guess;
-      } else {
-        lowerBound = guess;
-      }
-
-      guess = (lowerBound + upperBound) / 2;
-    }
-
-    const bytesUsed = lowerBound;
-    prompt = render(bytesUsed);
-    const final = await countFn(prompt);
-
-    const bytesPerToken = bytesUsed / final;
-
-    timer.log(`bytes per token=${bytesPerToken.toFixed(2)}`);
-    timer.pop();
-
-    this.bytesPerTokenMemory.push(bytesPerToken);
-    if (this.bytesPerTokenMemory.length > this.memorySize) {
-      this.bytesPerTokenMemory.shift();
-    }
-
-    return { prompt, bytesUsed, done: bytesUsed == len };
   }
 
   async renderCappedFromMemory(context, flexField, ai, options) {

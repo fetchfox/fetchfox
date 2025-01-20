@@ -48,6 +48,11 @@ export const BaseAI = class {
     this.signal = options?.signal;
   }
 
+  async truncateStringToMaxTokens(string, maxTokens) {
+    const maxBytes = Math.floor(maxTokens * 2.5);
+    return string.substring(0, maxBytes);
+  }
+
   toString() {
     return `[${this.constructor.name} ${this.model}]`;
   }
