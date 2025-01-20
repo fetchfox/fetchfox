@@ -8,7 +8,7 @@ import { encoding_for_model } from 'tiktoken';
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
   static defaultModel = 'gpt-4o-mini';
-  static truncateAvailable = true;
+  // static truncateAvailable = true;
 
   async truncateStringToMaxTokens(string, maxTokens) {
     // give it a little buffer (not sure why there's a disparity sometimes)
@@ -21,7 +21,8 @@ export const OpenAI = class extends BaseAI {
   }
 
   async countTokens(str) {
-    return encoding_for_model(this.model).encode(str).length;
+    return str.length / 2;
+    // return encoding_for_model(this.model).encode(str).length;
   }
 
   normalizeChunk(chunk) {
