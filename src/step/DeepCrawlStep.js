@@ -11,17 +11,15 @@ export class DeepCrawlStep extends BaseStep {
   }
 
   async process({ cursor, item, index }, cb) {
-    const originalCrawler = cursor.ctx.crawler;
-    const crawler = new DeepCrawler({ ai: originalCrawler.ai, fetcher: originalCrawler.fetcher });
-    const start = new Date().getTime();
+    const crawler = new DeepCrawler({ ai: cursor.ctx.ai, fetcher: cursor.ctx.fetcher });
 
     const options = {
       maxPages: this.maxPages,
       fetchOptions: { priority: index },
+      signal: cursor.ctx.signal,
     };
 
-    // TODO: modular/intelligent selection of URL field
-    const url = item._url || item._sourceUrl();
+    const url = item.getUrl();
 
     try {
       for await (const output of crawler.run(url, this.query, options)) {
@@ -30,8 +28,6 @@ export class DeepCrawlStep extends BaseStep {
           continue;
         }
 
-        const took = new Date().getTime() - start;
-        logger.debug(`Crawl took ${took / 1000} sec so far`);
         const done = cb(output);
         if (done) break;
       }

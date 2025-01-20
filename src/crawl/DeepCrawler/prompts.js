@@ -20,8 +20,8 @@ interpret his request and determine what type of request it is. You can respond
 with ONE of the following. Data types are given in pseudo-TypeScript.
 
 1. Fetch many. The user wants to go to a web page and fetch all items of a
-certain type. For instance, if we're on a pokemon site and they want to fetch
-all the pokemon.
+certain type. For instance, if we're on a shopping page and we want to fetch
+all the items for sale.
 
     type FetchManyResponse = {
       type: 'fetch_many';
@@ -57,19 +57,33 @@ ${BASE_PROMPT_INTRO}
 I'll give you an html page and a prompt from the user describing what he wants
 scraped.
 
-Your job is to figure out what kind of page we're currently on. You can respond
-with ONE of the following. Data types are given in pseudo-TypeScript.
+Your job is to figure out what kind of page we're currently on. Please respond with the following data schema.
+Data types are given in pseudo-TypeScript. Here's the base response.
 
-1. The current page is the "list view." For instance, if we were scraping
-pokemon, this would be the page with all the pokemon on it.
+type BaseResponse = {
+    // what is the type of item being scraped? for instance, if we were scraping
+    // products from an online store, this might be "store product" or "product"
+    thingBeingScraped: string; 
+    
+    // what fields are being scraped? for instance, if the prompt is to scrape
+    // products and their names and prices, this would be ["name", "price"]
+    fieldsBeingScraped: string[];
+}
 
-    type ListViewResponse = {
+You can respond with one of the following extensions of BaseResponse.
+
+1. The current page is the "list view." If we were scraping X, this would be the page
+containing a list of X. You should only return this if it is the list view specifically for
+the thing we're scraping for. If it's a list view for some different data, do not return this
+
+    type ListViewResponse = BaseResponse & {
       pageType: "list_view";
 
       // indicates whether all the data the user wants scraped is present on
-      // the current page.
-      hasAllFields: boolean; 
-
+      // the current page. the information for EVERY field must be present, if only
+      // SOME are present, you must return false.
+      everyFieldIsPresent: boolean; 
+        
       // selector that grabs elements containing urls to the detail-view pages.
       // if unavailable, return null.
       detailViewUrlSelector: string | null;
@@ -89,9 +103,9 @@ pokemon, this would be the page with all the pokemon on it.
     }
 
 2. The current page is the "detail view." For instance, if we were scraping
-pokemon, this could be the page for a single pokemon like "/pokemon/3".
+store items this could be the page for a single item.
 
-    type DetailViewResponse = {
+    type DetailViewResponse = BaseResponse & {
       pageType: "detail_view";
 
       // the url to go back to the general "list view," if it exists
@@ -101,21 +115,24 @@ pokemon, this could be the page for a single pokemon like "/pokemon/3".
       comments: string;
     }
 
-3. The current page is none of the above. A good indication that this is the
-case would be if the current page contains no instances of what we're looking
-for. But ultimately use your judgment to decide.
+3. The current page is none of the above. Return this if there are no instances
+of the thing the user wants to scrape for.
 
-    type UnknownResponse = {
+    type UnknownResponse = BaseResponse & {
       pageType: "unknown",
 
-      guessUrl: string | null; // the next url to try next based on the user's prompt; for instance, if the user wants to scrape pokemon and there's there's a url marked "list of pokemon" that would be a good candidate. null if there truly are no good guesses (but try to find one)
+      // the next url to try next based on the user's prompt; for instance,
+      // if the user wants to scrape pokemon and there's there's a url marked
+      // "list of pokemon" that would be a good candidate. null if there truly
+      // are no good guesses (but try to find one)
+      guessUrl: string | null; 
 
       comments: string; // any extra comments that would help in the scraping or clarify previous attributes
     }
 
 ${BASE_PROMPT_JSON_INSTRUCTIONS}
 
-Here's the user's prompt:
+Here's the prompt describing what the wants to scrape:
 
 {{prompt}}
 

@@ -42,7 +42,6 @@ export const Workflow = class extends BaseWorkflow {
     let planPromise;
 
     if (args.prompt != undefined) {
-      this.ctx.originalPrompt = args.prompt;
       logger.debug(`Plan workflow from prompt`);
       planPromise = planner.fromPrompt(args.prompt, {
         url: args.url,

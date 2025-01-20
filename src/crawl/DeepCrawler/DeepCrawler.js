@@ -15,7 +15,7 @@ export class DeepCrawler extends BaseCrawler {
     const seen = new Set();
     const urlStack = [url];
 
-    for (let i = 0; i < maxDepth; i++) {
+    for (let i = 0; i < maxDepth && !options.signal?.aborted; i++) {
       const latestUrl = urlStack[urlStack.length - 1];
       console.log('processing', latestUrl);
 
@@ -38,7 +38,7 @@ export class DeepCrawler extends BaseCrawler {
       switch (pageInfo.pageType) {
         case 'list_view':
           // we're scraping the data from the listview itself, so just return the page itself
-          if (pageInfo.hasAllFields || !pageInfo.detailViewUrlSelector || !pageInfo.detailViewUrlAttribute) {
+          if (pageInfo.everyFieldIsPresent || !pageInfo.detailViewUrlSelector || !pageInfo.detailViewUrlAttribute) {
             yield Promise.resolve({ _url: latestUrl });
             return;
           }
