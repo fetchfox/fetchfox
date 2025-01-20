@@ -27,7 +27,7 @@ describe('Workflow', function () {
 
   it('should deep crawl from wrong page @run @fast', async () => {
     const wf = fox
-      .config({ cache: testCache() })
+      // .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .deepcrawl('find pokemon game locations and their names and what generations are supported')
       .limit(4);

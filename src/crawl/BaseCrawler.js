@@ -19,4 +19,27 @@ export const BaseCrawler = class {
   toString() {
     return `[${this.constructor.name}]`;
   }
+
+  async all(url, query, options) {
+    options = { ...options, stream: false };
+    let result = [];
+    for await (const r of this.run(url, query, options)) {
+      result.push(r);
+    }
+    return result;
+  }
+
+  async one(url, query, options) {
+    options = { ...options, stream: true };
+    for await (const r of this.run(url, query, options)) {
+      return r;
+    }
+  }
+
+  async *stream(url, query, options) {
+    options = { ...options, stream: true };
+    for await (const r of this.run(url, query, options)) {
+      yield Promise.resolve(r);
+    }
+  }
 };
