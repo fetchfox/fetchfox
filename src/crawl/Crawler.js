@@ -181,21 +181,22 @@ export const Crawler = class extends BaseCrawler {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
 
       for await (const { delta } of stream) {
-        if (!toLink[delta.id]) {
-          logger.warn(`${this} Could not find link with id ${delta.id}`);
+        // if (!toLink[delta.id]) {
+        //   logger.warn(`${this} Could not find link with id ${delta.id}`);
+        //   continue;
+        // }
+
+        const url = delta.url
+
+        if (seen[url]) {
           continue;
         }
+        seen[url] = true;
 
-        const link = toLink[delta.id];
-
-        if (seen[link.url]) continue;
-        seen[link.url] = true;
-        delete link.id;
-
-        logger.info(`Found link ${link.url} in response to "${query}"`);
+        logger.info(`${this} Found link ${url} in response to "${query}"`);
 
         this.usage.count++;
-        yield Promise.resolve({ _url: link.url });
+        yield Promise.resolve({ _url: url });
       }
     }
   }
