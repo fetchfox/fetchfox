@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { logger } from './log/logger.js';
 
+// Deterministic shuffle to keep prompts stable
 export const shuffle = (l) => {
-  // Deterministic shuffle to keep prompts stable
   const h = (v) => crypto
     .createHash('sha256')
     .update(JSON.stringify(v))
