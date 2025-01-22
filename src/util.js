@@ -11,6 +11,16 @@ export const shuffle = (l) => {
   return l;
 }
 
+// Short random ID
+export const srid = (len = 10) => {
+  const alpha = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('');
+  let id = '';
+  for (let i = 0; i < len; i++) {
+    id += alpha[Math.floor(Math.random() * alpha.length)];
+  }
+  return id;
+}
+
 export const chunkList = (list, maxBytes) => {
   const chunks = [];
   let current = [];
