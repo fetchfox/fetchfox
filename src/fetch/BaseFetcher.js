@@ -1,4 +1,3 @@
-import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
 import pTimeout from 'p-timeout';
 import { getAI } from '../ai/index.js';
@@ -6,7 +5,7 @@ import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 import { Document } from '../document/Document.js';
 import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
-import { createChannel, shortObjHash, abortable } from '../util.js';
+import { createChannel, shortObjHash, abortable, srid } from '../util.js';
 import { presignS3 } from './util.js';
 import { paginationAction } from './prompts.js';
 
@@ -206,10 +205,7 @@ export const BaseFetcher = class {
             const region = this.s3.region;
             const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
             const acl = this.s3.acl || '';
-            const id = new ShortUniqueId({
-              length: 10,
-              dictionary: 'alphanum_lower',
-            }).rnd();
+            const id = srid(10);
             const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
             const key = keyTemplate
               .replaceAll('{id}', id)
