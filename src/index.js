@@ -25,6 +25,7 @@ export { Groq } from './ai/Groq.js';
 
 export { DiskCache } from './cache/DiskCache.js';
 export { S3Cache } from './cache/S3Cache.js';
+export { RedisCache } from './cache/RedisCache.js';
 
 export { Workflow } from './workflow/Workflow.js';
 
