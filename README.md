@@ -77,7 +77,7 @@ const results = await fox
   .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' }})
   .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
 ```
-
+ 
 This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can pass in other models, including models from other providers like this:
 
 ```javascript
