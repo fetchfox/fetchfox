@@ -1,8 +1,9 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-const s3Client = new S3Client();
 
 export const storeScores = async (scores) => {
+  const region = process.env.BENCH_REGION || 'us-west-2';
+  const s3 = new S3Client({ region });
   const bucket = process.env.BENCH_BUCKET || 'ffcloud';
   const key = process.env.BENCH_KEY || 'benchmarks/last30days.jsonl';
 
@@ -12,7 +13,7 @@ export const storeScores = async (scores) => {
       Bucket: bucket,
       Key: key,
     };
-    const data = await s3Client.send(new GetObjectCommand(getObjectParams));
+    const data = await s3.send(new GetObjectCommand(getObjectParams));
     const body = await streamToString(data.Body);
     existing = body
       .split('\n')
@@ -68,7 +69,7 @@ export const storeScores = async (scores) => {
     ACL: 'public-read',
     ContentType: 'application/jsonl',
   };
-  await s3Client.send(new PutObjectCommand(putObjectParams));
+  await s3.send(new PutObjectCommand(putObjectParams));
 }
 
 const streamToString = (stream) => new Promise((resolve, reject) => {
