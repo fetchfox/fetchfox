@@ -20,6 +20,9 @@ export const checkAtLeast = (items, num) => {
 export const checkItemsExact = (items, expected, fields) => {
   const score = [0, 0];
 
+  console.log('expected', expected);
+  console.log('items', items);
+
   const removePrivate = (item) => {
     const copy = {};
     for (const key of Object.keys(item)) {

@@ -1,5 +1,5 @@
+import { logger } from '../../src/log/logger.js';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-
 
 export const storeScores = async (scores) => {
   const region = process.env.BENCH_REGION || 'us-west-2';
@@ -9,11 +9,11 @@ export const storeScores = async (scores) => {
 
   let existing = [];
   try {
-    const getObjectParams = {
+    const params = {
       Bucket: bucket,
       Key: key,
     };
-    const data = await s3.send(new GetObjectCommand(getObjectParams));
+    const data = await s3.send(new GetObjectCommand(params));
     const body = await streamToString(data.Body);
     existing = body
       .split('\n')
@@ -21,7 +21,7 @@ export const storeScores = async (scores) => {
       .map((line) => JSON.parse(line));
   } catch (e) {
     if (e.name == 'NoSuchKey') {
-      console.log('File does not exist. Creating a new one.');
+      // ignore
     } else {
       throw e;
     }
@@ -45,9 +45,6 @@ export const storeScores = async (scores) => {
     for (const configKey of Object.keys(score.config)) {
       const val = score.config[configKey];
       let str = '';
-
-      console.log('val is:', val);
-
       // Typically first entry is the name of it, eg. ai=openai:gpt-4o
       if (Array.isArray(val)) {
         str = val[0];
@@ -56,12 +53,11 @@ export const storeScores = async (scores) => {
       }
       row[`config_${configKey}`] = str;
     }
-    console.log('store this data:', row);
+    logger.debug(`Store this benchmark data: ${JSON.stringify(row)}`);
     existing.push(row);
   }
 
   const updated = existing.map((item) => JSON.stringify(item)).join('\n');
-  console.log('sending updated data to:', bucket, key);
   const putObjectParams = {
     Bucket: bucket,
     Key: key,

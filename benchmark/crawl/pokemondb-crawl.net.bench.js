@@ -28,6 +28,8 @@ describe('crawl pokemondb', async function() {
       (items) => {
         const score = [0, 0];
 
+        console.log('Score got items:', items);
+
         const invalid = [
           'https://pokemondb.net/pokedex/national',
           'https://pokemondb.net/pokedex/all',
@@ -35,9 +37,10 @@ describe('crawl pokemondb', async function() {
 
         for (const item of items) {
           score[1]++;
-          if (!item.url) continue;
-          if (invalid.includes(item.url)) continue;
-          if (!item.url.match(/^https:\/\/pokemondb\.net\/pokedex\/[^/]+/)) continue;
+          const url = item.url || item._url;
+          if (!url) continue;
+          if (invalid.includes(url)) continue;
+          if (!url.match(/^https:\/\/pokemondb\.net\/pokedex\/[^/]+/)) continue;
           score[0]++;
         }
 
