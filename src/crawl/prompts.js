@@ -4,7 +4,7 @@ export const gather = new Template(
   ['query', 'links'],
   `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
 
-Your response will be ONLY the "id" field of matching items. The "id" field will be used to generate the results later, you only need to include the "id" field.
+Your response will be ONLY the "URL" field of matching items.
 
 Follow these important rules:
 - The entire array should be JSONL, with a single object per link
@@ -16,9 +16,9 @@ Follow these important rules:
 
 Example of valid output:
 
-{ "id": 3 }
-{ "id": 18 }
-{ "id": 45 }
+{ "url": "https://example.com/page-1" }
+{ "url": "https://example.com/page-2" }
+{ "url": "https://example.com/page-3" }
 
 The list to find this is below:
 {{links}}
