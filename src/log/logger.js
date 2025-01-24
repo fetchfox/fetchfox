@@ -10,7 +10,11 @@ const colors = {
   ERROR: chalk.red,
 };
 
-const LOG_LEVEL = process.env.FETCHFOX_LOG_LEVEL || process.env.FF_LOG || 'warn';
+const envLogLevel = () => {
+  return process.env.FETCHFOX_LOG_LEVEL || process.env.FF_LOG;
+}
+
+const LOG_LEVEL = envLogLevel() || 'warn';
 prefix.reg(log);
 log.setLevel(LOG_LEVEL);
 
@@ -42,30 +46,68 @@ export const addCallback = (level, cb) => {
   });
 }
 
-export const logger = {
-  trace: (...args) => {
+class Logger {
+  testMode() {
+    if (envLogLevel()) {
+      return;
+    }
+    this.disabled = true;
+  }
+
+  trace(...args) {
+    if (this.disabled) {
+      return;
+    }
+
     log.trace(...args);
     send('trace', args);
-  },
-  debug: (...args) => {
+  }
+
+  debug(...args) {
+    if (this.disabled) {
+      return;
+    }
+
     if (log.getLevel() <= log.levels.DEBUG) {
       log.debug(...args);
     }
     send('debug', args);
-  },
-  info: (...args) => {
+  }
+
+  info(...args) {
+    if (this.disabled) {
+      return;
+    }
+
     log.info(...args);
     send('info', args);
-  },
-  warn: (...args) => {
+  }
+
+  warn(...args) {
+    if (this.disabled) {
+      return;
+    }
+
     log.warn(...args);
     send('warn', args);
-  },
-  error: (...args) => {
+  }
+
+  error(...args) {
+    if (this.disabled) {
+      return;
+    }
+
     log.error(...args);
     send('error', args);
-  },
-  listen: (cb) => {
+  }
+
+  listen(cb) {
+    if (this.disabled) {
+      return;
+    }
+
     callbacks.push(cb);
-  },
-};
+  }
+}
+
+export const logger = new Logger();

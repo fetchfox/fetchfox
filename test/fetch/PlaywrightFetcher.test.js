@@ -1,10 +1,15 @@
 import assert from 'assert';
 import os from 'os';
 import http from 'http';
+import { logger } from '../../src/log/logger.js';
 import { testCache } from '../lib/util.js';
 import { getFetcher, getAI } from '../../src/index.js';
 
 describe('PlaywrightFetcher', function() {
+
+  before(() => {
+    logger.testMode();
+  });
 
   it('should fetch @run', async () => {
     const fetcher = getFetcher('playwright', { loadWait: 1 });

@@ -1,8 +1,13 @@
 import assert from 'assert';
+import { logger } from '../../src/log/logger.js';
 import { getAI } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('OpenRouter', function() {
+
+  before(() => {
+    logger.testMode();
+  });
 
   it('should use gpt-4o-mini with default base URL @run @slow', async () => {
     const cases = [
