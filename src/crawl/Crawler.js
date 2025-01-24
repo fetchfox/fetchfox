@@ -148,21 +148,18 @@ export const Crawler = class extends BaseCrawler {
     doc.parseLinks();
 
     // TODO: move this initailization to a better spot.
-    // maybe make getAI() async and put it there.
+    // Maybe make getAI() async and put it there.
     await this.ai.init();
 
-    // Cap max bytes to limit number of links examined a a time
+    // Cap max bytes to limit number of links examined a time
     const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
-
     const slimmer = item => ({
-      id: item.id,
       html: item.html.substr(0, 200),
       text: item.text,
       url: item.url,
     });
 
     const chunked = chunkList(links.map(slimmer), maxBytes);
-
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
       const prompt = gather.render({
@@ -173,20 +170,9 @@ export const Crawler = class extends BaseCrawler {
           2),
       });
 
-      const toLink = {};
-      for (const link of links) {
-        toLink[link.id] = link;
-      }
-
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
-
       for await (const { delta } of stream) {
-        // if (!toLink[delta.id]) {
-        //   logger.warn(`${this} Could not find link with id ${delta.id}`);
-        //   continue;
-        // }
-
-        const url = delta.url
+        const url = delta.url;
 
         if (seen[url]) {
           continue;
