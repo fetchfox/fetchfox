@@ -27,9 +27,6 @@ describe('crawl pokemondb', async function() {
     [
       (items) => {
         const score = [0, 0];
-
-        console.log('Score got items:', items);
-
         const invalid = [
           'https://pokemondb.net/pokedex/national',
           'https://pokemondb.net/pokedex/all',
