@@ -65,7 +65,7 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
   const wf = await fox
     .init('https://silvercreekrealty.net/silvercreek-agent-directory/?staff-az=E')
     .crawl({
-      query: 'Look for links to real estate agent profiles. Find specific indivivdual real estate agents',
+      query: 'Look for links to real estate agent profiles. Find specific individual real estate agents',
       limit: 10,
     })
     .extract({
