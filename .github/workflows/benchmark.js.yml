@@ -22,6 +22,8 @@ jobs:
           - groq:llama-3.2-90b-vision-preview
           - anthropic:claude-3-5-sonnet-latest
           - anthropic:claude-3-5-haiku-latest
+          - openrouter:meta-llama/llama-3.2-1b-instruct
+          - openrouter:meta-llama/llama-3.3-70b-instruct
 
     steps:
     - uses: actions/checkout@v4
@@ -47,6 +49,7 @@ jobs:
         CDP_URL: ${{ secrets.CDP_URL }}
 
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
