@@ -1,3 +1,9 @@
+const s3 = {
+  bucket: process.env.BENCH_BUCKET || 'ffcloud',
+  region: process.env.BENCH_REGION || 'us-west-2',
+  acl: 'public-read',
+};
+
 export const standardMatrix = (extra, options) => {
   let ai;
 
@@ -10,12 +16,6 @@ export const standardMatrix = (extra, options) => {
       'openai:gpt-4o',
       'google:gemini-1.5-flash',
       'google:gemini-1.5-pro',
-
-      // 'anthropic:claude-3-5-sonnet-latest',
-      // 'anthropic:claude-3-5-haiku-latest',
-      // 'groq:llama-3.1-70b-versatile',
-      // 'groq:llama-3.2-11b-vision-preview',
-      // 'groq:llama-3.2-90b-vision-preview',
     ];
   }
 
@@ -23,7 +23,7 @@ export const standardMatrix = (extra, options) => {
     fetcher = process.env.BENCH_MATRIX_FETCHER.split(',');
   } else {
     fetcher = [
-      'playwright',
+      ['playwright', { s3 }],
     ];
   }
 
