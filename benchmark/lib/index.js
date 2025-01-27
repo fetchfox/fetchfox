@@ -77,6 +77,8 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       delete fullConfig.cache;
     }
 
+    console.log('json', json);
+
     const wf = await fox
       .load(populate(json, config))
       .config(fullConfig);

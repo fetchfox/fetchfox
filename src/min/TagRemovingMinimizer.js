@@ -12,10 +12,6 @@ export const TagRemovingMinimizer = class extends BaseMinimizer {
 
   async _min(doc) {
     let removeTags = this.removeTags;
-    if (doc.url && doc.url.indexOf('youtube.com') != -1) {
-      logger.debug(`Not removing <script> on youtube.com`);
-      removeTags = removeTags.filter(t => t != 'script');
-    }
 
     logger.info(`Minimizing ${doc} by removing tags: ${removeTags.join(', ')}`);
 
