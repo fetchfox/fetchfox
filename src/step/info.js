@@ -2,6 +2,7 @@ export const nameMap = {
   ActionStep: 'action',
   ConstStep: 'const',
   CrawlStep: 'crawl',
+  DeepCrawlStep: 'deepcrawl',
   ExtractStep: 'extract',
   FetchStep: 'fetch',
   FilterStep: 'filter',
@@ -11,7 +12,7 @@ export const nameMap = {
 };
 
 const combineInfo = (info) => {
-  const combined = {...info};
+  const combined = { ...info };
   combined.args.limit = {
     description: 'Limit the number of results in this step.',
     format: 'number',
@@ -50,7 +51,20 @@ export const stepDescriptionsMap = {
     },
   }),
 
-  'const': combineInfo({
+  deepcrawl: combineInfo({
+    name: 'deepcrawl',
+    description: 'Deep crawls a URL for links that match a query',
+    args: {
+      query: {
+        description: 'A high-level prompt describing what you want to scrape.',
+        format: 'string',
+        example: 'Scrape pokemon and get their name, weight and traits.',
+        required: true,
+      },
+    },
+  }),
+
+  const: combineInfo({
     name: 'const',
     description: 'Add a constant item, typically used to initialize the starting URL',
     args: {
@@ -68,20 +82,27 @@ export const stepDescriptionsMap = {
     description: 'Extract data from a page.',
     args: {
       questions: {
-        description: 'A dictionary of questions describing the data to extract from a page. They keys are the field names, and the values are the questions describing what to extract.',
+        description:
+          'A dictionary of questions describing the data to extract from a page. They keys are the field names, and the values are the questions describing what to extract.',
         format: 'object',
-        example: { username: 'What is the username of this profile?', followers: 'What is the number of followers?', bio: 'What is the bio?', url: 'What is the URL? Format: Absolute URL' },
+        example: {
+          username: 'What is the username of this profile?',
+          followers: 'What is the number of followers?',
+          bio: 'What is the bio?',
+          url: 'What is the URL? Format: Absolute URL',
+        },
         required: true,
       },
       single: {
-        description: 'If true, the extraction will find only one item per page. If false, it can find multiple. Typically, if there is a "crawl" step before extraction, you will want single=true, and if there is no "crawl" step you will want single=false',
+        description:
+          'If true, the extraction will find only one item per page. If false, it can find multiple. Typically, if there is a "crawl" step before extraction, you will want single=true, and if there is no "crawl" step you will want single=false',
         format: 'boolean',
         example: true,
         required: false,
       },
 
       // TODO: move this elsewhere
-      examples: {}
+      examples: {},
     },
   }),
 
@@ -124,7 +145,8 @@ export const stepDescriptionsMap = {
       query: {
         description: 'A description of what to filter from.',
         format: 'string',
-        example: 'Look only for articles relating to technology and business. Ignore anything written more than a week ago.',
+        example:
+          'Look only for articles relating to technology and business. Ignore anything written more than a week ago.',
         required: true,
       },
     },
@@ -152,10 +174,12 @@ export const stepDescriptionsMap = {
 
   unique: combineInfo({
     name: 'unique',
-    description: 'Keep only unique items on the basis of a praticular field, or the entire item if no field is specified',
+    description:
+      'Keep only unique items on the basis of a praticular field, or the entire item if no field is specified',
     args: {
       fields: {
-        description: 'Fields to ouse for making results unique. Can be one or more. Leave blank to use all fields on every object.',
+        description:
+          'Fields to ouse for making results unique. Can be one or more. Leave blank to use all fields on every object.',
         format: 'array',
         example: ['username', 'subject'],
         required: false,

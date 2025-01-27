@@ -1,13 +1,52 @@
 import assert from 'assert';
 import os from 'os';
-import { fox } from '../../src/index.js';
+import { fox, OpenAI, Fetcher } from '../../src/index.js';
 import { redditSampleHtml } from './data.js';
 import { testCache } from '../lib/util.js';
-import { OpenAI } from '../../src/index.js';
-import { Fetcher } from '../../src/index.js';
 
 describe('Workflow', function() {
   this.timeout(30 * 1000);
+
+  it('should run the deep crawler correctly @run @fast', async () => {
+    const wf = fox
+      .config({ cache: testCache() })
+      .init('https://pokemondb.net/pokedex/national')
+      .deepcrawl('scrape pokemon with name, weight, and a list of traits')
+      .limit(4);
+
+    const results = await wf.run();
+    const urls = results.items.map((it) => it._url);
+
+    const expected = [
+      'https://pokemondb.net/pokedex/bulbasaur',
+      'https://pokemondb.net/pokedex/ivysaur',
+      'https://pokemondb.net/pokedex/venusaur',
+      'https://pokemondb.net/pokedex/charmander',
+    ];
+
+    assert.equal(JSON.stringify(urls), JSON.stringify(expected));
+  });
+
+  it('should deep crawl from wrong page @run @fast', async () => {
+    const wf = fox
+      .config({ cache: testCache(), ai: 'openai:gpt-4o' })
+      .init('https://pokemondb.net/pokedex/national')
+      .deepcrawl('find pokemon game locations and their names and what generations are supported')
+      .limit(4);
+
+    const results = await wf.run();
+    const urls = results.items.map((it) => it._url);
+
+    const expected = [
+      'https://pokemondb.net/location/kanto-route-1',
+      'https://pokemondb.net/location/kanto-route-2',
+      'https://pokemondb.net/location/kanto-route-3',
+      'https://pokemondb.net/location/kanto-route-4',
+    ];
+
+    assert.equal(JSON.stringify(urls), JSON.stringify(expected));
+  });
+
 
   it('should load steps from json @run @fast', async () => {
     const data = {
