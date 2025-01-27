@@ -4,7 +4,7 @@ export const gather = new Template(
   ['query', 'links'],
   `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
 
-Your response will be ONLY the "URL" field of matching items.
+Your response will be ONLY the "id" field of matching items. The "id" field will be used to generate the results later, you only need to include the "id" field.
 
 Follow these important rules:
 - The entire array should be JSONL, with a single object per link
@@ -16,17 +16,15 @@ Follow these important rules:
 
 Example of valid output:
 
-{ "url": "https://example.com/page-1" }
-{ "url": "https://example.com/page-2" }
-{ "url": "https://example.com/page-3" }
+{ "id": 3 }
+{ "id": 18 }
+{ "id": 45 }
+
+Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}
-
-Find links matching the user query:
-{{query}}
-`);
-
+{{links}}`,
+);
 
 export const rate = new Template(
   ['query', 'links'],
@@ -60,7 +58,8 @@ Example of valid output:
 Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}`);
+{{links}}`,
+);
 
 export const categorize = new Template(
   ['urls'],
@@ -84,7 +83,8 @@ Follow these important rules:
 
 The list of URLs to categorize is below:
 {{urls}}
-`);
+`,
+);
 
 export const score = new Template(
   ['html', 'questions'],
@@ -111,4 +111,5 @@ Below is the USER PROMPT that you are responding to:
 {{html}}
 
 >>>> The user is extracting this data:
-{{questions}}`);
+{{questions}}`,
+);

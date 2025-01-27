@@ -1,29 +1,22 @@
+import { DeepCrawler } from '../crawl/DeepCrawler/DeepCrawler.js';
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 
-export const CrawlStep = class extends BaseStep {
+export class DeepCrawlStep extends BaseStep {
   constructor(args) {
     super(args);
 
-    let query;
-    if (typeof args == 'string') {
-      this.query = args;
-    } else {
-      query = args.query;
-    }
-    if (!query) throw new Error('no query');
-
-    this.query = query;
-    this.css = args?.css;
+    this.query = typeof args == 'string' ? args : args.query;
+    if (!this.query) throw new Error('no query');
   }
 
   async process({ cursor, item, index }, cb) {
-    const crawler = cursor.ctx.crawler;
+    const crawler = new DeepCrawler({ ai: cursor.ctx.ai, fetcher: cursor.ctx.fetcher });
 
     const options = {
-      css: this.css,
       maxPages: this.maxPages,
       fetchOptions: { priority: index },
+      signal: cursor.ctx.signal,
     };
 
     const url = item.getUrl();
@@ -43,4 +36,4 @@ export const CrawlStep = class extends BaseStep {
       throw e;
     }
   }
-};
+}

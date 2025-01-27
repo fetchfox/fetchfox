@@ -7,12 +7,12 @@ import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
-    this.usage.requests++
+    this.usage.requests++;
     const maxPages = options?.maxPages;
     const fetchOptions = options?.fetchOptions || {};
     const seen = {};
 
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     const docsChannel = createChannel();
     const resultsChannel = createChannel();
@@ -22,7 +22,7 @@ export const Crawler = class extends BaseCrawler {
     if (this.signal) {
       abortListener = () => {
         done = true;
-      }
+      };
       this.signal.addEventListener('abort', abortListener);
     }
 
@@ -44,11 +44,9 @@ export const Crawler = class extends BaseCrawler {
           docsChannel.send({ doc });
         }
         ok();
-
-      } catch(e) {
+      } catch (e) {
         logger.error(`${this} Error in documents worker: ${e}`);
         bad(e);
-
       } finally {
         if (abortListener) {
           this.signal.removeEventListener('abort', abortListener);
@@ -92,23 +90,21 @@ export const Crawler = class extends BaseCrawler {
 
                 logger.debug(`${this} Link worker done ${myIndex} (${workerPromises.length})`);
                 ok();
-
-              } catch(e) {
+              } catch (e) {
                 logger.error(`${this} Error in link promise: ${e}`);
                 bad(e);
               }
-            }));
+            }),
+          );
         }
 
         // Got all documents, now wait for workers to complete
         logger.debug(`${this} Wait for link workers`);
         await Promise.all(workerPromises);
         ok();
-
       } catch (e) {
         logger.error(`${this} Error in link worker: ${e}`);
         bad(e);
-
       } finally {
         logger.debug(`${this} All link workers done ${done}`);
         resultsChannel.end();
@@ -130,13 +126,11 @@ export const Crawler = class extends BaseCrawler {
 
       await docsPromise;
       await resultsPromise;
-
     } catch (e) {
       logger.error(`${this} Crawler caught error: ${e}`);
       throw e;
-
     } finally {
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       this.usage.runtime += took;
       done = true;
     }
@@ -148,65 +142,56 @@ export const Crawler = class extends BaseCrawler {
     doc.parseLinks();
 
     // TODO: move this initailization to a better spot.
-    // Maybe make getAI() async and put it there.
+    // maybe make getAI() async and put it there.
     await this.ai.init();
 
-    // Cap max bytes to limit number of links examined a time
+    // Cap max bytes to limit number of links examined a a time
     const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
-    const slimmer = item => ({
+
+    const slimmer = (item) => ({
+      id: item.id,
       html: item.html.substr(0, 200),
       text: item.text,
       url: item.url,
     });
 
     const chunked = chunkList(links.map(slimmer), maxBytes);
+
     for (let i = 0; i < chunked.length; i++) {
       const chunk = chunked[i];
       const prompt = gather.render({
         query,
         links: JSON.stringify(
-          chunk.filter(l => validate(l.url)),
+          chunk.filter((l) => validate(l.url)),
           null,
-          2),
+          2,
+        ),
       });
 
-      const stream = this.ai.stream(prompt, { format: 'jsonl' });
-      for await (const { delta } of stream) {
-        const url = delta.url;
+      const toLink = {};
+      for (const link of links) {
+        toLink[link.id] = link;
+      }
 
-        if (seen[url]) {
+      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+
+      for await (const { delta } of stream) {
+        if (!toLink[delta.id]) {
+          logger.warn(`${this} Could not find link with id ${delta.id}`);
           continue;
         }
-        seen[url] = true;
 
-        logger.info(`${this} Found link ${url} in response to "${query}"`);
+        const link = toLink[delta.id];
+
+        if (seen[link.url]) continue;
+        seen[link.url] = true;
+        delete link.id;
+
+        logger.info(`Found link ${link.url} in response to "${query}"`);
 
         this.usage.count++;
-        yield Promise.resolve({ _url: url });
+        yield Promise.resolve({ _url: link.url });
       }
     }
   }
-
-  async all(url, query, options) {
-    options = {...options, stream: false };
-    let result = [];
-    for await (const r of this.run(url, query, options)) {
-      result.push(r);
-    }
-    return result;
-  }
-
-  async one(url, query, options) {
-    options = {...options, stream: true };
-    for await (const r of this.run(url, query, options)) {
-      return r;
-    }
-  }
-
-  async *stream(url, query, options) {
-    options = {...options, stream: true };
-    for await (const r of this.run(url, query, options)) {
-      yield Promise.resolve(r);
-    }
-  }
-}
+};
