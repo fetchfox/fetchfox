@@ -7,14 +7,7 @@ import { storeScores } from '../lib/store.js';
 
 describe('paginate filmekseni.net', async function() {
   const matrix = standardMatrix({
-    fetcher: [
-      'playwright',
-
-      // [
-      //   'playwright',
-      //   { headless: false },  // This page only loads with headful mode
-      // ], 
-    ],
+    fetcher: ['playwright'],
   });
 
   const expected = [

@@ -7,7 +7,6 @@ import { storeScores } from '../lib/store.js';
 describe('paginate listado.mercadolibre.com.co', async function() {
   const matrix = standardMatrix({
     fetcher: ['playwright'],
-    // fetcher: [['playwright', { headless: false }]],
   });
 
   const expected = [

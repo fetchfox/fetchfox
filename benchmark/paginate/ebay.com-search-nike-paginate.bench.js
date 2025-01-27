@@ -7,7 +7,7 @@ import { storeScores } from '../lib/store.js';
 describe('paginate ebay.com nike search', async function() {
   const matrix = standardMatrix(
     {
-      fetcher: [['playwright', { headless: false }]],
+      fetcher: [['playwright', { headless: true }]],
     },
     {
       useCdp: false,
