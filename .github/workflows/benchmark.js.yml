@@ -27,6 +27,7 @@ jobs:
           - openrouter:google/gemini-flash-1.5-8b
           - openrouter:google/gemini-flash-1.5
           - openrouter:mistralai/mistral-nemo
+          - openrouter:deepseek/deepseek-r1
 
     steps:
     - uses: actions/checkout@v4
