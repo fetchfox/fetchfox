@@ -24,6 +24,9 @@ jobs:
           - anthropic:claude-3-5-haiku-latest
           - openrouter:meta-llama/llama-3.2-1b-instruct
           - openrouter:meta-llama/llama-3.3-70b-instruct
+          - openrouter:google/gemini-flash-1.5-8b
+          - openrouter:google/gemini-flash-1.5
+          - openrouter:mistralai/mistral-nemo
 
     steps:
     - uses: actions/checkout@v4
