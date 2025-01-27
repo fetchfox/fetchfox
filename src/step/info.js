@@ -53,6 +53,7 @@ export const stepDescriptionsMap = {
 
   deepcrawl: combineInfo({
     name: 'deepcrawl',
+    hideFromAI: true, // beta
     description: 'Deep crawls a URL for links that match a query',
     args: {
       query: {
