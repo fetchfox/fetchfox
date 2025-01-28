@@ -12,6 +12,7 @@ jobs:
     strategy:
       matrix:
         node-version: [22.x]
+        attempt: [1,2,3,4]
         ai:
           - openai:gpt-4o-mini
           - openai:gpt-4o
