@@ -1,0 +1,28 @@
+import { fox } from '../../src/index.js';
+import { itRunMatrix } from '../lib/index.js';
+import { standardMatrix } from '../lib/matrix.js';
+import { checkIncreasingSize } from '../lib/checks.js';
+
+describe('paginate google.com maps restaurants search', async function() {
+  const matrix = standardMatrix(
+    {
+      fetcher: [['playwright', { headless: false }]],
+    }
+  );
+
+  const wf = await fox
+    .init('https://www.google.com/maps/search/Restaurants/@42.3233141,-71.162825,14z/data=!3m1!4b1?entry=ttu&g_ep=EgoyMDI1MDEyMi4wIKXMDSoASAFQAw%3D%3D')
+    .fetch({ maxPages: 5 })
+    .plan();
+
+  return itRunMatrix(
+    it,
+    'paginate google.com maps restaurants search',
+    wf.dump(),
+    matrix,
+    [
+      checkIncreasingSize,
+    ],
+    { shouldSave: true }
+  );
+});
