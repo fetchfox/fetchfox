@@ -286,10 +286,15 @@ export const BaseFetcher = class {
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
       const minDoc = await min.min(doc, { timer });
 
-      const hostname = (new URL(url)).hostname;
+      const baseUrl = new URL(url);
+      let hostname = baseUrl.hostname;
+      if (hostname === 'www.google.com' && baseUrl.pathname.startsWith('/maps')) {
+        hostname += '/maps';
+      }
       let domainSpecific = {
         'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
         'www.producthunt.com': `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`,
+        'www.google.com/maps': 'You are on Google Maps, which paginates by bringing the results list into focus by clicking on it and then scrolling down one window length.'
       }[hostname] || '';
       if (domainSpecific) {
         domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
@@ -344,6 +349,10 @@ export const BaseFetcher = class {
               break;
             case 'scroll':
               await this.scroll(arg, myCtx);
+              break;
+            case 'click-scroll':
+              await this.click(arg, myCtx);
+              await this.scroll('window', myCtx);
               break;
             default:
               logger.error(`${this} Unhandled command: ${command} ${arg}`);

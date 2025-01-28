@@ -15,13 +15,15 @@ Response with JSON as follows:
 - "paginationAnalysis": 10-30 word english desrption of how to paginate to the NEXT page page. If no pagination, say so.
 - "paginationElementCss": "css selector of the next page button, if one exists. null otherwise",
 - "paginationElementText": "text of the next page button, which will be used for an xpath selector",
-- "paginationCommand": If the page has pagination, this will be one these: "click", "scroll", or "evaluate"
+- "paginationCommand": If the page has pagination, this will be one these: "click", "scroll", "click-scroll" or "evaluate"
   - "click" if you need click a button or link to go to the next page
   - "scroll" if you need to scroll down to paginate
+  - "click-scroll" if you need to click on a results list before scrolling
   - "evaluate" if clicking or scrolling doesn't work, and instead you need to execute some more complex javascript to paginate. Prefer click or scroll
 - "paginationArgument": the value depends on the command
   - if command is "click", the text or CSS selector of the next page button. prepend "text=" or "css="
   - if command is "scroll", how much to scroll: either "window" for window height, or "bottom" to scroll all the way to the bottom
+  - if command is "click-scroll", the text or CSS selector of the list to scroll. prepend "text=" or "css="
   - if command is "evaluate", give javascript that will paginate. This javascript will be a parameter to new Function(). Therefore, do NOT give a function signature.
 
 Follow these important rules:
