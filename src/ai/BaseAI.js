@@ -167,7 +167,6 @@ export const BaseAI = class {
     }
 
     let usage = { input: 0, output: 0, total: 0 };
-    const start = (new Date()).getTime();
 
     let err;
     let answer = '';
@@ -175,12 +174,15 @@ export const BaseAI = class {
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
 
     let result;
+    let start;
     try {
       let retries = Math.min(this.maxRetries, options?.retries ?? 2);
       let done = false;
 
       while (!done) {
+        // Track start time relative to the  successful attempt
         this.stats.requests.attempts++;
+        start = (new Date()).getTime();
 
         try {
           for await (const chunk of this.inner(prompt, options)) {
