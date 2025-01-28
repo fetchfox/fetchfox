@@ -55,22 +55,20 @@ Respond with JSON as follows:
 
 - "actionAnalysis": 10-30 word English description of what action should be taken on the page, or if no action is required.
 - "actionElementCss": "css selector of the element that needs interaction, if one exists. null otherwise",
-- "actionElementText": "text of the element to be used for an xpath selector, if relevant and if multiple elements are relevant, return them as an array. null otherwise",
+- "actionElementText": "text of the element to be used for an xpath selector, if relevant. null otherwise",
 - "actionCommand": The action to perform:
   - "click" if you need to click a button, link, or other clickable element, there can be multiple clickable elements.
   - "scroll" if scrolling is needed to trigger content or reveal a hidden element.
   - "evaluate" if a more complex action requires executing JavaScript directly on the page.
   - "none" if no action is required.
 - "actionArgument": The value depends on the command:
-  - If command is "click", provide the text or CSS selector, or a list of selectors of the elements to click. Use the format:
+  - If command is "click", provide the text or CSS selector. Use the format:
     - prepend "text=" for matching text content
     - prepend "css=" for matching css selectors
-    - return a list of selectors if multiple elements are relevant
-  - If command is "evaluate", give JavaScript that will execute to trigger the action. This JavaScript will be a parameter to new Function().
   - If command is "scroll", specify how much to scroll: either "window" (for window height) or "bottom" (for scrolling to the bottom of the page).
+  - If command is "evaluate", give JavaScript that will execute to trigger the action. This JavaScript will be a parameter to new Function().
 
 Follow these important rules:
-- If multiple elements match the action criteria (ex. all links on the page), include all of them in the response as an array. Ensure the response is comprehensive and captures all relevant actions.
 - Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
 - Avoid hardcoding specific text or values when possible. Instead, try to generalize the command to make it reusable across different pages.
 - Keep the CSS selectors as simple and specific as possible, making them compatible with document.querySelector().

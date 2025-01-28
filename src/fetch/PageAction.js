@@ -42,11 +42,11 @@ export const PageAction = class {
       try {
         answer = await this.ai.ask(prompt, { format: 'json' });
       } catch(e) {
-        logger.error(`${this} Got AI error during pagination, ignore: ${e}`);
+        logger.error(`${this} AI error, ignore: ${e}`);
         continue
       }
 
-      logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial)}`);
+      logger.debug(`${this} Got an answer: ${JSON.stringify(answer.partial)}`);
 
       if (answer.partial?.actionCommand && answer.partial?.actionArgument) {
         commands.push({
@@ -56,48 +56,27 @@ export const PageAction = class {
       }
     }
 
-    logger.debug(commands);
-
     let index = 0;
     while (index < commands.length) {
       const { command, arg } = commands[index];
       logger.info(`${this} Taking action: ${command} ${arg}, index=${index}}`);
-      if (Array.isArray(arg) && arg.length > 0) {
-        for (let i = 0; i < arg.length; i++) {
-          try {
-            switch (command) {
-              case 'click':
-                await this.click(arg[i], page);
-                await page.goBack();
-                break;
-              case 'scroll':
-                await this.scroll(arg[i], page);
-                break;
-              default:
-                logger.error(`${this} Unhandled command: ${command} ${arg[i]}`);
-                break;
-            }
-          } catch (e) {
-            logger.error(`${this} Error while executing action ${command} ${arg[i]}, ignoring: ${e}`);
-          }
+      
+      try {
+        switch (command) {
+          case 'click':
+            await this.click(arg, page);
+            break;
+          case 'scroll':
+            await this.scroll(arg, page);
+            break;
+          default:
+            logger.error(`${this} Unhandled command: ${command} ${arg}`);
+            break;
         }
-      } else {
-        try {
-          switch (command) {
-            case 'click':
-              await this.click(arg, page);
-              break;
-            case 'scroll':
-              await this.scroll(arg, page);
-              break;
-            default:
-              logger.error(`${this} Unhandled command: ${command} ${arg}`);
-              break;
-          }
-        } catch (e) {
-          logger.error(`${this} Error while executing action ${command} ${arg}, ignoring: ${e}`);
-        }
+      } catch (e) {
+        logger.error(`${this} Error while executing action ${command} ${arg}, ignoring: ${e}`);
       }
+      
       index++;
     }
   }
