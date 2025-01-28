@@ -286,19 +286,27 @@ export const BaseFetcher = class {
       const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
       const minDoc = await min.min(doc, { timer });
 
-      const baseUrl = new URL(url);
-      let hostname = baseUrl.hostname;
-      if (hostname === 'www.google.com' && baseUrl.pathname.startsWith('/maps')) {
-        hostname += '/maps';
-      }
-      let domainSpecific = {
-        'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
-        'www.producthunt.com': `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`,
-        'www.google.com/maps': 'You are on Google Maps, which paginates by bringing the results list into focus by clicking on it and then scrolling down one window length.'
-      }[hostname] || '';
-      if (domainSpecific) {
-        domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
+      const targetUrl = new URL(url).href;
+
+      let domainSpecific = [
+        {
+          prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/, instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+        },
+        {
+          prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/, instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`
+        },
+        {
+          prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/, instruction: 'You are on Google Maps, which paginates by bringing the results list into focus by clicking on it and then scrolling down one window length.'
+        },
+      ]
+
+      const match = domainSpecific.find(({ prefix }) => prefix.test(targetUrl));
+
+      if (match) {
+        domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + match.instruction;
         logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
+      } else {
+        domainSpecific = '';
       }
 
       const context = {
@@ -351,8 +359,8 @@ export const BaseFetcher = class {
               await this.scroll(arg, myCtx);
               break;
             case 'click-scroll':
-              await this.click(arg, myCtx);
-              await this.scroll('window', myCtx);
+              await this.click(arg[0], myCtx);
+              await this.scroll(arg[1], myCtx);
               break;
             default:
               logger.error(`${this} Unhandled command: ${command} ${arg}`);

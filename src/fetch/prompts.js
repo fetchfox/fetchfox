@@ -18,12 +18,12 @@ Response with JSON as follows:
 - "paginationCommand": If the page has pagination, this will be one these: "click", "scroll", "click-scroll" or "evaluate"
   - "click" if you need click a button or link to go to the next page
   - "scroll" if you need to scroll down to paginate
-  - "click-scroll" if you need to click on a results list before scrolling
+  - "click-scroll" if you need to click on a list to focus on it before scrolling
   - "evaluate" if clicking or scrolling doesn't work, and instead you need to execute some more complex javascript to paginate. Prefer click or scroll
 - "paginationArgument": the value depends on the command
   - if command is "click", the text or CSS selector of the next page button. prepend "text=" or "css="
   - if command is "scroll", how much to scroll: either "window" for window height, or "bottom" to scroll all the way to the bottom
-  - if command is "click-scroll", the text or CSS selector of the list to scroll. prepend "text=" or "css="
+  - if command is "click-scroll", the text or CSS selector of the list to focus on before scrolling. prepend "text=" or "css=", and how much to scroll: either "window" for window height, or "bottom" to scroll all the way to the bottom. return the two values in an array
   - if command is "evaluate", give javascript that will paginate. This javascript will be a parameter to new Function(). Therefore, do NOT give a function signature.
 
 Follow these important rules:
