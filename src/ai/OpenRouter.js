@@ -55,6 +55,11 @@ export const OpenRouter = class extends OpenAI {
     this.maxTokens ??= data.max_input_tokens;
     this.modelData = data;
 
+    if (this.modelData.pricing) {
+      this.pricing.input = this.modelData.pricing.prompt;
+      this.pricing.output = this.modelData.pricing.completion;
+    }
+
     this.didInit = true;
   }
 }

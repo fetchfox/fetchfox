@@ -49,11 +49,16 @@ export const BaseAI = class {
     this.model = model;
     this.apiKey = apiKey;
 
+    this.pricing = {};
     this.maxRetries = maxRetries;
     this.retryMsec = retryMsec;
-    this.usage = { input: 0, output: 0, total: 0 };
-    this.cost = { input: 0, output: 0, total: 0 };
-    this.runtime = { sec: 0, msec: 0 };
+
+    this.stats = {
+      usage: { input: 0, output: 0, total: 0 },
+      cost: { input: 0, output: 0, total: 0 },
+      runtime: { sec: 0, msec: 0 },
+      requests: { attempts: 0, errors: 0, failures: 0  },
+    }
 
     this.baseURL = options?.baseURL;
 
@@ -131,17 +136,6 @@ export const BaseAI = class {
     return this.cache.set(key, val, 'prompt');
   }
 
-  addUsage(usage) {
-    for (const key in this.usage) {
-      this.usage[key] += usage[key];
-    }
-    if (this.modelData) {
-      this.cost.input = this.usage.input * this.modelData.input_cost_per_token;
-      this.cost.output = this.usage.output * this.modelData.output_cost_per_token;
-      this.cost.total = this.cost.input + this.cost.output;
-    }
-  }
-
   async *stream(prompt, options) {
     await this.init();
 
@@ -173,7 +167,6 @@ export const BaseAI = class {
     }
 
     let usage = { input: 0, output: 0, total: 0 };
-    const start = (new Date()).getTime();
 
     let err;
     let answer = '';
@@ -181,12 +174,16 @@ export const BaseAI = class {
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
 
     let result;
+    let start;
     try {
-
       let retries = Math.min(this.maxRetries, options?.retries ?? 2);
       let done = false;
 
       while (!done) {
+        // Track start time relative to the  successful attempt
+        this.stats.requests.attempts++;
+        start = (new Date()).getTime();
+
         try {
           for await (const chunk of this.inner(prompt, options)) {
             if (this.signal?.aborted) {
@@ -197,6 +194,18 @@ export const BaseAI = class {
 
             const norm = this.normalizeChunk(chunk);
             const parsed = this.parseChunk(norm, ctx);
+
+            if (norm.usage) {
+              this.stats.usage.input += norm.usage.input || 0;
+              this.stats.usage.output += norm.usage.output || 0;
+              this.stats.usage.total = this.stats.usage.input + this.stats.usage.output;
+
+              if (this.pricing) {
+                this.stats.cost.input = this.stats.usage.input * this.pricing.input;
+                this.stats.cost.output = this.stats.usage.output * this.pricing.output;
+                this.stats.cost.total = this.stats.cost.input + this.stats.cost.output;
+              }
+            }
 
             if (!parsed) continue;
 
@@ -224,6 +233,8 @@ export const BaseAI = class {
           done = true;
 
         } catch (e) {
+          this.stats.requests.errors++;
+
           if (retries-- <= 0) {
             logger.error(`${this} No retries left after: ${e}`);
             throw e;
@@ -235,13 +246,15 @@ export const BaseAI = class {
       } // Retry loop
 
     } catch (e) {
+      this.stats.requests.failures++;
+
       err = e;
       throw e;
 
     } finally {
       const msec = (new Date()).getTime() - start;
-      this.runtime.msec += msec;
-      this.runtime.sec += msec / 1000;
+      this.stats.runtime.msec += msec;
+      this.stats.runtime.sec += msec / 1000;
 
       if (err) {
         logger.warn(`${this} Error during AI stream, not caching`);
@@ -262,8 +275,8 @@ export const BaseAI = class {
     logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const before = {
-      usage: Object.assign({}, this.usage),
-      cost: Object.assign({}, this.cost),
+      usage: Object.assign({}, this.stats.usage),
+      cost: Object.assign({}, this.stats.cost),
     };
 
     let result;
@@ -295,8 +308,8 @@ export const BaseAI = class {
     }
 
     const after = {
-      usage: Object.assign({}, this.usage),
-      cost: Object.assign({}, this.cost),
+      usage: Object.assign({}, this.stats.usage),
+      cost: Object.assign({}, this.stats.cost),
     };
 
     result.usage = {
@@ -315,12 +328,7 @@ export const BaseAI = class {
 
   parseChunk(chunk, ctx) {
     if (chunk.usage) {
-      const { input, output, total } = chunk.usage;
-
-      this.addUsage({
-        input: input - ctx.usage.input,
-        output: output - ctx.usage.output,
-        total: total - ctx.usage.total });
+      const { input, output } = chunk.usage;
 
       ctx.usage.input = input;
       ctx.usage.output = output;
