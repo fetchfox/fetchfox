@@ -54,7 +54,7 @@ export const BaseAI = class {
     this.retryMsec = retryMsec;
 
     this.stats = {
-      usage: { input: 0, output: 0, total: 0 },
+      tokens: { input: 0, output: 0, total: 0 },
       cost: { input: 0, output: 0, total: 0 },
       runtime: { sec: 0, msec: 0 },
       requests: { attempts: 0, errors: 0, failures: 0  },
@@ -196,13 +196,13 @@ export const BaseAI = class {
             const parsed = this.parseChunk(norm, ctx);
 
             if (norm.usage) {
-              this.stats.usage.input += norm.usage.input || 0;
-              this.stats.usage.output += norm.usage.output || 0;
-              this.stats.usage.total = this.stats.usage.input + this.stats.usage.output;
+              this.stats.tokens.input += norm.usage.input || 0;
+              this.stats.tokens.output += norm.usage.output || 0;
+              this.stats.tokens.total = this.stats.tokens.input + this.stats.tokens.output;
 
               if (this.pricing) {
-                this.stats.cost.input = this.stats.usage.input * this.pricing.input;
-                this.stats.cost.output = this.stats.usage.output * this.pricing.output;
+                this.stats.cost.input = this.stats.tokens.input * this.pricing.input;
+                this.stats.cost.output = this.stats.tokens.output * this.pricing.output;
                 this.stats.cost.total = this.stats.cost.input + this.stats.cost.output;
               }
             }
@@ -274,11 +274,6 @@ export const BaseAI = class {
     }
     logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
-    const before = {
-      usage: Object.assign({}, this.stats.usage),
-      cost: Object.assign({}, this.stats.cost),
-    };
-
     let result;
     let retries = Math.min(this.maxRetries, options?.retries ?? 2);
     const retryMsec= 5000;
@@ -306,22 +301,6 @@ export const BaseAI = class {
       logger.warn(`Got no response for prompt ${prompt.substr(0, 100)}: ${result}`);
       result = {};  // Cache it as empty dict
     }
-
-    const after = {
-      usage: Object.assign({}, this.stats.usage),
-      cost: Object.assign({}, this.stats.cost),
-    };
-
-    result.usage = {
-      input: after.usage.input - before.usage.input,
-      output: after.usage.output - before.usage.output,
-      total: after.usage.total - before.usage.total,
-    };
-    result.cost = {
-      input: after.cost.input - before.cost.input,
-      output: after.cost.output - before.cost.output,
-      total: after.cost.total - before.cost.total,
-    };
 
     return result;
   }

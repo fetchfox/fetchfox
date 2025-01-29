@@ -37,19 +37,19 @@ export const storeScores = async (scores) => {
       score0: score.score[0] || 0,
       score1: score.score[1] || 0,
 
-      cost_input: score.stats?.cost?.input || -1,
-      cost_output: score.stats?.cost?.output || -1,
-      cost_total: score.stats?.cost?.total || -1,
+      cost_input: score.stats?.cost?.input ?? -1,
+      cost_output: score.stats?.cost?.output ?? -1,
+      cost_total: score.stats?.cost?.total ?? -1,
 
-      tokens_input: score.stats?.tokens?.input || -1,
-      tokens_output: score.stats?.tokens?.output || -1,
-      tokens_total: score.stats?.tokens?.total || -1,
+      tokens_input: score.stats?.tokens?.input ?? -1,
+      tokens_output: score.stats?.tokens?.output ?? -1,
+      tokens_total: score.stats?.tokens?.total ?? -1,
 
-      runtime_msec: score.stats?.runtime?.msec || -1,
+      runtime_msec: score.stats?.runtime?.msec ?? -1,
 
-      requests_attempts: score.stats?.requests?.attempts || -1,
-      requests_errors: score.stats?.requests?.errors || -1,
-      requests_failures: score.stats?.requests?.failures || -1,
+      requests_attempts: score.stats?.requests?.attempts ?? -1,
+      requests_errors: score.stats?.requests?.errors ?? -1,
+      requests_failures: score.stats?.requests?.failures ?? -1,
 
       // NOTE: We can store items later if needed. Leave it off
       // for now to avoid putting junk in the jsonl file.
