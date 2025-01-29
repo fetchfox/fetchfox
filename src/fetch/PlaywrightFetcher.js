@@ -161,6 +161,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
+  async _execute(instructions, ctx) {
+    const browser = ctx.browser;
+    const page = await ctx.browser.newPage();
+  }
+
   async _docFromPage(page, timer) {
     timer ||= new Timer();
 

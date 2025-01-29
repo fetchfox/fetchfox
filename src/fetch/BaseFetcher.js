@@ -160,7 +160,7 @@ export const BaseFetcher = class {
               logger.debug(`${this} Starting at ${url}`);
 
               // Exectute `instructions` here
-              for await (const doc of this.execute(instructions)) {
+              for await (const doc of this.execute(instructions, ctx, options)) {
                 if (this.signal?.aborted) {
                   break;
                 }
@@ -420,7 +420,7 @@ export const BaseFetcher = class {
   }
 
   async *execute(instructions, ctx, options) {
-    // TODO
+    return this._execute(instructions, ctx, options);
   }
 
   cacheOptions() {
