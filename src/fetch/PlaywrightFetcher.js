@@ -161,9 +161,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async _execute(instructions, ctx) {
+  async *_execute(instructions, ctx) {
     const browser = ctx.browser;
     const page = await ctx.browser.newPage();
+
+    // do all the instructions: url / actions
+    // then yield documentes
+    // eg.: loop { yield Promise.resolve(doc) }
   }
 
   async _docFromPage(page, timer) {
