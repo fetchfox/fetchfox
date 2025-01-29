@@ -59,19 +59,22 @@ export const BaseFetcher = class {
   async finish() {
   }
 
-  async *fetch(target, options) {
+  async *fetch(instructions, options) {
     const timer = new Timer();
 
     logger.info(`${this} Fetch ${target} with ${this}`);
 
-    let url;
+    if (typeof instructions != FetchInstructions) {
+      let url;
+      if (typeof target == 'string') {
+        url = target;
+      } else if (typeof target.url == 'string') {
+        url = target.url;
+      } else if (typeof target._url == 'string') {
+        url = target._url;
+      }
 
-    if (typeof target == 'string') {
-      url = target;
-    } else if (typeof target.url == 'string') {
-      url = target.url;
-    } else if (typeof target._url == 'string') {
-      url = target._url;
+      instructions = new FetchInstructions(url);
     }
 
     // Pull out options that affect caching
@@ -155,12 +158,22 @@ export const BaseFetcher = class {
 
             try {
               logger.debug(`${this} Starting at ${url}`);
-              for await (const doc of this.paginate(url, ctx, options)) {
+
+              // Exectute `instructions` here
+              for await (const doc of this.execute(instructions)) {
                 if (this.signal?.aborted) {
                   break;
                 }
                 channel.send({ doc });
               }
+
+              // for await (const doc of this.paginate(url, ctx, options)) {
+              //   if (this.signal?.aborted) {
+              //     break;
+              //   }
+              //   channel.send({ doc });
+              // }
+
             } catch (e) {
               logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
@@ -404,6 +417,10 @@ export const BaseFetcher = class {
     } finally {
       await this.finishGoto(myCtx);
     }
+  }
+
+  async *execute(instructions, ctx, options) {
+    // TODO
   }
 
   cacheOptions() {
