@@ -46,6 +46,7 @@ export const storeScores = async (scores) => {
       tokens_total: score.stats?.tokens?.total ?? -1,
 
       runtime_msec: score.stats?.runtime?.msec ?? -1,
+      runtime_sec: score.stats?.runtime?.sec ?? -1,
 
       requests_attempts: score.stats?.requests?.attempts ?? -1,
       requests_errors: score.stats?.requests?.errors ?? -1,

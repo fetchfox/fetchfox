@@ -28,6 +28,7 @@ jobs:
           - openrouter:meta-llama/llama-3.3-70b-instruct
           - openrouter:google/gemini-flash-1.5-8b
           - openrouter:google/gemini-flash-1.5
+          - openrouter:google/gemini-pro-1.5
           - openrouter:mistralai/mistral-nemo
           - openrouter:deepseek/deepseek-r1
           - openrouter:deepseek/deepseek-chat
