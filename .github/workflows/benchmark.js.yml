@@ -67,7 +67,7 @@ jobs:
 
         BENCH_REGION: us-west-2
         BENCH_BUCKET: ffcloud
-        BENCH_KEY: benchmarks/last30days.jsonl
+        BENCH_KEY: benchmarks/latest.jsonl
         BENCH_USE_CDP: true
         BENCH_MATRIX_AI: ${{ matrix.ai }}
 

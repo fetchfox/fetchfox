@@ -5,7 +5,7 @@ export const storeScores = async (scores) => {
   const region = process.env.BENCH_REGION || 'us-west-2';
   const s3 = new S3Client({ region });
   const bucket = process.env.BENCH_BUCKET || 'ffcloud';
-  const key = process.env.BENCH_KEY || 'benchmarks/last30days.jsonl';
+  const key = process.env.BENCH_KEY || 'benchmarks/latest.jsonl';
 
   let existing = [];
   try {
@@ -80,7 +80,21 @@ export const storeScores = async (scores) => {
     ACL: 'public-read',
     ContentType: 'application/jsonl',
   };
-  await s3.send(new PutObjectCommand(putObjectParams));
+
+  const retries = 5;
+  for (let i = 0; i < retries; i++) {
+    try {
+      await s3.send(new PutObjectCommand(putObjectParams));
+      break;
+    } catch (e) {
+      logger.warn(`Benchmark put error: ${e}`);
+
+      if (i + 1 == retries) {
+        throw e;
+      }
+      await new Promise(ok => setTimeout(ok, 4000));
+    }
+  }
 }
 
 const streamToString = (stream) => new Promise((resolve, reject) => {

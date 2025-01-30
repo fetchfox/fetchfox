@@ -112,11 +112,24 @@ export const getModelData = async (provider, model, cache) => {
     cache.set(key, data).catch(() => {});
   }
 
+  switch (id) {
+    case 'google/gemini-1.5-flash':
+      data.pricing ||= {};
+      data.pricing.prompt ||= 0.075 / 1e6;
+      data.pricing.completion ||= 0.3 / 1e6;
+      break;
+    case 'google/gemini-1.5-pro':
+      data.pricing ||= {};
+      data.pricing.prompt ||= 1.25 / 1e6;
+      data.pricing.completion ||= 5 / 1e6;
+      break;
+  }
+
   return {
     maxTokens: data.max_input_tokens,
     pricing: {
-      input: data.pricing?.prompt || 0,
-      output: data.pricing?.completion || 0,
+      input: parseFloat(data.pricing?.prompt || 0),
+      output: parseFloat(data.pricing?.completion || 0),
     },
 
   };
