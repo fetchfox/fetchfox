@@ -1,3 +1,5 @@
+import { logger } from '../log/logger.js';
+
 export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const normalizeText = (text) => {
@@ -60,4 +62,62 @@ export const parseAnswer = (text, format) => {
   } else {
     return null;
   }
+}
+
+export const getModelData = async (provider, model, cache) => {
+  const id = `${provider}/${model}`
+    .replace('gemini/', 'google/')
+    .replace('-latest', '')
+    .replace('claude-3-5', 'claude-3.5')
+
+  let data
+  const key = 'openrouter-model-data-' + id;
+  if (cache) {
+    const cached = await cache.get(key);
+    if (cached) {
+      data = cached;
+    }
+  }
+
+  if (!data) {
+    const url = await 'https://openrouter.ai/api/v1/models';
+
+    logger.debug(`Calling ${url} to get model data for ${id}`);
+
+    const resp = await fetch(url);
+    const jsonData = await resp.json();
+
+    for (let item of jsonData.data) {
+      if (item.id == id) {
+        data = {
+          ...item,
+          max_input_tokens: item.context_length
+        };
+      }
+    }
+  }
+
+  if (!data) {
+    logger.warn(`Could not find model data in OpenRouter API: ${id}`);
+    return {
+      maxTokens: 128000,
+      pricing: {
+        input: 0,
+        output: 0,
+      }
+    };
+  }
+
+  if (cache) {
+    cache.set(key, data).catch(() => {});
+  }
+
+  return {
+    maxTokens: data.max_input_tokens,
+    pricing: {
+      input: data.pricing?.prompt || 0,
+      output: data.pricing?.completion || 0,
+    },
+
+  };
 }

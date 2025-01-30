@@ -1,8 +1,7 @@
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
-import { parseAnswer, sleep } from './util.js';
+import { parseAnswer, sleep, getModelData } from './util.js';
 import { shortObjHash } from '../util.js';
-import { models } from '../data/models.js';
 
 export const BaseAI = class {
   constructor(options) {
@@ -75,20 +74,9 @@ export const BaseAI = class {
       return;
     }
 
-    let modelStr = this.model;
-    if (['groq', 'mistral', 'ollama'].includes(this.provider)) {
-      modelStr = this.provider + '/' + this.model;
-    }
-    const data = models[modelStr];
-
-    if (data) {
-      this.modelData = data;
-      this.maxTokens ??= data.max_input_tokens;
-    } else {
-      logger.warn(`Couldn't find model data for ${this.provider} ${this.model}`);
-      this.maxTokens = 10000;
-    }
-
+    const data = await getModelData(this.provider, this.model, this.cache);
+    this.maxTokens = data.maxTokens;
+    this.pricing = data.pricing;
     this.didInit = true;
   }
 
