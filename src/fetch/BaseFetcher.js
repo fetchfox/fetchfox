@@ -59,13 +59,12 @@ export const BaseFetcher = class {
   async finish() {
   }
 
-  async *fetch(target, options) {
+  async *fetch(instructions, options) {
     const timer = new Timer();
 
     logger.info(`${this} Fetch ${target} with ${this}`);
 
     let url;
-
     if (typeof target == 'string') {
       url = target;
     } else if (typeof target.url == 'string') {
@@ -155,12 +154,20 @@ export const BaseFetcher = class {
 
             try {
               logger.debug(`${this} Starting at ${url}`);
-              for await (const doc of this.paginate(url, ctx, options)) {
+
+              for await (const doc of this.execute(instructions, url, ctx, options)) {
                 if (this.signal?.aborted) {
                   break;
                 }
                 channel.send({ doc });
               }
+
+              // for await (const doc of this.paginate(url, ctx, options)) {
+              //   if (this.signal?.aborted) {
+              //     break;
+              //   }
+              //   channel.send({ doc });
+              // }
             } catch (e) {
               logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
@@ -404,6 +411,10 @@ export const BaseFetcher = class {
     } finally {
       await this.finishGoto(myCtx);
     }
+  }
+
+  async *execute(instructions, url, ctx, options) {
+    return this._execute(instructions, url, ctx, options);
   }
 
   cacheOptions() {

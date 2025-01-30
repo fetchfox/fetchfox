@@ -3,26 +3,24 @@ import { logger } from "../log/logger.js";
 import { TagRemovingMinimizer } from "../min/TagRemovingMinimizer.js";
 import { getAI } from '../ai/index.js';
 import { Timer } from "../log/timer.js";
+import { getFetcher } from "../index.js";
 
 export const PageAction = class {
-  constructor(namespace, prompt) {
-    this.namespace = namespace;
+  constructor(prompt, options) {
     this.prompt = prompt;
-    this.ai = getAI()
+    this.ai = options?.ai || getAI();
   }
 
-  async learn(examples) {
-
-  }
-
-  async execute(page) {
+  async learn(url) {    
     const timer = new Timer();
-    const url = page.url;
-    const doc = await page.content();
-    // const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
-    // const minDoc = await min.min(doc, { timer });
+
+    const fetcher = getFetcher();
+    const doc = await fetcher.first(url);
+    const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
+    const minDoc = await min.min(doc, { timer });
+
     const context = {
-      html: doc,
+      html: minDoc.html,
       prompt: this.prompt
     }
 
@@ -34,7 +32,6 @@ export const PageAction = class {
       return;
     }
 
-    const commands = [];
     logger.debug(`${this} analyze chunks for next action (${prompts.length})`);
 
     for (const prompt of prompts) {
@@ -48,66 +45,15 @@ export const PageAction = class {
 
       logger.debug(`${this} Got an answer: ${JSON.stringify(answer.partial)}`);
 
+      const commands = [];
       if (answer.partial?.actionCommand && answer.partial?.actionArgument) {
         commands.push({
           command: answer.partial.actionCommand,
           arg: answer.partial.actionArgument,
         });
       }
-    }
 
-    let index = 0;
-    while (index < commands.length) {
-      const { command, arg } = commands[index];
-      logger.info(`${this} Taking action: ${command} ${arg}, index=${index}}`);
-      
-      try {
-        switch (command) {
-          case 'click':
-            await this.click(arg, page);
-            break;
-          case 'scroll':
-            await this.scroll(arg, page);
-            break;
-          default:
-            logger.error(`${this} Unhandled command: ${command} ${arg}`);
-            break;
-        }
-      } catch (e) {
-        logger.error(`${this} Error while executing action ${command} ${arg}, ignoring: ${e}`);
-      }
-      
-      index++;
-    }
-  }
-
-  async click(selector, page) {
-    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
-      logger.warn(`{this} Invalid selector: ${selector}`);
-      return;
-    }
-
-    const loc = page.locator(selector);
-    if (!await loc.count()) {
-      logger.warn(`${this} Couldn't find selector=${selector}, not clicking`);
-      return;
-    }
-
-    const el = loc.first();
-    await el.scrollIntoViewIfNeeded();
-    return el.click();
-  }
-
-  async scroll(type, page) {
-    switch (type) {
-      case 'window':
-        return page.keyboard.press('PageDown');
-      case 'bottom':
-        /* eslint-disable no-undef */
-        return page.evaluate(() => window.scrollBy(0, window.innerHeight));
-        /* eslint-enable no-undef */
-      default:
-        logger.error(`${this} Unhandled scroll type: ${type}`);
+      return commands;
     }
   }
 }

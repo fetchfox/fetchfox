@@ -58,14 +58,12 @@ Respond with JSON as follows:
 - "actionElementText": "text of the element to be used for an xpath selector, if relevant. null otherwise",
 - "actionCommand": The action to perform:
   - "click" if you need to click a button, link, or other clickable element, there can be multiple clickable elements.
-  - "scroll" if scrolling is needed to trigger content or reveal a hidden element.
   - "evaluate" if a more complex action requires executing JavaScript directly on the page.
   - "none" if no action is required.
 - "actionArgument": The value depends on the command:
   - If command is "click", provide the text or CSS selector. Use the format:
     - prepend "text=" for matching text content
     - prepend "css=" for matching css selectors
-  - If command is "scroll", specify how much to scroll: either "window" (for window height) or "bottom" (for scrolling to the bottom of the page).
   - If command is "evaluate", give JavaScript that will execute to trigger the action. This JavaScript will be a parameter to new Function().
 
 Follow these important rules:

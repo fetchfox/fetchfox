@@ -161,6 +161,67 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
+  async *_execute(instructions, url, ctx) {
+    // const timer = ctx.timer || new Timer();
+    const browser = ctx.browser;
+    const page = await ctx.browser.newPage();
+
+    try {
+      await ctx.browser.goto(url);
+      for (instruction of instructions) {
+        const { command, arg } = instruction;
+        const elements = this.findElements(arg, page);
+        
+        for (ele of elements) {
+          if (command === "click") {
+            const newPage = await browser.newPage();
+            await newPage.goto(url, { waitUntil: 'domcontentloaded' });
+            await this.click(arg, ctx);
+
+            const htmlContent = await newPage.content();
+            
+            // Convert htmlContent to Document instance
+            const doc = new Document();
+            await doc.read(
+                {
+                    text: async () => htmlContent,
+                    url: () => url,
+                    status: 200,
+                    headers: {}
+                }, 
+                url,
+                null,
+                { url }
+            );
+
+            yield doc;
+            await newPage.close();
+          }
+        }
+      }
+    } catch (e) {
+      logger.error(`${this} Error executing instruction: ${error}`);
+    } finally {
+      await page.close();
+    }
+  }
+
+  async findElements(selector, page) {
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
+      logger.warn(`${this} Invalid selector: ${selector}`);
+      return [];
+    }
+  
+    // Get all the matching elements
+    const elements = await page.locator(selector).all();
+    if (!elements.length) {
+      logger.warn(`${this} No elements found for selector=${selector}`);
+      return [];
+    }
+  
+    return elements;
+  }
+
   async _docFromPage(page, timer) {
     timer ||= new Timer();
 
