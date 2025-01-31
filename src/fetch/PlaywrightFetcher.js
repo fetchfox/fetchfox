@@ -162,45 +162,48 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async *_execute(instructions, url, ctx) {
-    // const timer = ctx.timer || new Timer();
     const browser = ctx.browser;
     const page = await ctx.browser.newPage();
 
     try {
-      await ctx.browser.goto(url);
-      for (instruction of instructions) {
+      await page.goto(url);
+      for (const instruction of instructions) {
         const { command, arg } = instruction;
-        const elements = this.findElements(arg, page);
+        const elements = await this.findElements(arg, page);
         
-        for (ele of elements) {
+        for (const ele of elements) {
           if (command === "click") {
             const newPage = await browser.newPage();
             await newPage.goto(url, { waitUntil: 'domcontentloaded' });
-            await this.click(arg, ctx);
-
-            const htmlContent = await newPage.content();
             
+            await ele.scrollIntoViewIfNeeded();
+            await ele.click();
+
+            const htmlContent = await page.content();
+            const newUrl = newPage.url();
+            
+            // await new Promise(ok => setTimeout(ok, 2000));
             // Convert htmlContent to Document instance
             const doc = new Document();
             await doc.read(
                 {
                     text: async () => htmlContent,
-                    url: () => url,
+                    url: newUrl,
                     status: 200,
                     headers: {}
                 }, 
-                url,
+                newUrl,
                 null,
-                { url }
+                { url: newUrl }
             );
 
-            yield doc;
+            yield Promise.resolve(doc);
             await newPage.close();
           }
         }
       }
     } catch (e) {
-      logger.error(`${this} Error executing instruction: ${error}`);
+      logger.error(`${this} Error executing instruction: ${e.stack}`);
     } finally {
       await page.close();
     }

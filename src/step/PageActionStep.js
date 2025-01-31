@@ -7,9 +7,8 @@ import { PageAction } from "../fetch/PageAction.js";
 export const PageActionStep = class extends BaseStep {
     constructor(args) {
         super(args);
-
         this.actions = args.actions;
-        if (!actions || this.actions.length === 0) throw new Error('no actions');
+        if (!this.actions || this.actions.length === 0) throw new Error('no actions');
     }
 
     async finish(cursor) {
@@ -21,20 +20,22 @@ export const PageActionStep = class extends BaseStep {
       const fetcher = cursor.ctx.fetcher;
 
       const options = {
-        fetchOptions: { priority: index }
+        fetchOptions: { priority: index },
+        url: url
       }
 
-      // actions = this.prompts.map((prompt) => new PageAction(prompt).learn(url));
-      const instructions = new FetchInstructions(url, this.actions, options);
-    
+      const doc = await fetcher.first(url);
+      const instructions = new FetchInstructions(doc, this.actions);
+      
       try {
-        for await (const doc of fetcher.stream(instructions, options)) {
-          const done = cb(new Item(), doc);
-          if (done)
+        for await (const fetchedDoc of fetcher.fetch(instructions, options)) {
+          const done = cb(fetchedDoc);
+          if (done) {
             break;
+          }
         }
       } catch (e) {
-        logger.error(`${this} Got error: ${e}`);
+        logger.error(`${this} Page Action error: ${e}`);
         throw e;
       }
     }

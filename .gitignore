@@ -2,3 +2,7 @@ node_modules
 Makefile
 .test-cache
 bugs
+
+# IDE related things
+.vscode
+.idea

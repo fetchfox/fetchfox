@@ -20,7 +20,6 @@ export const FetchInstructions = class {
         for (const command of commands) {
           yield command;
         }
-        // this.instructions.push(...commands);
       } catch (e) {
         logger.error(`${this} Error while fetching instructions ${e}`);
       }
