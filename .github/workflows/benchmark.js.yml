@@ -17,6 +17,7 @@ jobs:
           - openai:gpt-4o-mini
           - openai:gpt-4o
           - openai:o1
+          - openai:o3-mini
           - google:gemini-1.5-pro
           - google:gemini-1.5-flash
           - groq:llama-3.1-70b-versatile
@@ -24,6 +25,7 @@ jobs:
           - groq:llama-3.2-90b-vision-preview
           - anthropic:claude-3-5-sonnet-latest
           - anthropic:claude-3-5-haiku-latest
+          - openrouter:openai/o3-mini
           - openrouter:meta-llama/llama-3.2-1b-instruct
           - openrouter:meta-llama/llama-3.3-70b-instruct
           - openrouter:google/gemini-flash-1.5-8b
