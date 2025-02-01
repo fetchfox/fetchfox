@@ -128,7 +128,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async execute(instr) {
+  async *execute(instr) {
     logger.info(`${this} Execute instructions: ${instr.url} ${instr.learned}`);
 
     const indexes = new Array(instr.learned.length).fill(0);
@@ -138,7 +138,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     ctx = { ...ctx, ...(await this.goto(instr.url, ctx)) };
 
     let i = 0;
-    const docs = [];
 
     let done = false;
     while (!done) {
@@ -153,7 +152,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           indexes[i]++;
           const doc = await this._docFromPage(ctx.page, ctx.timer);
           logger.info(`${this} Executing instructions found: ${doc}`);
-          docs.push(doc);
+          yield Promise.resolve(doc);
         } else {
           i++;
         }
@@ -174,8 +173,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     await this.finish(ctx);
-
-    return docs;
   }
 
   async act(ctx, action, index) {

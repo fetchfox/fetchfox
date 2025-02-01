@@ -61,12 +61,10 @@ describe('Instructions', function() {
       const inst = new Instructions(url, commands, { ai });
       await inst.learn(fetcher);
 
-      // TODO: async generator
-      const docs = await fetcher.execute(inst);
-
-      for (let i = 0; i < 5; i++) {
+      const gen = await fetcher.execute(inst);
+      let i = 0;
+      for await (const doc of gen) {
         const expected = 'New content ' + ('' + i).repeat(i);
-        const doc = docs[i];
         assert.ok(doc.html.includes(expected), `expect ${expected}`);
       }
 
