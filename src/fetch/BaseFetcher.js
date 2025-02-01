@@ -8,7 +8,7 @@ import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { createChannel, shortObjHash, abortable, srid } from '../util.js';
 import { presignS3 } from './util.js';
 import { paginationAction } from './prompts.js';
-import { FetchInstructions } from './FetchInstructions.js';
+import { Instructions } from './Instructions.js';
 
 export const BaseFetcher = class {
   constructor(options) {
@@ -115,7 +115,7 @@ export const BaseFetcher = class {
 
     try {
 
-      if (target instanceof FetchInstructions) {
+      if (target instanceof Instructions) {
         url = options?.url;
       } else {
         let u;
@@ -160,7 +160,7 @@ export const BaseFetcher = class {
               logger.debug(`${this} Starting at ${url}`);
               
               // Don't break existing pagination behavior for now
-              if (target instanceof FetchInstructions) {
+              if (target instanceof Instructions) {
                 const instructions = [];
                 for await (const val of target.fetch()) {
                   instructions.push(val);
@@ -446,7 +446,7 @@ export const BaseFetcher = class {
 
   cacheKey(url, options) {
     const hash = shortObjHash({ url, options, ...this.cacheOptions() })
-    return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;
+      return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;
   }
 
   async getCache(url, options) {
@@ -496,5 +496,4 @@ export const BaseFetcher = class {
     logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
-
 }

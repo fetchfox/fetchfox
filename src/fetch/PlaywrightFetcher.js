@@ -137,27 +137,22 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     await this.start(ctx);
     ctx = { ...ctx, ...(await this.goto(instr.url, ctx)) };
 
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-    // for (let i = 0; i < instr.learned.length; i++) {
     let i = 0;
-
     const docs = [];
 
     let done = false;
     while (!done) {
-      console.log(`iterate i=${i}, indexes=${indexes}`);
+      logger.debug(`${this} Execute instructions, iterate i=${i}, indexes=${indexes}`);
 
       const action = instr.learned[i];
       const success = await this.act(ctx, action, indexes[i]);
 
       if (success) {
-        const isLastStep = i == instr.learned.length - 1;
-        if (isLastStep) {
+        const isLast = i == instr.learned.length - 1;
+        if (isLast) {
           indexes[i]++;
           const doc = await this._docFromPage(ctx.page, ctx.timer);
+          logger.info(`${this} Executing instructions found: ${doc}`);
           docs.push(doc);
         } else {
           i++;
@@ -176,12 +171,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           i = 0;
         }
       }
-      console.log('');
-    }
-
-    console.log('got docs:');
-    for (const doc of docs) {
-      console.log(`- ${doc}`);
     }
 
     await this.finish(ctx);
@@ -190,6 +179,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, index) {
+    logger.debug(`${this} Do action: ${JSON.stringify(action)} index=${index}`);
+
     switch (action.type) {
       case 'click':
         return await this.click(ctx, action.arg, index);
@@ -200,14 +191,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async click(ctx, selector, index) {
-    console.log('click:', selector);
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       logger.warn(`{this} Invalid selector: ${selector}`);
       return false;
     }
     const loc = ctx.page.locator(selector);
     if (await loc.count() <= index) {
-      logger.warn(`${this} Couldn't find selector=${selector} index=${index}, not clicking`);
+      if (index == 0) {
+        logger.warn(`${this} Couldn't find selector=${selector} index=${index}, not clicking`);
+      }
       return false;
     }
 

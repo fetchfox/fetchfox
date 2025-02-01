@@ -41,10 +41,10 @@ Respond ONLY in JSON, with no explanation. Your response will be machine consume
 `);
 
 export const pageAction = new Template(
-  ['html', 'prompt'],
+  ['html', 'command'],
   `You are part of a web scraping program. You are given some HTML and a goal.
 
-Your goal is: {{prompt}}
+Your goal is: {{command}}
 
 Your task is to determine the **most direct action** to achieve the goal **without unnecessary intermediate steps**.
 
@@ -79,7 +79,7 @@ Follow these important rules:
 {{html}}
 
 >>>> Remember, your goal is this:
-{{prompt}}
+{{command}}
 
 Respond ONLY in JSONL, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
 `);

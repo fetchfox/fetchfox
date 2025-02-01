@@ -2,9 +2,9 @@ import assert from 'assert';
 import http from 'http';
 import { logger } from '../../src/log/logger.js';
 import { testCache } from '../lib/util.js';
-import { getFetcher, getAI, FetchInstructions } from '../../src/index.js';
+import { getFetcher, getAI, Instructions } from '../../src/index.js';
 
-describe('FetchInstructions', function() {
+describe('Instructions', function() {
   this.timeout(60 * 1000);
 
   it('should learn and execute @run', async () => {
@@ -58,17 +58,17 @@ describe('FetchInstructions', function() {
         'click on all the interaction buttons',
       ];
 
-      const instr = new FetchInstructions(url, commands);
-      await instr.learn(fetcher);
+      const inst = new Instructions(url, commands, { ai });
+      await inst.learn(fetcher);
 
-      await new Promise(ok => setTimeout(ok, 1000));
+      // TODO: async generator
+      const docs = await fetcher.execute(inst);
 
-      console.log('');
-      console.log('');
-      console.log('');
-      console.log('');
-
-      await fetcher.execute(instr);
+      for (let i = 0; i < 5; i++) {
+        const expected = 'New content ' + ('' + i).repeat(i);
+        const doc = docs[i];
+        assert.ok(doc.html.includes(expected), `expect ${expected}`);
+      }
 
     } finally {
       server.close();

@@ -10,6 +10,7 @@ export const S3Cache = class {
     this.acl = options.acl;
     this.ttls = options.ttls || { base: 2 * 3600 };
     this.readOnly = options?.readOnly;
+    this.writeOnly = options?.writeOnly;
 
     this.s3 = new S3Client({
       region: options.region,
@@ -49,6 +50,10 @@ export const S3Cache = class {
   }
 
   async get(key) {
+    if (this.writeOnly) {
+      return;
+    }
+
     const objectKey = `${this.prefix}${key}`;
     let body;
     try {

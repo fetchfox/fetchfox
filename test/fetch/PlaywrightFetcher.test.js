@@ -4,7 +4,7 @@ import http from 'http';
 import { logger } from '../../src/log/logger.js';
 import { testCache } from '../lib/util.js';
 import { getFetcher, getAI } from '../../src/index.js';
-import { FetchInstructions } from '../../src/fetch/FetchInstructions.js';
+import { Instructions } from '../../src/fetch/Instructions.js';
 
 describe('PlaywrightFetcher', function() {
 
@@ -226,13 +226,13 @@ describe('PlaywrightFetcher', function() {
     const port = server.address().port;
   
     try {
-      const ai = getAI('openai:gpt-4o-mini');
+      const ai = getAI('openai:gpt-4o');
       const fetcher = getFetcher('playwright', { ai, loadWait: 10 });
       const gen = fetcher.fetch(`http://localhost:${port}`);    
       const doc = (await gen.next()).value;
       gen.return();
 
-      const instructions = new FetchInstructions(doc, ["Go to page 2"]);
+      const instructions = new Instructions(doc, ['Go to the next page']);
       for await (const fetchedDoc of fetcher.fetch(instructions, { url: `http://localhost:${port}` })) {
         assert.ok(fetchedDoc.body.includes(`You are on page 2`), `page html 2`);
       }

@@ -4,10 +4,10 @@ import { Timer } from "../log/timer.js";
 import { getAI } from '../ai/index.js';
 import * as prompts from './prompts.js';
 
-export const FetchInstructions = class {
-  constructor(url, prompts_, options) {
+export const Instructions = class {
+  constructor(url, commands, options) {
     this.url = url;
-    this.prompts = prompts_;
+    this.commands = commands;
     this.ai = options?.ai || getAI();
   }
 
@@ -26,13 +26,13 @@ export const FetchInstructions = class {
     await fetcher.start(ctx);
     ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
 
-    for (const prompt of this.prompts) {
+    for (const command of this.commands) {
       const doc = await fetcher.current(ctx);
       const html = (await min.min(doc, { timer })).html;
 
-      logger.debug(`${this} Learn how to do: ${prompt}`);
+      logger.debug(`${this} Learn how to do: ${command}`);
 
-      const context = { html, prompt};
+      const context = { html, command };
       const { prompt: actionPrompt } = await prompts.pageAction
         .renderCapped(context, 'html', this.ai);
 

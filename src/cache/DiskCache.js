@@ -8,6 +8,8 @@ export const DiskCache = class {
     this.dirname = dirname;
     this.ttls = ttls || {};
     fs.promises.mkdir(dirname, { recursive: true });
+    this.readOnly = options?.readOnly;
+    this.writeOnly = options?.writeOnly;
   }
 
   toString() {
@@ -19,6 +21,10 @@ export const DiskCache = class {
   }
 
   async set(key, val, label) {
+    if (this.readOnly) {
+      return;
+    }
+
     key = this._cleanKey(key);
 
     const filepath = path.join(this.dirname, key);
@@ -28,6 +34,10 @@ export const DiskCache = class {
   }
 
   async get(key) {
+    if (this.writeOnly) {
+      return;
+    }
+
     key = this._cleanKey(key);
 
     const filepath = path.join(this.dirname, key);
