@@ -161,6 +161,70 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
+  async *_execute(instructions, url, ctx) {
+    const browser = ctx.browser;
+    const page = await ctx.browser.newPage();
+
+    try {
+      await page.goto(url);
+      for (const instruction of instructions) {
+        const { command, arg } = instruction;
+        const elements = await this.findElements(arg, page);
+        
+        for (const ele of elements) {
+          if (command === "click") {
+            const newPage = await browser.newPage();
+            await newPage.goto(url, { waitUntil: 'domcontentloaded' });
+            
+            await ele.scrollIntoViewIfNeeded();
+            await ele.click();
+
+            const htmlContent = await page.content();
+            const newUrl = newPage.url();
+            
+            // await new Promise(ok => setTimeout(ok, 2000));
+            // Convert htmlContent to Document instance
+            const doc = new Document();
+            await doc.read(
+                {
+                    text: async () => htmlContent,
+                    url: newUrl,
+                    status: 200,
+                    headers: {}
+                }, 
+                newUrl,
+                null,
+                { url: newUrl }
+            );
+
+            yield Promise.resolve(doc);
+            await newPage.close();
+          }
+        }
+      }
+    } catch (e) {
+      logger.error(`${this} Error executing instruction: ${e.stack}`);
+    } finally {
+      await page.close();
+    }
+  }
+
+  async findElements(selector, page) {
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
+      logger.warn(`${this} Invalid selector: ${selector}`);
+      return [];
+    }
+  
+    // Get all the matching elements
+    const elements = await page.locator(selector).all();
+    if (!elements.length) {
+      logger.warn(`${this} No elements found for selector=${selector}`);
+      return [];
+    }
+  
+    return elements;
+  }
+
   async _docFromPage(page, timer) {
     timer ||= new Timer();
 

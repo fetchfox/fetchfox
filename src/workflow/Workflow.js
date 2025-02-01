@@ -196,6 +196,9 @@ for (const stepName of stepNames) {
       } else if (typeof prompt == 'number') {
         return this.step(new cls({ limit: prompt }));
       }
+    } else if (name == 'action') {
+      const args = prompt;
+      return this.step(new cls(args));
     }
 
     return this.step({ name, args: prompt });

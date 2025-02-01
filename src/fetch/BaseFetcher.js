@@ -8,6 +8,7 @@ import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import { createChannel, shortObjHash, abortable, srid } from '../util.js';
 import { presignS3 } from './util.js';
 import { paginationAction } from './prompts.js';
+import { FetchInstructions } from './FetchInstructions.js';
 
 export const BaseFetcher = class {
   constructor(options) {
@@ -65,7 +66,6 @@ export const BaseFetcher = class {
     logger.info(`${this} Fetch ${target} with ${this}`);
 
     let url;
-
     if (typeof target == 'string') {
       url = target;
     } else if (typeof target.url == 'string') {
@@ -114,16 +114,21 @@ export const BaseFetcher = class {
     }
 
     try {
-      try {
-        new URL(url);
-      } catch {
-        return null;
-      }
 
-      const exclude = ['javascript:', 'mailto:'];
-      for (const e of exclude) {
-        if (url.indexOf(e) == 0) {
+      if (target instanceof FetchInstructions) {
+        url = options?.url;
+      } else {
+        try {
+          new URL(url);
+        } catch {
           return null;
+        }
+  
+        const exclude = ['javascript:', 'mailto:'];
+        for (const e of exclude) {
+          if (url.indexOf(e) == 0) {
+            return null;
+          }
         }
       }
 
@@ -155,11 +160,28 @@ export const BaseFetcher = class {
 
             try {
               logger.debug(`${this} Starting at ${url}`);
-              for await (const doc of this.paginate(url, ctx, options)) {
-                if (this.signal?.aborted) {
-                  break;
+              
+              // Don't break existing pagination behavior for now
+              if (target instanceof FetchInstructions) {
+                const instructions = [];
+                for await (const val of target.fetch()) {
+                  instructions.push(val);
                 }
-                channel.send({ doc });
+                
+                for await (const doc of this.execute(instructions, url, ctx, options)) {
+                  if (this.signal?.aborted) {
+                    break;
+                  }
+                  
+                  channel.send({ doc });
+                }
+              } else {
+                for await (const doc of this.paginate(url, ctx, options)) {
+                  if (this.signal?.aborted) {
+                    break;
+                  }
+                  channel.send({ doc });
+                }
               }
             } catch (e) {
               logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
@@ -403,6 +425,12 @@ export const BaseFetcher = class {
       throw e;
     } finally {
       await this.finishGoto(myCtx);
+    }
+  }
+
+  async *execute(instructions, url, ctx, options) {
+    for await (const doc of this._execute(instructions, url, ctx, options)) {
+      yield doc;
     }
   }
 

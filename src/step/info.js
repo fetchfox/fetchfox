@@ -1,5 +1,5 @@
 export const nameMap = {
-  ActionStep: 'action',
+  PageActionStep: 'action',
   ConstStep: 'const',
   CrawlStep: 'crawl',
   DeepCrawlStep: 'deepcrawl',
@@ -184,6 +184,20 @@ export const stepDescriptionsMap = {
         format: 'array',
         example: ['username', 'subject'],
         required: false,
+      },
+    },
+  }),
+
+  action: combineInfo({
+    name: 'action',
+    description: 'Perform an action based on user prompts',
+    args: {
+      actions: {
+        description: 'An array of user prompts describing what to do.',
+        format: 'array',
+        example:
+          ['Click on the names of Pokemon on the page.', 'Go to the next page'],
+        required: true,
       },
     },
   }),
