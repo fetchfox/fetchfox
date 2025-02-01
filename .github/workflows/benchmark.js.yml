@@ -23,8 +23,6 @@ jobs:
           - groq:llama-3.1-70b-versatile
           - groq:llama-3.2-11b-vision-preview
           - groq:llama-3.2-90b-vision-preview
-          - anthropic:claude-3-5-sonnet-latest
-          - anthropic:claude-3-5-haiku-latest
           - openrouter:openai/o3-mini
           - openrouter:meta-llama/llama-3.2-1b-instruct
           - openrouter:meta-llama/llama-3.3-70b-instruct
@@ -35,6 +33,9 @@ jobs:
           - openrouter:deepseek/deepseek-r1
           - openrouter:deepseek/deepseek-chat
           - openrouter:deepseek/deepseek-r1-distill-llama-70b
+          - openrouter:anthropic/claude-3.5-haiku
+          - openrouter:anthropic/claude-3.5-sonnet
+          - openrouter:mistralai/codestral-2501
 
     steps:
     - uses: actions/checkout@v4
