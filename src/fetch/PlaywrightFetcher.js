@@ -128,8 +128,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async execute2(instr) {
-    console.log('execute2', instr.url, instr.learned);
+  async execute(instr) {
+    logger.info(`${this} Execute instructions: ${instr.url} ${instr.learned}`);
 
     const indexes = new Array(instr.learned.length).fill(0);
 
@@ -150,13 +150,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     while (!done) {
       console.log(`iterate i=${i}, indexes=${indexes}`);
 
-      const success = await this.step(ctx, i, instr.learned, indexes);
-      const lastStep = i == instr.learned.length - 1;
-
-      console.log(`success-> ${success}, lastStep=${lastStep}`);
+      const action = instr.learned[i];
+      const success = await this.act(ctx, action, indexes[i]);
 
       if (success) {
-        if (lastStep) {
+        const isLastStep = i == instr.learned.length - 1;
+        if (isLastStep) {
           indexes[i]++;
           const doc = await this._docFromPage(ctx.page, ctx.timer);
           docs.push(doc);
@@ -190,25 +189,17 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return docs;
   }
 
-  async step(ctx, i, actions, indexes) {
-    console.log('  step ->', i, actions[i]);
-
-    const action = actions[i];
-    const success = await this.act(ctx, action, indexes[i]);
-    return success;
-  }
-
   async act(ctx, action, index) {
     switch (action.type) {
       case 'click':
-        return await this.click2(ctx, action.arg, index);
+        return await this.click(ctx, action.arg, index);
 
       default:
         throw new Error(`Unhandled action type: ${action.type}`);
     }
   }
 
-  async click2(ctx, selector, index) {
+  async click(ctx, selector, index) {
     console.log('click:', selector);
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       logger.warn(`{this} Invalid selector: ${selector}`);
@@ -219,35 +210,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.warn(`${this} Couldn't find selector=${selector} index=${index}, not clicking`);
       return false;
     }
-    // const el = loc.first();
-    const count = await loc.count();
-    console.log('==>count:', count);
+
     const el = loc.nth(index);
     await el.scrollIntoViewIfNeeded();
-    console.log('clicking2:', el);
     await el.click();
     return true;
   }
 
-  async evaluate(fn, ctx) {
-    return ctx.page.evaluate(fn);
-  }
-
-  async click(selector, ctx) {
-    console.log('click:', selector);
-    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
-      logger.warn(`{this} Invalid selector: ${selector}`);
-      return;
-    }
-    const loc = ctx.page.locator(selector);
-    if (!await loc.count()) {
-      logger.warn(`${this} Couldn't find selector=${selector}, not clicking`);
-      return;
-    }
-    const el = loc.first();
-    await el.scrollIntoViewIfNeeded();
-    console.log('clicking:', el);
-    return el.click();
+  async evaluate() {
+    throw new Error('TODO');
   }
 
   async scroll(type, ctx) {
@@ -261,70 +232,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       default:
         logger.error(`${this} Unhandled scroll type: ${type}`);
     }
-  }
-
-  async *_execute(instructions, url, ctx) {
-    const browser = ctx.browser;
-    const page = await ctx.browser.newPage();
-
-    try {
-      await page.goto(url);
-      for (const instruction of instructions) {
-        const { command, arg } = instruction;
-        const elements = await this.findElements(arg, page);
-        
-        for (const ele of elements) {
-          if (command === "click") {
-            const newPage = await browser.newPage();
-            await newPage.goto(url, { waitUntil: 'domcontentloaded' });
-            
-            await ele.scrollIntoViewIfNeeded();
-            await ele.click();
-
-            const htmlContent = await page.content();
-            const newUrl = newPage.url();
-            
-            // await new Promise(ok => setTimeout(ok, 2000));
-            // Convert htmlContent to Document instance
-            const doc = new Document();
-            await doc.read(
-              {
-                text: async () => htmlContent,
-                url: newUrl,
-                status: 200,
-                headers: {}
-              }, 
-              newUrl,
-              null,
-              { url: newUrl }
-            );
-
-            yield Promise.resolve(doc);
-            await newPage.close();
-          }
-        }
-      }
-    } catch (e) {
-      logger.error(`${this} Error executing instruction: ${e.stack}`);
-    } finally {
-      await page.close();
-    }
-  }
-
-  async findElements(selector, page) {
-    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
-      logger.warn(`${this} Invalid selector: ${selector}`);
-      return [];
-    }
-  
-    // Get all the matching elements
-    const elements = await page.locator(selector).all();
-    if (!elements.length) {
-      logger.warn(`${this} No elements found for selector=${selector}`);
-      return [];
-    }
-  
-    return elements;
   }
 
   async _docFromPage(page, timer) {

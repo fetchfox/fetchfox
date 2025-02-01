@@ -49,14 +49,9 @@ describe('FetchInstructions', function() {
 
     try {
       const cache = testCache();
-      const ai = getAI('openai:gpt-4o-mini', { cache });
+      const ai = getAI('openai:gpt-4o', { cache });
       const fetcher = getFetcher('playwright', { ai, loadWait: 10 });
       const url = `http://localhost:${port}`;
-
-      // const gen = await fetcher.fetch(url);
-      // const doc = (await gen.next()).value;
-      // gen.return();
-      // console.log('doc', doc);
 
       const commands = [
         'click on the button to enable interaction',
@@ -73,13 +68,7 @@ describe('FetchInstructions', function() {
       console.log('');
       console.log('');
 
-      await fetcher.execute2(instr);
-
-      // const action = new PageAction('click the button that loads new content');
-      // const commands = await action.learn(doc);
-      // assert.equal(commands.length, 1)
-      // assert.equal(commands[0].command, 'click');
-      // assert.equal(commands[0].arg, 'css=#interaction-button');
+      await fetcher.execute(instr);
 
     } finally {
       server.close();
