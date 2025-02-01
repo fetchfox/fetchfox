@@ -118,17 +118,15 @@ export const BaseFetcher = class {
       if (target instanceof FetchInstructions) {
         url = options?.url;
       } else {
+        let u;
         try {
-          new URL(url);
+          u = new URL(url);
         } catch {
           return null;
         }
-  
-        const exclude = ['javascript:', 'mailto:'];
-        for (const e of exclude) {
-          if (url.indexOf(e) == 0) {
-            return null;
-          }
+
+        if (!['http:', 'https:'].includes(u.protocol)) {
+          return null;
         }
       }
 
@@ -427,6 +425,14 @@ export const BaseFetcher = class {
       await this.finishGoto(myCtx);
     }
   }
+
+  // async act(action, ctx) {
+  //   console.log('call this._act');
+  //   return this._act(action, ctx);
+  //   // for await (const doc of this._execute(instructions, url, ctx, options)) {
+  //   //   yield doc;
+  //   // }
+  // }
 
   async *execute(instructions, url, ctx, options) {
     for await (const doc of this._execute(instructions, url, ctx, options)) {

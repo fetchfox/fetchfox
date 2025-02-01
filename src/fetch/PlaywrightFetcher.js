@@ -41,7 +41,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async goto(url, ctx) {
-    const page = await ctx.browser.newPage()
+    const page = await ctx.browser.newPage();
 
     try {
       const { aborted } = await abortable(
@@ -79,39 +79,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return doc;
   }
 
-  async evaluate(fn, ctx) {
-    return ctx.page.evaluate(fn);
-  }
-
-  async click(selector, ctx) {
-    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
-      logger.warn(`{this} Invalid selector: ${selector}`);
-      return;
-    }
-
-    const loc = ctx.page.locator(selector);
-    if (!await loc.count()) {
-      logger.warn(`${this} Couldn't find selector=${selector}, not clicking`);
-      return;
-    }
-
-    const el = loc.first();
-    await el.scrollIntoViewIfNeeded();
-    return el.click();
-  }
-
-  async scroll(type, ctx) {
-    switch (type) {
-      case 'window':
-        return ctx.page.keyboard.press('PageDown');
-      case 'bottom':
-        /* eslint-disable no-undef */
-        return ctx.page.evaluate(() => window.scrollBy(0, window.innerHeight));
-        /* eslint-enable no-undef */
-      default:
-        logger.error(`${this} Unhandled scroll type: ${type}`);
-    }
-  }
 
   async _launch() {
     logger.debug(`Playwright launching...`);
@@ -161,6 +128,141 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
+  async execute2(instr) {
+    console.log('execute2', instr.url, instr.learned);
+
+    const indexes = new Array(instr.learned.length).fill(0);
+
+    let ctx = {};
+    await this.start(ctx);
+    ctx = { ...ctx, ...(await this.goto(instr.url, ctx)) };
+
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('');
+    // for (let i = 0; i < instr.learned.length; i++) {
+    let i = 0;
+
+    const docs = [];
+
+    let done = false;
+    while (!done) {
+      console.log(`iterate i=${i}, indexes=${indexes}`);
+
+      const success = await this.step(ctx, i, instr.learned, indexes);
+      const lastStep = i == instr.learned.length - 1;
+
+      console.log(`success-> ${success}, lastStep=${lastStep}`);
+
+      if (success) {
+        if (lastStep) {
+          indexes[i]++;
+          const doc = await this._docFromPage(ctx.page, ctx.timer);
+          docs.push(doc);
+        } else {
+          i++;
+        }
+      }
+
+      if (!success) {
+        if (i == 0) {
+          // End condition: we failed on the first action
+          done = true;
+        } else {
+          indexes[i - 1]++;
+          for (let j = i; j < instr.learned.length; j++) {
+            indexes[j] = 0;
+          }
+          i = 0;
+        }
+      }
+      console.log('');
+    }
+
+    console.log('got docs:');
+    for (const doc of docs) {
+      console.log(`- ${doc}`);
+    }
+
+    await this.finish(ctx);
+
+    return docs;
+  }
+
+  async step(ctx, i, actions, indexes) {
+    console.log('  step ->', i, actions[i]);
+
+    const action = actions[i];
+    const success = await this.act(ctx, action, indexes[i]);
+    return success;
+  }
+
+  async act(ctx, action, index) {
+    switch (action.type) {
+      case 'click':
+        return await this.click2(ctx, action.arg, index);
+
+      default:
+        throw new Error(`Unhandled action type: ${action.type}`);
+    }
+  }
+
+  async click2(ctx, selector, index) {
+    console.log('click:', selector);
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
+      logger.warn(`{this} Invalid selector: ${selector}`);
+      return false;
+    }
+    const loc = ctx.page.locator(selector);
+    if (await loc.count() <= index) {
+      logger.warn(`${this} Couldn't find selector=${selector} index=${index}, not clicking`);
+      return false;
+    }
+    // const el = loc.first();
+    const count = await loc.count();
+    console.log('==>count:', count);
+    const el = loc.nth(index);
+    await el.scrollIntoViewIfNeeded();
+    console.log('clicking2:', el);
+    await el.click();
+    return true;
+  }
+
+  async evaluate(fn, ctx) {
+    return ctx.page.evaluate(fn);
+  }
+
+  async click(selector, ctx) {
+    console.log('click:', selector);
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
+      logger.warn(`{this} Invalid selector: ${selector}`);
+      return;
+    }
+    const loc = ctx.page.locator(selector);
+    if (!await loc.count()) {
+      logger.warn(`${this} Couldn't find selector=${selector}, not clicking`);
+      return;
+    }
+    const el = loc.first();
+    await el.scrollIntoViewIfNeeded();
+    console.log('clicking:', el);
+    return el.click();
+  }
+
+  async scroll(type, ctx) {
+    switch (type) {
+      case 'window':
+        return ctx.page.keyboard.press('PageDown');
+      case 'bottom':
+        /* eslint-disable no-undef */
+        return ctx.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        /* eslint-enable no-undef */
+      default:
+        logger.error(`${this} Unhandled scroll type: ${type}`);
+    }
+  }
+
   async *_execute(instructions, url, ctx) {
     const browser = ctx.browser;
     const page = await ctx.browser.newPage();
@@ -186,15 +288,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             // Convert htmlContent to Document instance
             const doc = new Document();
             await doc.read(
-                {
-                    text: async () => htmlContent,
-                    url: newUrl,
-                    status: 200,
-                    headers: {}
-                }, 
-                newUrl,
-                null,
-                { url: newUrl }
+              {
+                text: async () => htmlContent,
+                url: newUrl,
+                status: 200,
+                headers: {}
+              }, 
+              newUrl,
+              null,
+              { url: newUrl }
             );
 
             yield Promise.resolve(doc);

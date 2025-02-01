@@ -43,23 +43,20 @@ Respond ONLY in JSON, with no explanation. Your response will be machine consume
 export const pageAction = new Template(
   ['html', 'prompt'],
   `You are part of a web scraping program. You are given some HTML and a goal.
-GOAL: {{prompt}}
+
+Your goal is: {{prompt}}
 
 Your task is to determine the **most direct action** to achieve the goal **without unnecessary intermediate steps**.
 
-Respond with JSON as follows:
+Respond with JSONL, with JSON object in lines as follows:
 
-{
-  "actionAnalysis": "string...",
-  "actionCommand": "string...",
-  "actionArgument": "string..."
-}
+{ "actionAnalysis": "string...", "actionElementCss": "string...", "actionElementText": "string...", "actionType": "string...", "actionArgument": "string..." }
 
 - "actionAnalysis": 10-30 word English description of what action should be taken on the page, or if no action is required.
 - "actionElementCss": "css selector of the element that needs interaction, if one exists. null otherwise",
 - "actionElementText": "text of the element to be used for an xpath selector, if relevant. null otherwise",
-- "actionCommand": The action to perform:
-  - "click" if you need to click a button, link, or other clickable element, there can be multiple clickable elements.
+- "actionType": The action to perform:
+  - "click" if you need to click on elements, links, or other clickable elements. There can be multiple clickable elements, in which case your selector shoudl match all of them.
   - "scroll" if scrolling is needed to trigger content or reveal a hidden element.
   - "evaluate" if a more complex action requires executing JavaScript directly on the page.
   - "none" if no action is required.
@@ -74,10 +71,15 @@ Follow these important rules:
 - Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
 - Avoid hardcoding specific text or values when possible. Instead, try to generalize the command to make it reusable across different pages.
 - Keep the CSS selectors as simple and specific as possible, making them compatible with document.querySelector().
+- Do NOT use ":contains(...)" pseudo selector
 - If no action is needed, return "none" as the command.
+- You might need one or two commands to complete action, maybe three, but usually not that many
 
 >>>> Analyze this HTML:
 {{html}}
 
-Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse()
+>>>> Remember, your goal is this:
+{{prompt}}
+
+Respond ONLY in JSONL, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
 `);

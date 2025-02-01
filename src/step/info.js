@@ -1,5 +1,4 @@
 export const nameMap = {
-  PageActionStep: 'action',
   ConstStep: 'const',
   CrawlStep: 'crawl',
   DeepCrawlStep: 'deepcrawl',

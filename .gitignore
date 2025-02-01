@@ -3,6 +3,6 @@ Makefile
 .test-cache
 bugs
 
-# IDE related things
+# IDEs
 .vscode
 .idea

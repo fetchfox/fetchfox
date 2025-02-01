@@ -13,8 +13,7 @@ export { Document } from './document/Document.js';
 
 export { Crawler } from './crawl/Crawler.js';
 
-export { Fetcher } from './fetch/Fetcher.js';
-export { BaseFetcher } from './fetch/BaseFetcher.js';
+export * from './fetch/index.js';
 
 export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
 export { CodeGenExtractor } from './extract/CodeGenExtractor.js';
