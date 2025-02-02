@@ -163,3 +163,25 @@ export const Instructions = class {
   }
 
 }
+
+
+// TODO: loop in domain specific instructions for pagination
+      // const targetUrl = new URL(url).href;
+      // let domainSpecific = [
+      //   {
+      //     prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/, instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+      //   },
+      //   {
+      //     prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/, instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`
+      //   },
+      //   {
+      //     prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/, instruction: 'You are on Google Maps, which paginates by bringing the results list into focus by clicking on it and then scrolling down one window length.'
+      //   },
+      // ]
+      // const match = domainSpecific.find(({ prefix }) => prefix.test(targetUrl));
+      // if (match) {
+      //   domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + match.instruction;
+      //   logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
+      // } else {
+      //   domainSpecific = '';
+      // }
