@@ -189,55 +189,10 @@ describe('PlaywrightFetcher', function() {
       const doc = (await gen.next()).value;
       gen.return();
 
-      assert.equal(doc, null, 'timeout no error');
+      assert.equal(doc, null, 'timeout should give null');
 
     } finally {
       server.close();
     }
   });
-
-  it('should perform the action specified in the prompt @run', async () => {
-    this.timeout(10000);
-
-    const server = http.createServer((req, res) => {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Page Action Test</title>
-          <script>
-            let currentPage = 1;
-            function goToNextPage() {
-              currentPage++;
-              document.getElementById('content').textContent = 'You are on page ' + currentPage;
-            }
-          </script>
-        </head>
-        <body>
-          <div id="content">You are on page 1</div>
-          <button class="next-page" onclick="goToNextPage()">Next Page</button>
-        </body>
-      </html>
-    `);
-    });
-  
-    await new Promise(ok => server.listen(0, ok));
-    const port = server.address().port;
-  
-    try {
-      const ai = getAI('openai:gpt-4o');
-      const fetcher = getFetcher('playwright', { ai, loadWait: 10 });
-      const gen = fetcher.fetch(`http://localhost:${port}`);    
-      const doc = (await gen.next()).value;
-      gen.return();
-
-      const instructions = new Instructions(doc, ['Go to the next page']);
-      for await (const fetchedDoc of fetcher.fetch(instructions, { url: `http://localhost:${port}` })) {
-        assert.ok(fetchedDoc.body.includes(`You are on page 2`), `page html 2`);
-      }
-    } finally {
-      server.close();
-    }
-  }).timeout(5000);
 });

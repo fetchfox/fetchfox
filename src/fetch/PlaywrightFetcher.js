@@ -128,53 +128,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async *execute(instr) {
-    logger.info(`${this} Execute instructions: ${instr.url} ${instr.learned}`);
-
-    const indexes = new Array(instr.learned.length).fill(0);
-
-    let ctx = {};
-    await this.start(ctx);
-    ctx = { ...ctx, ...(await this.goto(instr.url, ctx)) };
-
-    let i = 0;
-
-    let done = false;
-    while (!done) {
-      logger.debug(`${this} Execute instructions, iterate i=${i}, indexes=${indexes}`);
-
-      const action = instr.learned[i];
-      const success = await this.act(ctx, action, indexes[i]);
-
-      if (success) {
-        const isLast = i == instr.learned.length - 1;
-        if (isLast) {
-          indexes[i]++;
-          const doc = await this._docFromPage(ctx.page, ctx.timer);
-          logger.info(`${this} Executing instructions found: ${doc}`);
-          yield Promise.resolve(doc);
-        } else {
-          i++;
-        }
-      }
-
-      if (!success) {
-        if (i == 0) {
-          // End condition: we failed on the first action
-          done = true;
-        } else {
-          indexes[i - 1]++;
-          for (let j = i; j < instr.learned.length; j++) {
-            indexes[j] = 0;
-          }
-          i = 0;
-        }
-      }
-    }
-
-    await this.finish(ctx);
-  }
-
   async act(ctx, action, index) {
     logger.debug(`${this} Do action: ${JSON.stringify(action)} index=${index}`);
 

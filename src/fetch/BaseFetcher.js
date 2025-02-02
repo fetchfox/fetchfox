@@ -32,7 +32,7 @@ export const BaseFetcher = class {
     this.css = options?.css;
     this.signal = options?.signal;
     this.paginationWait = options?.paginationWait || this.loadWait || 4000;
-    this.loadTimeout = options?.loadTimeout || 15 * 1000;
+    this.loadTimeout = options?.loadTimeout || 15000;
   }
 
   toString() {
@@ -65,13 +65,47 @@ export const BaseFetcher = class {
 
     logger.info(`${this} Fetch ${target} with ${this}`);
 
-    let url;
-    if (typeof target == 'string') {
-      url = target;
-    } else if (typeof target.url == 'string') {
-      url = target.url;
-    } else if (typeof target._url == 'string') {
-      url = target._url;
+    const toInstructions = (target) => {
+      let instr;
+      if (target instanceof Instructions) {
+        instr = target;
+      } else {
+        let url;
+        if (typeof target == 'string') {
+          url = target;
+        } else if (typeof target.url == 'string') {
+          url = target.url;
+        } else if (typeof target._url == 'string') {
+          url = target._url;
+        }
+
+        instr = new Instructions(
+          url,
+          [],
+          { ai: this.ai, loadTimeout: this.loadTimeout });
+      }
+
+      const maxPages = options?.maxPages || 0;
+      if (maxPages > 1) {
+        instr.unshiftCommand({
+          prompt: 'go to the next page (if pagination is possible)',
+          max: 1,
+          repeat: maxPages,
+        });
+      }
+
+      return instr;
+    }
+
+    const instr = toInstructions(target);
+    try {
+      const url = new URL(instr.url);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        logger.debug(`${this} Skipping because of protocol: ${url}`);
+        return null;
+      }
+    } catch {
+      return null;
     }
 
     // Pull out options that affect caching
@@ -81,7 +115,7 @@ export const BaseFetcher = class {
 
     let cached;
     try {
-      cached = await this.getCache(url, cacheOptions);
+      cached = await this.getCache(instr.serialize(), cacheOptions);
     } catch (e) {
       logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
@@ -115,23 +149,8 @@ export const BaseFetcher = class {
 
     try {
 
-      if (target instanceof Instructions) {
-        url = options?.url;
-      } else {
-        let u;
-        try {
-          u = new URL(url);
-        } catch {
-          return null;
-        }
-
-        if (!['http:', 'https:'].includes(u.protocol)) {
-          return null;
-        }
-      }
-
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
-      logger.debug(`${this} Adding to fetch queue: ${url} ${debugStr()}`);
+      logger.debug(`${this} Adding to fetch queue: ${instr} ${debugStr()}`);
       const priority = options?.priority || 1;
 
       // Use channel + promise wrapper to convert async generator into a
@@ -145,42 +164,31 @@ export const BaseFetcher = class {
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok) => {
-            logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
+            logger.debug(`${this} Queue is starting fetch of: ${instr} ${debugStr()}`);
 
             const ctx = { timer };
             try {
               await this.start(ctx);
             } catch (e) {
-              logger.error(`${this} Could not start, skipping ${url}: ${e}`);
+              logger.error(`${this} Could not start, skipping ${instr}: ${e}`);
               ok();
               return;
             }
 
             try {
-              logger.debug(`${this} Starting at ${url}`);
-              
-              // Don't break existing pagination behavior for now
-              if (target instanceof Instructions) {
-                const instructions = [];
-                for await (const val of target.fetch()) {
-                  instructions.push(val);
+              logger.debug(`${this} Starting at ${instr}`);
+
+              const maxPages = options?.maxPages || 0;
+              await instr.learn(this);
+
+              const gen = await instr.execute(this);
+              for await (const doc of gen) {
+                if (this.signal?.aborted) {
+                  break;
                 }
-                
-                for await (const doc of this.execute(instructions, url, ctx, options)) {
-                  if (this.signal?.aborted) {
-                    break;
-                  }
-                  
-                  channel.send({ doc });
-                }
-              } else {
-                for await (const doc of this.paginate(url, ctx, options)) {
-                  if (this.signal?.aborted) {
-                    break;
-                  }
-                  channel.send({ doc });
-                }
+                channel.send({ doc });
               }
+
             } catch (e) {
               logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
             }
@@ -223,10 +231,10 @@ export const BaseFetcher = class {
           if (this.s3) {
             const bucket = this.s3.bucket;
             const region = this.s3.region;
-            const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
+            const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{instr.url}.html';
             const acl = this.s3.acl || '';
             const id = srid(10);
-            const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
+            const cleanUrl = instr.url.replace(/[^A-Za-z0-9]+/g, '-');
             const key = keyTemplate
               .replaceAll('{id}', id)
               .replaceAll('{url}', cleanUrl);
@@ -258,7 +266,7 @@ export const BaseFetcher = class {
       if (docs.length) {
         Promise
           .all(docs.map(doc => doc.dump()))
-          .then((all) => this.setCache(url, cacheOptions, all))
+          .then((all) => this.setCache(instr.serialize(), cacheOptions, all))
           .catch((e) => {
             logger.error(`${this} Error while caching docs cache, ignoring: ${e}`);
           });
@@ -423,20 +431,6 @@ export const BaseFetcher = class {
       throw e;
     } finally {
       await this.finishGoto(myCtx);
-    }
-  }
-
-  // async act(action, ctx) {
-  //   console.log('call this._act');
-  //   return this._act(action, ctx);
-  //   // for await (const doc of this._execute(instructions, url, ctx, options)) {
-  //   //   yield doc;
-  //   // }
-  // }
-
-  async *execute(instructions, url, ctx, options) {
-    for await (const doc of this._execute(instructions, url, ctx, options)) {
-      yield doc;
     }
   }
 
