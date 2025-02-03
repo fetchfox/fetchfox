@@ -285,7 +285,6 @@ describe('Instructions', function() {
 
       const instr = new Instructions(url, commands, { ai });
       await instr.learn(fetcher);
-      console.log(instr);
 
       const gen = await instr.execute(fetcher);
       const docs = [];
@@ -294,14 +293,20 @@ describe('Instructions', function() {
         ['Page 1', 'Profile content 1'],
         ['Page 1', 'Profile content 2'],
         ['Page 1', 'Profile content 3'],
+        ['Page 1', 'Profile content 4'],
+        ['Page 1', 'Profile content 5'],
 
         ['Page 2', 'Profile content 6'],
         ['Page 2', 'Profile content 7'],
         ['Page 2', 'Profile content 8'],
+        ['Page 2', 'Profile content 9'],
+        ['Page 2', 'Profile content 10'],
 
         ['Page 3', 'Profile content 11'],
         ['Page 3', 'Profile content 12'],
         ['Page 3', 'Profile content 13'],
+        ['Page 3', 'Profile content 14'],
+        ['Page 3', 'Profile content 15'],
       ];
 
       let i = 0;
@@ -317,25 +322,19 @@ describe('Instructions', function() {
         const page = $('#page-label').text();
         const profile = $('#profile').text();
 
-        console.log('\n\tgot -->', page, profile);
+        console.log('got -->', page, profile);
 
-        // assert.equal(page, expected[i][0]);
-        // assert.equal(profile, expected[i][1]);
+        assert.equal(page, expected[i][0]);
+        assert.equal(profile, expected[i][1]);
 
         i++;
       }
 
       console.log('final usage:', usage);
 
-      return;
-
-      // assert.equal(docs.length, 5);
-      // let i = 0;
-      // for (const doc of docs) {
-      //   const expected = 'You are on page ' + (i + 1);
-      //   i++;
-      //   assert.ok(doc.html.includes(expected), `expect ${expected}`);
-      // }
+      assert.equal(usage.goto, 4, 'expected 4 gotos');
+      assert.equal(usage.actions[0], 3, 'expected 3 next page clicks');
+      assert.equal(usage.actions[1], 18, 'expected 18 (15 success + 3 failed) profile button clicks');
 
     } finally {
       server.close();

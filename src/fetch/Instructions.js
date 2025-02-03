@@ -128,11 +128,9 @@ export const Instructions = class {
 
         if (st.repeat) {
           for (let j = st.repetition; j < targetSt.repetition; j++) {
-            console.log('advance: exec action (r)', action.arg);
             ok &&= await act(i, st.index);
           }
         } else if (st.index != targetSt.index) {
-          console.log('advance: exec last & leaf action (x)', action.arg);
 
           // Execute on index - 1.
           // The -1 is because advanceToState is called after incrementing
@@ -175,6 +173,8 @@ export const Instructions = class {
       await goto();
 
       let i = 0;
+
+      // First step will be a no-op, because targetState == state
       let targetState = JSON.parse(JSON.stringify(state));
 
       while (true) {
