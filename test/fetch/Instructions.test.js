@@ -322,15 +322,11 @@ describe('Instructions', function() {
         const page = $('#page-label').text();
         const profile = $('#profile').text();
 
-        console.log('got -->', page, profile);
-
         assert.equal(page, expected[i][0]);
         assert.equal(profile, expected[i][1]);
 
         i++;
       }
-
-      console.log('final usage:', usage);
 
       assert.equal(usage.goto, 4, 'expected 4 gotos');
       assert.equal(usage.actions[0], 3, 'expected 3 next page clicks');
