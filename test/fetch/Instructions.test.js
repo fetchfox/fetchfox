@@ -67,7 +67,7 @@ describe('Instructions', function() {
 
       const commands = [
         { prompt: 'click to go to the next page', max: 3, repeat: 3 },
-        { prompt: 'click each profile link', max: 3 },
+        { prompt: 'click each profile link', max: 4 },
       ];
 
       const instr = new Instructions(url, commands, { ai });
@@ -80,19 +80,16 @@ describe('Instructions', function() {
         ['Page 1', 'Profile content 2'],
         ['Page 1', 'Profile content 3'],
         ['Page 1', 'Profile content 4'],
-        ['Page 1', 'Profile content 5'],
 
         ['Page 2', 'Profile content 6'],
         ['Page 2', 'Profile content 7'],
         ['Page 2', 'Profile content 8'],
         ['Page 2', 'Profile content 9'],
-        ['Page 2', 'Profile content 10'],
 
         ['Page 3', 'Profile content 11'],
         ['Page 3', 'Profile content 12'],
         ['Page 3', 'Profile content 13'],
         ['Page 3', 'Profile content 14'],
-        ['Page 3', 'Profile content 15'],
       ];
 
       let i = 0;
@@ -113,8 +110,8 @@ describe('Instructions', function() {
 
         console.log(`result page=${page} profile=${profile}`);
 
-        // assert.equal(page, expected[i][0]);
-        // assert.equal(profile, expected[i][1]);
+        assert.equal(page, expected[i][0]);
+        assert.equal(profile, expected[i][1]);
 
         i++;
       }

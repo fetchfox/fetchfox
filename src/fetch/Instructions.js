@@ -126,7 +126,7 @@ export const Instructions = class {
     const act = async (i, state) => {
       const action = this.learned[i];
 
-      if (state[i].repeat && state[i].repetition > state[i].repeat) {
+      if (state[i].repeat && state[i].repetition >= state[i].repeat) {
         console.log('max repeat');
         return false;
       }
@@ -154,41 +154,12 @@ export const Instructions = class {
       return ok;
     }
 
-    const advanceToState = async (state, targetState) => {
-      let ok = true;
-
-      for (let i = 0; i < state.length; i++) {
-        const st = state[i];
-        const targetSt = targetState[i];
-        const action = this.learned[i];
-
-        if (st.repeat) {
-          for (let j = st.repetition; j < targetSt.repetition; j++) {
-            ok &&= await act(i, st.index);
-          }
-        } else if (st.index != targetSt.index) {
-
-          // Execute on index - 1.
-          // The -1 is because advanceToState is called after incrementing
-          // the state, so the index is exactly 1 more than what we need to
-          // interact with.
-          ok &&= await act(i, targetSt.index - 1);
-        }
-      }
-
-      return ok;
-    }
-
     const goto = async () => {
       usage.goto++;
       ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
 
       // console.log('goto wait');
       // await new Promise(ok => setTimeout(ok, 4000));
-
-      // await new Promise(ok => setTimeout(ok, 5000));
-      // throw 'STOP';
-
     }
 
     const done = (state) => {
@@ -216,24 +187,23 @@ export const Instructions = class {
       return doc;
     }
 
-    // let state = zeroState();
-
     await fetcher.start(ctx);
 
     try {
-      // await goto();
-      // if (!this.learned || this.learned.length == 0) {
-      //   const doc = await current();
-      //   yield Promise.resolve({ doc });
-      //   return;
-      // }
+      await goto();
 
-      let m = 0;
+      if (!this.learned || this.learned.length == 0) {
+        const doc = await current();
+        yield Promise.resolve({ doc });
+        return;
+      }
+
+      // let m = 0;
       await goto();
       let state = zeroState();
 
       while (true) {
-        console.log('===>', m);
+        // console.log('===>', m);
 
         await goto();
 
@@ -252,6 +222,12 @@ export const Instructions = class {
         }
         j--;
 
+        if (!ok && j == 0) {
+          console.log('first step not ok, done');
+          // throw 'stop done';
+          return;
+        }
+
         if (!ok) {
           j--;
         }
@@ -267,71 +243,10 @@ export const Instructions = class {
           yield Promise.resolve({ doc });
         }
 
-        m++;
-        if (m >= 10) {
-          throw 'stop';
-        }
-      }
-
-      throw 'xyz';
-
-      // First step will be a no-op, because targetState == state
-      let targetState = JSON.parse(JSON.stringify(state));
-      let i = 0;
-
-      while (true) {
-        if (done(targetState)) {
-          logger.debug(`${this} done() gave true`);
-          break;
-        }
-
-        const ok = await advanceToState(state, targetState);
-
-        console.log('ok?', ok);
-
-        state = targetState;
-        const isLast = i == this.learned.length - 1;
-
-        if (ok) {
-          if (isLast) {
-            const doc = await current();
-            yield Promise.resolve({ doc });
-
-            // Update the target state for next time
-            targetState = incrState(i, targetState);
-
-            // Go back to start and restore the state from there
-            i = 0;
-            await goto();
-            state = zeroState();
-            
-          } else {
-            i++;
-
-            // Update the target state for next time
-            targetState = incrState(i, targetState);
-          }
-        } else {
-          throw 'unhandled';
-
-          if (i == 0) {
-            console.log('i == 0, break');
-            break; // first level failed, all done
-          }
-
-          // Increment prev level
-          targetState = incrState(i - 1, targetState);
-
-          // Zero out this and downstream levels
-          for (let j = i; j < this.learned.length; j++) {
-            targetState[j] = zero(this.learned[j]);
-          }
-
-          // Go back to start and restore the state from there
-          i = 0;
-          await goto();
-          state = zeroState();
-        }
+        // m++;
+        // if (m >= 10) {
+        //   throw 'stop';
+        // }
       }
 
     } finally {
