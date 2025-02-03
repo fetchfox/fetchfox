@@ -58,7 +58,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return { page };
   }
 
-  async finishGoto() {
+  async finishGoto(ctx) {
+    return ctx.page && ctx.page.close();
   }
 
   async current(ctx) {

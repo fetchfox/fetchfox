@@ -148,8 +148,8 @@ export const Instructions = class {
         ok &&= await fetcher.act(ctx, action, index);
       }
 
-      // console.log('act wait');
-      // await new Promise(ok => setTimeout(ok, 4000));
+      console.log('act wait');
+      await new Promise(ok => setTimeout(ok, 4000));
 
       return ok;
     }
@@ -158,8 +158,8 @@ export const Instructions = class {
       usage.goto++;
       ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
 
-      // console.log('goto wait');
-      // await new Promise(ok => setTimeout(ok, 4000));
+      console.log('goto wait');
+      await new Promise(ok => setTimeout(ok, 4000));
     }
 
     const done = (state) => {
@@ -190,8 +190,7 @@ export const Instructions = class {
     await fetcher.start(ctx);
 
     try {
-      await goto();
-
+      // await goto();
       if (!this.learned || this.learned.length == 0) {
         const doc = await current();
         yield Promise.resolve({ doc });
@@ -199,7 +198,7 @@ export const Instructions = class {
       }
 
       // let m = 0;
-      await goto();
+      // await goto();
       let state = zeroState();
 
       while (true) {
@@ -220,6 +219,7 @@ export const Instructions = class {
             break;
           }
         }
+
         j--;
 
         if (!ok && j == 0) {
@@ -243,10 +243,10 @@ export const Instructions = class {
           yield Promise.resolve({ doc });
         }
 
-        // m++;
-        // if (m >= 10) {
-        //   throw 'stop';
-        // }
+        fetcher.finishGoto(ctx)
+          .catch((e) => {
+            logger.warn(`${this} Ignoring finish goto error: ${e}`);
+          });
       }
 
     } finally {
