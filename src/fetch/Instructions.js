@@ -137,15 +137,16 @@ export const Instructions = class {
         return false;
       }
 
-      usage.actions[i]++;
 
       let ok = true; 
       if (state[i].repeat) {
         for (let r = 0; r < state[i].repetition; r++) {
           ok &&= await fetcher.act(ctx, action, index);
+          usage.actions[i]++;
         }
       } else {
         ok &&= await fetcher.act(ctx, action, index);
+        usage.actions[i]++;
       }
 
       return ok;
@@ -196,7 +197,7 @@ export const Instructions = class {
 
         if (!ok && j == 0) {
           logger.debug(`${this} First step not ok, done`);
-          return;
+          break;
         }
 
         if (!ok) {

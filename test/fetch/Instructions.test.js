@@ -112,9 +112,9 @@ describe('Instructions', function() {
         i++;
       }
 
-      // assert.equal(usage.goto, 4, 'expected 4 gotos');
-      // assert.equal(usage.actions[0], 3, 'expected 3 next page clicks');
-      // assert.equal(usage.actions[1], 18, 'expected 18 (15 success + 3 failed) profile button clicks');
+      assert.equal(usage.goto, 16, 'expected 16 gotos');
+      assert.equal(usage.actions[0], 15, 'expected 15 (12 success + 3 failed) next page clicks');
+      assert.equal(usage.actions[1], 12, 'expected 12 profile button clicks');
 
     } finally {
       server.close();
