@@ -102,9 +102,7 @@ export const Instructions = class {
     }
 
     const incrState = (i, state) => {
-      // console.log('incr state', i, state);
       const copy = JSON.parse(JSON.stringify(state));
-      // console.log('copy ', copy);
 
       if (copy[i].repeat) {
         copy[i].repetition++;
@@ -116,17 +114,12 @@ export const Instructions = class {
     }
 
     const act = (i, index) => {
-      console.log('** ACT', i);
       usage.actions[i]++;
       return fetcher.act(ctx, this.learned[i], index);
     }
 
     const advanceToState = async (state, targetState) => {
       let ok = true;
-
-      console.log('advanceToState, from  ', state);
-      console.log('advanceToState, target', targetState);
-
 
       for (let i = 0; i < state.length; i++) {
         const st = state[i];
@@ -136,33 +129,15 @@ export const Instructions = class {
         if (st.repeat) {
           for (let j = st.repetition; j < targetSt.repetition; j++) {
             console.log('advance: exec action (r)', action.arg);
-
-            // check that we are under the max times to repeat
-            ok &&= j < st.repeat;
-
-            // let doc;
-            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-            // console.log('doc before action:', doc.html);
-
-            // if yes, check that we successfully execute this action
-            console.log('-> do action');
             ok &&= await act(i, st.index);
-
-            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-            // console.log('doc AFTER action:', doc.html);
-            // console.log('');
-            // console.log('');
           }
         } else if (st.index != targetSt.index) {
           console.log('advance: exec last & leaf action (x)', action.arg);
 
-          // TODO: check `st.max` here
-
           // Execute on index - 1.
-          // Subtract 1 because advanceToState is called after incrementing
+          // The -1 is because advanceToState is called after incrementing
           // the state, so the index is exactly 1 more than what we need to
           // interact with.
-          // ok &&= await fetcher.act(ctx, action, targetSt.index - 1);
           ok &&= await act(i, targetSt.index - 1);
         }
       }
@@ -171,7 +146,6 @@ export const Instructions = class {
     }
 
     const goto = async () => {
-      console.log('==== goto ====');
       usage.goto++;
       ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
     }
@@ -196,17 +170,14 @@ export const Instructions = class {
     let state = zeroState();
 
     await fetcher.start(ctx);
+
     try {
       await goto();
 
       let i = 0;
-
       let targetState = JSON.parse(JSON.stringify(state));
 
       while (true) {
-        // let targetState;
-        // targetState = incrState(i, state);
-
         if (done(targetState)) {
           break;
         }
@@ -217,14 +188,13 @@ export const Instructions = class {
 
         if (ok) {
           if (isLast) {
-            console.log('ok & last --> yield');
             const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
             yield Promise.resolve({ doc });
           } else {
-            console.log('ok & !last --> i++');
             i++;
           }
 
+          // Update the target state for next time
           targetState = incrState(i, targetState);
 
         } else {
@@ -232,26 +202,19 @@ export const Instructions = class {
             break; // first level failed, all done
           }
 
-          console.log('!ok --> backtrack + incr');
-
-          // increment prev level
+          // Increment prev level
           targetState = incrState(i - 1, targetState);
 
-          // zero out this and downstream levels
+          // Zero out this and downstream levels
           for (let j = i; j < this.learned.length; j++) {
             targetState[j] = zero(this.learned[j]);
           }
 
-          // go back to start
+          // Go back to start and restore the state from there
           i = 0;
           await goto();
-          console.log('=== restore state ===');
-          await advanceToState(zeroState(), targetState);
-          console.log('=== restore state DONE ===');
-
-          state = targetState;
+          state = zeroState();
         }
-
       }
 
     } finally {
