@@ -62,7 +62,9 @@ describe('Instructions', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o', { cache });
-      const fetcher = getFetcher('playwright', { ai, loadWait: 10, headless: true });
+      const fetcher = getFetcher(
+        'playwright',
+        { ai, loadWait: 1, actionWait: 1, headless: true });
       const url = `http://localhost:${port}`;
 
       const commands = [

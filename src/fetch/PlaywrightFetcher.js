@@ -22,20 +22,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.headless = options?.headless === undefined ? true : options?.headless;
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
-
-    // TODO: these options should be passed in in `fetch`
-    this.loadWait = options?.loadWait || 4000;
-    this.timeoutWait = options?.timeoutWait || 15000;
     this.pullIframes = options?.pullIframes;
-
-    this.options = options?.options || {};
   }
 
   cacheOptions() {
     return {
       browser: 'chromium',
       loadWait: this.loadWait,
-      timeoutWait: this.timeoutWait,
       waitForText: this.waitForText,
     };
   }
@@ -94,7 +87,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           promise = chromium.connectOverCDP(this.cdp);
         } else {
           logger.debug(`Playwright using local Chromium, attempt=${i}`);
-          const x = { ...this.options, headless: this.headless };
+          const x = { headless: this.headless };
           console.log('x', x);
           promise = chromium.launch(x);
         }
@@ -134,16 +127,25 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   async act(ctx, action, index) {
     logger.debug(`${this} Do action: ${JSON.stringify(action)} index=${index}`);
 
+    let ok;
+
     switch (action.type) {
       case 'click':
-        return this.click(ctx, action.arg, index);
+        ok = await this.click(ctx, action.arg, index);
+        break;
 
       case 'scroll':
-        return this.scroll(ctx, action.arg, index);
+        ok = await this.scroll(ctx, action.arg, index);
+        break;
 
       default:
         throw new Error(`Unhandled action type: ${action.type}`);
     }
+
+    logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
+    ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
+
+    return ok;
   }
 
   async click(ctx, selector, index) {
@@ -263,7 +265,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 }
 
 const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
-  logger.debug(`Playwright waiting ${(loadWait/1000).toFixed(1)} sec`);
+  logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 
   if (pullIframes) {

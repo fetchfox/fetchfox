@@ -148,37 +148,12 @@ export const Instructions = class {
         ok &&= await fetcher.act(ctx, action, index);
       }
 
-      console.log('act wait');
-      await new Promise(ok => setTimeout(ok, 4000));
-
       return ok;
     }
 
     const goto = async () => {
       usage.goto++;
       ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
-
-      console.log('goto wait');
-      await new Promise(ok => setTimeout(ok, 4000));
-    }
-
-    const done = (state) => {
-      console.log('check done', state);
-
-      if (state[0].repeat && state[0].repetition > state[0].repeat) {
-        throw new Error('unexpected state');
-      }
-      if (state[0].repeat && state[0].repetition == state[0].repeat) {
-        return true;
-      }
-      if (state[0].index > state[0].max) {
-        throw new Error('unexpected state');
-      }
-      if (state[0].index == state[0].max) {
-        return true;
-      }
-
-      return false;
     }
 
     const current = async () => {
@@ -190,20 +165,17 @@ export const Instructions = class {
     await fetcher.start(ctx);
 
     try {
-      // await goto();
       if (!this.learned || this.learned.length == 0) {
+        // No actions, just a simple URL goto
+        await goto();
         const doc = await current();
         yield Promise.resolve({ doc });
         return;
       }
 
-      // let m = 0;
-      // await goto();
       let state = zeroState();
 
       while (true) {
-        // console.log('===>', m);
-
         await goto();
 
         let j;
@@ -224,7 +196,6 @@ export const Instructions = class {
 
         if (!ok && j == 0) {
           console.log('first step not ok, done');
-          // throw 'stop done';
           return;
         }
 

@@ -31,7 +31,10 @@ export const BaseFetcher = class {
     this.s3 = options?.s3;
     this.css = options?.css;
     this.signal = options?.signal;
-    this.paginationWait = options?.paginationWait || this.loadWait || 4000;
+
+    this.loadWait = options?.loadWait || 4000;
+    this.actionWait = options?.actionWait || 2000;
+    this.paginationWait = options?.paginationWait || this.loadWait;
     this.loadTimeout = options?.loadTimeout || 15000;
   }
 
