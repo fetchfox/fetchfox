@@ -75,8 +75,6 @@ describe('Instructions', function() {
       const instr = new Instructions(url, commands, { ai });
       await instr.learn(fetcher);
 
-      console.log(instr.learned);
-
       const expected = [
         ['Page 1', 'Profile content 1'],
         ['Page 1', 'Profile content 2'],
@@ -100,8 +98,6 @@ describe('Instructions', function() {
       let usage;
       const gen = instr.execute(fetcher);
       for await ({ doc, usage } of gen) {
-        console.log('got gen' + doc);
-
         if (!doc) {
           continue;
         }
@@ -109,8 +105,6 @@ describe('Instructions', function() {
         const $ = cheerio.load(doc.html);
         const page = $('#page-label').text();
         const profile = $('#profile').text();
-
-        console.log(`result page=${page} profile=${profile}`);
 
         assert.equal(page, expected[i][0]);
         assert.equal(profile, expected[i][1]);

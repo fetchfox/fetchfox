@@ -127,13 +127,13 @@ export const Instructions = class {
       const action = this.learned[i];
 
       if (state[i].repeat && state[i].repetition >= state[i].repeat) {
-        console.log('max repeat');
+        logger.debug(`${this} Max repetitions on ${JSON.stringify(state)}`);
         return false;
       }
 
       const index = state[i].index;
       if (index >= state[i].max) {
-        console.log('max index');
+        logger.debug(`${this} Max index on ${JSON.stringify(state)}`);
         return false;
       }
 
@@ -166,7 +166,7 @@ export const Instructions = class {
 
     try {
       if (!this.learned || this.learned.length == 0) {
-        // No actions, just a simple URL goto
+        logger.debug(`${this} No actions, just a simple URL goto`);
         await goto();
         const doc = await current();
         yield Promise.resolve({ doc });
@@ -182,7 +182,7 @@ export const Instructions = class {
         let ok;
         for (j = 0; j < state.length; j++) {
           ok = await act(j, state);
-          console.log('ok?', ok, state);
+          logger.debug(`${this} Execute iteration ${j} ok=${ok} state=${JSON.stringify(state)}`);
           if (!ok) {
             for (let k = j; k < this.learned.length; k++) {
               state[k] = zero(this.learned[k]);
@@ -195,7 +195,7 @@ export const Instructions = class {
         j--;
 
         if (!ok && j == 0) {
-          console.log('first step not ok, done');
+          logger.debug(`${this} First step not ok, done`);
           return;
         }
 
@@ -204,13 +204,11 @@ export const Instructions = class {
         }
 
         state = incrState(j, state);
-
-        console.log('state after iteration:', state);
-        console.log('---');
+        logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
 
         if (ok) {
           const doc = await current();
-          console.log('--> yield:' + doc);
+          logger.debug(`${this} Yielding a document: ${doc}`);
           yield Promise.resolve({ doc });
         }
 

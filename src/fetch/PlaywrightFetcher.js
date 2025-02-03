@@ -87,9 +87,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           promise = chromium.connectOverCDP(this.cdp);
         } else {
           logger.debug(`Playwright using local Chromium, attempt=${i}`);
-          const x = { headless: this.headless };
-          console.log('x', x);
-          promise = chromium.launch(x);
+          promise = chromium.launch({ headless: this.headless });
         }
         const browser = await promise;
         return browser;
