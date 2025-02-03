@@ -42,7 +42,7 @@ export const Planner = class {
   }
 
   async planArray(stepsInput) {
-    logger.debug(`Plan from array: ${stepsInput}`);
+    logger.debug(`Plan from array: ${JSON.stringify(stepsInput)}`);
 
     const objs = [];
 

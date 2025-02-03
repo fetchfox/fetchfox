@@ -123,7 +123,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, index) {
-    logger.debug(`${this} Do action: ${JSON.stringify(action)} index=${index}`);
+    logger.trace(`${this} Do action: ${JSON.stringify(action)} index=${index}`);
 
     let ok;
 
@@ -182,7 +182,25 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return true;
       case 'bottom':
         /* eslint-disable no-undef */
-        await ctx.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        await ctx.page.evaluate(async () => {
+          const scrollToBottom = async () => {
+            const top = document.documentElement.scrollHeight;
+            console.log('scrollToBottom got top:', top);
+            return new Promise((ok) => {
+              console.log('inside promise');
+              const fn = () => {
+                console.log('scrollend cb');
+                document.removeEventListener('scrollend', fn);
+                ok();
+              }
+              document.addEventListener('scrollend', fn);
+              window.scrollTo({ top, behavior: 'smooth' });
+            });
+          }
+
+          console.log('start scrollToBottom');
+          await scrollToBottom();
+        });
         return true;
         /* eslint-enable no-undef */
       default:

@@ -18,7 +18,7 @@ export const Instructions = class {
   }
 
   toString() {
-    return `[${this.constructor.name}: ${this.url}]`;
+    return `[${this.constructor.name}]`;
   }
 
   serialize() {
@@ -137,7 +137,6 @@ export const Instructions = class {
         return false;
       }
 
-
       let ok = true; 
       if (state[i].repeat) {
         for (let r = 0; r < state[i].repetition; r++) {
@@ -178,6 +177,7 @@ export const Instructions = class {
 
       while (true) {
         await goto();
+        await current();  // Don't use doc, but this is needed to check load conditions
 
         let j;
         let ok;

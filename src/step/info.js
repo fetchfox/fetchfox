@@ -3,6 +3,7 @@ export const nameMap = {
   CrawlStep: 'crawl',
   DeepCrawlStep: 'deepcrawl',
   ExtractStep: 'extract',
+  ActionStep: 'action',
   FetchStep: 'fetch',
   FilterStep: 'filter',
   LimitStep: 'limit',
@@ -138,6 +139,22 @@ export const stepDescriptionsMap = {
     },
   }),
 
+  action: combineInfo({
+    // The AI isn't smart enough to use this step
+    hideFromAI: true,
+
+    name: 'action',
+    description: 'Performn an action on the page',
+    args: {
+      commands: {
+        description: 'List of commands to perform on this page',
+        format: 'array',
+        example: ['Go through all the pages using next page', 'Click on each profile icon'],
+        required: true,
+      },
+    },
+  }),
+
   filter: combineInfo({
     name: 'filter',
     description: 'Filter results based on a user prompt',
@@ -183,20 +200,6 @@ export const stepDescriptionsMap = {
         format: 'array',
         example: ['username', 'subject'],
         required: false,
-      },
-    },
-  }),
-
-  action: combineInfo({
-    name: 'action',
-    description: 'Perform an action based on user prompts',
-    args: {
-      actions: {
-        description: 'An array of user prompts describing what to do.',
-        format: 'array',
-        example:
-          ['Click on the names of Pokemon on the page.', 'Go to the next page'],
-        required: true,
       },
     },
   }),
