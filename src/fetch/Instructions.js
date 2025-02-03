@@ -93,11 +93,50 @@ export const Instructions = class {
       };
     }
 
+    const zeroState = () => {
+      const state = [];
+      for (const action of this.learned) {
+        state.push(zero(action));
+      }
+      return state;
+    }
+
     const incr = (index) => {
       if (++index.repetition >= index.repeat) {
         index.repetition = 0;
         index.index++;
       }
+    }
+
+    const incrState = (i, state) => {
+      console.log('state', state);
+      const copy = JSON.parse(JSON.stringify(state));
+      console.log('copy ', copy);
+      copy[i].repetition++;
+      if (copy[i].repetition >= copy[i].repeat) {
+        copy[i].repetition = 0;
+        copy[i].index++;
+      }
+      return copy;
+    }
+
+    const advanceToState = async (state, targetState) => {
+
+      for (let i = 0; i < state.length; i++) {
+        const st = state[i];
+        const targetSt = targetState[i];
+        const action = this.learned[i];
+
+        for (let j = st.index; j < targetSt.index; j++) {
+          console.log('advance: skip action (x)', action.arg);
+        }
+
+        for (let j = st.repetition; j < targetSt.repetition; j++) {
+          console.log('advance: exec action (r)', action.arg);
+          await fetcher.act(ctx, action, st.index);
+        }
+      }
+
     }
 
     const goto = async (i, state) => {
@@ -118,10 +157,7 @@ export const Instructions = class {
       );
     }
 
-    const state = [];
-    for (const action of this.learned) {
-      state.push(zero(action));
-    }
+    const state = zeroState();
 
     await fetcher.start(ctx);
     try {
@@ -132,6 +168,27 @@ export const Instructions = class {
       while (true) {
         logger.debug(`${this} Execute instructions, iterate i=${i}, state=${state}`);
         console.log(`exec iteration i=${i}`, state);
+
+        let targetState;
+        targetState = incrState(i, state);
+        targetState = incrState(i, targetState);
+        targetState = incrState(i + 1, targetState);
+        targetState = incrState(i + 1, targetState);
+        targetState = incrState(i + 1, targetState);
+        targetState = incrState(i + 1, targetState);
+
+        console.log('');
+        console.log('');
+        console.log('Current state:');
+        console.log(JSON.stringify(state, null, 2));
+        console.log('Target state:');
+        console.log(JSON.stringify(targetState, null, 2));
+        console.log('');
+        console.log('');
+
+        await advanceToState(state, targetState);
+
+        throw 'STOP1';
 
         const action = this.learned[i];
 
@@ -189,16 +246,15 @@ export const Instructions = class {
             console.log('');
             console.log('== RESTORE STATE ==');
             console.log('');
-
             console.log(JSON.stringify(state, null, 2));
 
             // goto original url
             usage.goto++;
             ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
 
-            let doc;
-            doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-            console.log('html BEFORE restore state:', doc.html);
+            // let doc;
+            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            // console.log('html BEFORE restore state:', doc.html);
 
             // do repeat actions to restore state
             for (let j = 0; j < state.length; j++) {
@@ -215,8 +271,8 @@ export const Instructions = class {
               }
             }
 
-            doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-            console.log('html AFTER restore state:', doc.html);
+            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            // console.log('html AFTER restore state:', doc.html);
 
             // throw 'STOP';
           }
