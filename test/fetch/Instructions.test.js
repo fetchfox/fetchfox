@@ -3,6 +3,7 @@ import http from 'http';
 import { logger } from '../../src/log/logger.js';
 import { testCache } from '../lib/util.js';
 import { getFetcher, getAI, Instructions } from '../../src/index.js';
+import * as cheerio from 'cheerio';
 
 describe('Instructions', function() {
   this.timeout(60 * 1000);
@@ -124,6 +125,217 @@ describe('Instructions', function() {
         i++;
         assert.ok(doc.html.includes(expected), `expect ${expected}`);
       }
+
+    } finally {
+      server.close();
+    }
+  });
+
+
+  it('should handle two step dynamic page with url replaceState @run @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1 id="page-label"></h1>
+    <button id="next-page">Next Page</button>
+    <div id="buttons"></div>
+    <div id="profile"></div>
+
+    <script>
+     let page = 1;
+     let profile;
+
+     function render() {
+       document.getElementById("page-label").textContent = "Page " + page;
+       const el = document.getElementById('buttons');
+       el.innerHTML = '';
+
+       for (let i = 0; i < 5; i++) {
+         const num = (page - 1) * 5 + i + 1;
+         el.innerHTML += '<button class="profile-btn" onClick="profile=' + num + ';render()">profile ' + num + '</button>';
+       }
+
+       if (profile) {
+         history.replaceState({}, "", "/page-" + page + "/profile-" + profile);
+         document.getElementById('profile').innerHTML = 'Profile content ' + profile;
+       } else {
+         document.getElementById('profile').innerHTML = '';
+       }
+     }
+
+     document.getElementById("next-page").addEventListener("click", function() {
+       page++;
+       profile = null;
+       history.replaceState({}, "", "/page-" + page);
+       render();
+     });
+
+     render();
+    </script>
+  </body>
+</html>
+`
+      );
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    try {
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o', { cache });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 10 });
+      const url = `http://localhost:${port}`;
+
+      const commands = [
+        { prompt: 'click to go to the next page', max: 5, repeat: 5 },
+        { prompt: 'click each profile link', max: 5 },
+      ];
+
+      const instr = new Instructions(url, commands, { ai });
+      await instr.learn(fetcher);
+      console.log(instr);
+
+      const gen = await instr.execute(fetcher);
+      const docs = [];
+      for await (const doc of gen) {
+        console.log('doc:'+ doc);
+
+        docs.push(doc);
+      }
+
+      return;
+
+      assert.equal(docs.length, 5);
+      let i = 0;
+      for (const doc of docs) {
+        const expected = 'You are on page ' + (i + 1);
+        i++;
+        assert.ok(doc.html.includes(expected), `expect ${expected}`);
+      }
+
+    } finally {
+      server.close();
+    }
+  });
+
+  it('should handle two step dynamic page, no url updates @run @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1 id="page-label"></h1>
+    <button id="next-page">Next Page</button>
+    <div id="buttons"></div>
+    <div id="profile"></div>
+
+    <script>
+     let page = 1;
+     let profile;
+
+     function render() {
+       document.getElementById("page-label").textContent = "Page " + page;
+       const el = document.getElementById('buttons');
+       el.innerHTML = '';
+
+       for (let i = 0; i < 5; i++) {
+         const num = (page - 1) * 5 + i + 1;
+         el.innerHTML += '<button class="profile-btn" onClick="profile=' + num + ';render()">profile ' + num + '</button>';
+       }
+
+       if (profile) {
+         document.getElementById('profile').innerHTML = 'Profile content ' + profile;
+       } else {
+         document.getElementById('profile').innerHTML = '';
+       }
+     }
+
+     document.getElementById("next-page").addEventListener("click", function() {
+       page++;
+       profile = null;
+       render();
+     });
+
+     render();
+    </script>
+  </body>
+</html>
+`
+      );
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    try {
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o', { cache });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 10 });
+      const url = `http://localhost:${port}`;
+
+      const commands = [
+        { prompt: 'click to go to the next page', max: 3, repeat: 3 },
+        { prompt: 'click each profile link', max: 3 },
+      ];
+
+      const instr = new Instructions(url, commands, { ai });
+      await instr.learn(fetcher);
+      console.log(instr);
+
+      const gen = await instr.execute(fetcher);
+      const docs = [];
+
+      const expected = [
+        ['Page 1', 'Profile content 1'],
+        ['Page 1', 'Profile content 2'],
+        ['Page 1', 'Profile content 3'],
+
+        ['Page 2', 'Profile content 6'],
+        ['Page 2', 'Profile content 7'],
+        ['Page 2', 'Profile content 8'],
+
+        ['Page 3', 'Profile content 11'],
+        ['Page 3', 'Profile content 12'],
+        ['Page 3', 'Profile content 13'],
+      ];
+
+      let i = 0;
+
+      let doc;
+      let usage;
+      for await ({ doc, usage } of gen) {
+        if (!doc) {
+          continue;
+        }
+
+        const $ = cheerio.load(doc.html);
+        const page = $('#page-label').text();
+        const profile = $('#profile').text();
+
+        console.log('\n\tgot -->', page, profile);
+
+        assert.equal(page, expected[i][0]);
+        assert.equal(profile, expected[i][1]);
+
+        i++;
+      }
+
+      console.log('final usage:', usage);
+
+      return;
+
+      // assert.equal(docs.length, 5);
+      // let i = 0;
+      // for (const doc of docs) {
+      //   const expected = 'You are on page ' + (i + 1);
+      //   i++;
+      //   assert.ok(doc.html.includes(expected), `expect ${expected}`);
+      // }
 
     } finally {
       server.close();

@@ -76,69 +76,99 @@ export const Instructions = class {
   async *execute(fetcher) {
     logger.info(`${this} Execute instructions: ${this.url} ${this.learned}`);
 
-    const indexes = [];
-    for (const action of this.learned) {
-      indexes.push({
+    // Track gotos (page loads) and actions taken
+    const usage = {
+      goto: 0,
+      actions: new Array(this.learned.length).fill(0),
+    };
+
+    // Running fetcher context
+    let ctx = {};
+
+    const zero = (action) => {
+      return {
         index: 0,
         repeat: action.repeat,
         repetition: 0,
-      });
+      };
     }
 
-    const incr = (it) => {
-      if (++it.repetition >= it.repeat) {
-        it.repetition = 0;
-        it.index++;
+    const incr = (index) => {
+      if (++index.repetition >= index.repeat) {
+        index.repetition = 0;
+        index.index++;
       }
     }
 
-    const isFirst = (it) => {
-      return it.repetition == 0 && it.index == 0;
+    const goto = async (i, indexes) => {
+      if (i != 0) {
+        throw new Error('TODO');
+      }
+      usage.goto++;
+      ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
     }
 
-    let ctx = {};
+    // skip is use for pagination, where we want to use the first page by not
+    // taking an action on the first iteration
+    const skip = (action, indexes, i) => {
+      return (
+        action.yieldBefore &&
+        indexes[i].index == 0 &&
+        indexes[i].repetition == 0
+      );
+    }
+
+    const indexes = [];
+    for (const action of this.learned) {
+      indexes.push(zero(action));
+    }
+
     await fetcher.start(ctx);
     try {
-      ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
+      await goto(0, indexes);
 
       let i = 0;
 
       while (true) {
         logger.debug(`${this} Execute instructions, iterate i=${i}, indexes=${indexes}`);
+        console.log(`exec iteration i=${i}`, indexes);
 
         const action = this.learned[i];
 
-        const shouldYield = (
-          action?.yieldBefore && isFirst(indexes[i]) ||
-          !action);
-
-        if (shouldYield) {
-          const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-          // const doc = await fetcher.current(ctx);
-          logger.info(`${this} Yielding before executing any actions: ${doc}`);
-          yield Promise.resolve(doc);
-          action && incr(indexes[i]);
-        }
-
         if (!action) {
+          const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+          yield Promise.resolve({ doc });
           break;
         }
 
         let success;
-        if (indexes[i].index > action.max) {
+        if (indexes[i].index >= action.max) {
+          console.log('hit max');
+          console.log(`-> no action i=${i}`);
+
           logger.debug(`${this} Hit max iterations of action i=${i} action=${action}`);
           success = false;
         } else {
-          success = await fetcher.act(ctx, action, indexes[i].index);
+          // TODO: fix this, it must happe only when i == last
+          // if (false && action?.yieldBefore && isFirst(indexes[i])) {
+          if (skip(action, indexes, i)) {
+            console.log('skip');
+            success = true;
+          } else {
+            console.log(`===> exec action i=${i}`, indexes[i].index);
+            usage.actions[i]++;
+            success = await fetcher.act(ctx, action, indexes[i].index);
+          }
         }
 
         if (success) {
           const isLast = i == this.learned.length - 1;
           if (isLast) {
             incr(indexes[i]);
-            const doc = await fetcher.current(ctx);
+            // TODO: single helper function for current + timeout
+            const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
             logger.info(`${this} Executing instructions found: ${doc}`);
-            yield Promise.resolve(doc);
+            yield Promise.resolve({ doc, usage });
           } else {
             i++;
           }
@@ -151,15 +181,52 @@ export const Instructions = class {
           } else {
             incr(indexes[i - 1]);
             for (let j = i; j < this.learned.length; j++) {
-              indexes[j] = 0;
+              indexes[j] = zero(this.learned[j]);
             }
             i = 0;
+            // await goto(0, indexes);
+
+            console.log('');
+            console.log('== RESTORE STATE ==');
+            console.log('');
+
+            console.log(JSON.stringify(indexes, null, 2));
+
+            // goto original url
+            usage.goto++;
+            ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
+
+            let doc;
+            doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            console.log('html BEFORE restore state:', doc.html);
+
+            // do repeat actions to restore state
+            for (let j = 0; j < indexes.length; j++) {
+              const index = indexes[j];
+              const action = this.learned[j];
+              for (let k = 0; k < index.repetition; k++) {
+                console.log('exec action:', action);
+                if (action.yieldBefore && k == 0) {
+                  // skip
+                } else {
+                  usage.actions[j]++;
+                  await fetcher.act(ctx, action, index.index);
+                }
+              }
+            }
+
+            doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            console.log('html AFTER restore state:', doc.html);
+
+            // throw 'STOP';
           }
         }
       }
     } finally {
       await fetcher.finish(ctx);
     }
+
+    yield Promise.resolve({ usage });
   }
 
 }
