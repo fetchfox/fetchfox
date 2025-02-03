@@ -139,8 +139,12 @@ export const Instructions = class {
 
       usage.actions[i]++;
 
-      let ok = await fetcher.act(ctx, action, index);
-      for (let r = 0; r < state[i].repetition; r++) {
+      let ok = true; 
+      if (state[i].repeat) {
+        for (let r = 0; r < state[i].repetition; r++) {
+          ok &&= await fetcher.act(ctx, action, index);
+        }
+      } else {
         ok &&= await fetcher.act(ctx, action, index);
       }
 
