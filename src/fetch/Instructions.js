@@ -41,11 +41,14 @@ export const Instructions = class {
     await fetcher.start(ctx);
     ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
 
+    // TODO: It would be nice of learning supported caching. Right now,
+    // we use the live page for interactions, but it should be possible to
+    // cache a chain of url + commands
     for (const command of this.commands) {
       const doc = await fetcher.current(ctx);
       const html = (await min.min(doc, { timer })).html;
 
-      logger.debug(`${this} Learn how to do: ${command}`);
+      logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
       const context = { html, command: command.prompt };
       const { prompt: actionPrompt } = await prompts.pageAction
@@ -53,6 +56,8 @@ export const Instructions = class {
 
       const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
+        logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+
         const action = {
           type: delta.actionType,
           arg: delta.actionArgument,
@@ -74,7 +79,11 @@ export const Instructions = class {
   }
 
   async *execute(fetcher) {
-    logger.info(`${this} Execute instructions: ${this.url} ${this.learned}`);
+    if (this.commands?.length && !this.learned?.length) {
+      throw new Error('must learn before execute');
+    }
+
+    logger.info(`${this} Execute instructions: url=${this.url} learned=${this.learned}`);
 
     // Track gotos (page loads) and actions taken
     const usage = {
@@ -88,8 +97,9 @@ export const Instructions = class {
     const zero = (action) => {
       return {
         index: 0,
-        repeat: action.repeat,
         repetition: 0,
+        max: action.max,
+        repeat: action.repeat,
       };
     }
 
@@ -113,9 +123,31 @@ export const Instructions = class {
       return copy;
     }
 
-    const act = (i, index) => {
+    const act = async (i, state) => {
+      const action = this.learned[i];
+
+      if (state[i].repeat && state[i].repetition > state[i].repeat) {
+        console.log('max repeat');
+        return false;
+      }
+
+      const index = state[i].index;
+      if (index >= state[i].max) {
+        console.log('max index');
+        return false;
+      }
+
       usage.actions[i]++;
-      return fetcher.act(ctx, this.learned[i], index);
+
+      let ok = await fetcher.act(ctx, action, index);
+      for (let r = 0; r < state[i].repetition; r++) {
+        ok &&= await fetcher.act(ctx, action, index);
+      }
+
+      // console.log('act wait');
+      // await new Promise(ok => setTimeout(ok, 4000));
+
+      return ok;
     }
 
     const advanceToState = async (state, targetState) => {
@@ -146,9 +178,18 @@ export const Instructions = class {
     const goto = async () => {
       usage.goto++;
       ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
+
+      // console.log('goto wait');
+      // await new Promise(ok => setTimeout(ok, 4000));
+
+      // await new Promise(ok => setTimeout(ok, 5000));
+      // throw 'STOP';
+
     }
 
     const done = (state) => {
+      console.log('check done', state);
+
       if (state[0].repeat && state[0].repetition > state[0].repeat) {
         throw new Error('unexpected state');
       }
@@ -165,40 +206,112 @@ export const Instructions = class {
       return false;
     }
 
-    let state = zeroState();
+    const current = async () => {
+      const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+      logger.debug(`${this} Got document: ${doc}`);
+      return doc;
+    }
+
+    // let state = zeroState();
 
     await fetcher.start(ctx);
 
     try {
-      await goto();
+      // await goto();
+      // if (!this.learned || this.learned.length == 0) {
+      //   const doc = await current();
+      //   yield Promise.resolve({ doc });
+      //   return;
+      // }
 
-      let i = 0;
+      let m = 0;
+      await goto();
+      let state = zeroState();
+
+      while (true) {
+        console.log('===>', m);
+
+        await goto();
+
+        let j;
+        let ok;
+        for (j = 0; j < state.length; j++) {
+          ok = await act(j, state);
+          console.log('ok?', ok, state);
+          if (!ok) {
+            for (let k = j; k < this.learned.length; k++) {
+              state[k] = zero(this.learned[k]);
+            }
+            j++;
+            break;
+          }
+        }
+        j--;
+
+        if (!ok) {
+          j--;
+        }
+
+        state = incrState(j, state);
+
+        console.log('state after iteration:', state);
+        console.log('---');
+
+        if (ok) {
+          const doc = await current();
+          console.log('--> yield:' + doc);
+          yield Promise.resolve({ doc });
+        }
+
+        m++;
+        if (m >= 10) {
+          throw 'stop';
+        }
+      }
+
+      throw 'xyz';
 
       // First step will be a no-op, because targetState == state
       let targetState = JSON.parse(JSON.stringify(state));
+      let i = 0;
 
       while (true) {
         if (done(targetState)) {
+          logger.debug(`${this} done() gave true`);
           break;
         }
 
         const ok = await advanceToState(state, targetState);
+
+        console.log('ok?', ok);
+
         state = targetState;
         const isLast = i == this.learned.length - 1;
 
         if (ok) {
           if (isLast) {
-            const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            const doc = await current();
             yield Promise.resolve({ doc });
+
+            // Update the target state for next time
+            targetState = incrState(i, targetState);
+
+            // Go back to start and restore the state from there
+            i = 0;
+            await goto();
+            state = zeroState();
+            
           } else {
             i++;
+
+            // Update the target state for next time
+            targetState = incrState(i, targetState);
           }
-
-          // Update the target state for next time
-          targetState = incrState(i, targetState);
-
         } else {
+          throw 'unhandled';
+
           if (i == 0) {
+            console.log('i == 0, break');
             break; // first level failed, all done
           }
 

@@ -182,7 +182,7 @@ export const BaseFetcher = class {
               await instr.learn(this);
 
               const gen = await instr.execute(this);
-              for await (const doc of gen) {
+              for await (const { doc } of gen) {
                 if (this.signal?.aborted) {
                   break;
                 }
@@ -190,7 +190,11 @@ export const BaseFetcher = class {
               }
 
             } catch (e) {
-              logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
+              if (process.env.STRICT_ERRORS) {
+                throw e;
+              } else {
+                logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
+              }
             }
 
             logger.debug(`${this} Closing docs channel`);

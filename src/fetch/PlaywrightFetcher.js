@@ -93,7 +93,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           promise = chromium.connectOverCDP(this.cdp);
         } else {
           logger.debug(`Playwright using local Chromium, attempt=${i}`);
-          promise = chromium.launch({ ...this.options, headless: this.headless });
+          const x = { ...this.options, headless: this.headless };
+          console.log('x', x);
+          promise = chromium.launch(x);
         }
         const browser = await promise;
         return browser;
@@ -133,7 +135,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     switch (action.type) {
       case 'click':
-        return await this.click(ctx, action.arg, index);
+        return this.click(ctx, action.arg, index);
+
+      case 'scroll':
+        return this.scroll(ctx, action.arg, index);
 
       default:
         throw new Error(`Unhandled action type: ${action.type}`);
@@ -141,6 +146,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async click(ctx, selector, index) {
+    logger.debug(`${this} Click selector=${selector} index=${index}`);
+
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       logger.warn(`{this} Invalid selector: ${selector}`);
       return false;
@@ -163,13 +170,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     throw new Error('TODO');
   }
 
-  async scroll(type, ctx) {
+  async scroll(ctx, type) {
+    logger.debug(`${this} Scroll type=${type}`);
+
+    // TODO: Check if scrolling worked
+
     switch (type) {
       case 'window':
-        return ctx.page.keyboard.press('PageDown');
+        await ctx.page.keyboard.press('PageDown');
+        return true;
       case 'bottom':
         /* eslint-disable no-undef */
-        return ctx.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        await ctx.page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        return true;
         /* eslint-enable no-undef */
       default:
         logger.error(`${this} Unhandled scroll type: ${type}`);
