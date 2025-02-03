@@ -101,21 +101,13 @@ export const Instructions = class {
       return state;
     }
 
-    const incr = (index) => {
-      if (++index.repetition >= index.repeat) {
-        index.repetition = 0;
-        index.index++;
-      }
-    }
-
     const incrState = (i, state) => {
-      console.log('incr state', i, state);
+      // console.log('incr state', i, state);
       const copy = JSON.parse(JSON.stringify(state));
-      console.log('copy ', copy);
+      // console.log('copy ', copy);
 
       if (copy[i].repeat) {
         copy[i].repetition++;
-
       } else {
         copy[i].index++;
       }
@@ -123,9 +115,18 @@ export const Instructions = class {
       return copy;
     }
 
-    const advanceToState = async (state, targetState) => {
+    const act = (i, index) => {
+      console.log('** ACT', i);
+      usage.actions[i]++;
+      return fetcher.act(ctx, this.learned[i], index);
+    }
 
+    const advanceToState = async (state, targetState) => {
       let ok = true;
+
+      console.log('advanceToState, from  ', state);
+      console.log('advanceToState, target', targetState);
+
 
       for (let i = 0; i < state.length; i++) {
         const st = state[i];
@@ -139,12 +140,18 @@ export const Instructions = class {
             // check that we are under the max times to repeat
             ok &&= j < st.repeat;
 
-            if (j == 0 && action.yieldBefore) {
-              console.log('-> yield before');
-            } else {
-              // if yes, check that we successfully execute this action
-              ok &&= await fetcher.act(ctx, action, st.index);
-            }
+            // let doc;
+            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            // console.log('doc before action:', doc.html);
+
+            // if yes, check that we successfully execute this action
+            console.log('-> do action');
+            ok &&= await act(i, st.index);
+
+            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            // console.log('doc AFTER action:', doc.html);
+            // console.log('');
+            // console.log('');
           }
         } else if (st.index != targetSt.index) {
           console.log('advance: exec last & leaf action (x)', action.arg);
@@ -155,7 +162,8 @@ export const Instructions = class {
           // Subtract 1 because advanceToState is called after incrementing
           // the state, so the index is exactly 1 more than what we need to
           // interact with.
-          ok &&= await fetcher.act(ctx, action, targetSt.index - 1);
+          // ok &&= await fetcher.act(ctx, action, targetSt.index - 1);
+          ok &&= await act(i, targetSt.index - 1);
         }
       }
 
@@ -163,18 +171,26 @@ export const Instructions = class {
     }
 
     const goto = async () => {
+      console.log('==== goto ====');
       usage.goto++;
       ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
     }
 
-    // skip is use for pagination, where we want to use the first page by not
-    // taking an action on the first iteration
-    const skip = (action, state, i) => {
-      return (
-        action.yieldBefore &&
-        state[i].index == 0 &&
-        state[i].repetition == 0
-      );
+    const done = (state) => {
+      if (state[0].repeat && state[0].repetition > state[0].repeat) {
+        throw new Error('unexpected state');
+      }
+      if (state[0].repeat && state[0].repetition == state[0].repeat) {
+        return true;
+      }
+      if (state[0].index > state[0].max) {
+        throw new Error('unexpected state');
+      }
+      if (state[0].index == state[0].max) {
+        return true;
+      }
+
+      return false;
     }
 
     let state = zeroState();
@@ -185,10 +201,18 @@ export const Instructions = class {
 
       let i = 0;
 
+      let targetState = JSON.parse(JSON.stringify(state));
+
       while (true) {
-        let targetState;
-        targetState = incrState(i, state);
+        // let targetState;
+        // targetState = incrState(i, state);
+
+        if (done(targetState)) {
+          break;
+        }
+
         const ok = await advanceToState(state, targetState);
+        state = targetState;
         const isLast = i == this.learned.length - 1;
 
         if (ok) {
@@ -200,10 +224,14 @@ export const Instructions = class {
             console.log('ok & !last --> i++');
             i++;
           }
+
+          targetState = incrState(i, targetState);
+
         } else {
           if (i == 0) {
-            throw 'done';
+            break; // first level failed, all done
           }
+
           console.log('!ok --> backtrack + incr');
 
           // increment prev level
@@ -217,21 +245,13 @@ export const Instructions = class {
           // go back to start
           i = 0;
           await goto();
-          console.log('=================');
+          console.log('=== restore state ===');
           await advanceToState(zeroState(), targetState);
-          console.log('=================');
+          console.log('=== restore state DONE ===');
 
-          // deboug output
-          const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-          console.log('html after backtrack:');
-          console.log(doc.html);
-          console.log('i=', i);
-
-          console.log(JSON.stringify(targetState, null, 2));
-
+          state = targetState;
         }
 
-        state = targetState;
       }
 
     } finally {
