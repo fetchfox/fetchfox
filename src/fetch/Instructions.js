@@ -109,40 +109,56 @@ export const Instructions = class {
     }
 
     const incrState = (i, state) => {
-      console.log('state', state);
+      console.log('incr state', i, state);
       const copy = JSON.parse(JSON.stringify(state));
       console.log('copy ', copy);
-      copy[i].repetition++;
-      if (copy[i].repetition >= copy[i].repeat) {
-        copy[i].repetition = 0;
+
+      if (copy[i].repeat) {
+        copy[i].repetition++;
+
+      } else {
         copy[i].index++;
       }
+
       return copy;
     }
 
     const advanceToState = async (state, targetState) => {
+
+      let ok = true;
 
       for (let i = 0; i < state.length; i++) {
         const st = state[i];
         const targetSt = targetState[i];
         const action = this.learned[i];
 
-        for (let j = st.index; j < targetSt.index; j++) {
-          console.log('advance: skip action (x)', action.arg);
-        }
+        if (st.repeat) {
+          for (let j = st.repetition; j < targetSt.repetition; j++) {
+            console.log('advance: exec action (r)', action.arg);
 
-        for (let j = st.repetition; j < targetSt.repetition; j++) {
-          console.log('advance: exec action (r)', action.arg);
-          await fetcher.act(ctx, action, st.index);
+            // check that we are under the max times to repeat
+            ok &&= j < st.repeat;
+
+            if (j == 0 && action.yieldBefore) {
+              console.log('-> yield before');
+            } else {
+              // if yes, check that we successfully execute this action
+              ok &&= await fetcher.act(ctx, action, st.index);
+            }
+          }
+        } else if (st.index != targetSt.index) {
+          console.log('advance: exec last & leaf action (x)', action.arg);
+
+          // TODO: check `st.max` here
+
+          ok &&= await fetcher.act(ctx, action, targetSt.index);
         }
       }
 
+      return ok;
     }
 
-    const goto = async (i, state) => {
-      if (i != 0) {
-        throw new Error('TODO');
-      }
+    const goto = async () => {
       usage.goto++;
       ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
     }
@@ -157,24 +173,79 @@ export const Instructions = class {
       );
     }
 
-    const state = zeroState();
+    let state = zeroState();
 
     await fetcher.start(ctx);
     try {
-      await goto(0, state);
+      await goto();
 
       let i = 0;
 
       while (true) {
+        let targetState;
+        targetState = incrState(i, state);
+        const ok = await advanceToState(state, targetState);
+
+        const isLast = i == this.learned.length - 1;
+
+        if (ok) {
+          if (isLast) {
+            console.log('ok & last --> yield');
+            const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+            yield Promise.resolve({ doc });
+          } else {
+            console.log('ok & !last --> i++');
+            i++;
+          }
+        } else {
+          if (i == 0) {
+            throw 'done';
+          }
+          console.log('!ok --> backtrack + incr');
+
+          // increment prev level
+          targetState = incrState(i - 1, targetState);
+
+          // zero out this and downstream levels
+          for (let j = i; j < this.learned.length; j++) {
+            targetState[j] = zero(this.learned[j]);
+          }
+
+          // go back to start
+          i = 0;
+          await goto();
+          console.log('=================');
+          await advanceToState(zeroState(), targetState);
+          console.log('=================');
+
+          // deboug output
+          const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+          console.log('html after backtrack:');
+          console.log(doc.html);
+          console.log('i=', i);
+
+          console.log(JSON.stringify(targetState, null, 2));
+
+        }
+
+        state = targetState;
+      }
+
+      throw '!!!!';
+
+      while (false) {
         logger.debug(`${this} Execute instructions, iterate i=${i}, state=${state}`);
         console.log(`exec iteration i=${i}`, state);
 
         let targetState;
         targetState = incrState(i, state);
-        targetState = incrState(i, targetState);
         targetState = incrState(i + 1, targetState);
         targetState = incrState(i + 1, targetState);
         targetState = incrState(i + 1, targetState);
+        targetState = incrState(i + 1, targetState);
+        targetState = incrState(i + 1, targetState);
+        targetState[i + 1] = zero(this.learned[i + 1]);
+        targetState = incrState(i, state);
         targetState = incrState(i + 1, targetState);
 
         console.log('');
@@ -186,7 +257,17 @@ export const Instructions = class {
         console.log('');
         console.log('');
 
-        await advanceToState(state, targetState);
+        let doc;
+
+        doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+        console.log('html BEFORE advance state:', doc.html);
+
+        const ok = await advanceToState(state, targetState);
+
+        doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+        console.log('html AFTER restore state:', doc.html);
+
+        console.log('OK =', ok);
 
         throw 'STOP1';
 
