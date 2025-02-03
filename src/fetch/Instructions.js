@@ -151,7 +151,11 @@ export const Instructions = class {
 
           // TODO: check `st.max` here
 
-          ok &&= await fetcher.act(ctx, action, targetSt.index);
+          // Execute on index - 1.
+          // Subtract 1 because advanceToState is called after incrementing
+          // the state, so the index is exactly 1 more than what we need to
+          // interact with.
+          ok &&= await fetcher.act(ctx, action, targetSt.index - 1);
         }
       }
 
@@ -185,7 +189,6 @@ export const Instructions = class {
         let targetState;
         targetState = incrState(i, state);
         const ok = await advanceToState(state, targetState);
-
         const isLast = i == this.learned.length - 1;
 
         if (ok) {
@@ -231,134 +234,6 @@ export const Instructions = class {
         state = targetState;
       }
 
-      throw '!!!!';
-
-      while (false) {
-        logger.debug(`${this} Execute instructions, iterate i=${i}, state=${state}`);
-        console.log(`exec iteration i=${i}`, state);
-
-        let targetState;
-        targetState = incrState(i, state);
-        targetState = incrState(i + 1, targetState);
-        targetState = incrState(i + 1, targetState);
-        targetState = incrState(i + 1, targetState);
-        targetState = incrState(i + 1, targetState);
-        targetState = incrState(i + 1, targetState);
-        targetState[i + 1] = zero(this.learned[i + 1]);
-        targetState = incrState(i, state);
-        targetState = incrState(i + 1, targetState);
-
-        console.log('');
-        console.log('');
-        console.log('Current state:');
-        console.log(JSON.stringify(state, null, 2));
-        console.log('Target state:');
-        console.log(JSON.stringify(targetState, null, 2));
-        console.log('');
-        console.log('');
-
-        let doc;
-
-        doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-        console.log('html BEFORE advance state:', doc.html);
-
-        const ok = await advanceToState(state, targetState);
-
-        doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-        console.log('html AFTER restore state:', doc.html);
-
-        console.log('OK =', ok);
-
-        throw 'STOP1';
-
-        const action = this.learned[i];
-
-        if (!action) {
-          const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-          yield Promise.resolve({ doc });
-          break;
-        }
-
-        let success;
-        if (state[i].index >= action.max) {
-          console.log('hit max');
-          console.log(`-> no action i=${i}`);
-
-          logger.debug(`${this} Hit max iterations of action i=${i} action=${action}`);
-          success = false;
-        } else {
-          // TODO: fix this, it must happe only when i == last
-          // if (false && action?.yieldBefore && isFirst(state[i])) {
-          if (skip(action, state, i)) {
-            console.log('skip');
-            success = true;
-          } else {
-            console.log(`===> exec action i=${i}`, state[i].index);
-            usage.actions[i]++;
-            success = await fetcher.act(ctx, action, state[i].index);
-          }
-        }
-
-        if (success) {
-          const isLast = i == this.learned.length - 1;
-          if (isLast) {
-            incr(state[i]);
-            // TODO: single helper function for current + timeout
-            const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-            logger.info(`${this} Executing instructions found: ${doc}`);
-            yield Promise.resolve({ doc, usage });
-          } else {
-            i++;
-          }
-        }
-
-        if (!success) {
-          if (i == 0) {
-            // End condition: we failed on the first action
-            break;
-          } else {
-            incr(state[i - 1]);
-            for (let j = i; j < this.learned.length; j++) {
-              state[j] = zero(this.learned[j]);
-            }
-            i = 0;
-            // await goto(0, state);
-
-            console.log('');
-            console.log('== RESTORE STATE ==');
-            console.log('');
-            console.log(JSON.stringify(state, null, 2));
-
-            // goto original url
-            usage.goto++;
-            ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
-
-            // let doc;
-            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-            // console.log('html BEFORE restore state:', doc.html);
-
-            // do repeat actions to restore state
-            for (let j = 0; j < state.length; j++) {
-              const index = state[j];
-              const action = this.learned[j];
-              for (let k = 0; k < index.repetition; k++) {
-                console.log('exec action:', action);
-                if (action.yieldBefore && k == 0) {
-                  // skip
-                } else {
-                  usage.actions[j]++;
-                  await fetcher.act(ctx, action, index.index);
-                }
-              }
-            }
-
-            // doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-            // console.log('html AFTER restore state:', doc.html);
-
-            // throw 'STOP';
-          }
-        }
-      }
     } finally {
       await fetcher.finish(ctx);
     }
