@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 import { Instructions } from '../fetch/index.js';
 
@@ -16,6 +17,10 @@ export const ActionStep = class extends BaseStep {
 
     const gen = instr.execute(cursor.ctx.fetcher);
     for await (const { doc } of gen) {
+      if (!doc) {
+        logger.warn(`${this} Got null doc for ${instr}`);
+        continue;
+      }
       const done = cb(doc);
       if (done) break;
     }
