@@ -13,8 +13,6 @@ export const ActionStep = class extends BaseStep {
     const instr = new Instructions(url, this.commands, cursor.ctx);
     await instr.learn(cursor.ctx.fetcher);
 
-    console.log(instr.learned);
-
     const gen = instr.execute(cursor.ctx.fetcher);
     for await (const { doc } of gen) {
       if (!doc) {
