@@ -189,7 +189,9 @@ export const BaseFetcher = class {
                 if (this.signal?.aborted) {
                   break;
                 }
-                channel.send({ doc });
+                if (doc) {
+                  channel.send({ doc });
+                }
               }
 
             } catch (e) {
