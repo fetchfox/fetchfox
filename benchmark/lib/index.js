@@ -147,3 +147,53 @@ const diffObjects = (l, r) => {
   }
   return diff;
 }
+
+const isPlainObject = (value) => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+// Helper function to recursively flatten an object
+const flattenObject = (obj, parentKey = '', result = {}) => {
+  for (const [key, value] of Object.entries(obj)) {
+    const newKey = parentKey ? `${parentKey}.${key}` : key;
+    if (isPlainObject(value)) {
+      // Recursively flatten nested objects
+      flattenObject(value, newKey, result);
+    } else if (Array.isArray(value)) {
+      // Convert arrays to comma-separated strings
+      result[newKey] = value[0];
+    } else {
+      result[newKey] = value;
+    }
+  }
+  return result;
+};
+
+// Main function that builds the desired configuration object
+export const objectConfig = (config) => {
+  const finalConfig = {};
+
+  // Process each top-level key
+  for (const [key, value] of Object.entries(config)) {
+    if (isPlainObject(value)) {
+      // Only flatten objects
+      const flattened = flattenObject(value);
+
+      // Sort the flattened keys to ensure consistent output
+      const sortedKeys = Object.keys(flattened).sort();
+      const combinedKey = `config_${key}:${sortedKeys.join(',')}`;
+      const combinedValues = sortedKeys.map(k => flattened[k]).join(',');
+
+      finalConfig[combinedKey] = combinedValues;
+    } else {
+      // For primitives or arrays at the top-level, add them directly
+      if (Array.isArray(value)) {
+        finalConfig[key] = value[0];
+      } else {
+        finalConfig[key] = value;
+      }
+    }
+  }
+
+  return finalConfig;
+};

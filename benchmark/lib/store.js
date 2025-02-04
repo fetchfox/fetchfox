@@ -1,4 +1,5 @@
 import { logger } from '../../src/log/logger.js';
+import { objectConfig } from '../lib/index.js'
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 export const storeScores = async (scores) => {
@@ -57,19 +58,11 @@ export const storeScores = async (scores) => {
       // items: scores.items || [],
     };
 
-    for (const configKey of Object.keys(score.config)) {
-      const val = score.config[configKey];
-      let str = '';
-      // Typically first entry is the name of it, eg. ai=openai:gpt-4o
-      if (Array.isArray(val)) {
-        str = val[0];
-      } else {
-        str = JSON.stringify(val);
-      }
-      row[`config_${configKey}`] = str;
-    }
-    logger.debug(`Store this benchmark data: ${JSON.stringify(row)}`);
-    existing.push(row);
+    const scoreConfig = objectConfig(score.config);
+    const fullRow = {...scoreConfig, ...row};
+
+    logger.debug(`Store this benchmark data: ${JSON.stringify(fullRow)}`);
+    existing.push(fullRow);
   }
 
   const updated = existing.map((item) => JSON.stringify(item)).join('\n');
