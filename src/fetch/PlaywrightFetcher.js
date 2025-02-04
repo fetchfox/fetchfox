@@ -70,6 +70,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.warn(`${this} Aborted while getting current doc`);
       return;
     }
+
+    await this.s3dump(doc);
+
     return doc;
   }
 
@@ -174,10 +177,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       html = await el.evaluate(el => el.outerHTML);
 
       if (seen && (seen[text] || seen[html])) {
-        logger.debug(`${this} Skipping already seen text=${text.substring(0, 100)} html=${html.substring(0, 100)}`);
         el = null;
         continue;
       }
+
+      logger.debug(`${this} Found new element ${el} after ${i} iterations`);
     }
 
     await el.scrollIntoViewIfNeeded();

@@ -56,29 +56,57 @@ export const Instructions = class {
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         const context = { html, command: command.prompt };
-        const { prompt: actionPrompt } = await prompts.pageAction
-          .renderCapped(context, 'html', this.ai);
 
-        const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
-        for await (const { delta } of stream) {
-          logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+        // const { prompt: actionPrompt } = await prompts.pageAction
+        //   .renderCapped(context, 'html', this.ai);
+        // const actionPrompts = 
 
-          const action = {
-            type: delta.actionType,
-            arg: delta.actionArgument,
-            max: command.max,
-            repeat: command.repeat,
-          };
+        this.ai.maxTokens = 40000;
+        const actionPrompts = await prompts.pageAction
+          .renderMulti(context, 'html', this.ai);
 
-          if (delta.isPaginationAction == 'yes') {
-            action.repeat ??= 5;
+        for (const actionPrompt of actionPrompts) {
+          const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
+          let ok = true
+          for await (const { delta } of stream) {
+            logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+
+            if (delta.actionType == 'none') {
+              logger.debug(`${this} Ignoring "none" action`);
+              ok = false;
+              continue;
+            }
+
+            const action = {
+              type: delta.actionType,
+              arg: delta.actionArgument,
+              max: command.max,
+              repeat: command.repeat,
+            };
+
+            console.log(action);
+
+            if (delta.isPaginationAction == 'yes') {
+              action.repeat ??= 5;
+
+              // TODO: If pagination is the *only* action, we should yield a single
+              // document here to get things started in downstream steps
+            }
+
+            action.repeat ??= 0;
+            action.max ??= 100;
+
+            const r = await fetcher.act(ctx, action, {});
+            ok &&= r.ok;
+            console.log('ok??', ok);
+            if (r.ok) {
+              learned.push(action);
+            }
           }
-
-          action.repeat ??= 0;
-          action.max ??= 100;
-
-          learned.push(action);
-          await fetcher.act(ctx, action, {});
+          console.log('ok ->', ok);
+          if (ok) {
+            break;
+          }
         }
       }
 
