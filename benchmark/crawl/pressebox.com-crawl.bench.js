@@ -7,6 +7,8 @@ import { storeScores } from '../lib/store.js';
 describe('crawl pressebox.com', async function() {
   const matrix = standardMatrix({
     prompt: [
+      'press releases',
+      'Get URLs of press releases',
       'find press releases',
       'find links to press release pages',
       'find links to press release pages. ONLY find specific press releases pages, not general pages, job listing, etc.',
@@ -16,7 +18,7 @@ describe('crawl pressebox.com', async function() {
   const wf = await fox
     .init('https://www.pressebox.com/')
     .crawl({ query: '{{prompt}}' })
-    .limit(20)
+    .limit(40)
     .plan();
 
   return itRunMatrix(
@@ -39,5 +41,5 @@ describe('crawl pressebox.com', async function() {
         return score;
       },
     ],
-    { shouldSave: false });
+    { shouldSave: true });
 });
