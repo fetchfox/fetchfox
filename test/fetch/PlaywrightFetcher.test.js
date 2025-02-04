@@ -1,5 +1,4 @@
 import assert from 'assert';
-import os from 'os';
 import http from 'http';
 import { logger } from '../../src/log/logger.js';
 import { testCache } from '../lib/util.js';
@@ -199,6 +198,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
+
   it('should minimize HTML content @run @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -239,5 +239,6 @@ describe('PlaywrightFetcher', function() {
       server.close();
     }
   });
+
 
 });
