@@ -6,7 +6,6 @@ import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('github.com', function() {
-  this.timeout(10 * 1000);
 
   it('should do basic scrape @run @fast', async () => {
     let countPartials = 0;
