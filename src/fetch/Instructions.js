@@ -237,7 +237,7 @@ export const Instructions = class {
         if (ok) {
           const doc = await current();
           logger.debug(`${this} Yielding a document: ${doc}`);
-          yield Promise.resolve({ doc });
+          yield Promise.resolve({ doc, usage });
         }
 
         fetcher.finishGoto(ctx)
