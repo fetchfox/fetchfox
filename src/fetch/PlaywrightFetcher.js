@@ -174,7 +174,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       html = await el.evaluate(el => el.outerHTML);
 
       if (seen && (seen[text] || seen[html])) {
-        logger.debug(`${this} Skipping already seen text=${text} html=${html}`);
+        logger.debug(`${this} Skipping already seen text=${text.substring(0, 100)} html=${html.substring(0, 100)}`);
         el = null;
         continue;
       }
@@ -198,17 +198,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     switch (type) {
       case 'window':
         await ctx.page.keyboard.press('PageDown');
-        return true;
+        break;
+
       case 'bottom':
         /* eslint-disable no-undef */
         await ctx.page.evaluate(async () => {
           const scrollToBottom = async () => {
             const top = document.documentElement.scrollHeight;
-            console.log('scrollToBottom got top:', top);
             return new Promise((ok) => {
-              console.log('inside promise');
               const fn = () => {
-                console.log('scrollend cb');
                 document.removeEventListener('scrollend', fn);
                 ok();
               }
@@ -217,11 +215,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             });
           }
 
-          console.log('start scrollToBottom');
           await scrollToBottom();
         });
-        return true;
         /* eslint-enable no-undef */
+        break;
       default:
         logger.error(`${this} Unhandled scroll type: ${type}`);
     }

@@ -143,16 +143,16 @@ export const Instructions = class {
       if (state[i].repeat) {
         for (let r = 0; r < state[i].repetition; r++) {
           // Repeat actions do not use seen
-          const r = await fetcher.act(ctx, action, {});
-          ok &&= r.ok;
+          const result = await fetcher.act(ctx, action, {});
+          ok &&= result.ok;
           usage.actions[i]++;
         }
       } else {
-        const r = await fetcher.act(ctx, action, seen);
-        ok &&= r.ok;
+        const result = await fetcher.act(ctx, action, seen);
+        ok &&= result.ok;
 
         // For now, only track seen html
-        seen[r.html] = true;
+        seen[result.html] = true;
 
         usage.actions[i]++;
       }
