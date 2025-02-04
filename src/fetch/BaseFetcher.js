@@ -39,6 +39,17 @@ export const BaseFetcher = class {
     return `[${this.constructor.name}]`;
   }
 
+  async isPdf(url) {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      const contentType = response.headers.get('Content-Type');
+
+      return contentType && contentType.startsWith('application/pdf');
+    } catch (e) {
+      logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
+    }
+  }
+
   async first(target, options) {
     try {
       for await (const doc of this.fetch(target, options)) {
@@ -108,6 +119,34 @@ export const BaseFetcher = class {
       }
     } catch {
       return null;
+    }
+
+    if (await this.isPdf(url)) {
+      try {
+        const response = await fetch("https://fetchfox.ai/api/pdf", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+        }
+
+        const doc = new Document();
+        await doc.read(response, url);
+        
+        if (doc) {
+          yield Promise.resolve(doc);
+        }
+
+        return;
+      } catch (e) {
+        logger.error(`${this} Error fetching pdf ${target}: ${e}`);
+        throw e;
+      }
     }
 
     // Pull out options that affect caching
