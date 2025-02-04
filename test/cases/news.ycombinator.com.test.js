@@ -7,7 +7,6 @@ import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('news.ycombinator.com', function() {
-  this.timeout(5 * 60 * 1000);
 
   before(() => {
     logger.testMode();
