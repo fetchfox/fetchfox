@@ -3,6 +3,7 @@ name: Benchmarks
 on:
   push:
     branches: [ 'dev', 'master' ]
+  workflow_dispatch:
 
 jobs:
   benchmark:
