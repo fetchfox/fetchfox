@@ -146,7 +146,7 @@ export const Crawler = class extends BaseCrawler {
     await this.ai.init();
 
     // Cap max bytes to limit number of links examined a a time
-    const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
+    const maxBytes = this.ai.maxTokens / 2;
 
     const slimmer = (item) => ({
       id: item.id,
