@@ -1,6 +1,6 @@
 import { logger } from '../log/logger.js';
 import { validate } from './util.js';
-import { chunkList } from '../util.js';
+import { chunkList, chunkString } from '../util.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
@@ -141,6 +141,14 @@ export const Crawler = class extends BaseCrawler {
     const links = doc.links;
     doc.parseLinks();
 
+    if (options?.test?.page) {
+      yield* await this._processPage(doc, links, query, seen, options);
+    } else {
+      yield* await this._processLinks(links, query, seen, options);
+    }
+  }
+
+  async *_processLinks(links, query, seen, options) {
     // TODO: move this initailization to a better spot.
     // maybe make getAI() async and put it there.
     await this.ai.init();
@@ -194,4 +202,52 @@ export const Crawler = class extends BaseCrawler {
       }
     }
   }
+
+  // Based on _processLinks (previously _processDoc)
+  async *_processPage(doc, links, query, seen, options) {
+    await this.ai.init();
+  
+    const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
+    const overlap = options?.test?.overlap || 1000;
+
+    const contentChunks = chunkString(doc.body, maxBytes, overlap);
+  
+    for (const chunk of contentChunks) {
+      const prompt = renderGather({
+        query,
+        page: chunk,
+        examples: options?.examples,
+      }, options?.test?.format ?? "url");
+  
+      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+  
+      const toLink = {};
+      for (const link of links) {
+        toLink[link.url] = link;
+      }
+
+      for await (const { delta } of stream) {
+        if (!toLink[delta.id]) {
+          logger.warn(`${this} Could not find link with id ${delta.id}`);
+          continue;
+        }
+
+        const link = toLink[delta.url];
+
+        if (seen[link.url]) continue;
+        seen[link.url] = true;
+        delete link.id;
+
+        logger.info(`Found link ${link.url} in response to "${query}"`);
+
+        this.usage.count++;
+        yield Promise.resolve({ _url: link.url });
+
+        logger.info(`Received response for chunk: ${delta.id}`);
+        yield Promise.resolve(delta);
+      }
+    }
+  }
+  
 };
+

@@ -1,5 +1,34 @@
 import { Template } from '../template/Template.js';
 
+export function renderGather(args, format) {
+  const renderers = {
+    page: {
+      default: gatherPageUrl.render,
+    },
+    links: {
+      id: gatherLinksId.render,
+      url: gatherLinksUrl.render,
+    },
+  };
+
+  const allExamples = {
+    id: exampleIdOutput,
+    url: exampleUrlOutput,
+  }
+
+  const examples = allExamples[format] || "";
+
+  if ('page' in args) {
+    const renderer = renderers.page[format] || renderers.page.default;
+    return renderer({...args, examples:examples});
+  } else if ('links' in args) {
+    const renderer = renderers.links[format] || renderers.links.id;
+    return renderer({...args, examples:examples});
+  }
+
+  throw new Error('Invalid arguments provided: must include either "page" or "links".');
+}
+
 export const gather = new Template(
   ['query', 'links'],
   `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
@@ -25,6 +54,88 @@ Find links matching the user query: {{query}}
 The list to find this is below:
 {{links}}`,
 );
+
+const exampleUrlOutput = (
+  `Example of valid output:
+
+{ "url": "https://www.cnn.com/2025/01/31/americas/brazil-shipwreck-wwii-intl-latam/index.html" }
+{ "url": "https://www.cnn.com/2025/01/31/us/air-traffic-control-staffing-nationwide-problem-invs/index.html" }
+{ "url": "https://www.cnn.com/2025/01/31/europe/norway-seizes-russian-crewed-ship-on-suspicion-of-causing-serious-damage-to-undersea-cable-between-latvia-and-sweden/index.html" }
+`
+)
+
+const exampleIdOutput = (
+  `Example of valid output:
+
+{ "id": 3 }
+{ "id": 18 }
+{ "id": 45 }
+`
+)
+
+const gatherPageUrl = new Template(
+  ["query", "page", "example"],
+  `You are part of a web crawling program, and your goal is to pick out relevant links in a page. The page contains the inner text of links, and also their URLs. You will take this page, look for links that match the user prompt, and generate a new list of only the matching items.
+
+Your response will be ONLY the "url"  href of matching items formatted as JSONL. The "url" field will be used later, you only need to include the "url" field.
+
+Follow these important rules:
+- The entire array should be JSONL, with a single object per link
+- Do not wrap the response in an array, return individual dictionaries only per-line.
+- Do not include any markdown formatting. Only include JSONL.
+- Generally avoid links with no link text.
+- Respect user filter requests, if any
+- Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
+
+{{example}}
+Find links matching the user query: {{query}}
+
+The page to find these in is below:
+{{page}}`,
+);
+
+const gatherLinksUrl = new Template(
+  ['query', 'links', 'example'],
+  `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
+
+Your response will be ONLY the "url" of matching items formatted as JSONL. The "url" field will be used later, you only need to include the "url" field.
+
+Follow these important rules:
+- The entire array should be JSONL, with a single object per link
+- Do not wrap the response in an array, return individual dictionaries only per-line.
+- Do not include any markdown formatting. Only include JSONL.
+- Generally avoid links with no link text.
+- Respect user filter requests, if any
+- Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
+
+{{example}}
+Find links matching the user query: {{query}}
+,
+The page to find these in is below:
+{{links}}`,
+);
+
+const gatherLinksId = new Template(
+  ['query', 'links', 'example'],
+  `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
+
+Your response will be ONLY the "id" field of matching items. The "id" field will be used to generate the results later, you only need to include the "id" field.
+
+Follow these important rules:
+- The entire array should be JSONL, with a single object per link
+- Do not wrap the response in an array, return individual dictionaries only per-line.
+- Do not include any markdown formatting. Only include JSONL.
+- Generally avoid links with no link text.
+- Respect user filter requests, if any
+- Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
+
+{{example}}
+Find links matching the user query: {{query}}
+
+The list to find this is below:
+{{links}}`,
+);
+
 
 export const rate = new Template(
   ['query', 'links'],
