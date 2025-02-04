@@ -71,9 +71,9 @@ export const Instructions = class {
           const action = {
             type: delta.actionType,
             arg: delta.actionArgument,
+            max: command.max,
+            repeat: command.repeat,
           };
-
-          console.log('delta', delta);
 
           if (delta.isPaginationAction == 'yes') {
             action.repeat ??= 5;
@@ -81,8 +81,6 @@ export const Instructions = class {
 
           action.repeat ??= 0;
           action.max ??= 100;
-
-          console.log('action', action);
 
           learned.push(action);
           await fetcher.act(ctx, action, {});
