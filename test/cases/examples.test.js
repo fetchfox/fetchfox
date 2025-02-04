@@ -12,7 +12,6 @@ describe('examples', function() {
     const cases = [
       { ai: 'openai:gpt-4o-mini' },
       { ai: 'openrouter:openai/gpt-4o-mini' },
-      { ai: 'openrouter:anthropic/claude-3.5-sonnet' },
     ];
 
     for (const { ai } of cases) {

@@ -1,9 +1,9 @@
 export const nameMap = {
-  ActionStep: 'action',
   ConstStep: 'const',
   CrawlStep: 'crawl',
   DeepCrawlStep: 'deepcrawl',
   ExtractStep: 'extract',
+  ActionStep: 'action',
   FetchStep: 'fetch',
   FilterStep: 'filter',
   LimitStep: 'limit',
@@ -135,6 +135,22 @@ export const stepDescriptionsMap = {
         description: 'A CSS selector that narrows which part of the page to return',
         format: 'string',
         required: false,
+      },
+    },
+  }),
+
+  action: combineInfo({
+    // The AI isn't smart enough to use this step
+    hideFromAI: true,
+
+    name: 'action',
+    description: 'Performn an action on the page',
+    args: {
+      commands: {
+        description: 'List of commands to perform on this page',
+        format: 'array',
+        example: ['Go through all the pages using next page', 'Click on each profile icon'],
+        required: true,
       },
     },
   }),

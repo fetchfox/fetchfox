@@ -22,26 +22,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.headless = options?.headless === undefined ? true : options?.headless;
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
-
-    // TODO: these options should be passed in in `fetch`
-    this.loadWait = options?.loadWait || 4000;
-    this.timeoutWait = options?.timeoutWait || 15000;
     this.pullIframes = options?.pullIframes;
-
-    this.options = options?.options || {};
   }
 
   cacheOptions() {
     return {
       browser: 'chromium',
       loadWait: this.loadWait,
-      timeoutWait: this.timeoutWait,
       waitForText: this.waitForText,
     };
   }
 
   async goto(url, ctx) {
-    const page = await ctx.browser.newPage()
+    const page = await ctx.browser.newPage();
 
     try {
       const { aborted } = await abortable(
@@ -58,7 +51,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return { page };
   }
 
-  async finishGoto() {
+  async finishGoto(ctx) {
+    return ctx.page && ctx.page.close();
   }
 
   async current(ctx) {
@@ -79,39 +73,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return doc;
   }
 
-  async evaluate(fn, ctx) {
-    return ctx.page.evaluate(fn);
-  }
-
-  async click(selector, ctx) {
-    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
-      logger.warn(`{this} Invalid selector: ${selector}`);
-      return;
-    }
-
-    const loc = ctx.page.locator(selector);
-    if (!await loc.count()) {
-      logger.warn(`${this} Couldn't find selector=${selector}, not clicking`);
-      return;
-    }
-
-    const el = loc.first();
-    await el.scrollIntoViewIfNeeded();
-    return el.click();
-  }
-
-  async scroll(type, ctx) {
-    switch (type) {
-      case 'window':
-        return ctx.page.keyboard.press('PageDown');
-      case 'bottom':
-        /* eslint-disable no-undef */
-        return ctx.page.evaluate(() => window.scrollBy(0, window.innerHeight));
-        /* eslint-enable no-undef */
-      default:
-        logger.error(`${this} Unhandled scroll type: ${type}`);
-    }
-  }
 
   async _launch() {
     logger.debug(`Playwright launching...`);
@@ -126,7 +87,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           promise = chromium.connectOverCDP(this.cdp);
         } else {
           logger.debug(`Playwright using local Chromium, attempt=${i}`);
-          promise = chromium.launch({ ...this.options, headless: this.headless });
+          promise = chromium.launch({ headless: this.headless });
         }
         const browser = await promise;
         return browser;
@@ -159,6 +120,110 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`${this} Closing browser`);
       await ctx.browser.close();
     }
+  }
+
+  async act(ctx, action, seen) {
+    logger.trace(`${this} Do action: ${JSON.stringify(action)}`);
+
+    let r;
+
+    switch (action.type) {
+      case 'click':
+        r = await this.click(ctx, action.arg, seen);
+        break;
+
+      case 'scroll':
+        r = await this.scroll(ctx, action.arg, seen);
+        break;
+
+      default:
+        throw new Error(`Unhandled action type: ${action.type}`);
+    }
+
+    logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
+    r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
+
+    return r;
+  }
+
+  async click(ctx, selector, seen) {
+    logger.debug(`${this} Click selector=${selector}`);
+
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
+      logger.warn(`{this} Invalid selector: ${selector}`);
+      return { ok: false };
+    }
+
+    const loc = ctx.page.locator(selector);
+
+    let el;
+    let text;
+    let html;
+
+    // Look for the first matching element not in seen
+    for (let i = 0; el == null; i++) {
+      try {
+        await loc.nth(i).waitFor({ state: 'visible', timeout: 1000 });
+        el = await loc.nth(i);
+      } catch {
+        logger.warn(`${this} Could't find ${loc} nth=${i}`);
+        return { ok: false };
+      }
+
+      text = await el.textContent();
+      html = await el.evaluate(el => el.outerHTML);
+
+      if (seen && (seen[text] || seen[html])) {
+        logger.debug(`${this} Skipping already seen text=${text.substring(0, 100)} html=${html.substring(0, 100)}`);
+        el = null;
+        continue;
+      }
+    }
+
+    await el.scrollIntoViewIfNeeded();
+    await el.click();
+
+    return { ok: true, text, html };
+  }
+
+  async evaluate() {
+    throw new Error('TODO');
+  }
+
+  async scroll(ctx, type) {
+    logger.debug(`${this} Scroll type=${type}`);
+
+    // TODO: Check if scrolling worked
+
+    switch (type) {
+      case 'window':
+        await ctx.page.keyboard.press('PageDown');
+        break;
+
+      case 'bottom':
+        /* eslint-disable no-undef */
+        await ctx.page.evaluate(async () => {
+          const scrollToBottom = async () => {
+            const top = document.documentElement.scrollHeight;
+            return new Promise((ok) => {
+              const fn = () => {
+                document.removeEventListener('scrollend', fn);
+                ok();
+              }
+              document.addEventListener('scrollend', fn);
+              window.scrollTo({ top, behavior: 'smooth' });
+            });
+          }
+
+          await scrollToBottom();
+        });
+        /* eslint-enable no-undef */
+        break;
+      default:
+        logger.error(`${this} Unhandled scroll type: ${type}`);
+    }
+
+    return { ok: true };
   }
 
   async _docFromPage(page, timer) {
@@ -234,7 +299,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 }
 
 const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
-  logger.debug(`Playwright waiting ${(loadWait/1000).toFixed(1)} sec`);
+  logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 
   if (pullIframes) {

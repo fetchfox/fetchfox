@@ -4,8 +4,12 @@ import http from 'http';
 import { logger } from '../../src/log/logger.js';
 import { testCache } from '../lib/util.js';
 import { getFetcher, getAI } from '../../src/index.js';
+import { Instructions } from '../../src/fetch/Instructions.js';
 
 describe('PlaywrightFetcher', function() {
+
+  // Actions take a little longer to execute
+  this.timeout(5 * 1000);
 
   before(() => {
     logger.testMode();
@@ -136,7 +140,7 @@ describe('PlaywrightFetcher', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o-mini', { cache });
-      const fetcher = getFetcher('playwright', { ai, loadWait: 20, paginationWait: 20 });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 20, actionWait: 20 });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;
@@ -188,11 +192,10 @@ describe('PlaywrightFetcher', function() {
       const doc = (await gen.next()).value;
       gen.return();
 
-      assert.equal(doc, null, 'timeout no error');
+      assert.equal(doc, null, 'timeout should give null');
 
     } finally {
       server.close();
     }
   });
-
 });

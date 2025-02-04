@@ -3,6 +3,10 @@ import { Fetcher } from './Fetcher.js';
 import { PlaywrightFetcher } from './PlaywrightFetcher.js';
 
 export { BaseFetcher } from './BaseFetcher.js';
+export { Instructions } from './Instructions.js';
+export { PlaywrightFetcher } from './PlaywrightFetcher.js';
+export { Fetcher } from './Fetcher.js';
+
 import { BaseFetcher } from './BaseFetcher.js';
 
 export const DefaultFetcher = Fetcher;
