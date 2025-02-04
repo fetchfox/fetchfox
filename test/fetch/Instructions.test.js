@@ -6,7 +6,9 @@ import { getFetcher, getAI, Instructions } from '../../src/index.js';
 import * as cheerio from 'cheerio';
 
 describe('Instructions', function() {
-  this.timeout(60 * 1000);
+
+  // Actions take a while to execute
+  this.timeout(10 * 1000);
 
   it('should handle next page pagination @run @fast', async () => {
     const server = http.createServer((req, res) => {

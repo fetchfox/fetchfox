@@ -1,13 +1,10 @@
 import PQueue from 'p-queue';
-import pTimeout from 'p-timeout';
 import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 import { Document } from '../document/Document.js';
-import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
-import { createChannel, shortObjHash, abortable, srid } from '../util.js';
+import { createChannel, shortObjHash, srid } from '../util.js';
 import { presignS3 } from './util.js';
-import { paginationAction } from './prompts.js';
 import { Instructions } from './Instructions.js';
 
 export const BaseFetcher = class {
@@ -181,7 +178,6 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${instr}`);
 
-              const maxPages = options?.maxPages || 0;
               await instr.learn(this);
 
               const gen = await instr.execute(this);

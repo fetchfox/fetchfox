@@ -7,6 +7,8 @@ import { testCache } from '../lib/util.js';
 
 describe('github.com', function() {
 
+  this.timeout(5 * 1000);
+
   it('should do basic scrape @run @fast', async () => {
     let countPartials = 0;
     const wf = await fox

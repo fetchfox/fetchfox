@@ -39,43 +39,49 @@ export const Instructions = class {
     const timer = new Timer();
     let ctx = {};
     await fetcher.start(ctx);
-    ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
+    try {
+      ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
 
-    // TODO: It would be nice of learning supported caching. Right now,
-    // we use the live page for interactions, but it should be possible to
-    // cache a chain of url + commands
-    for (const command of this.commands) {
-      const doc = await fetcher.current(ctx);
-      const html = (await min.min(doc, { timer })).html;
+      // TODO: It would be nice of learning supported caching. Right now,
+      // we use the live page for interactions, but it should be possible to
+      // cache a chain of url + commands
+      for (const command of this.commands) {
+        const doc = await fetcher.current(ctx);
+        if (!doc) {
+          throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
+        }
 
-      logger.debug(`${this} Learn how to do: ${command.prompt}`);
+        const html = (await min.min(doc, { timer })).html;
 
-      const context = { html, command: command.prompt };
-      const { prompt: actionPrompt } = await prompts.pageAction
-        .renderCapped(context, 'html', this.ai);
+        logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
-      const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
-      for await (const { delta } of stream) {
-        logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+        const context = { html, command: command.prompt };
+        const { prompt: actionPrompt } = await prompts.pageAction
+          .renderCapped(context, 'html', this.ai);
 
-        const action = {
-          type: delta.actionType,
-          arg: delta.actionArgument,
-          yieldBefore: delta.shouldYieldBefore == 'yes',
-          max: command.max,
-          repeat: command.repeat,
-        };
-        learned.push(action);
-        await fetcher.act(ctx, action, {});
+        const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
+        for await (const { delta } of stream) {
+          logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+
+          const action = {
+            type: delta.actionType,
+            arg: delta.actionArgument,
+            yieldBefore: delta.shouldYieldBefore == 'yes',
+            max: command.max,
+            repeat: command.repeat,
+          };
+          learned.push(action);
+          await fetcher.act(ctx, action, {});
+        }
       }
+
+      // TODO: Check if the learned actions work, and retry if they don't
+
+      this.learned = learned;
+      logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
+    } finally {
+      await fetcher.finish(ctx);
     }
-
-    // TODO: Check if the learned actions work, and retry if they don't
-
-    this.learned = learned;
-    logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
-
-    await fetcher.finish(ctx);
   }
 
   async *execute(fetcher) {

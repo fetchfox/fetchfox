@@ -165,7 +165,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       try {
         await loc.nth(i).waitFor({ state: 'visible', timeout: 1000 });
         el = await loc.nth(i);
-      } catch (e) {
+      } catch {
         logger.warn(`${this} Could't find ${loc} nth=${i}`);
         return { ok: false };
       }

@@ -1,11 +1,16 @@
 import assert from 'assert';
 import os from 'os';
+import { logger } from '../../src/log/logger.js';
 import { fox, OpenAI, Fetcher } from '../../src/index.js';
 import { redditSampleHtml } from './data.js';
 import { testCache } from '../lib/util.js';
 
 describe('Workflow', function() {
-  this.timeout(30 * 1000);
+  this.timeout(10 * 1000);
+
+  before(() => {
+    logger.testMode();
+  });
 
   it('should run the deep crawler correctly @run @fast', async () => {
     const wf = fox

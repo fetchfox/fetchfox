@@ -32,7 +32,7 @@ export const ExtractStep = class extends BaseStep {
     await cursor.ctx.extractor.clear();
   }
 
-  async process({ cursor, item, batch, index }, cb) {
+  async process({ cursor, item, index }, cb) {
     logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
     const start = (new Date()).getTime();
 
