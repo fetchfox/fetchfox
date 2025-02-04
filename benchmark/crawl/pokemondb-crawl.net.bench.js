@@ -8,8 +8,8 @@ describe('crawl pokemondb', async function() {
   const matrix = standardMatrix({
     prompt: [
       'find pokemon',
-      'find links to pokemon pages',
-      'find links to pokemon pages. ONLY find pokemon CHARACTER pages, not general pages or navigation, etc.',
+      // 'find links to pokemon pages',
+      // 'find links to pokemon pages. ONLY find pokemon CHARACTER pages, not general pages or navigation, etc.',
     ],
   });
 
@@ -26,6 +26,8 @@ describe('crawl pokemondb', async function() {
     matrix,
     [
       (items) => {
+        console.log('got these items:', items);
+
         const score = [0, 0];
         const invalid = [
           'https://pokemondb.net/pokedex/national',
@@ -41,8 +43,10 @@ describe('crawl pokemondb', async function() {
           score[0]++;
         }
 
+        console.log('final score:', score);
+
         return score;
       },
     ],
-    { shouldSave: true });
+    { shouldSave: false });
 });
