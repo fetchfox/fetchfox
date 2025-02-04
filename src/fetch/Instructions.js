@@ -8,10 +8,15 @@ import * as prompts from './prompts.js';
 export const Instructions = class {
   constructor(url, commands, options) {
     this.url = url;
-    this.commands = commands;
-    for (const command of this.commands) {
-      command.max ??= 100;
-      command.repeat ??= 0;
+    this.commands = [];
+    for (const command of commands) {
+      let c;
+      if (typeof command == 'string') {
+        c = { prompt: command };
+      } else {
+        c = command;
+      }
+      this.commands.push(c);
     }
     this.ai = options?.ai || getAI();
     this.loadTimeout = options?.loadTimeout || 15000;
@@ -66,10 +71,19 @@ export const Instructions = class {
           const action = {
             type: delta.actionType,
             arg: delta.actionArgument,
-            yieldBefore: delta.shouldYieldBefore == 'yes',
-            max: command.max,
-            repeat: command.repeat,
           };
+
+          console.log('delta', delta);
+
+          if (delta.isPaginationAction == 'yes') {
+            action.repeat ??= 5;
+          }
+
+          action.repeat ??= 0;
+          action.max ??= 100;
+
+          console.log('action', action);
+
           learned.push(action);
           await fetcher.act(ctx, action, {});
         }

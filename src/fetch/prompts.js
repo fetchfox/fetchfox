@@ -50,13 +50,13 @@ Your task is to determine the **most direct action** to achieve the goal **witho
 
 Respond with JSONL, with JSON object in lines as follows:
 
-{ "actionAnalysis": "string...", "actionElementCss": "string...", "actionElementText": "string...", "actionType": "string...", "actionArgument": "string...", "shouldYieldBefore": "string..." }
+{ "actionAnalysis": "string...", "actionElementCss": "string...", "actionElementText": "string...", "actionType": "string...", "actionArgument": "string...", "isPaginationAction": "string..." }
 
 - "actionAnalysis": 10-30 word English description of what action should be taken on the page, or if no action is required.
 - "actionElementCss": "css selector of the element that needs interaction, if one exists. null otherwise",
 - "actionElementText": "text of the element to be used for an xpath selector, if relevant. null otherwise",
 - "actionType": The action to perform:
-  - "click" if you need to click on elements, links, or other clickable elements. There can be multiple clickable elements, in which case your selector shoudl match all of them.
+  - "click" if you need to click on elements, links, or other clickable elements. There can be multiple clickable elements, in which case your selector should match all of them.
   - "scroll" if scrolling is needed to trigger content or reveal a hidden element.
   - "evaluate" if a more complex action requires executing JavaScript directly on the page.
   - "none" if no action is required.
@@ -66,7 +66,7 @@ Respond with JSONL, with JSON object in lines as follows:
     - prepend "css=" for matching css selectors
   - If command is "scroll", specify how much to scroll: either "window" (for window height) or "bottom" (for scrolling to the bottom of the page).
   - If command is "evaluate", give JavaScript that will execute to trigger the action. This JavaScript will be a parameter to new Function().
-- "shouldYieldBefore": If the action is related to pagintion, then the HTML *before* the action is useful. Therefore, for paginationa actions, return shouldYieldBefore="yes". Return shouldYieldBefore="no" for all other cases
+- "isPaginationAction": If the action is related to pagination, return "yes". Otherwise return "no"
 
 Follow these important rules:
 - Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
