@@ -122,18 +122,18 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async act(ctx, action, index) {
-    logger.trace(`${this} Do action: ${JSON.stringify(action)} index=${index}`);
+  async act(ctx, action, seen) {
+    logger.trace(`${this} Do action: ${JSON.stringify(action)}`);
 
-    let ok;
+    let r;
 
     switch (action.type) {
       case 'click':
-        ok = await this.click(ctx, action.arg, index);
+        r = await this.click(ctx, action.arg, seen);
         break;
 
       case 'scroll':
-        ok = await this.scroll(ctx, action.arg, index);
+        r = await this.scroll(ctx, action.arg, seen);
         break;
 
       default:
@@ -141,30 +141,49 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
-    ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
+    r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
 
-    return ok;
+    return r;
   }
 
-  async click(ctx, selector, index) {
-    logger.debug(`${this} Click selector=${selector} index=${index}`);
+  async click(ctx, selector, seen) {
+    logger.debug(`${this} Click selector=${selector}`);
 
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       logger.warn(`{this} Invalid selector: ${selector}`);
-      return false;
-    }
-    const loc = ctx.page.locator(selector);
-    if (await loc.count() <= index) {
-      if (index == 0) {
-        logger.warn(`${this} Couldn't find selector=${selector} index=${index}, not clicking`);
-      }
-      return false;
+      return { ok: false };
     }
 
-    const el = loc.nth(index);
+    const loc = ctx.page.locator(selector);
+
+    let el;
+    let text;
+    let html;
+
+    // Look for the first matching element not in seen
+    for (let i = 0; el == null; i++) {
+      try {
+        await loc.nth(i).waitFor({ state: 'visible', timeout: 1000 });
+        el = await loc.nth(i);
+      } catch (e) {
+        logger.warn(`${this} Could't find ${loc} nth=${i}`);
+        return { ok: false };
+      }
+
+      text = await el.textContent();
+      html = await el.evaluate(el => el.outerHTML);
+
+      if (seen && (seen[text] || seen[html])) {
+        logger.debug(`${this} Skipping already seen text=${text} html=${html}`);
+        el = null;
+        continue;
+      }
+    }
+
     await el.scrollIntoViewIfNeeded();
     await el.click();
-    return true;
+
+    return { ok: true, text, html };
   }
 
   async evaluate() {
@@ -206,6 +225,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       default:
         logger.error(`${this} Unhandled scroll type: ${type}`);
     }
+
+    return { ok: true };
   }
 
   async _docFromPage(page, timer) {

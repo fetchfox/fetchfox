@@ -8,7 +8,7 @@ import * as cheerio from 'cheerio';
 describe('Instructions', function() {
   this.timeout(60 * 1000);
 
-  it('should handle paginated profiles @run @fast', async () => {
+  it('should handle next page pagination @run @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -120,4 +120,115 @@ describe('Instructions', function() {
       server.close();
     }
   });
+
+  it('should handle load more pagination @run @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1 id="page-label"></h1>
+    <div id="nav">
+      <button id="next-page">Next Page</button>
+      <div id="buttons"></div>
+    </div>
+    <div id="profile"></div>
+
+    <script>
+     let page = 1;
+     let profile;
+
+     function render() {
+       document.getElementById("page-label").textContent = "Page " + page;
+       const el = document.getElementById('buttons');
+
+       for (let i = 0; i < 5; i++) {
+         const num = (page - 1) * 5 + i + 1;
+         el.innerHTML += '<button class="profile-btn" onClick="profile=' + num + ';render()">profile ' + num + '</button>';
+       }
+
+       if (profile) {
+         document.getElementById('nav').innerHTML = '';
+         document.getElementById('profile').innerHTML = 'Profile content ' + profile;
+       }
+     }
+
+     document.getElementById("next-page").addEventListener("click", function() {
+       page++;
+       profile = null;
+       render();
+     });
+
+     render();
+    </script>
+  </body>
+</html>
+`
+      );
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    try {
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o', { cache });
+      const fetcher = getFetcher(
+        'playwright',
+        { ai, loadWait: 1, actionWait: 1, headless: true });
+      const url = `http://localhost:${port}`;
+
+      const commands = [
+        { prompt: 'click to go to the next page', max: 3, repeat: 3 },
+        { prompt: 'click each profile link', max: 4 },
+      ];
+
+      const instr = new Instructions(url, commands, { ai });
+      await instr.learn(fetcher);
+
+      const expected = [
+        ['Page 1', 'Profile content 1'],
+        ['Page 1', 'Profile content 2'],
+        ['Page 1', 'Profile content 3'],
+        ['Page 1', 'Profile content 4'],
+        ['Page 2', 'Profile content 5'],
+        ['Page 2', 'Profile content 6'],
+        ['Page 2', 'Profile content 7'],
+        ['Page 2', 'Profile content 8'],
+        ['Page 3', 'Profile content 9'],
+        ['Page 3', 'Profile content 10'],
+        ['Page 3', 'Profile content 11'],
+        ['Page 3', 'Profile content 12'],
+      ];
+
+      let i = 0;
+
+      let doc;
+      let usage;
+      const gen = instr.execute(fetcher);
+      for await ({ doc, usage } of gen) {
+        if (!doc) {
+          continue;
+        }
+
+        const $ = cheerio.load(doc.html);
+        const page = $('#page-label').text();
+        const profile = $('#profile').text();
+
+        assert.equal(page, expected[i][0]);
+        assert.equal(profile, expected[i][1]);
+
+        i++;
+      }
+
+      assert.equal(usage.goto, 16, 'expected 16 gotos');
+      assert.equal(usage.actions[0], 15, 'expected 15 (12 success + 3 failed) next page clicks');
+      assert.equal(usage.actions[1], 12, 'expected 12 profile button clicks');
+
+    } finally {
+      server.close();
+    }
+  });
+
 });

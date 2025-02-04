@@ -66,7 +66,7 @@ export const Instructions = class {
           repeat: command.repeat,
         };
         learned.push(action);
-        await fetcher.act(ctx, action, 0);
+        await fetcher.act(ctx, action, {});
       }
     }
 
@@ -123,6 +123,8 @@ export const Instructions = class {
       return copy;
     }
 
+    const seen = {};
+
     const act = async (i, state) => {
       const action = this.learned[i];
 
@@ -140,11 +142,18 @@ export const Instructions = class {
       let ok = true; 
       if (state[i].repeat) {
         for (let r = 0; r < state[i].repetition; r++) {
-          ok &&= await fetcher.act(ctx, action, index);
+          // Repeat actions do not use seen
+          const r = await fetcher.act(ctx, action, {});
+          ok &&= r.ok;
           usage.actions[i]++;
         }
       } else {
-        ok &&= await fetcher.act(ctx, action, index);
+        const r = await fetcher.act(ctx, action, seen);
+        ok &&= r.ok;
+
+        // For now, only track seen html
+        seen[r.html] = true;
+
         usage.actions[i]++;
       }
 
