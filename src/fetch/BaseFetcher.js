@@ -87,8 +87,10 @@ export const BaseFetcher = class {
 
       const maxPages = options?.maxPages || 0;
       if (maxPages > 1) {
+        const domainSpecific = domainSpecificInstructions(instr.url);
+
         instr.unshiftCommand({
-          prompt: 'go to the next page (if pagination is possible)',
+          prompt: `Go to the next page, if pagination is possible. ${domainSpecific}`,
           max: 1,
           repeat: maxPages,
         });
@@ -328,4 +330,27 @@ export const BaseFetcher = class {
     logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
+}
+
+const domainSpecificInstructions = (url) => {
+  const matchers = [
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/, instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+    },
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/, instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`
+    },
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/, instruction: 'You are on Google Maps, which paginates by bringing the results list into focus by clicking on it and then scrolling down one window length.'
+    },
+  ]
+  const match = matchers.find(({ prefix }) => prefix.test(url));
+  let result;
+  if (match) {
+    result = '\n>> Follow this important domain specific guidance: ' + match.instruction;
+    logger.debug(`Adding domain specific prompt: ${result}`);
+  } else {
+    result = '';
+  }
+  return result;
 }
