@@ -41,12 +41,13 @@ export const BaseFetcher = class {
 
   async isPdf(url) {
     try {
-      const response = await fetch(url, { method: 'HEAD' });
-      const contentType = response.headers.get('Content-Type');
+      const resp = await fetch(url, { method: 'HEAD' });
+      const contentType = resp.headers.get('Content-Type');
 
       return contentType && contentType.startsWith('application/pdf');
     } catch (e) {
       logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
+      return false;
     }
   }
 
@@ -123,7 +124,7 @@ export const BaseFetcher = class {
 
     if (await this.isPdf(url)) {
       try {
-        const response = await fetch("https://fetchfox.ai/api/pdf", {
+        const response = await fetch(process.env.API_HOST || 'https://fetchfox.ai/api/pdf', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
