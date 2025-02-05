@@ -37,6 +37,33 @@ export const chunkList = (list, maxBytes) => {
   return chunks;
 };
 
+export const chunkString = (str, maxBytes, overlap) => {
+  const chunks = [];
+  if (!overlap) {
+    overlap = 0;
+  }
+
+  const encoder = new TextEncoder();
+  const encodedStr = encoder.encode(str);
+
+  let start = 0;
+  while (start < encodedStr.length) {
+      const end = Math.min(start + maxBytes, encodedStr.length);
+      const chunk = encodedStr.slice(start, end);
+
+      chunks.push(new TextDecoder().decode(chunk));
+
+      // Move the start position for the next chunk, ensuring overlap
+      if (end == encodedStr.length) {
+        break;
+      }
+      start = end - overlap;
+      if (start < 0) start = 0; // Ensure we don't go negative
+  }
+
+  return chunks;
+};
+
 export const isPlainObject = (obj) => (
   Object.prototype.toString.call(obj) === '[object Object]' &&
   (obj.constructor === Object || typeof obj.constructor === 'undefined')

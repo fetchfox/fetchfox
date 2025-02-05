@@ -143,16 +143,17 @@ export const Crawler = class extends BaseCrawler {
 
     await this.ai.init();
 
-    const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
-    const overlap = this.ctx.overlap ?? 1000;
+    const maxBytes = Math.min(40000, this.ai.maxTokens / 2);
+    const overlap = 1000;
 
+    logger.debug(`chunking document body of length ${doc.body.length} with ${maxBytes}, ${overlap}`)
     const contentChunks = chunkString(doc.body, maxBytes, overlap);
+    logger.debug(`chunked document body into ${contentChunks.length} chunks`)
 
     for (const chunk of contentChunks) {
       const prompt = gather.render({
         query,
         page: chunk,
-        examples: options?.examples,
       });
 
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
@@ -163,6 +164,18 @@ export const Crawler = class extends BaseCrawler {
       }
 
       for await (const { delta } of stream) {
+        // Update url for relative links
+        let url;
+        try {
+          url = new URL(delta.url, doc.url);
+        } catch (e) {
+          logger.warn(`Skipping invalid link: ${delta.url} from ${doc.url}`);
+          continue;
+        }
+
+        const urlStr = url.toString();
+        delta["url"] = urlStr;
+
         if (!toLink[delta.url]) {
           logger.warn(`${this} Could not find link with url ${delta.url}`);
           continue;

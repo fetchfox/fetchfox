@@ -1,10 +1,10 @@
 import { Template } from '../template/Template.js';
 
 export const gather = new Template(
-  ['query', 'links'],
-  `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
+  ['query', 'page'],
+  `You are part of a web crawling program, and your goal is to pick out relevant links in a page. The page contains the inner text of links, and also their URLs. You will take this page, look for links that match the user prompt, and generate a new list of only the matching items.
 
-Your response will be ONLY the "url" field of matching items.
+Your response will be ONLY the "url" (href) of matching items.
 
 Follow these important rules:
 - The entire array should be JSONL, with a single object per link
@@ -14,16 +14,10 @@ Follow these important rules:
 - Respect user filter requests, if any
 - Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
 
-Example of valid output:
-
-{ "url": "https://www.example.com/page-1" }
-{ "url": "https://www.example.com/page-43" }
-{ "url": "https://www.example.com/page-77" }
-
 Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}`,
+{{page}}`,
 );
 
 export const rate = new Template(
