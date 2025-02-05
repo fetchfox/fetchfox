@@ -1,7 +1,6 @@
 import { logger } from '../log/logger.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
 import {
   findMultiDescription,
   codeGenMulti,
@@ -73,8 +72,7 @@ export const CodeGenExtractor = class extends BaseExtractor {
               return result.value;
             })
             .then((doc) => {
-              const removeTags = ['script', 'style', 'svg', 'meta', 'link'];
-              return new TagRemovingMinimizer(removeTags).min(doc);
+              return doc;
             })
         })
     );

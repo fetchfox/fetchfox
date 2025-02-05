@@ -1,7 +1,6 @@
 import { logger } from '../../log/logger.js';
 import { BaseCrawler } from '../BaseCrawler.js';
 import * as prompts from './prompts.js';
-import { TagRemovingMinimizer } from '../../min/TagRemovingMinimizer.js';
 
 export class DeepCrawler extends BaseCrawler {
   async *run(url, query, options) {
@@ -20,8 +19,7 @@ export class DeepCrawler extends BaseCrawler {
       const latestUrl = urlStack[urlStack.length - 1];
       logger.debug(`${this} Processing ${latestUrl}`);
 
-      const _doc = await this.fetcher.first(latestUrl, fetchOptions);
-      const doc = await new TagRemovingMinimizer().min(_doc);
+      const doc = await this.fetcher.first(latestUrl, fetchOptions);
 
       const { prompt: aiPrompt } = await prompts.analyzePage.renderCapped(
         { html: doc.html, prompt: query },
