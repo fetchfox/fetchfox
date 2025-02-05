@@ -1,5 +1,4 @@
 import pTimeout from 'p-timeout';
-import { TagRemovingMinimizer } from "../min/TagRemovingMinimizer.js";
 import { logger } from "../log/logger.js";
 import { Timer } from "../log/timer.js";
 import { getAI } from '../ai/index.js';
@@ -38,8 +37,6 @@ export const Instructions = class {
   async learn(fetcher) {
     const learned = [];
 
-    const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
-
     // TODO: refactor how fetcher works
     const timer = new Timer();
     let ctx = {};
@@ -56,7 +53,7 @@ export const Instructions = class {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
         }
 
-        const html = (await min.min(doc, { timer })).html;
+        const html = doc.html;
 
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 

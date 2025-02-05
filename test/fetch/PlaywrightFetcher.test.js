@@ -198,4 +198,46 @@ describe('PlaywrightFetcher', function() {
       server.close();
     }
   });
+
+  it('should minimize HTML content @run @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Minimization Test</title>
+          <style>
+            body { color: black; }
+          </style>
+          <script>
+            console.log('This should be removed');
+          </script>
+        </head>
+        <body>
+          <h1>Static Content</h1>
+          <div style="color: white">Inline styled element</div>
+        </body>
+      </html>
+    `);
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    try {
+      const fetcher = getFetcher('playwright');
+      const gen = await fetcher.fetch(`http://localhost:${port}`);
+      const doc = (await gen.next()).value;
+      gen.return();
+
+      assert.ok(!doc.html.includes('<style>'), 'style tags should be removed');
+      assert.ok(!doc.html.includes('<script>'), 'script tags should be removed');
+      assert.ok(doc.html.includes('<h1>Static Content</h1>'), 'static content should remain intact');
+      assert.ok(!doc.html.includes('style="color: red;"'), 'Inline style attributes should be removed');
+    } finally {
+      server.close();
+    }
+  });
+
 });

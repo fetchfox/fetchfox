@@ -248,7 +248,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
       status = 200;
       html = result.result.html;
-    } catch(e) {
+    } catch (e) {
 
       logger.error(`Playwright could not get from ${page.url()}: ${e}`);
       logger.debug(`Trying to salvage results`);
@@ -375,6 +375,37 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     }
   }
 
+  // Minimize the HTML before returning it
+  logger.debug(`Minimizing HTML on ${page.url()}`);
+  try {
+    await page.evaluate(() => {
+      const removeTags = ['script', 'style', 'svg', 'symbol', 'link', 'meta'];
+      const removeAttributes = ['style'];
+
+      /* eslint-disable no-undef */
+
+      // Remove the specified tags
+      removeTags.forEach(tag => {
+        document.querySelectorAll(tag).forEach(element => {
+          element.replaceWith('');
+        });
+      });
+
+      // Remove the specified attributes
+      document.querySelectorAll('*').forEach(element => {
+        removeAttributes.forEach(attr => {
+          element.removeAttribute(attr);
+        });
+      });
+
+      // Remove excess whitespace
+      document.documentElement.innerHTML = document.documentElement.innerHTML.replace(/[ \t\n]+/g, ' ');
+      /* eslint-enable no-undef */
+    });
+  } catch (e) {
+    logger.warn(`${this} Error while minimizing html: ${e}`);
+  }
+
   logger.debug(`Get page content on ${page.url()}`);
   const start = (new Date()).getTime();
   let html;
@@ -398,7 +429,7 @@ const getHtmlFromError = async (page) => {
     logger.debug(`Get HTML from error result on ${page.url()}`);
     const html = await page.evaluate(() => document.documentElement.outerHTML);
     return html
-  } catch(e) {
+  } catch (e) {
     logger.error(`Failed to get HTML from error result, got another error: ${e}`);
     return null;
   }
