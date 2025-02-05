@@ -121,10 +121,6 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     console.log(JSON.stringify(copy, null, 2));
 
     scores.push(s);
-
-    if (options?.shouldSave) {
-      await storeScores([s]);
-    }
   }
 
   return scores;
