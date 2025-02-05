@@ -146,8 +146,10 @@ export const Crawler = class extends BaseCrawler {
     const maxBytes = Math.min(40000, this.ai.maxTokens / 2);
     const overlap = 1000;
 
-    logger.debug(`chunking document body of length ${doc.body.length} with ${maxBytes}, ${overlap}`)
-    const contentChunks = chunkString(doc.body, maxBytes, overlap);
+    // TODO: Replace this to add minimization
+    const docContents = doc.body;
+    logger.debug(`chunking document body of length ${docContents.length} with ${maxBytes}, ${overlap}`)
+    const contentChunks = chunkString(docContents, maxBytes, overlap);
     logger.debug(`chunked document body into ${contentChunks.length} chunks`)
 
     for (const chunk of contentChunks) {
