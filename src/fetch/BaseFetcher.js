@@ -124,7 +124,7 @@ export const BaseFetcher = class {
 
     if (await this.isPdf(url)) {
       try {
-        const response = await fetch(process.env.API_HOST || 'https://fetchfox.ai/api/pdf', {
+        const resp = await fetch(process.env.API_HOST || 'https://fetchfox.ai/api/pdf', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -132,12 +132,12 @@ export const BaseFetcher = class {
           body: JSON.stringify({ url })
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+        if (!resp.ok) {
+          throw new Error(`Failed to fetch PDF: ${resp.statusText}`);
         }
 
         const doc = new Document();
-        await doc.read(response, url);
+        await doc.read(resp, url);
         
         if (doc) {
           yield Promise.resolve(doc);
