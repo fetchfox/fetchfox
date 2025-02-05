@@ -375,7 +375,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     }
   }
 
-  // Moved minimizer to browser context
+  // Minimize the HTML before returning it
   logger.debug(`Minimizing HTML on ${page.url()}`);
   try {
     await page.evaluate(() => {

@@ -71,9 +71,6 @@ export const CodeGenExtractor = class extends BaseExtractor {
               });
               return result.value;
             })
-            .then((doc) => {
-              return doc;
-            })
         })
     );
 
