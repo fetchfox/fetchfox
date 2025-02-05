@@ -1,6 +1,6 @@
 import { logger } from '../log/logger.js';
 import { validate } from './util.js';
-import { chunkList } from '../util.js';
+import { chunkList, chunkString } from '../util.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
@@ -141,47 +141,34 @@ export const Crawler = class extends BaseCrawler {
     const links = doc.links;
     doc.parseLinks();
 
-    // TODO: move this initailization to a better spot.
-    // maybe make getAI() async and put it there.
     await this.ai.init();
 
-    // Cap max bytes to limit number of links examined a a time
-    const maxBytes = this.ai.maxTokens / 2;
+    const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
+    const overlap = this.ctx.overlap ?? 1000;
 
-    const slimmer = (item) => ({
-      id: item.id,
-      html: item.html.substr(0, 200),
-      text: item.text,
-      url: item.url,
-    });
+    const contentChunks = chunkString(doc.body, maxBytes, overlap);
 
-    const chunked = chunkList(links.map(slimmer), maxBytes);
-
-    for (let i = 0; i < chunked.length; i++) {
-      const chunk = chunked[i];
+    for (const chunk of contentChunks) {
       const prompt = gather.render({
         query,
-        links: JSON.stringify(
-          chunk.filter((l) => validate(l.url)),
-          null,
-          2,
-        ),
+        page: chunk,
+        examples: options?.examples,
       });
-
-      const toLink = {};
-      for (const link of links) {
-        toLink[link.id] = link;
-      }
 
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
 
+      const toLink = {};
+      for (const link of links) {
+        toLink[link.url] = link;
+      }
+
       for await (const { delta } of stream) {
-        if (!toLink[delta.id]) {
-          logger.warn(`${this} Could not find link with id ${delta.id}`);
+        if (!toLink[delta.url]) {
+          logger.warn(`${this} Could not find link with url ${delta.url}`);
           continue;
         }
 
-        const link = toLink[delta.id];
+        const link = toLink[delta.url];
 
         if (seen[link.url]) continue;
         seen[link.url] = true;
