@@ -72,6 +72,7 @@ Follow these important rules:
 - Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
 - Avoid hardcoding specific text or values when possible. Instead, try to generalize the command to make it reusable across different pages.
 - Keep the CSS selectors as simple and specific as possible, making them compatible with document.querySelector().
+- Do NOT invent or guess at CSS selectors. If you don't see one that works, return "none"
 - If no action is needed, return "none" as the command.
 - You might need one or two commands to complete action, maybe three, but usually not that many
 

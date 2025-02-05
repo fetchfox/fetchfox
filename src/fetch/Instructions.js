@@ -1,6 +1,7 @@
 import pTimeout from 'p-timeout';
 import { logger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
+import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
 export const Instructions = class {
@@ -16,6 +17,7 @@ export const Instructions = class {
       }
       this.commands.push(c);
     }
+    this.cache = options?.cache;
     this.ai = options?.ai || getAI();
     this.loadTimeout = options?.loadTimeout || 15000;
   }
@@ -33,8 +35,28 @@ export const Instructions = class {
     this.commands.unshift(command);
   }
 
+  cacheKey() {
+    const hash = shortObjHash({
+      url: this.url,
+      commands: this.commands.map(it => it.prompt),
+    });
+    return `instructions-${hash}`;
+  }
+
   async learn(fetcher) {
     const learned = [];
+
+    const key = this.cacheKey();
+    if (this.cache) {
+      const cached = await this.cache.get(key);
+      if (cached) {
+        logger.debug(`${this} Cache hit for ${key}`);
+        this.learned = cached;
+        return;
+      } else {
+        logger.debug(`${this} Cache miss for ${key}`);
+      }
+    }
 
     // TODO: refactor how fetcher works
     let ctx = {};
@@ -61,7 +83,7 @@ export const Instructions = class {
         //   .renderCapped(context, 'html', this.ai);
         // const actionPrompts = 
 
-        this.ai.maxTokens = 40000;
+        // this.ai.maxTokens = 40000;
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
@@ -82,9 +104,11 @@ export const Instructions = class {
               arg: delta.actionArgument,
               max: command.max,
               repeat: command.repeat,
+              optional: command.optional,
             };
 
-            console.log(action);
+            console.log('---> command:', command);
+            console.log('---> action: ', action);
 
             if (delta.isPaginationAction == 'yes') {
               action.repeat ??= 5;
@@ -113,6 +137,12 @@ export const Instructions = class {
       // TODO: Check if the learned actions work, and retry if they don't
 
       this.learned = learned;
+
+      if (this.cache) {
+        logger.debug(`${this} Setting cache for ${key}`);
+        await this.cache.set(key, this.learned);
+      }
+
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
     } finally {
       await fetcher.finish(ctx);
@@ -180,8 +210,16 @@ export const Instructions = class {
         return false;
       }
 
+      console.log('');
+      console.log('\t!! do action:', action);
+      console.log('');
+
       let ok = true; 
       if (state[i].repeat) {
+        console.log('');
+        console.log('\t>> state[i]:', state[i]);
+        console.log('');
+
         for (let r = 0; r < state[i].repetition; r++) {
           // Repeat actions do not use seen
           const result = await fetcher.act(ctx, action, {});
