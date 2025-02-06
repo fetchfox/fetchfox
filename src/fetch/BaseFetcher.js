@@ -39,18 +39,6 @@ export const BaseFetcher = class {
     return `[${this.constructor.name}]`;
   }
 
-  async isPdf(url) {
-    try {
-      const resp = await fetch(url, { method: 'HEAD' });
-      const contentType = resp.headers.get('Content-Type');
-
-      return contentType && contentType.startsWith('application/pdf');
-    } catch (e) {
-      logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
-      return false;
-    }
-  }
-
   async first(target, options) {
     try {
       for await (const doc of this.fetch(target, options)) {
@@ -166,7 +154,7 @@ export const BaseFetcher = class {
     }
 
     try {
-      if (await this.isPdf(url)) {
+      if (await isPdf(url)) {
         const host = process.env.API_HOST || 'https://fetchfox.ai';
         const apiUrl = `${host}/api/v2/pdf?url=${url}`;
 
@@ -382,4 +370,16 @@ const domainSpecificInstructions = (url) => {
     result = '';
   }
   return result;
+}
+
+const isPdf = async (url) => {
+  try {
+    const resp = await fetch(url, { method: 'HEAD' });
+    const contentType = resp.headers.get('Content-Type');
+
+    return contentType && contentType.startsWith('application/pdf');
+  } catch (e) {
+    logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
+    return false;
+  }
 }
