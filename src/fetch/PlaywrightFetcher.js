@@ -34,7 +34,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async goto(url, ctx) {
-    const page = await ctx.browser.newPage();
+    const page = ctx.page || await ctx.browser.newPage();
 
     try {
       const { aborted } = await abortable(
@@ -469,7 +469,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       return outs;
     });
   } catch (e) {
-    logger.warn(`${this} Error while minimizing html: ${e}`);
+    logger.warn(`${this} Error while getting HTML: ${e}`);
   }
 
   return {
