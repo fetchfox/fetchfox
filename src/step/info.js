@@ -1,7 +1,6 @@
 export const nameMap = {
   ConstStep: 'const',
   CrawlStep: 'crawl',
-  DeepCrawlStep: 'deepcrawl',
   ExtractStep: 'extract',
   ActionStep: 'action',
   FetchStep: 'fetch',
@@ -47,20 +46,6 @@ export const stepDescriptionsMap = {
         description: 'A CSS selector, if present we will look only in this section',
         format: 'string',
         required: false,
-      },
-    },
-  }),
-
-  deepcrawl: combineInfo({
-    name: 'deepcrawl',
-    hideFromAI: true, // beta
-    description: 'Deep crawls a URL for links that match a query',
-    args: {
-      query: {
-        description: 'A high-level prompt describing what you want to scrape.',
-        format: 'string',
-        example: 'Scrape pokemon and get their name, weight and traits.',
-        required: true,
       },
     },
   }),

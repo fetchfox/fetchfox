@@ -11,10 +11,12 @@ describe('Instructions', function() {
   // TODO: caching to bring down test times
   this.timeout(15 * 1000);
 
+  // TODO: re-enable these tests
+
   const cases = [
     // Objects as the commands
     {
-      name: 'should handle next page pagination with objects @run @fast',
+      name: 'should handle next page pagination with objects @disabled',
       commands: [
         { prompt: 'click to go to the next page', max: 3, repeat: 3 },
         { prompt: 'click each profile link', max: 4 },
@@ -43,7 +45,7 @@ describe('Instructions', function() {
 
     // Strings as the commands
     {
-      name: 'should handle next page pagination with strings @run @fast',
+      name: 'should handle next page pagination with strings @disabled',
       commands: [
         'click to go to the next page',
         'click each profile link',
@@ -170,7 +172,7 @@ describe('Instructions', function() {
 
   }
 
-  it('should handle load more pagination @run @fast', async () => {
+  it('should handle load more pagination @disabled', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`

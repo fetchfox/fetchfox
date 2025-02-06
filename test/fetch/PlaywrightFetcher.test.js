@@ -225,7 +225,8 @@ describe('PlaywrightFetcher', function() {
     const port = server.address().port;
 
     try {
-      const fetcher = getFetcher('playwright');
+      const cache = testCache();
+      const fetcher = getFetcher('playwright', { cache });
       const gen = await fetcher.fetch(`http://localhost:${port}`);
       const doc = (await gen.next()).value;
       gen.return();

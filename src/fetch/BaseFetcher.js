@@ -154,15 +154,15 @@ export const BaseFetcher = class {
     }
 
     try {
-      if (await isPdf(url)) {
+      if (await isPdf(instr.url)) {
         const host = process.env.API_HOST || 'https://fetchfox.ai';
-        const apiUrl = `${host}/api/v2/pdf?url=${url}`;
+        const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
 
         logger.debug(`${this} Decoding PDF via ${apiUrl}`);
 
         const resp = await fetch(apiUrl);
         const doc = new Document();
-        await doc.read(resp, url);
+        await doc.read(resp, instr.url);
 
         yield Promise.resolve(pushAndReturn(doc));
         return;
