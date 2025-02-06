@@ -1,5 +1,4 @@
 import assert from 'assert';
-import os from 'os';
 import http from 'http';
 import { logger } from '../../src/log/logger.js';
 import { testCache } from '../lib/util.js';
@@ -238,6 +237,29 @@ describe('PlaywrightFetcher', function() {
     } finally {
       server.close();
     }
+  });
+
+
+  it('should fetch pdf @run @fast', async () => {
+    const cache = testCache();
+    const fetcher = getFetcher('playwright', { cache });
+
+    const gen = await fetcher.fetch('https://ffcloud.s3.us-west-2.amazonaws.com/misc/bitcoin.pdf');
+    const doc = (await gen.next()).value;
+    gen.return();
+
+    assert.ok(doc.text.indexOf('bitcoin') != -1);
+  });
+    
+  it('should handle protected pdf @run @fast', async () => {
+    const cache = testCache();
+    const fetcher = getFetcher('playwright', { cache });
+
+    const gen = await fetcher.fetch('https://ffcloud.s3.us-west-2.amazonaws.com/misc/quicksort.pdf');
+    const doc = (await gen.next()).value;
+    gen.return();
+
+    assert.ok(!doc.html, 'expect empty html for protected pdf')
   });
 
 });

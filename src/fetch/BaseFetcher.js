@@ -135,6 +135,10 @@ export const BaseFetcher = class {
     const start = (new Date()).getTime();
 
     const docs = [];
+    const pushAndReturn = (doc) => {
+      docs.push(doc);
+      return doc;
+    }
 
     const abortListener = () => {
       this.q.clear();
@@ -150,6 +154,20 @@ export const BaseFetcher = class {
     }
 
     try {
+      if (await isPdf(url)) {
+        const host = process.env.API_HOST || 'https://fetchfox.ai';
+        const apiUrl = `${host}/api/v2/pdf?url=${url}`;
+
+        logger.debug(`${this} Decoding PDF via ${apiUrl}`);
+
+        const resp = await fetch(apiUrl);
+        const doc = new Document();
+        await doc.read(resp, url);
+
+        yield Promise.resolve(pushAndReturn(doc));
+        return;
+      }
+
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
       logger.debug(`${this} Adding to fetch queue: ${instr} ${debugStr()}`);
@@ -255,8 +273,7 @@ export const BaseFetcher = class {
             }
           }
 
-          docs.push(doc);
-          yield Promise.resolve(doc);
+          yield Promise.resolve(pushAndReturn(doc));
         }
       } catch (e) {
         logger.error(`${this} Error while reading from documents channel: ${e}`);
@@ -353,4 +370,16 @@ const domainSpecificInstructions = (url) => {
     result = '';
   }
   return result;
+}
+
+const isPdf = async (url) => {
+  try {
+    const resp = await fetch(url, { method: 'HEAD' });
+    const contentType = resp.headers.get('Content-Type');
+
+    return contentType && contentType.startsWith('application/pdf');
+  } catch (e) {
+    logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
+    return false;
+  }
 }
