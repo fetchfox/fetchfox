@@ -226,7 +226,7 @@ describe('PlaywrightFetcher', function() {
 
     try {
       const cache = testCache();
-      const fetcher = getFetcher('playwright', { cache });
+      const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
       const gen = await fetcher.fetch(`http://localhost:${port}`);
       const doc = (await gen.next()).value;
       gen.return();
@@ -243,7 +243,7 @@ describe('PlaywrightFetcher', function() {
 
   it('should fetch pdf @run @fast', async () => {
     const cache = testCache();
-    const fetcher = getFetcher('playwright', { cache });
+    const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
 
     const gen = await fetcher.fetch('https://ffcloud.s3.us-west-2.amazonaws.com/misc/bitcoin.pdf');
     const doc = (await gen.next()).value;
@@ -254,7 +254,7 @@ describe('PlaywrightFetcher', function() {
     
   it('should handle protected pdf @run @fast', async () => {
     const cache = testCache();
-    const fetcher = getFetcher('playwright', { cache });
+    const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
 
     const gen = await fetcher.fetch('https://ffcloud.s3.us-west-2.amazonaws.com/misc/quicksort.pdf');
     const doc = (await gen.next()).value;

@@ -5,14 +5,14 @@ import { BaseStep } from '../../src/step/BaseStep.js';
 import { testCache } from '../lib/util.js';
 
 describe('BaseStep', function() {
-  this.timeout(60 * 1000);
 
   const batchSize = 3;
+  const ai = 'openai:gpt-4o'
 
   it('should do exactly batch size @run @fast', async () => {
     const limit = batchSize;
-    const results = await fox
-      .config({ cache: testCache() })
+    const wf = await fox
+      .config({ cache: testCache(), ai })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
@@ -20,17 +20,21 @@ describe('BaseStep', function() {
         number: 'Pokemon number, format: #XXXX',
       })
       .limit(limit)
-      .run(null, (delta) => {});
+      .plan();
+
+    const results = await wf.run(null, (delta) => {});
 
     assert.equal(results.items.length, limit);
     assert.equal(results.items[0].name, 'Bulbasaur');
     assert.equal(results.items[0].number, '#0001');
+
+    wf.abort();
   });
 
   it('should do over 2x batch size @run @fast', async () => {
     const limit = batchSize * 2 + 1;
-    const results = await fox
-      .config({ cache: testCache() })
+    const wf = await fox
+      .config({ cache: testCache(), ai })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
@@ -38,16 +42,20 @@ describe('BaseStep', function() {
         number: 'Pokemon number, format: #XXXX',
       })
       .limit(limit)
-      .run(null, (delta) => {});
+      .plan();
+
+    const results = await wf.run(null, (delta) => {});
 
     assert.equal(results.items.length, limit);
     assert.equal(results.items[0].name, 'Bulbasaur');
+
+    wf.abort();
   });
 
   it('should do under batch size @run @fast', async () => {
     const limit = batchSize - 1;
-    const results = await fox
-      .config({ cache: testCache() })
+    const wf = await fox
+      .config({ cache: testCache(), ai })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
@@ -55,17 +63,21 @@ describe('BaseStep', function() {
         number: 'Pokemon number, format: #XXXX',
       })
       .limit(limit)
-      .run(null, (delta) => {});
+      .plan();
+
+    const results = await wf.run(null, (delta) => {});
 
     assert.equal(results.items.length, limit);
     assert.equal(results.items[0].name, 'Bulbasaur');
     assert.equal(results.items[0].number, '#0001');
+
+    wf.abort();
   });
 
   it('should do limit=1 size @run @fast', async () => {
     const limit = 1;
-    const results = await fox
-      .config({ cache: testCache() })
+    const wf = await fox
+      .config({ cache: testCache(), ai })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
@@ -73,11 +85,15 @@ describe('BaseStep', function() {
         number: 'Pokemon number, format: #XXXX',
       })
       .limit(limit)
-      .run(null, (delta) => {});
+      .plan();
+
+    const results = await wf.run(null, (delta) => {});
 
     assert.equal(results.items.length, 1);
     assert.equal(results.items[0].name, 'Bulbasaur');
     assert.equal(results.items[0].number, '#0001');
+
+    wf.abort();
   });
 
 });

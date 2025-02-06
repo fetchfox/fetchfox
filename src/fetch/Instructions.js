@@ -1,6 +1,5 @@
 import pTimeout from 'p-timeout';
 import { logger } from "../log/logger.js";
-import { Timer } from "../log/timer.js";
 import { getAI } from '../ai/index.js';
 import * as prompts from './prompts.js';
 
@@ -38,7 +37,6 @@ export const Instructions = class {
     const learned = [];
 
     // TODO: refactor how fetcher works
-    const timer = new Timer();
     let ctx = {};
     await fetcher.start(ctx);
     try {
