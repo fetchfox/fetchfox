@@ -262,5 +262,4 @@ describe('PlaywrightFetcher', function() {
     assert.ok(!doc.html, 'expect empty html for protected pdf')
   });
 
-
 });
