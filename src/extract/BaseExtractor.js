@@ -135,6 +135,9 @@ export const BaseExtractor = class {
                     }
 
                     const ser = JSON.stringify(r.publicOnly());
+
+                    console.log('ser=' + ser);
+
                     if (seen[ser]) {
                       logger.debug(`${this} Dropping duplicate result: ${ser}`);
                       continue;

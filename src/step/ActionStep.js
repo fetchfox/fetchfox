@@ -4,7 +4,8 @@ import { Instructions } from '../fetch/index.js';
 
 export const ActionStep = class extends BaseStep {
   constructor(args) {
-    super(args);
+    // TODO: fetcher pool system for pw concurrency
+    super({ ...args, concurrency: 8 });
     this.commands = args.commands;
   }
 
