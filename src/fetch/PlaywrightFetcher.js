@@ -230,6 +230,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     timer ||= new Timer();
 
     let html;
+    let text;
+    let linksHtml;
     let status;
 
     timer.push('PlaywrightFetcher _docFromPage');
@@ -247,7 +249,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
       status = 200;
+
       html = result.result.html;
+      text = result.result.text;
+      linksHtml = result.result.linksHtml;
     } catch (e) {
 
       logger.error(`Playwright could not get from ${page.url()}: ${e}`);
@@ -275,24 +280,18 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     const url = page.url();
-    const resp = {
-      status: () => status,
-      url: () => url,
-      body: () => html,
-      html: () => html,
-      text: () => html,
-      headers: {
-        'content-type': 'text/html',
-      },
+    const data = {
+      status,
+      url,
+      body: html,
+      html,
+      text,
+      linksHtml: linksHtml,
+      headers: {'content-type': 'text/html' },
     };
 
     const doc = new Document();
-    try {
-      await doc.read(resp, url, { timer });
-    } catch (e) {
-      logger.error(`${this} Error while reading document: ${e}`);
-      return;
-    }
+    doc.loadData(data);
 
     return doc;
   }
@@ -377,48 +376,103 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 
   // Minimize the HTML before returning it
   logger.debug(`Minimizing HTML on ${page.url()}`);
+  let outs;
   try {
-    await page.evaluate(() => {
-      const removeTags = ['script', 'style', 'svg', 'symbol', 'link', 'meta'];
-      const removeAttributes = ['style'];
+    outs = await page.evaluate(async () => {
+      const remove = {
+        tags: ['script', 'style', 'svg', 'symbol', 'link', 'meta'],
+        attrs: ['style'],
+      };
 
-      /* eslint-disable no-undef */
+      const minimizers = [
+        // Default minimizer removes large junk tags and style attribute
+        {
+          name: 'html',
+          remove,
+          keep: {},
+        },
 
-      // Remove the specified tags
-      removeTags.forEach(tag => {
-        document.querySelectorAll(tag).forEach(element => {
-          element.replaceWith('');
+        // Text only minimizer
+        {
+          name: 'text',
+          remove,
+          text: true,
+        },
+
+        // Links minimzer keeps only text and <a href="...">
+        {
+          name: 'linksHtml',
+          remove,
+          text: true,
+          keep: {
+            tags: ['a'],
+            attrs: ['href'],
+          },
+        },
+      ];
+
+      const outs = {};
+      const htmls = {};
+      for (const min of minimizers) {
+
+        /* eslint-disable no-undef */
+        const clone = document.documentElement.cloneNode(true);
+        /* eslint-enable no-undef */
+
+        // Remove tags
+        (min.remove?.tags || []).forEach(tag => {
+          clone.querySelectorAll(tag).forEach(element => {
+            element.replaceWith('');
+          });
         });
-      });
 
-      // Remove the specified attributes
-      document.querySelectorAll('*').forEach(element => {
-        removeAttributes.forEach(attr => {
-          element.removeAttribute(attr);
+        // Remove attributes
+        clone.querySelectorAll('*').forEach(el => {
+          (min.remove?.attrs || []).forEach(attr => {
+            el.removeAttribute(attr);
+          });
         });
-      });
 
-      // Remove excess whitespace
-      document.documentElement.innerHTML = document.documentElement.innerHTML.replace(/[ \t\n]+/g, ' ');
-      /* eslint-enable no-undef */
+        let result = clone.outerHTML;
+
+        // Text conversion
+        if (min.text) {
+          const toText = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              return node.nodeValue;
+            }
+
+            let r = '';
+            for (const child of node.childNodes) {
+              const name = (child.tagName || '').toLowerCase();
+              const keep = (min.keep?.tags || []).includes(name);
+              if (keep) {
+                r += child.outerHTML;
+              } else {
+                r += toText(child);
+              }
+            }
+
+            return r;
+          };
+
+          result = toText(clone)
+        }
+
+        outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();;
+      }
+
+      return outs;
     });
   } catch (e) {
     logger.warn(`${this} Error while minimizing html: ${e}`);
   }
 
-  logger.debug(`Get page content on ${page.url()}`);
-  const start = (new Date()).getTime();
-  let html;
-  try {
-    html = await page.content();
-  } catch (e) {
-    logger.error(`Error getting page content: ${e}`);
-    throw e;
-  }
-  const took = (new Date()).getTime() - start;
-  logger.debug(`Running .content() took ${took} msec`);
-
-  return { html };
+  return {
+    html: outs.html,
+    text: outs.text,
+    linksHtml: outs.linksHtml,
+  };
 }
 
 const getHtmlFromError = async (page) => {

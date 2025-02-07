@@ -7,7 +7,7 @@ import { Instructions } from '../../src/fetch/Instructions.js';
 
 describe('PlaywrightFetcher', function() {
 
-  // Actions take a little longer to execute
+  // Playwright tests take a little longer to execute
   this.timeout(5 * 1000);
 
   before(() => {
@@ -216,6 +216,7 @@ describe('PlaywrightFetcher', function() {
         <body>
           <h1>Static Content</h1>
           <div style="color: white">Inline styled element</div>
+          <a href="https://www.example.com" style="color: white">Keep A Tags</a>
         </body>
       </html>
     `);
@@ -226,10 +227,20 @@ describe('PlaywrightFetcher', function() {
 
     try {
       const cache = testCache();
-      const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
+      const fetcher = getFetcher(
+        'playwright',
+        {
+          loadWait: 1,
+          headless: true,
+        });
       const gen = await fetcher.fetch(`http://localhost:${port}`);
       const doc = (await gen.next()).value;
       gen.return();
+
+
+      assert.equal(doc.html, `<html><head> <title>Minimization Test</title> </head> <body> <h1>Static Content</h1> <div>Inline styled element</div> <a href="https://www.example.com">Keep A Tags</a> </body></html>`);
+      assert.equal(doc.text, `Minimization Test Static Content Inline styled element Keep A Tags`);
+      assert.equal(doc.linksHtml, `Minimization Test Static Content Inline styled element <a href="https://www.example.com">Keep A Tags</a>`);
 
       assert.ok(!doc.html.includes('<style>'), 'style tags should be removed');
       assert.ok(!doc.html.includes('<script>'), 'script tags should be removed');
