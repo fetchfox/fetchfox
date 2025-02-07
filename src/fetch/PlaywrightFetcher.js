@@ -411,11 +411,6 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
         },
       ];
 
-      const minFn = (tree, min) => {
-
-        return tree.innerHTML + 'xyz';
-      }
-
       const outs = {};
       const htmls = {};
       for (const min of minimizers) {
@@ -466,8 +461,6 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 
         outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();;
       }
-
-      document.documentElement.innerHTML = outs.html;
 
       return outs;
     });
