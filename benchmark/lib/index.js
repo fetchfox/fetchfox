@@ -12,7 +12,6 @@ const populate = (json, config) => {
 }
 
 export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
-  console.log('Running benchmark matrix', name, matrix);
   for (const config of matrix) {
     const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
 
