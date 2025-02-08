@@ -60,9 +60,6 @@ export const Instructions = class {
     }
 
     try {
-      // ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
-      // console.log('goto with ctx:', ctx);
-      // logger.trace('???');
       await fetcher.goto(this.url, ctx);
 
       // TODO: It would be nice of learning supported caching. Right now,
@@ -123,15 +120,6 @@ export const Instructions = class {
             }
           }
 
-          // // heuristics....clean this up....
-          // for (let i = 0 ; i < incr.length - 1; i++) {
-          //   incr[i].alwaysFirst = true;
-          // }
-          // if (incr.length && command.repeat) {
-          //   incr[incr.length - 1].repeat = command.repeat;
-          // }
-          // // end heuristics.....
-
           learned.push(...incr);
 
           if (ok) {
@@ -172,12 +160,8 @@ export const Instructions = class {
 
     const zero = (action) => {
       return {
-        index: 0,
         repetition: 0,
         action,
-
-        // repeat: action.repeat,
-        // alwaysFirst: action.alwaysFirst,
       };
     }
 
@@ -196,65 +180,39 @@ export const Instructions = class {
         copy[i].repetition++;
       }
 
-      // if (copy[i].action.alwaysFirst) {
-      //   // No-op, these always execute
-      // } if (copy[i].action.repeat) {
-      //   copy[i].repetition++;
-      // } else {
-      //   copy[i].index++;
-      // }
-
       return copy;
     }
 
     const seen = {};
 
     const act = async (i, state) => {
-      // const action = this.learned[i];
       const action = state[i].action;
-
-      // TODO: add and check state.limit
-
-      // if (state[i].action.repeat && state[i].repetition >= state[i].action.repeat) {
-      //   logger.debug(`${this} Max repetitions on ${JSON.stringify(state)}`);
-      //   return false;
-      // }
-
-      const index = state[i].index;
-      // if (index >= state[i].max) {
-      //   logger.debug(`${this} Max index on ${JSON.stringify(state)}`);
-      //   return false;
-      // }
 
       let ok = true;
       let outcome;
 
       switch (action.mode) {
         case 'repeat':
-          // First iteration of repeat doesn't excute, so it is always ok;
+          // `repeat` mode exeutes an action multiple times on the same element.
+          // It first exeutes it 0 times, then 1 times, then 2 times, etc.
           outcome = { ok: true };
-
-          // Repeat actions do not use seen and execute a certain number of times
           for (let r = 0; r < state[i].repetition; r++) {
             outcome = await fetcher.act(ctx, action, {});
           }
           break;
 
         case 'first':
+          // `first` mode always executes the action on the same element
           outcome = await fetcher.act(ctx, action, {});
           break;
 
         case 'distinct':
+          // `distinct` mode always executes the action on distinct elements,
+          // based on unique html.
           outcome = await fetcher.act(ctx, action, seen);
           seen[outcome.html] = true;
           break;
       }
-
-      // if (action.repeat) {
-      // } else if (action.alwaysFirst) {
-      //   // Always first actions do not use seen, are always executed on the first match
-      // } else {
-      // }
 
       ok &&= outcome?.ok || action.optional;
       usage.actions[i]++;
@@ -346,9 +304,6 @@ export const Instructions = class {
         }
 
         state = incrState(j, state);
-
-        console.log('state after:', state);
-        // throw 'stop44';
 
         logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
 
