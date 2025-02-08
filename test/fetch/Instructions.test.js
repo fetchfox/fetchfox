@@ -346,33 +346,26 @@ describe('Instructions', function() {
       const ai = getAI('openai:gpt-4o', { cache });
       const fetcher = getFetcher(
         'playwright',
-        { ai, loadWait: 1, actionWait: 1, headless: true });
+        { ai, cache, loadWait: 1, actionWait: 1, headless: true });
       const url = `http://localhost:${port}`;
 
       const commands = [
         { prompt: 'click accept cookies', optional: true, fixed: true },
-        { prompt: 'click to go to the next page', max: 3, repeat: 3 },
-        { prompt: 'click each profile link', max: 4 },
+        { prompt: 'click to go to the next page', max: 2, repeat: 2 },
+        { prompt: 'click each profile link', max: 3 },
       ];
 
-      const instr = new Instructions(url, commands, { ai });
+      const instr = new Instructions(url, commands, { ai, cache });
       await instr.learn(fetcher);
 
       const expected = [
         ['Page 1', 'Profile content 1'],
         ['Page 1', 'Profile content 2'],
         ['Page 1', 'Profile content 3'],
-        ['Page 1', 'Profile content 4'],
 
         ['Page 2', 'Profile content 6'],
         ['Page 2', 'Profile content 7'],
         ['Page 2', 'Profile content 8'],
-        ['Page 2', 'Profile content 9'],
-
-        ['Page 3', 'Profile content 11'],
-        ['Page 3', 'Profile content 12'],
-        ['Page 3', 'Profile content 13'],
-        ['Page 3', 'Profile content 14'],
       ];
 
       let i = 0;

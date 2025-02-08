@@ -247,8 +247,6 @@ export const BaseFetcher = class {
 
           const doc = val.doc;
 
-          console.log('!!!!!! got doc: ' + doc);
-
           logger.debug(`${this} Should we filter for CSS? ${options?.css}`);
           if (options?.css) {
             doc.parseHtml(options.css);
