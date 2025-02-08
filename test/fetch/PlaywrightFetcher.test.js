@@ -137,12 +137,11 @@ describe('PlaywrightFetcher', function() {
     const port = server.address().port;
 
     try {
-      // const cache = testCache();
-      const cache = null;
+      const cache = testCache();
       const ai = getAI('openai:gpt-4o-mini', { cache });
       const fetcher = getFetcher(
         'playwright',
-        { ai, loadWait: 10, actionWait: 10, headless: true });
+        { ai, cache, loadWait: 10, actionWait: 10, headless: true });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;

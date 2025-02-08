@@ -82,7 +82,11 @@ export const BaseFetcher = class {
         instr = new Instructions(
           url,
           [],
-          { ai: this.ai, loadTimeout: this.loadTimeout });
+          {
+            ai: this.ai,
+            cache: this.cache,
+            loadTimeout: this.loadTimeout,
+          });
       }
 
       const maxPages = options?.maxPages || 0;

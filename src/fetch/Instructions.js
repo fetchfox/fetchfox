@@ -146,20 +146,8 @@ export const Instructions = class {
       actions: new Array(this.learned.length).fill(0),
     };
 
-    const zero = (action) => {
-      return {
-        repetition: 0,
-        action,
-      };
-    }
-
-    const zeroState = () => {
-      const state = [];
-      for (const action of this.learned) {
-        state.push(zero(action));
-      }
-      return state;
-    }
+    const zero = (action) => ({ repetition: 0, action });
+    const zeroState = () => this.learned.map(action => zero(action));
 
     const incrState = (i, state) => {
       const copy = JSON.parse(JSON.stringify(state));
@@ -239,25 +227,25 @@ export const Instructions = class {
         await goto();
         await current();  // Don't use doc, but this is needed to check load conditions
 
-        let j;
+        let i;
         let ok;
-        for (j = 0; j < state.length; j++) {
-          ok = await act(j, state);
-          logger.debug(`${this} Execute iteration ${j} ok=${ok} state=${JSON.stringify(state)}`);
+        for (i = 0; i < state.length; i++) {
+          ok = await act(i, state);
+          logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
 
           if (!ok) {
-            for (let k = j; k < this.learned.length; k++) {
-              state[k] = zero(this.learned[k]);
+            for (let j = i; j < this.learned.length; j++) {
+              state[j] = zero(this.learned[j]);
             }
-            j++;
+            i++;
             break;
           }
         }
 
-        j--;
+        i--;
 
         if (!ok) {
-          const upstream = this.learned.slice(0, j).filter(it => !it.optional);
+          const upstream = this.learned.slice(0, i).filter(it => !it.optional);
           if (upstream.length == 0) {
             logger.debug(`${this} Got not ok and all upstream are optional, done`);
             break;
@@ -265,10 +253,10 @@ export const Instructions = class {
         }
 
         if (!ok) {
-          j--;
+          i--;
         }
 
-        state = incrState(j, state);
+        state = incrState(i, state);
 
         logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
 
