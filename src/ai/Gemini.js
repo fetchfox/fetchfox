@@ -10,9 +10,10 @@ export const Gemini = class extends BaseAI {
   }
 
   async countTokens(str) {
+    // For now, just give a quick estimate. Actually counting the tokens
+    // is too slow for prod
     return str.length / 2;
 
-    // Disabled slow code below
 
     // const gemini = new GoogleGenerativeAI(this.apiKey);
     // const model = gemini.getGenerativeModel({ model: this.model });

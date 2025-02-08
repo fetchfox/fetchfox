@@ -9,7 +9,7 @@ describe('Instructions', function() {
 
   // Actions take a while to execute
   // TODO: caching to bring down test times
-  this.timeout(100 * 15 * 1000);
+  this.timeout(15 * 1000);
 
   // TODO: re-enable these tests
 

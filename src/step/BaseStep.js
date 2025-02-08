@@ -175,10 +175,10 @@ export const BaseStep = class {
                     hash = shortObjHash({ s: JSON.stringify(output) });
                   }
 
-                  const shouldPublish = !seen[hash];
+                  const isNew = !seen[hash];
                   seen[hash] = true;
 
-                  if (shouldPublish) {
+                  if (isNew) {
                     this.results.push(output);
                   }
                   const hitLimit = this.limit && this.results.length >= this.limit;
@@ -188,7 +188,7 @@ export const BaseStep = class {
                   }
 
                   meta.status = 'done';
-                  if (shouldPublish && !done) {
+                  if (isNew && !done) {
                     cursor.publish(
                       firstId,
                       { ...output, _meta: meta },

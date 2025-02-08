@@ -252,7 +252,7 @@ export const BaseFetcher = class {
             doc.parseHtml(options.css);
           }
 
-          await this.s3dump(doc);
+          await this.putS3(doc);
 
           yield Promise.resolve(pushAndReturn(doc));
         }
@@ -279,7 +279,7 @@ export const BaseFetcher = class {
     }
   }
 
-  async s3dump(doc) {
+  async putS3(doc) {
     logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     if (!this.s3) {
       return;

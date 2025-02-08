@@ -71,7 +71,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return;
     }
 
-    await this.s3dump(doc);
+    await this.putS3(doc);
 
     return doc;
   }
@@ -416,7 +416,6 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       ];
 
       const outs = {};
-      const htmls = {};
       for (const min of minimizers) {
 
         /* eslint-disable no-undef */
@@ -442,9 +441,11 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
         // Text conversion
         if (min.text) {
           const toText = (node) => {
+            /* eslint-disable no-undef */
             if (node.nodeType === Node.TEXT_NODE) {
               return node.nodeValue;
             }
+            /* eslint-enable no-undef */
 
             let r = '';
             for (const child of node.childNodes) {
