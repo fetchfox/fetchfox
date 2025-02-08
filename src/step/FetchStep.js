@@ -1,6 +1,5 @@
 import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
-import { Item } from '../item/Item.js';
 
 export const FetchStep = class extends BaseStep {
   constructor(args) {
