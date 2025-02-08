@@ -5,7 +5,6 @@ import { Item } from '../item/Item.js';
 export const FetchStep = class extends BaseStep {
   constructor(args) {
     super(args);
-    this.urlFields = args?.urlFields || ['url', '_url'];
     this.waitForText = args?.waitForText;
     this.active = args?.active;
     this.css = args?.css;
@@ -25,19 +24,13 @@ export const FetchStep = class extends BaseStep {
     if (this.active) options.active = this.active;
     if (this.css) options.css = this.css;
 
-    const streams = [];
-    for (const field of this.urlFields) {
-      const url = item[field];
-      if (!url) continue;
-      const stream = await cursor.ctx.fetcher.fetch(url, options);
-      streams.push(stream);
-    }
-
-    // TODO: race the streams instead of iterating
-    for (const stream of streams) {
-      for await (const doc of stream) {
-        logger.info(`Fetch step yielding ${doc}`);
-        cb(new Item({}, doc));
+    const url = item.url || item._url;
+    const stream = await cursor.ctx.fetcher.fetch(url, options);
+    for await (const doc of stream) {
+      logger.info(`Fetch step yielding ${doc}`);
+      const done = cb(doc);
+      if (done) {
+        break;
       }
     }
   }

@@ -73,18 +73,20 @@ export const Instructions = class {
 
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
-        const html = doc.html;
-        const context = { html, command: command.prompt };
-
         if (command.prompt == '{{nextPage}}') {
           command.prompt = 'Go to the next page.';
           const domainSpecific = domainSpecificInstructions(this.url);
           if (domainSpecific) {
             command.prompt += domainSpecific;
           }
+          logger.debug(`${this} Expanded prompt: ${command.prompt}`);
           command.mode = 'repeat';
         }
 
+        const context = {
+          html: doc.html,
+          command: command.prompt,
+        };
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
