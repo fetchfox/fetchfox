@@ -66,7 +66,7 @@ Respond with JSONL, with JSON object in lines as follows:
     - prepend "css=" for matching css selectors
   - If command is "scroll", specify how much to scroll: either "window" (for window height) or "bottom" (for scrolling to the bottom of the page).
   - If command is "evaluate", give JavaScript that will execute to trigger the action. This JavaScript will be a parameter to new Function().
-- "isPaginationAction": If the action is related to pagination, return "yes". Otherwise return "no"
+- "isPaginationAction": Answer "yes" if this is an action that does pagination. If you are returning multiple actions for pagination, only return "yes" for the last one that does the pagination. If the action is not the last action doing pagination, or if it is unrelated to pagination, return "no"
 
 Follow these important rules:
 - Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
