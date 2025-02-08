@@ -17,7 +17,6 @@ export const ActionStep = class extends BaseStep {
     const fetcherCtx = {};
     await fetcher.start(fetcherCtx);
     try {
-      console.log('learn with fetcherCtx:', fetcherCtx);
       await instr.learn(cursor.ctx.fetcher, fetcherCtx);
       logger.debug(`${this} Proceeding with learned actions: ${JSON.stringify(instr.learned, null, 2)}`);
       const gen = instr.execute(cursor.ctx.fetcher, fetcherCtx);

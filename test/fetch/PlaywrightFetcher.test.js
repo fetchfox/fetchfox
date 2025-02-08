@@ -142,20 +142,13 @@ describe('PlaywrightFetcher', function() {
       const ai = getAI('openai:gpt-4o-mini', { cache });
       const fetcher = getFetcher(
         'playwright',
-        { ai, loadWait: 2000, actionWait: 2000, headless: false });
+        { ai, loadWait: 10, actionWait: 10, headless: true });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;
       for await (const doc of gen) {
-
-        console.log('doc.html', doc.html);
-
-        // assert.ok(doc.html.includes(`You are on page ${i}`), `page html ${i}`);
+        assert.ok(doc.html.includes(`You are on page ${i}`), `page html ${i}`);
         i++;
-
-        // if (i > 3) {
-        //   throw 'STOP on 3';
-        // }
       }
 
       assert.equal(i - 1, 5, '5 pages');

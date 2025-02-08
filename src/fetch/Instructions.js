@@ -20,7 +20,7 @@ export const Instructions = class {
     this.cache = options?.cache;
     this.ai = options?.ai || getAI();
     this.loadTimeout = options?.loadTimeout || 15000;
-    this.limit = options?.limit || 20;
+    this.limit = options?.limit;
   }
 
   toString() {
@@ -80,9 +80,6 @@ export const Instructions = class {
           command.mode = 'repeat';
         }
 
-        console.log('command.prompt:', command);
-        console.log('command.prompt:', command.prompt);
-
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
@@ -104,13 +101,7 @@ export const Instructions = class {
               type: delta.actionType,
               arg: delta.actionArgument,
               mode: command.mode,
-
-              // optional: !!command.optional,
-              // alwaysFirst: command.alwaysFirst,
-              // repeat: command.repeat,
             };
-
-            console.log('action:', action);
 
             const r = await fetcher.act(ctx, action, {});
             ok &&= r.ok;
@@ -129,9 +120,6 @@ export const Instructions = class {
       }
 
       // TODO: Check if the learned actions work, and retry if they don't
-
-      console.log('learned', learned);
-
       this.learned = learned;
 
       if (this.cache) {
@@ -226,18 +214,12 @@ export const Instructions = class {
     }
 
     const current = async () => {
-      console.log('current...');
       const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-      console.log('current got doc: ' + doc);
-
       logger.debug(`${this} Got document: ${doc}`);
       return doc;
     }
 
-    await fetcher.start(ctx);
-
     try {
-
       if (!this.learned || this.learned.length == 0) {
         logger.debug(`${this} No actions, just a simple URL goto`);
         await goto();
@@ -247,36 +229,22 @@ export const Instructions = class {
       }
 
       let state = zeroState();
-
-      console.log('zero state:', state);
-
       let count = 0;
 
       while (true) {
-        console.log('count & limit:', count, this.limit);
         if (count++ >= this.limit) {
-          console.log('count over limit, break');
           break;
         }
 
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('==================');
-        console.log('goto');
         await goto();
-        console.log('current');
         await current();  // Don't use doc, but this is needed to check load conditions
 
         let j;
         let ok;
         for (j = 0; j < state.length; j++) {
-          console.log('j=', j);
           ok = await act(j, state);
-
-          console.log('act ok?? -->', ok);
-
           logger.debug(`${this} Execute iteration ${j} ok=${ok} state=${JSON.stringify(state)}`);
+
           if (!ok) {
             for (let k = j; k < this.learned.length; k++) {
               state[k] = zero(this.learned[k]);
@@ -289,17 +257,14 @@ export const Instructions = class {
         j--;
 
         if (!ok) {
-          console.log('!ok, check upstream');
           const upstream = this.learned.slice(0, j).filter(it => !it.optional);
           if (upstream.length == 0) {
-            console.log('upstream==0, break');
             logger.debug(`${this} Got not ok and all upstream are optional, done`);
             break;
           }
         }
 
         if (!ok) {
-          console.log('j--');
           j--;
         }
 
@@ -308,7 +273,6 @@ export const Instructions = class {
         logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
 
         if (ok) {
-          console.log('ok, current yield');
           const doc = await current();
           logger.debug(`${this} Yielding a document: ${doc}`);
           yield Promise.resolve({ doc, usage });
@@ -316,6 +280,7 @@ export const Instructions = class {
       }
 
     } finally {
+      console.log('finish goto');
       await fetcher.finishGoto(ctx);
     }
 

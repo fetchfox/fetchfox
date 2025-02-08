@@ -88,15 +88,8 @@ export const BaseFetcher = class {
       const maxPages = options?.maxPages || 0;
       if (maxPages > 1) {
         // const domainSpecific = domainSpecificInstructions(instr.url);
-        instr.unshiftCommand({
-          prompt: '{{nextPage}}',
-
-          // prompt: `Go to the next page, if pagination is possible. ${domainSpecific}`,
-          // max: 1,
-          // repeat: maxPages,
-        });
-
-        instr.limit = maxPages;
+        instr.unshiftCommand({ prompt: '{{nextPage}}' });
+        instr.limit ||= maxPages;
       }
 
       return instr;
@@ -129,6 +122,7 @@ export const BaseFetcher = class {
       logger.debug(`${this} Returning cached ${cached}`);
       this.usage.cached++;
       for (const doc of cached) {
+        logger.info(`${this} Yielding cached document: ${doc}`);
         yield Promise.resolve(doc);
       }
       return;
@@ -167,6 +161,7 @@ export const BaseFetcher = class {
         const doc = new Document();
         await doc.read(resp, instr.url);
 
+        logger.info(`${this} Yielding PDF derived document: ${doc}`);
         yield Promise.resolve(pushAndReturn(doc));
         return;
       }
@@ -206,14 +201,11 @@ export const BaseFetcher = class {
 
               for await (const r of gen) {
                 const doc = r?.doc;
-                console.log('BaseFetcher got doc: ' + doc, r);
 
                 if (this.signal?.aborted) {
-                  console.log('aborted / break');
                   break;
                 }
 
-                console.log('channel send doc');
                 if (doc) {
                   channel.send({ doc });
                 }
@@ -223,7 +215,6 @@ export const BaseFetcher = class {
               if (process.env.STRICT_ERRORS) {
                 throw e;
               } else {
-                logger.trace('!!');
                 logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
               }
             }
@@ -264,6 +255,7 @@ export const BaseFetcher = class {
 
           await this.putS3(doc);
 
+          logger.info(`${this} Yielding document: ${doc}`);
           yield Promise.resolve(pushAndReturn(doc));
         }
       } catch (e) {

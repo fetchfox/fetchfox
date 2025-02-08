@@ -56,7 +56,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return;
     }
 
-    logger.trace('${this} Closing page');
+    logger.debug(`${this} Closing page`);
     await ctx.page.close();
     delete ctx.page;
   }
@@ -114,6 +114,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   async start(ctx) {
     const timer = ctx.timer || new Timer();
 
+    if (ctx.browser) {
+      throw new Error('Expect only one browser open at a time');
+    }
+
     try {
       ctx.browser = await this._launch({ timer });
     } catch (e) {
@@ -121,21 +125,23 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       throw e;
     }
 
-    logger.trace(`${this} Got browser`);
     logger.debug(`${this} Got browser`);
 
     return ctx;
   }
 
   async finish(ctx) {
-    if (ctx.browser) {
-      logger.trace(`${this} Closing browser`);
-      await ctx.browser.close();
+    if (!ctx.browser) {
+      return;
     }
+
+    logger.debug(`${this} Closing browser`);
+    await ctx.browser.close();
+    delete ctx.browser;
   }
 
   async act(ctx, action, seen) {
-    logger.trace(`${this} Do action: ${JSON.stringify(action)}`);
+    logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
     let r;
 
@@ -168,13 +174,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     const loc = ctx.page.locator(selector);
 
-    // const loc1 = ctx.page.locator('text=Results');
-    // console.log('loc1:', await loc);
-    // console.log('loc2:', await ctx.page.locator('.fontTitleLarge'));
-    // console.log('get loc text', loc1);
-    // console.log('loc1 txt:', await loc1.nth(0).textContent());
-    // console.log('loc2 txt:', await ctx.page.locator('.fontTitleLarge').textContent());
-
     let el;
     let text;
     let html;
@@ -188,24 +187,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       }
 
       el = await loc.nth(i);
-
-      const visible = await el.isVisible();
-      console.log('visible?', visible);
-
-      // } catch {
-      //   logger.warn(`${this} Couldn't find ${loc} nth=${i}`);
-      //   console.log('take screenshot');
-      //   await ctx.page.screenshot({ path: '/tmp/ss.png', fullPage: true });
-      //   throw 'stop1';
-      //   return { ok: false };
-      // }
-      // throw 'stop2';
-
       text = await el.textContent();
-      console.log('text:', text);
-
       html = await el.evaluate(el => el.outerHTML);
-      console.log('html:', html);
 
       if (seen && (seen[text] || seen[html])) {
         el = null;
@@ -217,8 +200,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     await el.scrollIntoViewIfNeeded();
     await el.click();
-
-    //throw 'STOP1';
 
     return { ok: true, text, html };
   }
