@@ -77,6 +77,11 @@ export const Instructions = class {
         const context = { html, command: command.prompt };
 
         if (command.prompt == '{{nextPage}}') {
+          command.prompt = 'Go to the next page.';
+          const domainSpecific = domainSpecificInstructions(this.url);
+          if (domainSpecific) {
+            command.prompt += domainSpecific;
+          }
           command.mode = 'repeat';
         }
 
@@ -100,7 +105,8 @@ export const Instructions = class {
             const action = {
               type: delta.actionType,
               arg: delta.actionArgument,
-              mode: command.mode,
+              limit: command.limit,
+              mode: command.mode || 'distinct',
             };
 
             const r = await fetcher.act(ctx, action, {});
@@ -146,17 +152,26 @@ export const Instructions = class {
       actions: new Array(this.learned.length).fill(0),
     };
 
-    const zero = (action) => ({ repetition: 0, action });
+    const zero = (action) => ({ repetition: 0, count: 0, action });
     const zeroState = () => this.learned.map(action => zero(action));
 
     const incrState = (i, state) => {
       const copy = JSON.parse(JSON.stringify(state));
-
-      if (copy[i].action.mode == 'repeat') {
-        copy[i].repetition++;
-      }
-
+      copy[i].count++;
+      copy[i].repetition++;
       return copy;
+    }
+
+    const limitsOk = (state) => {
+      for (let i = 0; i < state.length; i++) {
+        const action = state[i].action;
+        const limit = action.limit;
+        const count = state[i].count;
+        if (limit && count >= limit) {
+          return false;
+        }
+      }
+      return true;
     }
 
     const seen = {};
@@ -174,24 +189,26 @@ export const Instructions = class {
           outcome = { ok: true };
           for (let r = 0; r < state[i].repetition; r++) {
             outcome = await fetcher.act(ctx, action, {});
+            usage.actions[i]++;
           }
           break;
 
         case 'first':
           // `first` mode always executes the action on the same element
           outcome = await fetcher.act(ctx, action, {});
+          usage.actions[i]++;
           break;
 
         case 'distinct':
           // `distinct` mode always executes the action on distinct elements,
           // based on unique html.
           outcome = await fetcher.act(ctx, action, seen);
+          usage.actions[i]++;
           seen[outcome.html] = true;
           break;
       }
 
       ok &&= outcome?.ok || action.optional;
-      usage.actions[i]++;
 
       return ok;
     }
@@ -217,10 +234,10 @@ export const Instructions = class {
       }
 
       let state = zeroState();
-      let count = 0;
 
       while (true) {
-        if (count++ >= this.limit) {
+        if (!limitsOk(state)) {
+          console.log('hit limits');
           break;
         }
 
@@ -235,7 +252,7 @@ export const Instructions = class {
 
           if (!ok) {
             for (let j = i; j < this.learned.length; j++) {
-              state[j] = zero(this.learned[j]);
+              state[j].repetition = 0;
             }
             i++;
             break;
@@ -250,9 +267,6 @@ export const Instructions = class {
             logger.debug(`${this} Got not ok and all upstream are optional, done`);
             break;
           }
-        }
-
-        if (!ok) {
           i--;
         }
 
@@ -268,10 +282,32 @@ export const Instructions = class {
       }
 
     } finally {
-      console.log('finish goto');
       await fetcher.finishGoto(ctx);
     }
 
     yield Promise.resolve({ usage });
   }
+}
+
+const domainSpecificInstructions = (url) => {
+  const matchers = [
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/, instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+    },
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/, instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`
+    },
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/, instruction: 'You are on Google Maps. Paginate using these two steps: (1) Click on the text "Results" to focus on the results area and (2) scroll down exactly one window length.'
+    },
+  ]
+  const match = matchers.find(({ prefix }) => prefix.test(url));
+  let result;
+  if (match) {
+    result = '\n>> Follow this important domain specific guidance: ' + match.instruction;
+    logger.debug(`Adding domain specific prompt: ${result}`);
+  } else {
+    result = '';
+  }
+  return result;
 }

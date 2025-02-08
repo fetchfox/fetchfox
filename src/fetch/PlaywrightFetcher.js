@@ -184,6 +184,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         await loc.nth(i).waitFor({ state: 'attached', timeout: 1000 });
       } catch (e) {
         logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
+        return { ok: false };
       }
 
       el = await loc.nth(i);

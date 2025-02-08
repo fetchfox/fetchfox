@@ -150,7 +150,7 @@ describe('PlaywrightFetcher', function() {
         i++;
       }
 
-      assert.equal(i - 1, 5, '5 pages');
+      assert.equal(i - 1, 5, 'expect 5 pages');
 
     } finally {
       server.close();

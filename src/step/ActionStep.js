@@ -15,7 +15,7 @@ export const ActionStep = class extends BaseStep {
 
     // TODO: refactor how fetcher works to eliminate ctx concept
     const fetcherCtx = {};
-    await fetcher.start(fetcherCtx);
+    await cursor.ctx.fetcher.start(fetcherCtx);
     try {
       await instr.learn(cursor.ctx.fetcher, fetcherCtx);
       logger.debug(`${this} Proceeding with learned actions: ${JSON.stringify(instr.learned, null, 2)}`);
@@ -29,7 +29,7 @@ export const ActionStep = class extends BaseStep {
         if (done) break;
       }
     } finally {
-      await fetcher.finish(fetcherCtx);
+      await cursor.ctx.fetcher.finish(fetcherCtx);
     }
   }
 }
