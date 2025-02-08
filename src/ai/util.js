@@ -65,7 +65,7 @@ export const parseAnswer = (text, format) => {
 }
 
 export const getModelData = async (provider, model, cache) => {
-  const id = `${provider}/${model}`
+  let id = `${provider}/${model}`
     .replace('gemini/', 'google/')
     .replace('-latest', '')
     .replace('claude-3-5', 'claude-3.5')
@@ -79,8 +79,16 @@ export const getModelData = async (provider, model, cache) => {
     }
   }
 
+  const trans = {
+    'google/gemini-1.5-flash': 'google/gemini-flash-1.5',
+    'google/gemini-1.5-pro': 'google/gemini-pro-1.5',
+  };
+  if (trans[id]) {
+    id = trans[id];
+  }
+
   if (!data) {
-    const url = await 'https://openrouter.ai/api/v1/models';
+    const url = 'https://openrouter.ai/api/v1/models';
 
     logger.debug(`Calling ${url} to get model data for ${id}`);
 
@@ -110,19 +118,6 @@ export const getModelData = async (provider, model, cache) => {
 
   if (cache) {
     cache.set(key, data).catch(() => {});
-  }
-
-  switch (id) {
-    case 'google/gemini-1.5-flash':
-      data.pricing ||= {};
-      data.pricing.prompt ||= 0.075 / 1e6;
-      data.pricing.completion ||= 0.3 / 1e6;
-      break;
-    case 'google/gemini-1.5-pro':
-      data.pricing ||= {};
-      data.pricing.prompt ||= 1.25 / 1e6;
-      data.pricing.completion ||= 5 / 1e6;
-      break;
   }
 
   return {

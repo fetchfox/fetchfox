@@ -117,7 +117,7 @@ export const shortObjHash = (obj) => {
     .createHash('sha256')
     .update(JSON.stringify(obj))
     .digest('hex')
-    .substr(0, 16);
+    .substr(0, 32);
   return hash;
 }
 

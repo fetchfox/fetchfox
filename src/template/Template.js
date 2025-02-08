@@ -69,6 +69,8 @@ export const Template = class {
   }
 
   async renderCapped(context, flexField, ai) {
+    await ai.init();
+
     const timer = new Timer();
     timer.push('Template.renderCapped');
 
@@ -106,7 +108,7 @@ export const Template = class {
       tokens = await countFn(prompt);
 
       const diff = maxTokens - tokens;
-      logger.debug(`${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`)
+      logger.debug(`${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`);
 
       if (tokens < maxTokens && (guess == len || diff < accuracyTokens)) {
         lowerBound = guess;

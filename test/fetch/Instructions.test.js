@@ -282,4 +282,116 @@ describe('Instructions', function() {
     }
   });
 
+  it('should handle cookie button before pagination @run @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+<!DOCTYPE html>
+<html>
+  <body>
+    <div>
+      <h1 id="page-label"></h1>
+      <div id="main">
+        <button id="next-page">Next Page</button>
+        <div id="buttons"></div>
+        <div id="profile"></div>
+      </div>
+
+      <button id="cookie-button" onClick="cookieOk=true; render(); this.remove()">Accept Cookies</button>
+
+      <script type="text/javascript">
+       let page = 1;
+       let profile;
+       let cookieOk = false;
+
+       function render() {
+         if (!cookieOk) {
+           return;
+         }
+
+         document.getElementById("page-label").textContent = "Page " + page;
+         const el = document.getElementById('buttons');
+         el.innerHTML = '';
+
+         for (let i = 0; i < 5; i++) {
+           const num = (page - 1) * 5 + i + 1;
+           el.innerHTML += '<button class="profile-btn" onClick="profile=' + num + ';render()">profile ' + num + '</button>';
+         }
+
+         if (profile) {
+           document.getElementById('profile').innerHTML = 'Profile content ' + profile;
+         }
+       }
+
+       document.getElementById("next-page").addEventListener("click", function() {
+         page++;
+         profile = null;
+         render();
+       });
+
+       render();
+      </script>
+    </div>
+  </body>
+</html>
+`
+      );
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    try {
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o', { cache });
+      const fetcher = getFetcher(
+        'playwright',
+        { ai, cache, loadWait: 1, actionWait: 1, headless: true });
+      const url = `http://localhost:${port}`;
+
+      const commands = [
+        { prompt: 'click accept cookies', optional: true, fixed: true },
+        { prompt: 'click to go to the next page', max: 2, repeat: 2 },
+        { prompt: 'click each profile link', max: 3 },
+      ];
+
+      const instr = new Instructions(url, commands, { ai, cache });
+      await instr.learn(fetcher);
+
+      const expected = [
+        ['Page 1', 'Profile content 1'],
+        ['Page 1', 'Profile content 2'],
+        ['Page 1', 'Profile content 3'],
+
+        ['Page 2', 'Profile content 6'],
+        ['Page 2', 'Profile content 7'],
+        ['Page 2', 'Profile content 8'],
+      ];
+
+      let i = 0;
+
+      let doc;
+      let usage;
+      const gen = instr.execute(fetcher);
+      for await ({ doc } of gen) {
+        if (!doc) {
+          continue;
+        }
+
+        const $ = cheerio.load(doc.html);
+
+        const page = $('#page-label').text();
+        const profile = $('#profile').text();
+
+        assert.equal(page, expected[i][0]);
+        assert.equal(profile, expected[i][1]);
+
+        i++;
+      }
+
+    } finally {
+      server.close();
+    }
+  });
+
 });

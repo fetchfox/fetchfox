@@ -34,7 +34,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async goto(url, ctx) {
-    const page = await ctx.browser.newPage();
+    const page = ctx.page || await ctx.browser.newPage();
 
     try {
       const { aborted } = await abortable(
@@ -70,6 +70,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.warn(`${this} Aborted while getting current doc`);
       return;
     }
+
+    await this.putS3(doc);
+
     return doc;
   }
 
@@ -174,10 +177,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       html = await el.evaluate(el => el.outerHTML);
 
       if (seen && (seen[text] || seen[html])) {
-        logger.debug(`${this} Skipping already seen text=${text.substring(0, 100)} html=${html.substring(0, 100)}`);
         el = null;
         continue;
       }
+
+      logger.debug(`${this} Found new element ${el} after ${i} iterations`);
     }
 
     await el.scrollIntoViewIfNeeded();
@@ -412,7 +416,6 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       ];
 
       const outs = {};
-      const htmls = {};
       for (const min of minimizers) {
 
         /* eslint-disable no-undef */
@@ -438,9 +441,11 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
         // Text conversion
         if (min.text) {
           const toText = (node) => {
+            /* eslint-disable no-undef */
             if (node.nodeType === Node.TEXT_NODE) {
               return node.nodeValue;
             }
+            /* eslint-enable no-undef */
 
             let r = '';
             for (const child of node.childNodes) {
@@ -465,7 +470,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       return outs;
     });
   } catch (e) {
-    logger.warn(`${this} Error while minimizing html: ${e}`);
+    logger.warn(`${this} Error while getting HTML: ${e}`);
   }
 
   return {

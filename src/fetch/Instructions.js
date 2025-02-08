@@ -1,6 +1,7 @@
 import pTimeout from 'p-timeout';
 import { logger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
+import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
 export const Instructions = class {
@@ -16,6 +17,7 @@ export const Instructions = class {
       }
       this.commands.push(c);
     }
+    this.cache = options?.cache;
     this.ai = options?.ai || getAI();
     this.loadTimeout = options?.loadTimeout || 15000;
   }
@@ -33,8 +35,28 @@ export const Instructions = class {
     this.commands.unshift(command);
   }
 
+  cacheKey() {
+    const hash = shortObjHash({
+      url: this.url,
+      commands: this.commands.map(it => it.prompt),
+    });
+    return `instructions-${hash}`;
+  }
+
   async learn(fetcher) {
     const learned = [];
+
+    const key = this.cacheKey();
+    if (this.cache) {
+      const cached = await this.cache.get(key);
+      if (cached) {
+        logger.debug(`${this} Cache hit for ${key}`);
+        this.learned = cached;
+        return;
+      } else {
+        logger.debug(`${this} Cache miss for ${key}`);
+      }
+    }
 
     // TODO: refactor how fetcher works
     let ctx = {};
@@ -51,40 +73,69 @@ export const Instructions = class {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
         }
 
-        const html = doc.html;
-
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
+        const html = doc.html;
         const context = { html, command: command.prompt };
-        const { prompt: actionPrompt } = await prompts.pageAction
-          .renderCapped(context, 'html', this.ai);
 
-        const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
-        for await (const { delta } of stream) {
-          logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+        const actionPrompts = await prompts.pageAction
+          .renderMulti(context, 'html', this.ai);
 
-          const action = {
-            type: delta.actionType,
-            arg: delta.actionArgument,
-            max: command.max,
-            repeat: command.repeat,
-          };
+        for (const actionPrompt of actionPrompts) {
+          const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
+          let ok = true
+          for await (const { delta } of stream) {
+            logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
 
-          if (delta.isPaginationAction == 'yes') {
-            action.repeat ??= 5;
+            if (delta.actionType == 'none') {
+              logger.debug(`${this} Ignoring "none" action`);
+              ok = false;
+              continue;
+            }
+
+            const action = {
+              type: delta.actionType,
+              arg: delta.actionArgument,
+
+              max: command.max,
+              repeat: command.repeat,
+              optional: command.optional,
+              fixed: command.fixed,
+            };
+
+            if (delta.isPaginationAction == 'yes') {
+              action.repeat ??= 5;
+
+              // TODO: If pagination is the *only* action, we should yield a single
+              // document here to get things started in downstream steps
+            }
+
+            action.repeat ??= 0;
+            action.max ??= 100;
+
+            const r = await fetcher.act(ctx, action, {});
+            ok &&= r.ok;
+
+            if (r.ok) {
+              learned.push(action);
+            }
           }
 
-          action.repeat ??= 0;
-          action.max ??= 100;
-
-          learned.push(action);
-          await fetcher.act(ctx, action, {});
+          if (ok) {
+            break;
+          }
         }
       }
 
       // TODO: Check if the learned actions work, and retry if they don't
 
       this.learned = learned;
+
+      if (this.cache) {
+        logger.debug(`${this} Setting cache for ${key}`);
+        await this.cache.set(key, this.learned);
+      }
+
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
     } finally {
       await fetcher.finish(ctx);
@@ -96,7 +147,7 @@ export const Instructions = class {
       throw new Error('must learn before execute');
     }
 
-    logger.info(`${this} Execute instructions: url=${this.url} learned=${this.learned}`);
+    logger.info(`${this} Execute instructions: url=${this.url} learned=${JSON.stringify(this.learned)}`);
 
     // Track gotos (page loads) and actions taken
     const usage = {
@@ -113,6 +164,7 @@ export const Instructions = class {
         repetition: 0,
         max: action.max,
         repeat: action.repeat,
+        fixed: action.fixed,
       };
     }
 
@@ -127,7 +179,9 @@ export const Instructions = class {
     const incrState = (i, state) => {
       const copy = JSON.parse(JSON.stringify(state));
 
-      if (copy[i].repeat) {
+      if (copy[i].fixed) {
+        // No-op, these always execute
+      } if (copy[i].repeat) {
         copy[i].repetition++;
       } else {
         copy[i].index++;
@@ -152,23 +206,28 @@ export const Instructions = class {
         return false;
       }
 
-      let ok = true; 
-      if (state[i].repeat) {
+      let ok = true;
+      let outcome;
+      if (action.fixed) {
+        // Fixed actions do not use seen, are always executed
+        outcome = await fetcher.act(ctx, action, {});
+
+      } else if (action.repeat) {
+        // First iteration of repeat doesn't excute, so it is always ok;
+        outcome = { ok: true };
+
+        // Repeat actions do not use seen and execute a certain number of times
         for (let r = 0; r < state[i].repetition; r++) {
-          // Repeat actions do not use seen
-          const result = await fetcher.act(ctx, action, {});
-          ok &&= result.ok;
-          usage.actions[i]++;
+          outcome = await fetcher.act(ctx, action, {});
         }
+
       } else {
-        const result = await fetcher.act(ctx, action, seen);
-        ok &&= result.ok;
-
-        // For now, only track seen html
-        seen[result.html] = true;
-
-        usage.actions[i]++;
+        outcome = await fetcher.act(ctx, action, seen);
+        seen[outcome.html] = true;
       }
+
+      ok &&= outcome?.ok || action.optional;
+      usage.actions[i]++;
 
       return ok;
     }
@@ -217,9 +276,12 @@ export const Instructions = class {
 
         j--;
 
-        if (!ok && j == 0) {
-          logger.debug(`${this} First step not ok, done`);
-          break;
+        if (!ok) {
+          const upstream = this.learned.slice(0, j).filter(it => !it.optional);
+          if (upstream.length == 0) {
+            logger.debug(`${this} Got not ok and all upstream are optional, done`);
+            break;
+          }
         }
 
         if (!ok) {
@@ -234,11 +296,6 @@ export const Instructions = class {
           logger.debug(`${this} Yielding a document: ${doc}`);
           yield Promise.resolve({ doc, usage });
         }
-
-        fetcher.finishGoto(ctx)
-          .catch((e) => {
-            logger.warn(`${this} Ignoring finish goto error: ${e}`);
-          });
       }
 
     } finally {
