@@ -34,12 +34,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async goto(url, ctx) {
-    const page = ctx.page || await ctx.browser.newPage();
+    if (!ctx.page) {
+      ctx.page = await ctx.browser.newPage();
+    }
 
     try {
       const { aborted } = await abortable(
         this.signal,
-        page.goto(url, { waitUntil: 'domcontentloaded' }));
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -47,12 +49,16 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     } catch (e) {
       logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
-
-    return { page };
   }
 
   async finishGoto(ctx) {
-    return ctx.page && ctx.page.close();
+    if (!ctx?.page) {
+      return;
+    }
+
+    logger.trace('${this} Closing page');
+    await ctx.page.close();
+    delete ctx.page;
   }
 
   async current(ctx) {
@@ -115,12 +121,15 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       throw e;
     }
 
+    logger.trace(`${this} Got browser`);
     logger.debug(`${this} Got browser`);
+
+    return ctx;
   }
 
   async finish(ctx) {
     if (ctx.browser) {
-      logger.debug(`${this} Closing browser`);
+      logger.trace(`${this} Closing browser`);
       await ctx.browser.close();
     }
   }
@@ -159,6 +168,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     const loc = ctx.page.locator(selector);
 
+    // const loc1 = ctx.page.locator('text=Results');
+    // console.log('loc1:', await loc);
+    // console.log('loc2:', await ctx.page.locator('.fontTitleLarge'));
+    // console.log('get loc text', loc1);
+    // console.log('loc1 txt:', await loc1.nth(0).textContent());
+    // console.log('loc2 txt:', await ctx.page.locator('.fontTitleLarge').textContent());
+
     let el;
     let text;
     let html;
@@ -166,15 +182,30 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // Look for the first matching element not in seen
     for (let i = 0; el == null; i++) {
       try {
-        await loc.nth(i).waitFor({ state: 'visible', timeout: 1000 });
-        el = await loc.nth(i);
-      } catch {
-        logger.warn(`${this} Could't find ${loc} nth=${i}`);
-        return { ok: false };
+        await loc.nth(i).waitFor({ state: 'attached', timeout: 1000 });
+      } catch (e) {
+        logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
       }
 
+      el = await loc.nth(i);
+
+      const visible = await el.isVisible();
+      console.log('visible?', visible);
+
+      // } catch {
+      //   logger.warn(`${this} Couldn't find ${loc} nth=${i}`);
+      //   console.log('take screenshot');
+      //   await ctx.page.screenshot({ path: '/tmp/ss.png', fullPage: true });
+      //   throw 'stop1';
+      //   return { ok: false };
+      // }
+      // throw 'stop2';
+
       text = await el.textContent();
+      console.log('text:', text);
+
       html = await el.evaluate(el => el.outerHTML);
+      console.log('html:', html);
 
       if (seen && (seen[text] || seen[html])) {
         el = null;
@@ -186,6 +217,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     await el.scrollIntoViewIfNeeded();
     await el.click();
+
+    //throw 'STOP1';
 
     return { ok: true, text, html };
   }

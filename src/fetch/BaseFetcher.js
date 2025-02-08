@@ -87,13 +87,16 @@ export const BaseFetcher = class {
 
       const maxPages = options?.maxPages || 0;
       if (maxPages > 1) {
-        const domainSpecific = domainSpecificInstructions(instr.url);
-
+        // const domainSpecific = domainSpecificInstructions(instr.url);
         instr.unshiftCommand({
-          prompt: `Go to the next page, if pagination is possible. ${domainSpecific}`,
-          max: 1,
-          repeat: maxPages,
+          prompt: '{{nextPage}}',
+
+          // prompt: `Go to the next page, if pagination is possible. ${domainSpecific}`,
+          // max: 1,
+          // repeat: maxPages,
         });
+
+        instr.limit = maxPages;
       }
 
       return instr;
@@ -198,13 +201,19 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${instr}`);
 
-              await instr.learn(this);
+              await instr.learn(this, ctx);
+              const gen = await instr.execute(this, ctx);
 
-              const gen = await instr.execute(this);
-              for await (const { doc } of gen) {
+              for await (const r of gen) {
+                const doc = r?.doc;
+                console.log('BaseFetcher got doc: ' + doc, r);
+
                 if (this.signal?.aborted) {
+                  console.log('aborted / break');
                   break;
                 }
+
+                console.log('channel send doc');
                 if (doc) {
                   channel.send({ doc });
                 }
@@ -214,6 +223,7 @@ export const BaseFetcher = class {
               if (process.env.STRICT_ERRORS) {
                 throw e;
               } else {
+                logger.trace('!!');
                 logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
               }
             }
