@@ -84,6 +84,8 @@ export const Instructions = class {
         for (const actionPrompt of actionPrompts) {
           const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
           let ok = true
+          const incr = [];
+
           for await (const { delta } of stream) {
             logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
 
@@ -98,17 +100,9 @@ export const Instructions = class {
               arg: delta.actionArgument,
 
               max: command.max,
-              repeat: command.repeat,
               optional: command.optional,
               fixed: command.fixed,
             };
-
-            if (delta.isPaginationAction == 'yes') {
-              action.repeat ??= 5;
-
-              // TODO: If pagination is the *only* action, we should yield a single
-              // document here to get things started in downstream steps
-            }
 
             action.repeat ??= 0;
             action.max ??= 100;
@@ -117,9 +111,20 @@ export const Instructions = class {
             ok &&= r.ok;
 
             if (r.ok) {
-              learned.push(action);
+              incr.push(action);
             }
           }
+
+          // heuristics....clean this up....
+          for (let i = 0 ; i < incr.length - 1; i++) {
+            incr[i].fixed = true;
+          }
+          if (incr.length && command.repeat) {
+            incr[incr.length - 1].repeat = command.repeat;
+          }
+          // end heuristics.....
+
+          learned.push(...incr);
 
           if (ok) {
             break;
