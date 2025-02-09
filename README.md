@@ -170,28 +170,3 @@ for await (const link of crawler.stream(url, 'comment links')) {
 FetchFox lets you swap in a variety of different AI providers and models. You can check the [src/ai/...](https://github.com/fetchfox/fetchfox/tree/master/src/ai) directory for the list of currently supported providers.
 
 By default, FetchFox uses OpenAI's `gpt-4o-mini` model. We've found this model to provide a good tradeoff between cost, runtime, and accuracy. You can read [more about benchmarking on our blog](https://ortutay.substack.com/p/the-most-accurate-and-cheapest-ai).
-
-# CLI
-
-Or use the command line tool. Install it:
-
-```bash
-npm install -g fetchfox
-```
-
-And then run the `extract` command:
-
-```bash
-fetchfox extract https://www.npmjs.com/package/@tinyhttp/cookie \
-  'what is the package name?,what is the version number?,who is the main author?'
-```
-
-Or use `npx` instead:
-
-```bash
-npx fetchfox extract https://www.npmjs.com/package/@tinyhttp/cookie \
-  'what is the package name?,what is the version number?,who is the main author?'
-```
-
-
-![cli](https://github.com/user-attachments/assets/50e07613-7d31-4405-9c11-fe70febee0f7)
