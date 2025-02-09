@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      max-parallel: 4
       matrix:
         node-version: [22.x]
         attempt: [1,2,3,4]
@@ -31,13 +32,11 @@ jobs:
           - openrouter:google/gemini-flash-1.5
           - openrouter:google/gemini-pro-1.5
           - openrouter:google/gemini-2.0-flash-001
-          - openrouter:mistralai/mistral-nemo
           - openrouter:deepseek/deepseek-r1
           - openrouter:deepseek/deepseek-chat
           - openrouter:deepseek/deepseek-r1-distill-llama-70b
           - openrouter:anthropic/claude-3.5-haiku
           - openrouter:anthropic/claude-3.5-sonnet
-          - openrouter:mistralai/codestral-2501
 
     steps:
     - uses: actions/checkout@v4
