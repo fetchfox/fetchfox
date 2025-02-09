@@ -212,7 +212,7 @@ describe('PlaywrightFetcher', function() {
             body { color: black; }
           </style>
           <script>
-            console.log('This should be removed');
+            let x = 'This should be removed';
           </script>
         </head>
         <body>
@@ -261,8 +261,6 @@ describe('PlaywrightFetcher', function() {
     const gen = await fetcher.fetch('https://ffcloud.s3.us-west-2.amazonaws.com/misc/bitcoin.pdf');
     const doc = (await gen.next()).value;
     gen.return();
-
-    console.log('doc', doc);
 
     assert.ok(doc.text.indexOf('bitcoin') != -1);
   });
