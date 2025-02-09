@@ -170,3 +170,4 @@ for await (const link of crawler.stream(url, 'comment links')) {
 FetchFox lets you swap in a variety of different AI providers and models. You can check the [src/ai/...](https://github.com/fetchfox/fetchfox/tree/master/src/ai) directory for the list of currently supported providers.
 
 By default, FetchFox uses OpenAI's `gpt-4o-mini` model. We've found this model to provide a good tradeoff between cost, runtime, and accuracy. You can read [more about benchmarking on our blog](https://ortutay.substack.com/p/the-most-accurate-and-cheapest-ai).
+
