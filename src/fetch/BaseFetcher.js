@@ -161,14 +161,7 @@ export const BaseFetcher = class {
         const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
 
         logger.debug(`${this} Decoding PDF via ${apiUrl}`);
-
-        const resp = await fetch(apiUrl);
-        const doc = new Document();
-        await doc.read(resp, instr.url);
-
-        logger.info(`${this} Yielding PDF derived document: ${doc}`);
-        yield Promise.resolve(pushAndReturn(doc));
-        return;
+        instr.url = apiUrl;
       }
 
 

@@ -7,9 +7,9 @@ describe('Context', function() {
   it('should update @run @fast', () => {
     const ctx = new Context({ publishAllSteps: true, limit: 5 });
 
-    assert.equal(ctx.fetcher.constructor.name, 'Fetcher');
-    assert.equal(ctx.crawler.fetcher.constructor.name, 'Fetcher');
-    assert.equal(ctx.extractor.fetcher.constructor.name, 'Fetcher');
+    assert.equal(ctx.fetcher.constructor.name, 'PlaywrightFetcher');
+    assert.equal(ctx.crawler.fetcher.constructor.name, 'PlaywrightFetcher');
+    assert.equal(ctx.extractor.fetcher.constructor.name, 'PlaywrightFetcher');
 
     ctx.update({ fetcher: 'playwright' });
 

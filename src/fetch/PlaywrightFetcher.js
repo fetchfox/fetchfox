@@ -463,11 +463,33 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
             /* eslint-enable no-undef */
 
             let r = '';
+
             for (const child of node.childNodes) {
               const name = (child.tagName || '').toLowerCase();
               const keep = (min.keep?.tags || []).includes(name);
               if (keep) {
-                r += child.outerHTML;
+                let str = ` <${name}`;
+                for (const attr of min.keep.attrs || []) {
+                  str += ` ${attr}="${child.getAttribute(attr)}"`;
+                }
+                str += '>';
+
+                let ccText = '';
+                for (const cc of child.childNodes) {
+                  ccText += ' ' + toText(cc) + ' ';
+                }
+                ccText = ccText.trim();
+
+                // Heuristic: if it's really short, use the inner HTML
+                if (ccText.length < 10) {
+                  ccText = child.innerHTML;
+                }
+
+                str += ccText;
+
+                str += `</${name}> `;
+
+                r += str;
               } else {
                 r += toText(child);
               }
@@ -476,7 +498,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
             return r;
           };
 
-          result = toText(clone)
+          result = toText(clone);
         }
 
         outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();;

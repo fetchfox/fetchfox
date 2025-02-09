@@ -6,6 +6,8 @@ import { BaseFetcher } from './BaseFetcher.js';
 export const Fetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
+
+    logger.trace('??');
   }
 
   async goto(url) {

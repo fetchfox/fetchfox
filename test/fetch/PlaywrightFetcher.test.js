@@ -262,6 +262,8 @@ describe('PlaywrightFetcher', function() {
     const doc = (await gen.next()).value;
     gen.return();
 
+    console.log('doc', doc);
+
     assert.ok(doc.text.indexOf('bitcoin') != -1);
   });
     

@@ -1,6 +1,4 @@
 import { logger } from '../log/logger.js';
-import { validate } from './util.js';
-import { chunkList } from '../util.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
@@ -10,7 +8,6 @@ export const Crawler = class extends BaseCrawler {
     this.usage.requests++;
     const maxPages = options?.maxPages;
     const fetchOptions = options?.fetchOptions || {};
-    const seen = {};
 
     const start = new Date().getTime();
 
@@ -84,7 +81,7 @@ export const Crawler = class extends BaseCrawler {
           workerPromises.push(
             new Promise(async (ok, bad) => {
               try {
-                for await (const r of this._processDoc(doc, query, seen, options)) {
+                for await (const r of this._processDoc(doc, query)) {
                   resultsChannel.send({ result: r });
                 }
 
@@ -136,61 +133,23 @@ export const Crawler = class extends BaseCrawler {
     }
   }
 
-  async *_processDoc(doc, query, seen, options) {
-    doc.parseLinks(options?.css);
-    const links = doc.links;
-    doc.parseLinks();
-
-    // TODO: move this initailization to a better spot.
+  async *_processDoc(doc, query) {
+    // TODO: move this init to a better spot.
     // maybe make getAI() async and put it there.
     await this.ai.init();
 
-    // Cap max bytes to limit number of links examined a a time
-    const maxBytes = this.ai.maxTokens / 2;
+    const context = {
+      query,
+      url: doc.url,
+      body: doc.linksHtml,
+    };
+    const prompts = await gather.renderMulti(context, 'body', this.ai);
 
-    const slimmer = (item) => ({
-      id: item.id,
-      html: item.html.substr(0, 200),
-      text: item.text,
-      url: item.url,
-    });
-
-    const chunked = chunkList(links.map(slimmer), maxBytes);
-
-    for (let i = 0; i < chunked.length; i++) {
-      const chunk = chunked[i];
-      const prompt = gather.render({
-        query,
-        links: JSON.stringify(
-          chunk.filter((l) => validate(l.url)),
-          null,
-          2,
-        ),
-      });
-
-      const toLink = {};
-      for (const link of links) {
-        toLink[link.id] = link;
-      }
-
+    for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
-
       for await (const { delta } of stream) {
-        if (!toLink[delta.id]) {
-          logger.warn(`${this} Could not find link with id ${delta.id}`);
-          continue;
-        }
-
-        const link = toLink[delta.id];
-
-        if (seen[link.url]) continue;
-        seen[link.url] = true;
-        delete link.id;
-
-        logger.info(`Found link ${link.url} in response to "${query}"`);
-
-        this.usage.count++;
-        yield Promise.resolve({ _url: link.url });
+        logger.info(`Found link ${delta.url} in response to "${query}"`);
+        yield Promise.resolve({ _url: delta.url });
       }
     }
   }
