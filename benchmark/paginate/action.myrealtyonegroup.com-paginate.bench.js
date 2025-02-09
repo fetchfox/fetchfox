@@ -10,11 +10,11 @@ describe('paginate https://action.myrealtyonegroup.com/real-estate-agents', asyn
   });
 
   const expected = [
-    { _sourceUrl: 'https://action.myrealtyonegroup.com/real-estate-agents' },
-    { _sourceUrl: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/2' },
-    { _sourceUrl: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/3' },
-    { _sourceUrl: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/4' },
-    { _sourceUrl: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/5' },
+    { url: 'https://action.myrealtyonegroup.com/real-estate-agents' },
+    { url: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/2' },
+    { url: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/3' },
+    { url: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/4' },
+    { url: 'https://action.myrealtyonegroup.com/real-estate-agents/dsort-fa/5' },
   ];
 
   const wf = await fox
@@ -28,7 +28,7 @@ describe('paginate https://action.myrealtyonegroup.com/real-estate-agents', asyn
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
     { shouldSave: true });
 });

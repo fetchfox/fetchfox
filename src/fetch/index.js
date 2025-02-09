@@ -9,7 +9,7 @@ export { Fetcher } from './Fetcher.js';
 
 import { BaseFetcher } from './BaseFetcher.js';
 
-export const DefaultFetcher = Fetcher;
+export const DefaultFetcher = PlaywrightFetcher;
 
 const classes = {
   f: Fetcher,
@@ -28,7 +28,7 @@ export const getFetcher = (which, options) => {
     return which;
   }
   if (!which) {
-    which = 'fetch';
+    which = 'playwright';
   }
 
   let fetcherClass = classes[which];

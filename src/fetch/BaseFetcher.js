@@ -82,17 +82,18 @@ export const BaseFetcher = class {
         instr = new Instructions(
           url,
           [],
-          { ai: this.ai, loadTimeout: this.loadTimeout });
+          {
+            ai: this.ai,
+            cache: this.cache,
+            loadTimeout: this.loadTimeout,
+          });
       }
 
       const maxPages = options?.maxPages || 0;
       if (maxPages > 1) {
-        const domainSpecific = domainSpecificInstructions(instr.url);
-
         instr.unshiftCommand({
-          prompt: `Go to the next page, if pagination is possible. ${domainSpecific}`,
-          max: 1,
-          repeat: maxPages,
+          prompt: '{{nextPage}}',
+          limit: maxPages,
         });
       }
 
@@ -126,6 +127,7 @@ export const BaseFetcher = class {
       logger.debug(`${this} Returning cached ${cached}`);
       this.usage.cached++;
       for (const doc of cached) {
+        logger.info(`${this} Yielding cached document: ${doc}`);
         yield Promise.resolve(doc);
       }
       return;
@@ -159,13 +161,7 @@ export const BaseFetcher = class {
         const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
 
         logger.debug(`${this} Decoding PDF via ${apiUrl}`);
-
-        const resp = await fetch(apiUrl);
-        const doc = new Document();
-        await doc.read(resp, instr.url);
-
-        yield Promise.resolve(pushAndReturn(doc));
-        return;
+        instr.url = apiUrl;
       }
 
 
@@ -198,13 +194,16 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${instr}`);
 
-              await instr.learn(this);
+              await instr.learn(this, ctx);
+              const gen = await instr.execute(this, ctx);
 
-              const gen = await instr.execute(this);
-              for await (const { doc } of gen) {
+              for await (const r of gen) {
+                const doc = r?.doc;
+
                 if (this.signal?.aborted) {
                   break;
                 }
+
                 if (doc) {
                   channel.send({ doc });
                 }
@@ -254,6 +253,7 @@ export const BaseFetcher = class {
 
           await this.putS3(doc);
 
+          logger.info(`${this} Yielding document: ${doc}`);
           yield Promise.resolve(pushAndReturn(doc));
         }
       } catch (e) {
@@ -353,29 +353,6 @@ export const BaseFetcher = class {
     logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
-}
-
-const domainSpecificInstructions = (url) => {
-  const matchers = [
-    {
-      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/, instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
-    },
-    {
-      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/, instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`
-    },
-    {
-      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/, instruction: 'You are on Google Maps. Paginate using these two steps: (1) Click on the text "Results" to focus on the results area and (2) scroll down exactly one window length.'
-    },
-  ]
-  const match = matchers.find(({ prefix }) => prefix.test(url));
-  let result;
-  if (match) {
-    result = '\n>> Follow this important domain specific guidance: ' + match.instruction;
-    logger.debug(`Adding domain specific prompt: ${result}`);
-  } else {
-    result = '';
-  }
-  return result;
 }
 
 const isPdf = async (url) => {

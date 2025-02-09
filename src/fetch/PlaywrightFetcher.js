@@ -34,12 +34,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async goto(url, ctx) {
-    const page = ctx.page || await ctx.browser.newPage();
+    if (!ctx.page) {
+      ctx.page = await ctx.browser.newPage();
+    }
 
     try {
       const { aborted } = await abortable(
         this.signal,
-        page.goto(url, { waitUntil: 'domcontentloaded' }));
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -47,12 +49,16 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     } catch (e) {
       logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
-
-    return { page };
   }
 
   async finishGoto(ctx) {
-    return ctx.page && ctx.page.close();
+    if (!ctx?.page) {
+      return;
+    }
+
+    logger.debug(`${this} Closing page`);
+    await ctx.page.close();
+    delete ctx.page;
   }
 
   async current(ctx) {
@@ -108,6 +114,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   async start(ctx) {
     const timer = ctx.timer || new Timer();
 
+    if (ctx.browser) {
+      throw new Error('Expect only one browser open at a time');
+    }
+
     try {
       ctx.browser = await this._launch({ timer });
     } catch (e) {
@@ -116,17 +126,22 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     logger.debug(`${this} Got browser`);
+
+    return ctx;
   }
 
   async finish(ctx) {
-    if (ctx.browser) {
-      logger.debug(`${this} Closing browser`);
-      await ctx.browser.close();
+    if (!ctx.browser) {
+      return;
     }
+
+    logger.debug(`${this} Closing browser`);
+    await ctx.browser.close();
+    delete ctx.browser;
   }
 
   async act(ctx, action, seen) {
-    logger.trace(`${this} Do action: ${JSON.stringify(action)}`);
+    logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
     let r;
 
@@ -166,13 +181,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // Look for the first matching element not in seen
     for (let i = 0; el == null; i++) {
       try {
-        await loc.nth(i).waitFor({ state: 'visible', timeout: 1000 });
-        el = await loc.nth(i);
-      } catch {
-        logger.warn(`${this} Could't find ${loc} nth=${i}`);
+        await loc.nth(i).waitFor({ state: 'attached', timeout: 1000 });
+      } catch (e) {
+        logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
         return { ok: false };
       }
 
+      el = await loc.nth(i);
       text = await el.textContent();
       html = await el.evaluate(el => el.outerHTML);
 
@@ -235,7 +250,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     let html;
     let text;
-    let linksHtml;
+    let selectHtml;
     let status;
 
     timer.push('PlaywrightFetcher _docFromPage');
@@ -256,7 +271,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       html = result.result.html;
       text = result.result.text;
-      linksHtml = result.result.linksHtml;
+      selectHtml = result.result.selectHtml;
     } catch (e) {
 
       logger.error(`Playwright could not get from ${page.url()}: ${e}`);
@@ -290,7 +305,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       body: html,
       html,
       text,
-      linksHtml: linksHtml,
+      selectHtml: selectHtml,
       headers: {'content-type': 'text/html' },
     };
 
@@ -405,7 +420,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 
         // Links minimzer keeps only text and <a href="...">
         {
-          name: 'linksHtml',
+          name: 'selectHtml',
           remove,
           text: true,
           keep: {
@@ -448,11 +463,33 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
             /* eslint-enable no-undef */
 
             let r = '';
+
             for (const child of node.childNodes) {
               const name = (child.tagName || '').toLowerCase();
               const keep = (min.keep?.tags || []).includes(name);
               if (keep) {
-                r += child.outerHTML;
+                let str = ` <${name}`;
+                for (const attr of min.keep.attrs || []) {
+                  str += ` ${attr}="${child.getAttribute(attr)}"`;
+                }
+                str += '>';
+
+                let ccText = '';
+                for (const cc of child.childNodes) {
+                  ccText += ' ' + toText(cc) + ' ';
+                }
+                ccText = ccText.trim();
+
+                // Heuristic: if it's really short, use the inner HTML
+                if (ccText.length < 10) {
+                  ccText = child.innerHTML;
+                }
+
+                str += ccText;
+
+                str += `</${name}> `;
+
+                r += str;
               } else {
                 r += toText(child);
               }
@@ -461,7 +498,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
             return r;
           };
 
-          result = toText(clone)
+          result = toText(clone);
         }
 
         outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();;
@@ -476,7 +513,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   return {
     html: outs.html,
     text: outs.text,
-    linksHtml: outs.linksHtml,
+    selectHtml: outs.selectHtml,
   };
 }
 

@@ -4,6 +4,11 @@ import { getAI } from '../ai/index.js';
 import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
+// TODO:
+// - If pagination is the only action, don't restart from the beginning.
+// - More generally, this applies if there is only a single `repeat` action
+// - Detect and use changes in URL as a shortcut
+
 export const Instructions = class {
   constructor(url, commands, options) {
     this.url = url;
@@ -20,6 +25,7 @@ export const Instructions = class {
     this.cache = options?.cache;
     this.ai = options?.ai || getAI();
     this.loadTimeout = options?.loadTimeout || 15000;
+    this.limit = options?.limit;
   }
 
   toString() {
@@ -43,7 +49,7 @@ export const Instructions = class {
     return `instructions-${hash}`;
   }
 
-  async learn(fetcher) {
+  async learn(fetcher, ctx) {
     const learned = [];
 
     const key = this.cacheKey();
@@ -58,11 +64,8 @@ export const Instructions = class {
       }
     }
 
-    // TODO: refactor how fetcher works
-    let ctx = {};
-    await fetcher.start(ctx);
     try {
-      ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
+      await fetcher.goto(this.url, ctx);
 
       // TODO: It would be nice of learning supported caching. Right now,
       // we use the live page for interactions, but it should be possible to
@@ -75,9 +78,20 @@ export const Instructions = class {
 
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
-        const html = doc.html;
-        const context = { html, command: command.prompt };
+        if (command.prompt == '{{nextPage}}') {
+          command.prompt = 'Go to the next page.';
+          const domainSpecific = domainSpecificInstructions(this.url);
+          if (domainSpecific) {
+            command.prompt += domainSpecific;
+          }
+          logger.debug(`${this} Expanded prompt: ${command.prompt}`);
+          command.mode = 'repeat';
+        }
 
+        const context = {
+          html: doc.html,
+          command: command.prompt,
+        };
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
@@ -98,14 +112,9 @@ export const Instructions = class {
             const action = {
               type: delta.actionType,
               arg: delta.actionArgument,
-
-              max: command.max,
-              optional: command.optional,
-              fixed: command.fixed,
+              limit: command.limit,
+              mode: command.mode || 'distinct',
             };
-
-            action.repeat ??= 0;
-            action.max ??= 100;
 
             const r = await fetcher.act(ctx, action, {});
             ok &&= r.ok;
@@ -114,15 +123,6 @@ export const Instructions = class {
               incr.push(action);
             }
           }
-
-          // heuristics....clean this up....
-          for (let i = 0 ; i < incr.length - 1; i++) {
-            incr[i].fixed = true;
-          }
-          if (incr.length && command.repeat) {
-            incr[incr.length - 1].repeat = command.repeat;
-          }
-          // end heuristics.....
 
           learned.push(...incr);
 
@@ -133,7 +133,6 @@ export const Instructions = class {
       }
 
       // TODO: Check if the learned actions work, and retry if they don't
-
       this.learned = learned;
 
       if (this.cache) {
@@ -143,11 +142,11 @@ export const Instructions = class {
 
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
     } finally {
-      await fetcher.finish(ctx);
+      await fetcher.finishGoto(ctx);
     }
   }
 
-  async *execute(fetcher) {
+  async *execute(fetcher, ctx) {
     if (this.commands?.length && !this.learned?.length) {
       throw new Error('must learn before execute');
     }
@@ -160,86 +159,70 @@ export const Instructions = class {
       actions: new Array(this.learned.length).fill(0),
     };
 
-    // Running fetcher context
-    let ctx = {};
-
-    const zero = (action) => {
-      return {
-        index: 0,
-        repetition: 0,
-        max: action.max,
-        repeat: action.repeat,
-        fixed: action.fixed,
-      };
-    }
-
-    const zeroState = () => {
-      const state = [];
-      for (const action of this.learned) {
-        state.push(zero(action));
-      }
-      return state;
-    }
+    const zero = (action) => ({ repetition: 0, count: 0, action });
+    const zeroState = () => this.learned.map(action => zero(action));
 
     const incrState = (i, state) => {
       const copy = JSON.parse(JSON.stringify(state));
-
-      if (copy[i].fixed) {
-        // No-op, these always execute
-      } if (copy[i].repeat) {
-        copy[i].repetition++;
-      } else {
-        copy[i].index++;
-      }
-
+      copy[i].count++;
+      copy[i].repetition++;
       return copy;
+    }
+
+    const limitsOk = (state) => {
+      for (let i = 0; i < state.length; i++) {
+        const action = state[i].action;
+        const limit = action.limit;
+        const count = state[i].count;
+        if (limit && count >= limit) {
+          return false;
+        }
+      }
+      return true;
     }
 
     const seen = {};
 
     const act = async (i, state) => {
-      const action = this.learned[i];
-
-      if (state[i].repeat && state[i].repetition >= state[i].repeat) {
-        logger.debug(`${this} Max repetitions on ${JSON.stringify(state)}`);
-        return false;
-      }
-
-      const index = state[i].index;
-      if (index >= state[i].max) {
-        logger.debug(`${this} Max index on ${JSON.stringify(state)}`);
-        return false;
-      }
+      const action = state[i].action;
 
       let ok = true;
       let outcome;
-      if (action.fixed) {
-        // Fixed actions do not use seen, are always executed
-        outcome = await fetcher.act(ctx, action, {});
 
-      } else if (action.repeat) {
-        // First iteration of repeat doesn't excute, so it is always ok;
-        outcome = { ok: true };
+      switch (action.mode) {
+        case 'repeat':
+          // `repeat` mode exeutes an action multiple times on the same element.
+          // It first exeutes it 0 times, then 1 times, then 2 times, etc.
+          outcome = { ok: true };
+          for (let r = 0; r < state[i].repetition; r++) {
+            outcome = await fetcher.act(ctx, action, {});
+            usage.actions[i]++;
+          }
+          break;
 
-        // Repeat actions do not use seen and execute a certain number of times
-        for (let r = 0; r < state[i].repetition; r++) {
+        case 'first':
+          // `first` mode always executes the action on the same element
           outcome = await fetcher.act(ctx, action, {});
-        }
+          usage.actions[i]++;
+          break;
 
-      } else {
-        outcome = await fetcher.act(ctx, action, seen);
-        seen[outcome.html] = true;
+        case 'distinct':
+          // `distinct` mode always executes the action on distinct elements,
+          // based on unique html.
+          outcome = await fetcher.act(ctx, action, seen);
+          usage.actions[i]++;
+          seen[outcome.html] = true;
+          break;
       }
 
       ok &&= outcome?.ok || action.optional;
-      usage.actions[i]++;
 
       return ok;
     }
 
     const goto = async () => {
       usage.goto++;
-      ctx = { ...ctx, ...(await fetcher.goto(this.url, ctx)) };
+      await fetcher.goto(this.url, ctx);
     }
 
     const current = async () => {
@@ -247,8 +230,6 @@ export const Instructions = class {
       logger.debug(`${this} Got document: ${doc}`);
       return doc;
     }
-
-    await fetcher.start(ctx);
 
     try {
       if (!this.learned || this.learned.length == 0) {
@@ -262,38 +243,42 @@ export const Instructions = class {
       let state = zeroState();
 
       while (true) {
+        if (!limitsOk(state)) {
+          logger.debug(`${this} Hit limits, break`);
+          break;
+        }
+
         await goto();
         await current();  // Don't use doc, but this is needed to check load conditions
 
-        let j;
+        let i;
         let ok;
-        for (j = 0; j < state.length; j++) {
-          ok = await act(j, state);
-          logger.debug(`${this} Execute iteration ${j} ok=${ok} state=${JSON.stringify(state)}`);
+        for (i = 0; i < state.length; i++) {
+          ok = await act(i, state);
+          logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
+
           if (!ok) {
-            for (let k = j; k < this.learned.length; k++) {
-              state[k] = zero(this.learned[k]);
+            for (let j = i; j < this.learned.length; j++) {
+              state[j].repetition = 0;
             }
-            j++;
+            i++;
             break;
           }
         }
 
-        j--;
+        i--;
 
         if (!ok) {
-          const upstream = this.learned.slice(0, j).filter(it => !it.optional);
+          const upstream = this.learned.slice(0, i).filter(it => !it.optional);
           if (upstream.length == 0) {
             logger.debug(`${this} Got not ok and all upstream are optional, done`);
             break;
           }
+          i--;
         }
 
-        if (!ok) {
-          j--;
-        }
+        state = incrState(i, state);
 
-        state = incrState(j, state);
         logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
 
         if (ok) {
@@ -304,9 +289,32 @@ export const Instructions = class {
       }
 
     } finally {
-      await fetcher.finish(ctx);
+      await fetcher.finishGoto(ctx);
     }
 
     yield Promise.resolve({ usage });
   }
+}
+
+const domainSpecificInstructions = (url) => {
+  const matchers = [
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/, instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+    },
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/, instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`
+    },
+    {
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/, instruction: 'You are on Google Maps. Paginate using these two steps: (1) Click on the text "Results" to focus on the results area and (2) scroll down exactly one window length.'
+    },
+  ]
+  const match = matchers.find(({ prefix }) => prefix.test(url));
+  let result;
+  if (match) {
+    result = '\n>> Follow this important domain specific guidance: ' + match.instruction;
+    logger.debug(`Adding domain specific prompt: ${result}`);
+  } else {
+    result = '';
+  }
+  return result;
 }

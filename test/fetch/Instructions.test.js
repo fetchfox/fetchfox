@@ -341,38 +341,45 @@ describe('Instructions', function() {
     await new Promise(ok => server.listen(0, ok));
     const port = server.address().port;
 
+    const cache = testCache();
+    const ai = getAI('openai:gpt-4o', { cache });
+    const url = `http://localhost:${port}`;
+
+    const fetcherCtx = {};
+    const fetcher = getFetcher(
+      'playwright',
+      { ai, cache, loadWait: 1, actionWait: 1, headless: true });
+
+    const limit = 7;
+
     try {
-      const cache = testCache();
-      const ai = getAI('openai:gpt-4o', { cache });
-      const fetcher = getFetcher(
-        'playwright',
-        { ai, cache, loadWait: 1, actionWait: 1, headless: true });
-      const url = `http://localhost:${port}`;
 
       const commands = [
-        { prompt: 'click accept cookies', optional: true, fixed: true },
-        { prompt: 'click to go to the next page', max: 2, repeat: 2 },
-        { prompt: 'click each profile link', max: 3 },
+        { prompt: 'click accept cookies', optional: true, mode: 'first' },
+        { prompt: 'click to go to the next page', mode: 'repeat' },
+        { prompt: 'click each profile link', limit },
       ];
 
+      await fetcher.start(fetcherCtx);
+
       const instr = new Instructions(url, commands, { ai, cache });
-      await instr.learn(fetcher);
+      await instr.learn(fetcher, fetcherCtx);
 
       const expected = [
         ['Page 1', 'Profile content 1'],
         ['Page 1', 'Profile content 2'],
         ['Page 1', 'Profile content 3'],
-
+        ['Page 1', 'Profile content 4'],
+        ['Page 1', 'Profile content 5'],
         ['Page 2', 'Profile content 6'],
         ['Page 2', 'Profile content 7'],
-        ['Page 2', 'Profile content 8'],
       ];
 
       let i = 0;
 
       let doc;
       let usage;
-      const gen = instr.execute(fetcher);
+      const gen = instr.execute(fetcher, fetcherCtx);
       for await ({ doc } of gen) {
         if (!doc) {
           continue;
@@ -389,7 +396,10 @@ describe('Instructions', function() {
         i++;
       }
 
+      assert.equal(i, limit);
+
     } finally {
+      fetcher.finish(fetcherCtx);
       server.close();
     }
   });

@@ -10,10 +10,10 @@ describe('paginate listado.mercadolibre.com.co', async function() {
   });
 
   const expected = [
-    { _sourceUrl: 'https://listado.mercadolibre.com.co/pantalla-vertical-pc' },
-    { _sourceUrl: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_51_NoIndex_True' },
-    { _sourceUrl: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_101_NoIndex_True' },
-    { _sourceUrl: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_151_NoIndex_True' },
+    { url: 'https://listado.mercadolibre.com.co/pantalla-vertical-pc' },
+    { url: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_51_NoIndex_True' },
+    { url: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_101_NoIndex_True' },
+    { url: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_151_NoIndex_True' },
   ];
 
   const wf = await fox
@@ -27,7 +27,7 @@ describe('paginate listado.mercadolibre.com.co', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
     { shouldSave: true });
 });

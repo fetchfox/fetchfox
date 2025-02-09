@@ -11,11 +11,11 @@ describe('paginate gurkhaskitchensunnyvale.com', async function() {
   });
 
   const expected = [
-    { _sourceUrl: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/?filters=product_tag[145]' },
-    { _sourceUrl: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/2/?filters=product_tag[145]' },
-    { _sourceUrl: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/3/?filters=product_tag[145]' },
-    { _sourceUrl: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/4/?filters=product_tag[145]' },
-    { _sourceUrl: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/5/?filters=product_tag[145]' },
+    { url: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/?filters=product_tag[145]' },
+    { url: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/2/?filters=product_tag[145]' },
+    { url: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/3/?filters=product_tag[145]' },
+    { url: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/4/?filters=product_tag[145]' },
+    { url: 'https://gurkhaskitchensunnyvale.com/product-category/non-catering/page/5/?filters=product_tag[145]' },
   ]
 
   const wf = await fox
@@ -29,7 +29,7 @@ describe('paginate gurkhaskitchensunnyvale.com', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
     { shouldSave: true });
 });

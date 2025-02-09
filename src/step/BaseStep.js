@@ -169,11 +169,13 @@ export const BaseStep = class {
                 { cursor, item, index, batch: b },
                 (output) => {
                   let hash
+                  let s;
                   if (output instanceof Item) {
-                    hash = shortObjHash({ s: JSON.stringify(output.publicOnly()) });
+                    s = JSON.stringify(output.publicOnly());
                   } else {
-                    hash = shortObjHash({ s: JSON.stringify(output) });
+                    s = JSON.stringify(output);
                   }
+                  hash = shortObjHash({ s });
 
                   const isNew = !seen[hash];
                   seen[hash] = true;

@@ -5,9 +5,7 @@ import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate chosenmasters.com/charts', async function() {
-  const matrix = standardMatrix({
-    fetcher: ['playwright'],
-  });
+  const matrix = standardMatrix();
 
   const wf = await fox
     .init('https://chosenmasters.com/charts')

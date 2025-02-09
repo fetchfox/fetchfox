@@ -5,13 +5,7 @@ import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate www.reddit.com/r/nfl/', async function() {
-  const matrix = standardMatrix(
-    {
-      fetcher: [['playwright', { headless: false }]],
-    },
-    {
-      useCdp: false,
-    });
+  const matrix = standardMatrix();
 
   const wf = await fox
     .init('https://www.reddit.com/r/nfl/')

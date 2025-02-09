@@ -8,7 +8,7 @@ import { Instructions } from '../../src/fetch/Instructions.js';
 describe('PlaywrightFetcher', function() {
 
   // Playwright tests take a little longer to execute
-  this.timeout(5 * 1000);
+  this.timeout(60 * 1000);
 
   before(() => {
     logger.testMode();
@@ -139,7 +139,9 @@ describe('PlaywrightFetcher', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o-mini', { cache });
-      const fetcher = getFetcher('playwright', { ai, loadWait: 20, actionWait: 20 });
+      const fetcher = getFetcher(
+        'playwright',
+        { ai, cache, loadWait: 10, actionWait: 10, headless: true });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;
@@ -148,7 +150,7 @@ describe('PlaywrightFetcher', function() {
         i++;
       }
 
-      assert.equal(i - 1, 5, '5 pages');
+      assert.equal(i - 1, 5, 'expect 5 pages');
 
     } finally {
       server.close();
@@ -210,7 +212,7 @@ describe('PlaywrightFetcher', function() {
             body { color: black; }
           </style>
           <script>
-            console.log('This should be removed');
+            let x = 'This should be removed';
           </script>
         </head>
         <body>
@@ -240,7 +242,7 @@ describe('PlaywrightFetcher', function() {
 
       assert.equal(doc.html, `<html><head> <title>Minimization Test</title> </head> <body> <h1>Static Content</h1> <div>Inline styled element</div> <a href="https://www.example.com">Keep A Tags</a> </body></html>`);
       assert.equal(doc.text, `Minimization Test Static Content Inline styled element Keep A Tags`);
-      assert.equal(doc.linksHtml, `Minimization Test Static Content Inline styled element <a href="https://www.example.com">Keep A Tags</a>`);
+      assert.equal(doc.selectHtml, `Minimization Test Static Content Inline styled element <a href="https://www.example.com">Keep A Tags</a>`);
 
       assert.ok(!doc.html.includes('<style>'), 'style tags should be removed');
       assert.ok(!doc.html.includes('<script>'), 'script tags should be removed');
