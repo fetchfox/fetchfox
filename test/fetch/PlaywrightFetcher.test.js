@@ -242,7 +242,7 @@ describe('PlaywrightFetcher', function() {
 
       assert.equal(doc.html, `<html><head> <title>Minimization Test</title> </head> <body> <h1>Static Content</h1> <div>Inline styled element</div> <a href="https://www.example.com">Keep A Tags</a> </body></html>`);
       assert.equal(doc.text, `Minimization Test Static Content Inline styled element Keep A Tags`);
-      assert.equal(doc.richText, `Minimization Test Static Content Inline styled element <a href="https://www.example.com">Keep A Tags</a>`);
+      assert.equal(doc.selectHtml, `Minimization Test Static Content Inline styled element <a href="https://www.example.com">Keep A Tags</a>`);
 
       assert.ok(!doc.html.includes('<style>'), 'style tags should be removed');
       assert.ok(!doc.html.includes('<script>'), 'script tags should be removed');
