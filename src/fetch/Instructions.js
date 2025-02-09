@@ -244,7 +244,7 @@ export const Instructions = class {
 
       while (true) {
         if (!limitsOk(state)) {
-          console.log('hit limits');
+          logger.debug(`${this} Hit limits, break`);
           break;
         }
 
