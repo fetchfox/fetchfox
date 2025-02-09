@@ -250,7 +250,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     let html;
     let text;
-    let linksHtml;
+    let richText;
     let status;
 
     timer.push('PlaywrightFetcher _docFromPage');
@@ -271,7 +271,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       html = result.result.html;
       text = result.result.text;
-      linksHtml = result.result.linksHtml;
+      richText = result.result.richText;
     } catch (e) {
 
       logger.error(`Playwright could not get from ${page.url()}: ${e}`);
@@ -305,7 +305,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       body: html,
       html,
       text,
-      linksHtml: linksHtml,
+      richText: richText,
       headers: {'content-type': 'text/html' },
     };
 
@@ -420,7 +420,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 
         // Links minimzer keeps only text and <a href="...">
         {
-          name: 'linksHtml',
+          name: 'richText',
           remove,
           text: true,
           keep: {
@@ -513,7 +513,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   return {
     html: outs.html,
     text: outs.text,
-    linksHtml: outs.linksHtml,
+    richText: outs.richText,
   };
 }
 

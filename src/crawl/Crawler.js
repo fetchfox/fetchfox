@@ -141,7 +141,7 @@ export const Crawler = class extends BaseCrawler {
     const context = {
       query,
       url: doc.url,
-      body: doc.linksHtml,
+      body: doc.richText,
     };
     const prompts = await gather.renderMulti(context, 'body', this.ai);
 

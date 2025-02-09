@@ -14,7 +14,7 @@ export const Document = class {
       body: this.body,
       html: this.html,
       text: this.text,
-      linksHtml: this.linksHtml,
+      richText: this.richText,
       htmlUrl: this.htmlUrl,
       screenshotUrl: this.screenshotUrl,
       resp: this.resp,
@@ -57,7 +57,7 @@ export const Document = class {
     this.body = data.body;
     this.html = data.html;
     this.text = data.text;
-    this.linksHtml = data.linksHtml;
+    this.richText = data.richText;
     this.htmlUrl = data.htmlUrl;
     this.screenshotUrl = data.screenshotUrl;
     this.resp = data.resp;
