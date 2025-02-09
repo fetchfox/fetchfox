@@ -1,11 +1,11 @@
 import { logger } from '../../src/log/logger.js';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-export const storeScores = async (scores) => {
+export const storeScores = async (scores, key) => {
   const region = process.env.BENCH_REGION || 'us-west-2';
   const s3 = new S3Client({ region });
   const bucket = process.env.BENCH_BUCKET || 'ffcloud';
-  const key = process.env.BENCH_KEY || 'benchmarks/latest.jsonl';
+  key ||= process.env.BENCH_KEY || 'benchmarks/latest.jsonl';
 
   let existing = [];
   try {
@@ -80,6 +80,8 @@ export const storeScores = async (scores) => {
     ACL: 'public-read',
     ContentType: 'application/jsonl',
   };
+
+  logger.info(`Saving benchmark to bucket=${bucket} key=${key}`);
 
   const retries = 5;
   for (let i = 0; i < retries; i++) {

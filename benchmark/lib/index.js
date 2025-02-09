@@ -28,7 +28,10 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
           options);
 
         if (options.shouldSave) {
-          await storeScores(scores);
+          const commit = process.env.COMMIT || 'local';
+          const date = new Date().toISOString().split('T')[0];
+          const key = `benchout/${date}-${commit}-${name.replaceAll(' ', '_')}.jsonl`;
+          await storeScores(scores, key);
         }
       } catch (e) {
         logger.error(`Benchmark ${testName} had an error: ${e} ${e.stack}`);

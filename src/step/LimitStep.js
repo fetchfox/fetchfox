@@ -10,7 +10,7 @@ export const LimitStep = class extends BaseStep {
   }
 
   async process({ item }, cb) {
-    logger.info(`Limit step on ${JSON.stringify(item).substr(0, 100)}`);
+    logger.debug(`Limit step on ${JSON.stringify(item).substr(0, 100)}`);
     cb(item);
   }
 }
