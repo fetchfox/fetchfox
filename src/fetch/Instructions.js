@@ -4,6 +4,11 @@ import { getAI } from '../ai/index.js';
 import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
+// TODO:
+// - If pagination is the only action, don't restart from the beginning.
+// - More generally, this applies if there is only a single `repeat` action
+// - Detect and use changes in URL as a shortcut
+
 export const Instructions = class {
   constructor(url, commands, options) {
     this.url = url;
