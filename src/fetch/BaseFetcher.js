@@ -1,7 +1,6 @@
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
-import { Timer } from '../log/timer.js';
 import { Document } from '../document/Document.js';
 import { createChannel, shortObjHash, srid } from '../util.js';
 import { presignS3 } from './util.js';
@@ -61,8 +60,6 @@ export const BaseFetcher = class {
   }
 
   async *fetch(target, options) {
-    const timer = new Timer();
-
     logger.info(`${this} Fetch ${target} with ${this}`);
 
     const toInstructions = (target) => {
@@ -182,20 +179,11 @@ export const BaseFetcher = class {
           return new Promise(async (ok) => {
             logger.debug(`${this} Queue is starting fetch of: ${instr} ${debugStr()}`);
 
-            const ctx = { timer };
             try {
-              await this.start(ctx);
-            } catch (e) {
-              logger.error(`${this} Could not start, skipping ${instr}: ${e}`);
-              ok();
-              return;
-            }
+              logger.debug(`${this} Starting at ${instr.url}`);
 
-            try {
-              logger.debug(`${this} Starting at ${instr}`);
-
-              await instr.learn(this, ctx);
-              const gen = await instr.execute(this, ctx);
+              await instr.learn(this);
+              const gen = await instr.execute(this);
 
               for await (const r of gen) {
                 const doc = r?.doc;
@@ -219,10 +207,7 @@ export const BaseFetcher = class {
 
             logger.debug(`${this} Closing docs channel`);
             channel.end();
-            this.finish(ctx)
-              .catch((e) => {
-                logger.error(`${this} Error while finishing, ignoring: ${e}`);
-              });
+
             ok();
           });
           /* eslint-enable no-async-promise-executor */

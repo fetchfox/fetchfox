@@ -51,16 +51,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async finishGoto(ctx) {
-    if (!ctx?.page) {
-      return;
-    }
-
-    logger.debug(`${this} Closing page`);
-    await ctx.page.close();
-    delete ctx.page;
-  }
-
   async current(ctx) {
     let doc;
     let aborted;

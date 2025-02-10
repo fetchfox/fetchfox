@@ -11,14 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      max-parallel: 4
+      max-parallel: 16
       matrix:
         node-version: [22.x]
         attempt: [1,2,3,4]
         ai:
           - openai:gpt-4o-mini
           - openai:gpt-4o
-          - openai:o1
           - openai:o3-mini
           - google:gemini-1.5-pro
           - google:gemini-1.5-flash
