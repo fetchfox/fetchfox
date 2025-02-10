@@ -397,7 +397,51 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   logger.debug(`Minimizing HTML on ${page.url()}`);
   let outs;
   try {
+    /* eslint-disable no-undef */
     outs = await page.evaluate(async () => {
+      // Attach the function to document to avoid errors in certain situatios,
+      // eg. https://github.com/privatenumber/tsx/issues/113
+      document.toText = (min, node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.nodeValue;
+        }
+
+        let r = '';
+
+        for (const child of node.childNodes) {
+          const name = (child.tagName || '').toLowerCase();
+          const keep = (min.keep?.tags || []).includes(name);
+          if (keep) {
+            let str = ` <${name}`;
+            for (const attr of min.keep.attrs || []) {
+              str += ` ${attr}="${child.getAttribute(attr)}"`;
+            }
+            str += '>';
+
+            let ccText = '';
+            for (const cc of child.childNodes) {
+              ccText += ' ' + document.toText(min, cc) + ' ';
+            }
+            ccText = ccText.trim();
+
+            // Heuristic: if it's really short, use the inner HTML
+            if (ccText.length < 10) {
+              ccText = child.innerHTML;
+            }
+
+            str += ccText;
+
+            str += `</${name}> `;
+
+            r += str;
+          } else {
+            r += document.toText(min, child);
+          }
+        }
+
+        return r;
+      };
+
       const remove = {
         tags: ['script', 'style', 'svg', 'symbol', 'link', 'meta'],
         attrs: ['style'],
@@ -432,10 +476,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 
       const outs = {};
       for (const min of minimizers) {
-
-        /* eslint-disable no-undef */
         const clone = document.documentElement.cloneNode(true);
-        /* eslint-enable no-undef */
 
         // Remove tags
         (min.remove?.tags || []).forEach(tag => {
@@ -455,57 +496,15 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 
         // Text conversion
         if (min.text) {
-          const toText = (node) => {
-            /* eslint-disable no-undef */
-            if (node.nodeType === Node.TEXT_NODE) {
-              return node.nodeValue;
-            }
-            /* eslint-enable no-undef */
-
-            let r = '';
-
-            for (const child of node.childNodes) {
-              const name = (child.tagName || '').toLowerCase();
-              const keep = (min.keep?.tags || []).includes(name);
-              if (keep) {
-                let str = ` <${name}`;
-                for (const attr of min.keep.attrs || []) {
-                  str += ` ${attr}="${child.getAttribute(attr)}"`;
-                }
-                str += '>';
-
-                let ccText = '';
-                for (const cc of child.childNodes) {
-                  ccText += ' ' + toText(cc) + ' ';
-                }
-                ccText = ccText.trim();
-
-                // Heuristic: if it's really short, use the inner HTML
-                if (ccText.length < 10) {
-                  ccText = child.innerHTML;
-                }
-
-                str += ccText;
-
-                str += `</${name}> `;
-
-                r += str;
-              } else {
-                r += toText(child);
-              }
-            }
-
-            return r;
-          };
-
-          result = toText(clone);
+          result = document.toText(min, clone);
         }
 
-        outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();;
+        outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();
       }
 
       return outs;
     });
+    /* eslint-enable no-undef */
   } catch (e) {
     logger.warn(`${this} Error while getting HTML: ${e}`);
   }
