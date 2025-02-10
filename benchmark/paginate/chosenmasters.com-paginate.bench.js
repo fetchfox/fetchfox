@@ -18,7 +18,7 @@ describe('paginate chosenmasters.com/charts', async function() {
     wf.dump(),
     matrix,
     [
-      checkIncreasingSize,
+      (items) => checkIncreasingSize(items, 5),
     ],
     { shouldSave: true });
 });

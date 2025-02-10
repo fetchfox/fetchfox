@@ -74,7 +74,7 @@ export const Instructions = class {
       // we use the live page for interactions, but it should be possible to
       // cache a chain of url + commands
       for (const command of this.commands) {
-        const doc = await fetcher.current(ctx);
+        const doc = await this.current(fetcher, ctx);
         if (!doc) {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
         }
@@ -89,6 +89,7 @@ export const Instructions = class {
           }
           logger.debug(`${this} Expanded prompt: ${command.prompt}`);
           command.mode = 'repeat';
+          command.pagination = true;
         }
 
         const context = {
@@ -119,12 +120,32 @@ export const Instructions = class {
               mode: command.mode || 'distinct',
             };
 
-            const r = await fetcher.act(ctx, action, {});
-            ok &&= r.ok;
+            const before = await this.current(fetcher, ctx);
+
+            let r;
+            try {
+              r = await fetcher.act(ctx, action, {});
+            } catch (e) {
+              logger.error(`${this}: Got error while learning action, ignoring: ${e}`);
+              r = { ok: false };
+            }
+
+
+            if (command.pagination) {
+              const after = await this.current(fetcher, ctx);
+              // TODO: General check for if the action worked, looking at intelligent
+              // subset the before/after results to account for context window
+              const sameHtml = before.html == after.html;
+              const sameText = before.text == after.text;
+              logger.debug(`${this} Heuristic check: sameHtml=${sameHtml} sameText=${sameText}`);
+              r.ok &&= !sameText && !sameHtml;
+            }
 
             if (r.ok) {
               incr.push(action);
             }
+
+            ok &&= r.ok;
           }
 
           learned.push(...incr);
@@ -228,12 +249,6 @@ export const Instructions = class {
       await fetcher.goto(this.url, ctx);
     }
 
-    const current = async () => {
-      const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-      logger.debug(`${this} Got document: ${doc}`);
-      return doc;
-    }
-
     const ctx = {};
 
     try {
@@ -242,7 +257,7 @@ export const Instructions = class {
       if (!this.learned || this.learned.length == 0) {
         logger.debug(`${this} No actions, just a simple URL goto`);
         await goto();
-        const doc = await current();
+        const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
         return;
       }
@@ -256,7 +271,9 @@ export const Instructions = class {
         }
 
         await goto();
-        await current();  // Don't use doc, but this is needed to check load conditions
+
+        // Don't use doc, but this is needed to check load conditions
+        await this.current(fetcher, ctx);
 
         let i;
         let ok;
@@ -289,7 +306,7 @@ export const Instructions = class {
         logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
 
         if (ok) {
-          const doc = await current();
+          const doc = await this.current(fetcher, ctx);
           logger.debug(`${this} Yielding a document: ${doc}`);
           yield Promise.resolve({ doc, usage });
         }
@@ -301,20 +318,29 @@ export const Instructions = class {
 
     yield Promise.resolve({ usage });
   }
+
+  async current(fetcher, ctx) {
+    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+    logger.debug(`${this} Got document: ${doc}`);
+    return doc;
+  }
 }
 
 const domainSpecificInstructions = (url) => {
   const matchers = [
     {
-      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/, instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/,
+      instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
     },
     {
-      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/, instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/,
+      instruction: `You are on ProductHunt, which paginates using a button with the text "See all of today's products" in it`,
     },
     {
-      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/, instruction: 'You are on Google Maps. Paginate using these two steps: (1) Click on the text "Results" to focus on the results area and (2) scroll down exactly one window length.'
+      prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/,
+      instruction: 'You are on Google Maps. Paginate using these two steps: (1) Click on the text "Results" to focus on the results area and (2) scroll down exactly one window length.',
     },
-  ]
+  ];
   const match = matchers.find(({ prefix }) => prefix.test(url));
   let result;
   if (match) {
