@@ -15,7 +15,6 @@ export { Crawler } from './crawl/Crawler.js';
 export * from './fetch/index.js';
 
 export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
-export { CodeGenExtractor } from './extract/CodeGenExtractor.js';
 
 export { OpenAI } from './ai/OpenAI.js';
 export { Anthropic } from './ai/Anthropic.js';

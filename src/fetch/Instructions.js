@@ -49,7 +49,7 @@ export const Instructions = class {
     return `instructions-${hash}`;
   }
 
-  async learn(fetcher, ctx) {
+  async learn(fetcher) {
     const learned = [];
 
     const key = this.cacheKey();
@@ -64,7 +64,10 @@ export const Instructions = class {
       }
     }
 
+    const ctx = {};
+
     try {
+      await fetcher.start(ctx);
       await fetcher.goto(this.url, ctx);
 
       // TODO: It would be nice of learning supported caching. Right now,
@@ -142,11 +145,11 @@ export const Instructions = class {
 
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
     } finally {
-      await fetcher.finishGoto(ctx);
+      await fetcher.finish(ctx);
     }
   }
 
-  async *execute(fetcher, ctx) {
+  async *execute(fetcher) {
     if (this.commands?.length && !this.learned?.length) {
       throw new Error('must learn before execute');
     }
@@ -231,7 +234,11 @@ export const Instructions = class {
       return doc;
     }
 
+    const ctx = {};
+
     try {
+      await fetcher.start(ctx);
+
       if (!this.learned || this.learned.length == 0) {
         logger.debug(`${this} No actions, just a simple URL goto`);
         await goto();
@@ -289,7 +296,7 @@ export const Instructions = class {
       }
 
     } finally {
-      await fetcher.finishGoto(ctx);
+      await fetcher.finish(ctx);
     }
 
     yield Promise.resolve({ usage });
