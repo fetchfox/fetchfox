@@ -68,8 +68,8 @@ export const checkItemsExact = (items, expected, fields) => {
   return score;
 }
 
-export const checkIncreasingSize = (items, minIncrease = 1000) => {
-  const score = [1, 5];
+export const checkIncreasingSize = (items, size = 5, minIncrease = 1000) => {
+  const score = [1, size];
 
   if (!items || !items[0]) {
     return score;

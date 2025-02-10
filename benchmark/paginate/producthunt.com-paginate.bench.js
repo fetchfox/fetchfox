@@ -20,7 +20,7 @@ describe('paginate producthunt.com', async function() {
     wf.dump(),
     matrix,
     [
-      checkIncreasingSize,
+      (items) => checkIncreasingSize(items, 2),
     ],
     { shouldSave: true });
 });

@@ -18,7 +18,7 @@ describe('paginate www.reddit.com/r/nfl/', async function() {
     wf.dump(),
     matrix,
     [
-      checkIncreasingSize,
+      (items) => checkIncreasingSize(items, 5),
     ],
     { shouldSave: true });
 });

@@ -78,6 +78,7 @@ Follow these important rules:
 
 IMPORTANT:
 - Do NOT use ":contains(...)" pseudo selector for any css= selectors
+- If the task is related to pagination, and it's not obvious how to do it, try scrolling to the bottom. This answer will be checked and discarded if it's wrong. Do this if there are no obvious other ways to paginate.
 
 
 >>>> Analyze this HTML:
