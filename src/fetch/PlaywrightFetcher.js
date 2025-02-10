@@ -42,7 +42,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       const { aborted } = await abortable(
         this.signal,
         ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
-
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -50,8 +49,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     } catch (e) {
       logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
-
-    // throw 'STOP';
   }
 
   async current(ctx) {
