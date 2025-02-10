@@ -86,6 +86,13 @@ export const stepDescriptionsMap = {
         example: true,
         required: false,
       },
+      view: {
+        description: 'Should we look at full HTML or the text of the page? Must be one of html, text, or selectHtml',
+        format: 'string',
+        example: 'html',
+        default: 'html',
+        required: false,
+      },
 
       // TODO: move this elsewhere
       examples: {},

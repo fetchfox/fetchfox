@@ -11,6 +11,10 @@ export const ExtractStep = class extends BaseStep {
       this.single = !!args.single;
       delete args.single;
     }
+    if (args?.view) {
+      this.view = args.view;
+      delete args.view;
+    }
 
     let questions;
     if (typeof args == 'string') {
@@ -46,6 +50,7 @@ export const ExtractStep = class extends BaseStep {
           single: this.single,
           maxPages: this.maxPages,
           fetchOptions: { priority: index },
+          view: this.view,
         });
       for await (const output of stream) {
         const took = (new Date()).getTime() - start;
