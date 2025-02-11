@@ -10,16 +10,16 @@ describe('paginate news.ycombinator.com/news', async function() {
   });
 
   const expected = [
-    { _sourceUrl: 'https://news.ycombinator.com/news' },
-    { _sourceUrl: 'https://news.ycombinator.com/news?p=2' },
-    { _sourceUrl: 'https://news.ycombinator.com/news?p=3' },
-    { _sourceUrl: 'https://news.ycombinator.com/news?p=4' },
-    { _sourceUrl: 'https://news.ycombinator.com/news?p=5' },
+    { url: 'https://news.ycombinator.com/news' },
+    { url: 'https://news.ycombinator.com/news?p=2' },
+    { url: 'https://news.ycombinator.com/news?p=3' },
+    { url: 'https://news.ycombinator.com/news?p=4' },
+    { url: 'https://news.ycombinator.com/news?p=5' },
   ];
 
   const wf = await fox
     .init('https://news.ycombinator.com/news')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -28,7 +28,7 @@ describe('paginate news.ycombinator.com/news', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
     { shouldSave: true });
 });

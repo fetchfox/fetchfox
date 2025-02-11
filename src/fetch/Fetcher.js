@@ -12,9 +12,6 @@ export const Fetcher = class extends BaseFetcher {
     return { url };
   }
 
-  async finishGoto() {
-  }
-
   async current(ctx) {
     const url = ctx.url;
     const doc = new Document();

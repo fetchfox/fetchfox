@@ -10,16 +10,16 @@ describe('paginate catalog.mountainview.gov', async function() {
   });
 
   const expected = [
-    { _sourceUrl: 'https://catalog.mountainview.gov/Union/Search?view=list&showCovers=on&lookfor=garfield&searchIndex=Keyword&searchSource=local' },
-    { _sourceUrl: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=2' },
-    { _sourceUrl: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=3' },
-    { _sourceUrl: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=4' },
-    { _sourceUrl: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=5' },
+    { url: 'https://catalog.mountainview.gov/Union/Search?view=list&showCovers=on&lookfor=garfield&searchIndex=Keyword&searchSource=local' },
+    { url: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=2' },
+    { url: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=3' },
+    { url: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=4' },
+    { url: 'https://catalog.mountainview.gov/Search/Results?lookfor=garfield&searchIndex=Keyword&sort=relevance&page=%d&view=list&searchSource=local&page=5' },
   ];
 
   const wf = await fox
     .init('https://catalog.mountainview.gov/Union/Search?view=list&showCovers=on&lookfor=garfield&searchIndex=Keyword&searchSource=local')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -28,7 +28,7 @@ describe('paginate catalog.mountainview.gov', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
     { shouldSave: true });
 });

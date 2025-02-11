@@ -5,21 +5,19 @@ import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate scholarshipamerica', async function() {
-  const matrix = standardMatrix({
-    fetcher: ['playwright'],
-  });
+  const matrix = standardMatrix();
 
   const expected = [
-    { _sourceUrl: 'https://scholarshipamerica.org/students/browse-scholarships/' },
-    { _sourceUrl: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=2' },
-    { _sourceUrl: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=3' },
-    { _sourceUrl: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=4' },
-    { _sourceUrl: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=5' },
+    { url: 'https://scholarshipamerica.org/students/browse-scholarships/' },
+    { url: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=2' },
+    { url: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=3' },
+    { url: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=4' },
+    { url: 'https://scholarshipamerica.org/students/browse-scholarships/?fwp_paged=5' },
   ];
 
   const wf = await fox
     .init('https://scholarshipamerica.org/students/browse-scholarships/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -28,10 +26,7 @@ describe('paginate scholarshipamerica', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
-    {
-      shouldSave: true,
-      noCache: true,  // requires live site for JS paging
-    });
+    { shouldSave: true });
 });

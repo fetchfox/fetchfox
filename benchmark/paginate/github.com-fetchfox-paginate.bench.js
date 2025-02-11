@@ -5,13 +5,11 @@ import { checkExcludeUrls } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate github.com', async function() {
-  const matrix = standardMatrix({
-    fetcher: ['playwright'],
-  });
+  const matrix = standardMatrix();
 
   const wf = await fox
     .init('https://github.com/fetchfox/fetchfox/commits/master/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -31,7 +29,7 @@ describe('paginate github.com', async function() {
         let last = 0;
         for (let i = 1; i < items.length; i++) {
           const item = items[i];
-          const url = item._sourceUrl;
+          const url = item.url;
           if (url.indexOf(first) == -1) continue;
           const m = url.match(/after=[a-f0-9]+\+([0-9]+)/);
           if (!m) continue;

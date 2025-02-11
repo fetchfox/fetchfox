@@ -5,13 +5,11 @@ import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate ycombinator.com/companies', async function() {
-  const matrix = standardMatrix({
-    fetcher: ['playwright'],
-  });
+  const matrix = standardMatrix();
 
   const wf = await fox
     .init('https://www.ycombinator.com/companies')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -20,7 +18,7 @@ describe('paginate ycombinator.com/companies', async function() {
     wf.dump(),
     matrix,
     [
-      checkIncreasingSize,
+      (items) => checkIncreasingSize(items, 5),
     ],
     { shouldSave: true });
 });

@@ -1,8 +1,7 @@
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
-import { parseAnswer, sleep } from './util.js';
+import { parseAnswer, sleep, getModelData } from './util.js';
 import { shortObjHash } from '../util.js';
-import { models } from '../data/models.js';
 
 export const BaseAI = class {
   constructor(options) {
@@ -49,11 +48,16 @@ export const BaseAI = class {
     this.model = model;
     this.apiKey = apiKey;
 
+    this.pricing = {};
     this.maxRetries = maxRetries;
     this.retryMsec = retryMsec;
-    this.usage = { input: 0, output: 0, total: 0 };
-    this.cost = { input: 0, output: 0, total: 0 };
-    this.runtime = { sec: 0, msec: 0 };
+
+    this.stats = {
+      tokens: { input: 0, output: 0, total: 0 },
+      cost: { input: 0, output: 0, total: 0 },
+      runtime: { sec: 0, msec: 0 },
+      requests: { attempts: 0, errors: 0, failures: 0  },
+    }
 
     this.baseURL = options?.baseURL;
 
@@ -70,20 +74,9 @@ export const BaseAI = class {
       return;
     }
 
-    let modelStr = this.model;
-    if (['groq', 'mistral', 'ollama'].includes(this.provider)) {
-      modelStr = this.provider + '/' + this.model;
-    }
-    const data = models[modelStr];
-
-    if (data) {
-      this.modelData = data;
-      this.maxTokens ??= data.max_input_tokens;
-    } else {
-      logger.warn(`Couldn't find model data for ${this.provider} ${this.model}`);
-      this.maxTokens = 10000;
-    }
-
+    const data = await getModelData(this.provider, this.model, this.cache);
+    this.maxTokens = data.maxTokens;
+    this.pricing = data.pricing;
     this.didInit = true;
   }
 
@@ -99,8 +92,8 @@ export const BaseAI = class {
     }
   }
 
-  cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = shortObjHash({ prompt, systemPrompt, format, cacheHint, schema });
+  cacheKey(prompt, { systemPrompt, format, cacheHint }) {
+    const hash = shortObjHash({ prompt, systemPrompt, format, cacheHint });
     const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
     return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`
   }
@@ -108,8 +101,8 @@ export const BaseAI = class {
   async getCache(prompt, options) {
     if (!this.cache) return;
 
-    const { systemPrompt, format, cacheHint, schema } = options || {};
-    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
+    const { systemPrompt, format, cacheHint } = options || {};
+    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
     let result;
     try {
       result = await this.cache.get(key);
@@ -125,21 +118,10 @@ export const BaseAI = class {
   async setCache(prompt, options, val) {
     if (!this.cache) return;
 
-    const { systemPrompt, format, cacheHint, schema } = options || {};
-    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
+    const { systemPrompt, format, cacheHint } = options || {};
+    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
     logger.debug(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'prompt');
-  }
-
-  addUsage(usage) {
-    for (const key in this.usage) {
-      this.usage[key] += usage[key];
-    }
-    if (this.modelData) {
-      this.cost.input = this.usage.input * this.modelData.input_cost_per_token;
-      this.cost.output = this.usage.output * this.modelData.output_cost_per_token;
-      this.cost.total = this.cost.input + this.cost.output;
-    }
   }
 
   async *stream(prompt, options) {
@@ -173,7 +155,6 @@ export const BaseAI = class {
     }
 
     let usage = { input: 0, output: 0, total: 0 };
-    const start = (new Date()).getTime();
 
     let err;
     let answer = '';
@@ -181,12 +162,16 @@ export const BaseAI = class {
     const ctx = { prompt, format, usage, answer, buffer, cacheHint };
 
     let result;
+    let start;
     try {
-
       let retries = Math.min(this.maxRetries, options?.retries ?? 2);
       let done = false;
 
       while (!done) {
+        // Track start time relative to the  successful attempt
+        this.stats.requests.attempts++;
+        start = (new Date()).getTime();
+
         try {
           for await (const chunk of this.inner(prompt, options)) {
             if (this.signal?.aborted) {
@@ -197,6 +182,18 @@ export const BaseAI = class {
 
             const norm = this.normalizeChunk(chunk);
             const parsed = this.parseChunk(norm, ctx);
+
+            if (norm.usage) {
+              this.stats.tokens.input += norm.usage.input || 0;
+              this.stats.tokens.output += norm.usage.output || 0;
+              this.stats.tokens.total = this.stats.tokens.input + this.stats.tokens.output;
+
+              if (this.pricing) {
+                this.stats.cost.input = this.stats.tokens.input * this.pricing.input;
+                this.stats.cost.output = this.stats.tokens.output * this.pricing.output;
+                this.stats.cost.total = this.stats.cost.input + this.stats.cost.output;
+              }
+            }
 
             if (!parsed) continue;
 
@@ -224,6 +221,8 @@ export const BaseAI = class {
           done = true;
 
         } catch (e) {
+          this.stats.requests.errors++;
+
           if (retries-- <= 0) {
             logger.error(`${this} No retries left after: ${e}`);
             throw e;
@@ -235,13 +234,15 @@ export const BaseAI = class {
       } // Retry loop
 
     } catch (e) {
+      this.stats.requests.failures++;
+
       err = e;
       throw e;
 
     } finally {
       const msec = (new Date()).getTime() - start;
-      this.runtime.msec += msec;
-      this.runtime.sec += msec / 1000;
+      this.stats.runtime.msec += msec;
+      this.stats.runtime.sec += msec / 1000;
 
       if (err) {
         logger.warn(`${this} Error during AI stream, not caching`);
@@ -260,11 +261,6 @@ export const BaseAI = class {
       return;
     }
     logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
-
-    const before = {
-      usage: Object.assign({}, this.usage),
-      cost: Object.assign({}, this.cost),
-    };
 
     let result;
     let retries = Math.min(this.maxRetries, options?.retries ?? 2);
@@ -294,33 +290,12 @@ export const BaseAI = class {
       result = {};  // Cache it as empty dict
     }
 
-    const after = {
-      usage: Object.assign({}, this.usage),
-      cost: Object.assign({}, this.cost),
-    };
-
-    result.usage = {
-      input: after.usage.input - before.usage.input,
-      output: after.usage.output - before.usage.output,
-      total: after.usage.total - before.usage.total,
-    };
-    result.cost = {
-      input: after.cost.input - before.cost.input,
-      output: after.cost.output - before.cost.output,
-      total: after.cost.total - before.cost.total,
-    };
-
     return result;
   }
 
   parseChunk(chunk, ctx) {
     if (chunk.usage) {
-      const { input, output, total } = chunk.usage;
-
-      this.addUsage({
-        input: input - ctx.usage.input,
-        output: output - ctx.usage.output,
-        total: total - ctx.usage.total });
+      const { input, output } = chunk.usage;
 
       ctx.usage.input = input;
       ctx.usage.output = output;

@@ -1,14 +1,10 @@
-import ShortUniqueId from 'short-unique-id';
 import PQueue from 'p-queue';
-import pTimeout from 'p-timeout';
 import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
-import { Timer } from '../log/timer.js';
 import { Document } from '../document/Document.js';
-import { TagRemovingMinimizer } from '../min/TagRemovingMinimizer.js';
-import { createChannel, shortObjHash, abortable } from '../util.js';
+import { createChannel, shortObjHash, srid } from '../util.js';
 import { presignS3 } from './util.js';
-import { analyzePagination } from './prompts.js';
+import { Instructions } from './Instructions.js';
 
 export const BaseFetcher = class {
   constructor(options) {
@@ -31,7 +27,11 @@ export const BaseFetcher = class {
     this.s3 = options?.s3;
     this.css = options?.css;
     this.signal = options?.signal;
-    this.loadTimeout = options?.loadTimeout || 15 * 1000;
+
+    this.loadWait = options?.loadWait || 4000;
+    this.actionWait = options?.actionWait || 4000;
+    this.paginationWait = options?.paginationWait || this.loadWait;
+    this.loadTimeout = options?.loadTimeout || 15000;
   }
 
   toString() {
@@ -60,18 +60,52 @@ export const BaseFetcher = class {
   }
 
   async *fetch(target, options) {
-    const timer = new Timer();
-
     logger.info(`${this} Fetch ${target} with ${this}`);
 
-    let url;
+    const toInstructions = (target) => {
+      let instr;
+      if (target instanceof Instructions) {
+        instr = target;
+      } else {
+        let url;
+        if (typeof target == 'string') {
+          url = target;
+        } else if (typeof target.url == 'string') {
+          url = target.url;
+        } else if (typeof target._url == 'string') {
+          url = target._url;
+        }
 
-    if (typeof target == 'string') {
-      url = target;
-    } else if (typeof target.url == 'string') {
-      url = target.url;
-    } else if (typeof target._url == 'string') {
-      url = target._url;
+        instr = new Instructions(
+          url,
+          [],
+          {
+            ai: this.ai,
+            cache: this.cache,
+            loadTimeout: this.loadTimeout,
+          });
+      }
+
+      const maxPages = options?.maxPages || 0;
+      if (maxPages > 1) {
+        instr.unshiftCommand({
+          prompt: '{{nextPage}}',
+          limit: maxPages,
+        });
+      }
+
+      return instr;
+    }
+
+    const instr = toInstructions(target);
+    try {
+      const url = new URL(instr.url);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        logger.debug(`${this} Skipping because of protocol: ${url}`);
+        return null;
+      }
+    } catch {
+      return null;
     }
 
     // Pull out options that affect caching
@@ -81,7 +115,7 @@ export const BaseFetcher = class {
 
     let cached;
     try {
-      cached = await this.getCache(url, cacheOptions);
+      cached = await this.getCache(instr.serialize(), cacheOptions);
     } catch (e) {
       logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
@@ -90,6 +124,7 @@ export const BaseFetcher = class {
       logger.debug(`${this} Returning cached ${cached}`);
       this.usage.cached++;
       for (const doc of cached) {
+        logger.info(`${this} Yielding cached document: ${doc}`);
         yield Promise.resolve(doc);
       }
       return;
@@ -99,6 +134,10 @@ export const BaseFetcher = class {
     const start = (new Date()).getTime();
 
     const docs = [];
+    const pushAndReturn = (doc) => {
+      docs.push(doc);
+      return doc;
+    }
 
     const abortListener = () => {
       this.q.clear();
@@ -114,21 +153,17 @@ export const BaseFetcher = class {
     }
 
     try {
-      try {
-        new URL(url);
-      } catch {
-        return null;
+      if (await isPdf(instr.url)) {
+        const host = process.env.API_HOST || 'https://fetchfox.ai';
+        const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
+
+        logger.debug(`${this} Decoding PDF via ${apiUrl}`);
+        instr.url = apiUrl;
       }
 
-      const exclude = ['javascript:', 'mailto:'];
-      for (const e of exclude) {
-        if (url.indexOf(e) == 0) {
-          return null;
-        }
-      }
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
-      logger.debug(`${this} Adding to fetch queue: ${url} ${debugStr()}`);
+      logger.debug(`${this} Adding to fetch queue: ${instr} ${debugStr()}`);
       const priority = options?.priority || 1;
 
       // Use channel + promise wrapper to convert async generator into a
@@ -142,29 +177,37 @@ export const BaseFetcher = class {
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok) => {
-            logger.debug(`${this} Queue is starting fetch of: ${url} ${debugStr()}`);
-
-            const ctx = { timer };
-            await this.start(ctx);
+            logger.debug(`${this} Queue is starting fetch of: ${instr} ${debugStr()}`);
 
             try {
-              logger.debug(`${this} Starting at ${url}`);
-              for await (const doc of this.paginate(url, ctx, options)) {
+              logger.debug(`${this} Starting at ${instr.url}`);
+
+              await instr.learn(this);
+              const gen = await instr.execute(this);
+
+              for await (const r of gen) {
+                const doc = r?.doc;
+
                 if (this.signal?.aborted) {
                   break;
                 }
-                channel.send({ doc });
+
+                if (doc) {
+                  channel.send({ doc });
+                }
               }
+
             } catch (e) {
-              logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
+              if (process.env.STRICT_ERRORS) {
+                throw e;
+              } else {
+                logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
+              }
             }
 
             logger.debug(`${this} Closing docs channel`);
             channel.end();
-            this.finish(ctx)
-              .catch((e) => {
-                logger.error(`${this} Error while finishing, ignoring: ${e}`);
-              });
+
             ok();
           });
           /* eslint-enable no-async-promise-executor */
@@ -193,32 +236,10 @@ export const BaseFetcher = class {
             doc.parseHtml(options.css);
           }
 
-          logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
-          if (this.s3) {
-            const bucket = this.s3.bucket;
-            const region = this.s3.region;
-            const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
-            const acl = this.s3.acl || '';
-            const id = new ShortUniqueId({
-              length: 10,
-              dictionary: 'alphanum_lower',
-            }).rnd();
-            const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
-            const key = keyTemplate
-              .replaceAll('{id}', id)
-              .replaceAll('{url}', cleanUrl);
+          await this.putS3(doc);
 
-            try {
-              const presignedUrl = await presignS3({
-                bucket, key, contentType: 'text/html', acl, region });
-              await doc.uploadHtml(presignedUrl);
-            } catch (e) {
-              logger.error(`${this} Failed to upload ${key}: ${e}`);
-            }
-          }
-
-          docs.push(doc);
-          yield Promise.resolve(doc);
+          logger.info(`${this} Yielding document: ${doc}`);
+          yield Promise.resolve(pushAndReturn(doc));
         }
       } catch (e) {
         logger.error(`${this} Error while reading from documents channel: ${e}`);
@@ -235,7 +256,7 @@ export const BaseFetcher = class {
       if (docs.length) {
         Promise
           .all(docs.map(doc => doc.dump()))
-          .then((all) => this.setCache(url, cacheOptions, all))
+          .then((all) => this.setCache(instr.serialize(), cacheOptions, all))
           .catch((e) => {
             logger.error(`${this} Error while caching docs cache, ignoring: ${e}`);
           });
@@ -243,161 +264,28 @@ export const BaseFetcher = class {
     }
   }
 
-  async *paginate(url, ctx, options) {
-    const timer = ctx?.timer || new Timer();
-
-    if (this.signal?.aborted) {
+  async putS3(doc) {
+    logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
+    if (!this.s3) {
       return;
     }
 
-    const gotoCtx = await this.goto(url, ctx, options);
-    const myCtx = { ...ctx, url, ...gotoCtx };
-
-    let doc;
-    try {
-      doc = await pTimeout(this.current(myCtx), { milliseconds: this.loadTimeout });
-    } catch (e) {
-      logger.error(`${this} Error while getting current: ${e}`);
-      throw e;
-    }
-
-    if (!doc) {
-      // TODO: `finishGoto()` call is duplicated with the one at the
-      // end of this function. Refactor remove this duplication.
-      await this.finishGoto(myCtx);
-      logger.warn(`${this} Could not get document for ${url}, bailing on pagination`);
-      return;
-    }
-
-    const iterations = options?.maxPages || 0;
-
-    // Kick off job for pages 2+
-    const channel = createChannel();
-    (async () => {
-      if (!iterations || iterations == 1) {
-        logger.info(`${this} Not paginating, return`);
-        channel.end();
-        return;
-      }
-
-      const min = new TagRemovingMinimizer(['style', 'script', 'meta', 'link']);
-      const minDoc = await min.min(doc, { timer });
-      const fns = [];
-
-      const hostname = (new URL(url)).hostname;
-      let domainSpecific = {
-        'x.com': 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.'
-      }[hostname] || '';
-      if (domainSpecific) {
-        domainSpecific = '>>>> Follow this important domain specific guidance:\n\n' + domainSpecific;
-        logger.debug(`${this} adding domain specific prompt: ${domainSpecific}`);
-      }
-
-      const context = {
-        html: minDoc.html,
-        domainSpecific,
-      };
-
-      let prompts;
-      try {
-        prompts = await analyzePagination.renderMulti(context, 'html', this.ai);
-      } catch (e) {
-        logger.error(`${this} Error while rendering prompts: ${e}`);
-        return;
-      }
-
-      logger.debug(`${this} analyze chunks for pagination (${prompts.length})`);
-      for (const prompt of prompts) {
-        let answer;
-        try {
-          answer = await this.ai.ask(prompt, { format: 'json' });
-        } catch(e) {
-          logger.error(`${this} Got AI error during pagination, ignore: ${e}`);
-          continue
-        }
-
-        logger.debug(`${this} Got pagination answer: ${JSON.stringify(answer.partial, null, 2)}`);
-
-        if (answer?.partial?.hasPagination &&
-          answer?.partial?.paginationJavascript
-        ) {
-          let fn;
-          try {
-            fn = new Function(answer.partial.paginationJavascript);
-          } catch(e) {
-            logger.warn(`${this} Got invalid pagination function ${answer.partial.paginationJavascript}, dropping it: ${e}`);
-          }
-          if (fn) {
-            fns.push(fn);
-          }
-        }
-      }
-
-      if (!fns.length) {
-        logger.warn(`${this} Didn't find a way to paginate, bailing`);
-        channel.end();
-        return;
-      }
-
-      let fnIndex = 0;
-      for (let i = 1; i < iterations; i++) {
-        const fn = fns[fnIndex];
-        logger.debug(`${this} Running ${fn} on pagination iteration #${i}`);
-        try {
-          await this.evaluate(fn, myCtx);
-          await new Promise(ok => setTimeout(ok, this.paginationWait));
-
-        } catch (e) {
-          if (fnIndex >= fns.length) {
-            logger.warn(`${this} got pagination error on iteration #${i}, bailing: ${e}`);
-            break;
-          }
-
-          fnIndex++;
-          logger.warn(`${this} got pagination error on iteration #${i} with ${fn}, trying next pagination function: ${e}`);
-          continue;
-        }
-
-        let doc;
-        let aborted;
-        try {
-          const result = await abortable(this.signal, this.current(myCtx));
-          aborted = result.aborted;
-          doc = result.result;
-        } catch (e) {
-          logger.error(`${this} Error while getting docs from page: ${e}`);
-          throw e;
-        }
-        if (aborted) {
-          logger.warn(`${this} Aborted on _docFromPage during pagination`);
-          break;
-        }
-
-        logger.info(`${this} got pagination doc ${doc} on iteration ${i}`);
-        if (doc) {
-          channel.send({ doc });
-        }
-      }
-
-      channel.end();
-    })();
-
-    logger.info(`${this} yielding first page ${doc}`);
-    yield Promise.resolve(doc);
+    const bucket = this.s3.bucket;
+    const region = this.s3.region;
+    const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
+    const acl = this.s3.acl || '';
+    const id = srid(10);
+    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]+/g, '-');
+    const key = keyTemplate
+      .replaceAll('{id}', id)
+      .replaceAll('{url}', cleanUrl);
 
     try {
-      for await (const val of channel.receive()) {
-        if (val.end) {
-          break;
-        }
-
-        yield Promise.resolve(val.doc);
-      }
+      const presignedUrl = await presignS3({
+        bucket, key, contentType: 'text/html', acl, region });
+      await doc.uploadHtml(presignedUrl);
     } catch (e) {
-      logger.error(`${this} Error while reading docs channel in pagination: ${e}`);
-      throw e;
-    } finally {
-      await this.finishGoto(myCtx);
+      logger.error(`${this} Failed to upload ${key}: ${e}`);
     }
   }
 
@@ -407,7 +295,7 @@ export const BaseFetcher = class {
 
   cacheKey(url, options) {
     const hash = shortObjHash({ url, options, ...this.cacheOptions() })
-    return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;
+      return `fetch-${this.constructor.name}-${url.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 120)}-${hash}`;
   }
 
   async getCache(url, options) {
@@ -450,5 +338,16 @@ export const BaseFetcher = class {
     logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
+}
 
+const isPdf = async (url) => {
+  try {
+    const resp = await fetch(url, { method: 'HEAD' });
+    const contentType = resp.headers.get('Content-Type');
+
+    return contentType && contentType.startsWith('application/pdf');
+  } catch (e) {
+    logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
+    return false;
+  }
 }

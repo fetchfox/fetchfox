@@ -7,24 +7,17 @@ import { storeScores } from '../lib/store.js';
 
 describe('paginate filmekseni.net', async function() {
   const matrix = standardMatrix({
-    fetcher: [
-      'playwright',
-
-      // [
-      //   'playwright',
-      //   { headless: false },  // This page only loads with headful mode
-      // ], 
-    ],
+    fetcher: ['playwright'],
   });
 
   const expected = [
-    { _sourceUrl: 'https://filmekseni.net/oyuncu/michael-jai-white/' },
-    { _sourceUrl: 'https://filmekseni.net/oyuncu/michael-jai-white/page/2/' },
+    { url: 'https://filmekseni.net/oyuncu/michael-jai-white/' },
+    { url: 'https://filmekseni.net/oyuncu/michael-jai-white/page/2/' },
   ]
 
   const wf = await fox
     .init('https://filmekseni.net/oyuncu/michael-jai-white/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -33,7 +26,7 @@ describe('paginate filmekseni.net', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
     { shouldSave: true });
 });

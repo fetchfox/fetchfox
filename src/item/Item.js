@@ -23,6 +23,10 @@ export const Item = class {
     return new Item(JSON.parse(JSON.stringify(this)));
   }
 
+  getUrl() {
+    return this.url || this._url || this._sourceUrl();
+  }
+
   publicOnly() {
     const copy = { ...this };
     for (const key of Object.keys(this)) {
@@ -33,8 +37,7 @@ export const Item = class {
     return copy;
   }
 
-  async finish() {
-  }
+  async finish() {}
 
   clean(val) {
     val = '' + val;
@@ -47,4 +50,4 @@ export const Item = class {
     }
     return val;
   }
-}
+};

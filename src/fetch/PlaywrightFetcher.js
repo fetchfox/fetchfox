@@ -22,32 +22,26 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.headless = options?.headless === undefined ? true : options?.headless;
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
-
-    // TODO: these options should be passed in in `fetch`
-    this.loadWait = options?.loadWait || 4000;
-    this.paginationWait = options?.paginationWait || this.loadWait || 4000;
-    this.timeoutWait = options?.timeoutWait || 15000;
     this.pullIframes = options?.pullIframes;
-
-    this.options = options?.options || {};
   }
 
   cacheOptions() {
     return {
       browser: 'chromium',
       loadWait: this.loadWait,
-      timeoutWait: this.timeoutWait,
       waitForText: this.waitForText,
     };
   }
 
   async goto(url, ctx) {
-    const page = await ctx.browser.newPage()
+    if (!ctx.page) {
+      ctx.page = await ctx.browser.newPage();
+    }
 
     try {
       const { aborted } = await abortable(
         this.signal,
-        page.goto(url, { waitUntil: 'domcontentloaded' }));
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
       if (aborted) {
         logger.warn(`${this} Aborted on goto`);
         return;
@@ -55,11 +49,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     } catch (e) {
       logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
-
-    return { page };
-  }
-
-  async finishGoto() {
   }
 
   async current(ctx) {
@@ -77,54 +66,47 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.warn(`${this} Aborted while getting current doc`);
       return;
     }
+
+    await this.putS3(doc);
+
     return doc;
   }
 
-  async evaluate(fn, ctx) {
-    return ctx.page.evaluate(fn);
-  }
 
-  async _launch(options) {
-    const timer = options?.timer || new Timer();
-    timer.push('PlaywrightFetcher.launch');
-
+  async _launch() {
     logger.debug(`Playwright launching...`);
 
-    let p;
-    if (this.cdp) {
-      logger.debug(`Playwright using CDP endpoint ${this.cdp}`);
-
-      for (let i = 0; i < 3; i++) {
-        try {
-          p = chromium.connectOverCDP(this.cdp);
-          break;
-        } catch(e) {
-          logger.warn(`Could not connect to CDP: ${e}`);
-          await new Promise(ok => setTimeout(ok, 5 * 1000));
+    let err;
+    let i;
+    for (i = 0; i < 3; i++) {
+      try {
+        let promise;
+        if (this.cdp) {
+          logger.debug(`Playwright using CDP endpoint ${this.cdp}, attempt=${i}`);
+          promise = chromium.connectOverCDP(this.cdp);
+        } else {
+          logger.debug(`Playwright using local Chromium, attempt=${i}`);
+          promise = chromium.launch({ headless: this.headless });
         }
-
-        if (!p) {
-          throw new Error('Could not connet to CDP, giving up');
-        }
+        const browser = await promise;
+        return browser;
+      } catch (e) {
+        logger.warn(`${this} Could not launch, retrying, attempt=${i}: ${e}`);
+        err = e;
+        await new Promise(ok => setTimeout(ok, i * 4000));
       }
-    } else {
-      logger.debug(`Playwright using local Chromium`);
-      p = chromium.launch({ ...this.options, headless: this.headless });
     }
 
-    timer.pop();
-
-    try {
-      const browser = await p;
-      return browser;
-    } catch (e) {
-      logger.error(`${this} Could not launch: ${e}`);
-      throw e;
-    }
+    logger.warn(`${this} Could not launch, throwing, attempt=${i}: ${err}`);
+    throw err;
   }
 
   async start(ctx) {
     const timer = ctx.timer || new Timer();
+
+    if (ctx.browser) {
+      throw new Error('Expect only one browser open at a time');
+    }
 
     try {
       ctx.browser = await this._launch({ timer });
@@ -134,19 +116,127 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     logger.debug(`${this} Got browser`);
+
+    return ctx;
   }
 
   async finish(ctx) {
-    if (ctx.browser) {
-      logger.debug(`${this} Closing browser`);
-      await ctx.browser.close();
+    if (!ctx.browser) {
+      return;
     }
+
+    logger.debug(`${this} Closing browser`);
+    await ctx.browser.close();
+    delete ctx.browser;
+  }
+
+  async act(ctx, action, seen) {
+    logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
+
+    let r;
+
+    switch (action.type) {
+      case 'click':
+        r = await this.click(ctx, action.arg, seen);
+        break;
+
+      case 'scroll':
+        r = await this.scroll(ctx, action.arg, seen);
+        break;
+
+      default:
+        throw new Error(`Unhandled action type: ${action.type}`);
+    }
+
+    logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
+    r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
+
+    return r;
+  }
+
+  async click(ctx, selector, seen) {
+    logger.debug(`${this} Click selector=${selector}`);
+
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
+      logger.warn(`{this} Invalid selector: ${selector}`);
+      return { ok: false };
+    }
+
+    const loc = ctx.page.locator(selector);
+
+    let el;
+    let text;
+    let html;
+
+    // Look for the first matching element not in seen
+    for (let i = 0; el == null; i++) {
+      try {
+        await loc.nth(i).waitFor({ state: 'attached', timeout: 1000 });
+      } catch (e) {
+        logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
+        return { ok: false };
+      }
+
+      el = await loc.nth(i);
+      text = await el.textContent();
+      html = await el.evaluate(el => el.outerHTML);
+
+      if (seen && (seen[text] || seen[html])) {
+        el = null;
+        continue;
+      }
+
+      logger.debug(`${this} Found new element ${el} after ${i} iterations`);
+    }
+
+    await el.scrollIntoViewIfNeeded();
+    await el.click();
+
+    return { ok: true, text, html };
+  }
+
+  async evaluate() {
+    throw new Error('TODO');
+  }
+
+  async scroll(ctx, type) {
+    logger.debug(`${this} Scroll type=${type}`);
+
+    // TODO: Check if scrolling worked
+
+    switch (type) {
+      case 'window':
+        await ctx.page.keyboard.press('PageDown');
+        break;
+
+      case 'bottom':
+        /* eslint-disable no-undef */
+        await ctx.page.evaluate(async () => {
+          document.scrollToBottom = async () => {
+            const top = document.documentElement.scrollHeight;
+            return new Promise((ok) => {
+              document.addEventListener('scrollend', ok);
+              window.scrollTo({ top, behavior: 'smooth' });
+            });
+          }
+
+          await document.scrollToBottom();
+        });
+        /* eslint-enable no-undef */
+        break;
+      default:
+        logger.error(`${this} Unhandled scroll type: ${type}`);
+    }
+
+    return { ok: true };
   }
 
   async _docFromPage(page, timer) {
     timer ||= new Timer();
 
     let html;
+    let text;
+    let selectHtml;
     let status;
 
     timer.push('PlaywrightFetcher _docFromPage');
@@ -164,8 +254,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
       status = 200;
+
       html = result.result.html;
-    } catch(e) {
+      text = result.result.text;
+      selectHtml = result.result.selectHtml;
+    } catch (e) {
 
       logger.error(`Playwright could not get from ${page.url()}: ${e}`);
       logger.debug(`Trying to salvage results`);
@@ -192,31 +285,25 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     const url = page.url();
-    const resp = {
-      status: () => status,
-      url: () => url,
-      body: () => html,
-      html: () => html,
-      text: () => html,
-      headers: {
-        'content-type': 'text/html',
-      },
+    const data = {
+      status,
+      url,
+      body: html,
+      html,
+      text,
+      selectHtml: selectHtml,
+      headers: {'content-type': 'text/html' },
     };
 
     const doc = new Document();
-    try {
-      await doc.read(resp, url, { timer });
-    } catch (e) {
-      logger.error(`${this} Error while reading document: ${e}`);
-      return;
-    }
+    doc.loadData(data);
 
     return doc;
   }
 }
 
 const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
-  logger.debug(`Playwright waiting ${(loadWait/1000).toFixed(1)} sec`);
+  logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 
   if (pullIframes) {
@@ -292,19 +379,127 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     }
   }
 
-  logger.debug(`Get page content on ${page.url()}`);
-  const start = (new Date()).getTime();
-  let html;
+  // Minimize the HTML before returning it
+  logger.debug(`Minimizing HTML on ${page.url()}`);
+  let outs;
   try {
-    html = await page.content();
-  } catch (e) {
-    logger.error(`${this} Error getting page content: ${e}`);
-    throw e;
-  }
-  const took = (new Date()).getTime() - start;
-  logger.debug(`Running .content() took ${took} msec`);
+    /* eslint-disable no-undef */
+    outs = await page.evaluate(async () => {
+      // Attach the function to document to avoid errors in certain situatios,
+      // eg. https://github.com/privatenumber/tsx/issues/113
+      document.toText = (min, node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.nodeValue;
+        }
 
-  return { html };
+        let r = '';
+
+        for (const child of node.childNodes) {
+          const name = (child.tagName || '').toLowerCase();
+          const keep = (min.keep?.tags || []).includes(name);
+          if (keep) {
+            let str = ` <${name}`;
+            for (const attr of min.keep.attrs || []) {
+              str += ` ${attr}="${child.getAttribute(attr)}"`;
+            }
+            str += '>';
+
+            let ccText = '';
+            for (const cc of child.childNodes) {
+              ccText += ' ' + document.toText(min, cc) + ' ';
+            }
+            ccText = ccText.trim();
+
+            // Heuristic: if it's really short, use the inner HTML
+            if (ccText.length < 10) {
+              ccText = child.innerHTML;
+            }
+
+            str += ccText;
+
+            str += `</${name}> `;
+
+            r += str;
+          } else {
+            r += document.toText(min, child);
+          }
+        }
+
+        return r;
+      };
+
+      const remove = {
+        tags: ['script', 'style', 'svg', 'symbol', 'link', 'meta'],
+        attrs: ['style'],
+      };
+
+      const minimizers = [
+        // Default minimizer removes large junk tags and style attribute
+        {
+          name: 'html',
+          remove,
+          keep: {},
+        },
+
+        // Text only minimizer
+        {
+          name: 'text',
+          remove,
+          text: true,
+        },
+
+        // Links minimzer keeps only text and <a href="...">
+        {
+          name: 'selectHtml',
+          remove,
+          text: true,
+          keep: {
+            tags: ['a'],
+            attrs: ['href'],
+          },
+        },
+      ];
+
+      const outs = {};
+      for (const min of minimizers) {
+        const clone = document.documentElement.cloneNode(true);
+
+        // Remove tags
+        (min.remove?.tags || []).forEach(tag => {
+          clone.querySelectorAll(tag).forEach(element => {
+            element.replaceWith('');
+          });
+        });
+
+        // Remove attributes
+        clone.querySelectorAll('*').forEach(el => {
+          (min.remove?.attrs || []).forEach(attr => {
+            el.removeAttribute(attr);
+          });
+        });
+
+        let result = clone.outerHTML;
+
+        // Text conversion
+        if (min.text) {
+          result = document.toText(min, clone);
+        }
+
+        outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();
+      }
+
+      return outs;
+    });
+    /* eslint-enable no-undef */
+  } catch (e) {
+    logger.warn(`${this} Error while getting HTML: ${e}`);
+  }
+
+  return {
+    html: outs.html,
+    text: outs.text,
+    selectHtml: outs.selectHtml,
+  };
 }
 
 const getHtmlFromError = async (page) => {
@@ -315,7 +510,7 @@ const getHtmlFromError = async (page) => {
     logger.debug(`Get HTML from error result on ${page.url()}`);
     const html = await page.evaluate(() => document.documentElement.outerHTML);
     return html
-  } catch(e) {
+  } catch (e) {
     logger.error(`Failed to get HTML from error result, got another error: ${e}`);
     return null;
   }

@@ -13,6 +13,8 @@
     "lint": "eslint src/",
     "test": "mocha test/**/*.test.js -g @fast",
     "bench": "mocha benchmark/**/*.bench.js -g @bench",
+    "bench-4o": "BENCH_MATRIX_AI=openai:gpt-4o mocha benchmark/**/*.bench.js -g @bench",
+    "bench-cdp-4o": "BENCH_USE_CDP=1 BENCH_MATRIX_AI=openai:gpt-4o mocha benchmark/**/*.bench.js -g @bench",
     "prepare": "husky"
   },
   "repository": {
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@eslint/js": "^9.17.0",
     "chai": "^5.1.1",
+    "cheerio": "^1.0.0",
     "eslint": "^9.17.0",
     "eslint-plugin-promise": "^7.2.1",
     "globals": "^15.14.0",
@@ -38,31 +41,22 @@
     "@anthropic-ai/sdk": "^0.27.2",
     "@aws-sdk/client-s3": "^3.669.0",
     "@aws-sdk/s3-request-presigner": "^3.686.0",
-    "@extractus/article-extractor": "^8.0.10",
     "@google/generative-ai": "^0.19.0",
     "chalk": "^5.3.0",
-    "commander": "^12.1.0",
-    "csv-stringify": "^6.5.1",
     "groq-sdk": "^0.7.0",
     "ioredis": "^5.4.1",
     "loglevel": "^1.9.2",
     "loglevel-plugin-prefix": "^0.8.4",
     "node-fetch": "^3.3.2",
     "node-html-parser": "^6.1.13",
-    "ollama": "^0.5.9",
     "openai": "^4.58.1",
     "p-queue": "^8.0.1",
     "p-timeout": "^6.1.4",
-    "papaparse": "^5.4.1",
     "playwright": "^1.48.0",
     "playwright-extra": "^4.3.6",
     "pretty": "^2.0.0",
-    "puppeteer-core": "^23.7.1",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "short-unique-id": "^5.2.0",
     "tiktoken": "^1.0.17",
     "url-polyfill": "^1.1.12",
-    "whatwg-url": "^14.0.0",
-    "ws": "^8.18.0"
+    "whatwg-url": "^14.0.0"
   }
 }

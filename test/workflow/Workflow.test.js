@@ -1,13 +1,16 @@
 import assert from 'assert';
 import os from 'os';
-import { fox } from '../../src/index.js';
+import { logger } from '../../src/log/logger.js';
+import { fox, OpenAI, Fetcher } from '../../src/index.js';
 import { redditSampleHtml } from './data.js';
 import { testCache } from '../lib/util.js';
-import { OpenAI } from '../../src/index.js';
-import { Fetcher } from '../../src/index.js';
 
 describe('Workflow', function() {
-  this.timeout(30 * 1000);
+  this.timeout(10 * 1000);
+
+  before(() => {
+    logger.testMode();
+  });
 
   it('should load steps from json @run @fast', async () => {
     const data = {

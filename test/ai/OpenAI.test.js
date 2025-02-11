@@ -1,9 +1,14 @@
 import assert from 'assert';
 import process from 'node:process';
+import { logger } from '../../src/log/logger.js';
 import { getAI } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('OpenAI', function() {
+
+  before(() => {
+    logger.testMode();
+  });
 
   it('should run query @run @slow', async () => {
     const ai = getAI('openai:gpt-4o-mini');

@@ -16,11 +16,21 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     if (single) {
       extraRules = `These rules OVERRIDE previous instructions:
 - You must find ONLY ONE result`;
+    } else {
+      extraRules = `- Make sure to find ALL the results`;
     }
+
+    let view = options?.view || 'html';
+    if (!['html', 'text', 'selectHtml'].includes(view)) {
+      logger.error(`${this} Invalid view, switching to HTML: ${view}`);
+      view = 'html';
+    }
+    const body = doc[view];
+
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      html: doc.html,
+      html: body,
       extraRules,
       description: (
         description

@@ -5,21 +5,19 @@ import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate uhrforum.de', async function() {
-  const matrix = standardMatrix({
-    fetcher: ['playwright'],
-  });
+  const matrix = standardMatrix();
 
   const expected = [
-    { _sourceUrl: 'https://uhrforum.de/forums/angebote.11/' },
-    { _sourceUrl: 'https://uhrforum.de/forums/angebote.11/page-2' },
-    { _sourceUrl: 'https://uhrforum.de/forums/angebote.11/page-3' },
-    { _sourceUrl: 'https://uhrforum.de/forums/angebote.11/page-4' },
-    { _sourceUrl: 'https://uhrforum.de/forums/angebote.11/page-5' },
+    { url: 'https://uhrforum.de/forums/angebote.11/' },
+    { url: 'https://uhrforum.de/forums/angebote.11/page-2' },
+    { url: 'https://uhrforum.de/forums/angebote.11/page-3' },
+    { url: 'https://uhrforum.de/forums/angebote.11/page-4' },
+    { url: 'https://uhrforum.de/forums/angebote.11/page-5' },
   ];
 
   const wf = await fox
     .init('https://uhrforum.de/forums/angebote.11/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -28,7 +26,7 @@ describe('paginate uhrforum.de', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['_sourceUrl']),
+      (items) => checkItemsExact(items, expected, ['url']),
     ],
     { shouldSave: true });
 });

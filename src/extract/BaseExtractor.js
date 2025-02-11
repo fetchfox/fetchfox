@@ -1,18 +1,16 @@
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
-import { getMinimizer } from '../min/index.js';
 import { Document } from '../document/Document.js';
 import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, minimizer, signal, cache, hardCapTokens } = options || {};
+    const { ai, fetcher, signal, cache, hardCapTokens } = options || {};
     this.signal = signal;
     this.cache = cache;
     this.ai = getAI(ai, { cache, signal });
     this.fetcher = getFetcher(fetcher, { cache, signal });
-    this.minimizer = getMinimizer(minimizer, { cache });
     this.hardCapTokens = hardCapTokens || 1e7;
     this.usage = {
       requests: 0,

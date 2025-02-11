@@ -1,7 +1,4 @@
 import { logger } from '../log/logger.js';
-import { Timer } from '../log/timer.js';
-import { URL } from 'whatwg-url';
-import { parse } from 'node-html-parser';
 
 // TODO: refactor Document entirely
 export const Document = class {
@@ -16,10 +13,10 @@ export const Document = class {
       url: this.url,
       body: this.body,
       html: this.html,
+      text: this.text,
+      selectHtml: this.selectHtml,
       htmlUrl: this.htmlUrl,
       screenshotUrl: this.screenshotUrl,
-      text: this.text,
-      links: this.links,
       resp: this.resp,
       contentType: this.contentType,
     };
@@ -37,7 +34,6 @@ export const Document = class {
       delete data.body;
       delete data.html;
       delete data.text;
-      delete data.links;
     }
     if (this.req) {
       data.req = this.req;
@@ -60,10 +56,10 @@ export const Document = class {
     this.url = data.url;
     this.body = data.body;
     this.html = data.html;
-    this.htmlUrl = data.htmlUrl;
     this.text = data.text;
+    this.selectHtml = data.selectHtml;
+    this.htmlUrl = data.htmlUrl;
     this.screenshotUrl = data.screenshotUrl;
-    this.links = data.links || [];
     this.resp = data.resp;
     this.contentType = data.contentType;
     if (data.req) {
@@ -123,155 +119,8 @@ export const Document = class {
       if (reqOptions) this.req.options = reqOptions;
     }
 
-    this.parse();
     const took = (new Date()).getTime() - start;
     logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
-  }
-
-  parse() {
-    const timer = new Timer();
-    timer.push('Document.parse');
-    const contentType = (
-      this.contentType ||
-      (this.resp?.headers || {})['content-type'] ||
-      'text/plain'
-    );
-    if (this.html || contentType.indexOf('text/html') != -1) {
-      this.parseHtml(null, { timer });
-    }
-    timer.pop();
-  }
-
-  parseHtml(selector, options) {
-    const timer = options?.timer || new Timer();
-    timer.push('Document.parseHtml');
-
-    this.contentType = 'text/html';
-
-    let html = this.html || this.body;
-
-    if (selector) {
-      let selected = ''
-      const root = parse(html);
-      root.querySelectorAll(selector).forEach(el => {
-        selected += el.outerHTML; // Append the outer HTML of each element to selected.
-      });
-      html = selected;
-    }
-
-    this.html = html;
-
-    this.parseTextFromHtml();
-    this.parseLinks();
-
-    timer.pop();
-  }
-
-  parseTextFromHtml(options) {
-    const timer = options?.timer || new Timer();
-    timer.push('Document.parseTextFromHtml');
-
-    this.requireHtml();
-
-    const root = parse(this.html);
-    
-    ['style', 'script', 'svg'].forEach(tag => {
-      root.querySelectorAll(tag).forEach(el => {
-        el.replaceWith(`[[${tag} removed]]`);
-      });
-    });
-
-    const getText = (node) => {
-      if (node.nodeType == 3) {
-        const text1 = node.rawText.trim();
-        const wrapper = parse(`<span>${text1}</span>`);
-        const text2 = wrapper.structuredText.trim();
-        return text2;
-      } else if (node.nodeType == 1) {
-        return node.childNodes.map(getText).join(' ');
-      }
-      return '';
-    };
-
-    this.text = getText(root);
-
-    timer.pop();
-  }
-
-  parseLinks(css, options) {
-    const timer = options?.timer || new Timer();
-    timer.push('Document.parseLinks');
-
-    this.requireHtml();
-
-    const links = [];
-    const seen = {};
-    let id = 1;
-    const root = parse(this.html);
-
-    let els = [];
-    if (css) {
-      root.querySelectorAll(css).forEach(el => els.push(el));
-    } else {
-      els = [root];
-    }
-
-    for (const el of els) {
-      const as = [];
-      if (el.tagName == 'A') {
-        as.push(el);
-      }
-
-      el.querySelectorAll('a').forEach(a => {
-        as.push(a);
-      });
-
-      for (const a of as) {
-        const html = a.outerHTML;
-        const text = a.text.trim();
-        const href = a.getAttribute('href');
-
-        if (href == undefined) {
-          continue;
-        }
-
-        let url;
-        try {
-          url = new URL(href, this.url);
-        } catch (e) {
-          logger.warn(`${this} Skipping invalid link: ${this.url} href=${href} url=${this.url} html=${html.substr(0, 40)}: ${e}`);
-          continue;
-        }
-
-        const urlStr = url.toString();
-
-        if (seen[urlStr]) continue;
-        seen[urlStr] = true;
-
-        links.push({
-          id: id++,
-          url: urlStr,
-          html: html.substring(0, 1000),
-          text: text.substring(0, 200),
-        });
-      }
-    }
-
-    this.links = links;
-
-    timer.pop();
-  }
-
-  requireHtml() {
-    if (this.contentType != 'text/html') {
-      logger.error('${this} Can only parse links for HTML');
-      return;
-    }
-
-    if (!this.html) {
-      logger.error('${this} No HTML');
-      return;
-    }
   }
 }
 

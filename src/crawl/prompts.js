@@ -1,10 +1,26 @@
 import { Template } from '../template/Template.js';
 
 export const gather = new Template(
-  ['query', 'links'],
+  ['query', 'url', 'body'],
   `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
 
-Your response will be ONLY the "id" field of matching items. The "id" field will be used to generate the results later, you only need to include the "id" field.
+Your response will be ONLY a "url" field of matching items.
+
+Example of valid output:
+
+{ "url": "https://www.exampel.com/category/page-1" }
+{ "url": "https://www.exampel.com/category/page-5" }
+{ "url": "https://www.exampel.com/category/page-13" }
+
+You are looking for URLs in the page body below:
+{{body}}
+
+The current URL is:
+{{url}}
+
+Find links matching the user query, which is:
+{{query}}
+
 
 Follow these important rules:
 - The entire array should be JSONL, with a single object per link
@@ -13,18 +29,9 @@ Follow these important rules:
 - Generally avoid links with no link text.
 - Respect user filter requests, if any
 - Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
+- Return ONLY full, absolute URLs
 
-Example of valid output:
-
-{ "id": 3 }
-{ "id": 18 }
-{ "id": 45 }
-
-Find links matching the user query: {{query}}
-
-The list to find this is below:
-{{links}}`);
-
+`);
 
 export const rate = new Template(
   ['query', 'links'],
@@ -58,7 +65,8 @@ Example of valid output:
 Find links matching the user query: {{query}}
 
 The list to find this is below:
-{{links}}`);
+{{links}}`,
+);
 
 export const categorize = new Template(
   ['urls'],
@@ -82,7 +90,8 @@ Follow these important rules:
 
 The list of URLs to categorize is below:
 {{urls}}
-`);
+`,
+);
 
 export const score = new Template(
   ['html', 'questions'],
@@ -109,4 +118,5 @@ Below is the USER PROMPT that you are responding to:
 {{html}}
 
 >>>> The user is extracting this data:
-{{questions}}`);
+{{questions}}`,
+);

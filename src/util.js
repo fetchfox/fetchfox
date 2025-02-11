@@ -1,14 +1,24 @@
 import crypto from 'crypto';
 import { logger } from './log/logger.js';
 
+// Deterministic shuffle to keep prompts stable
 export const shuffle = (l) => {
-  // Deterministic shuffle to keep prompts stable
   const h = (v) => crypto
     .createHash('sha256')
     .update(JSON.stringify(v))
     .digest('hex');
   l.sort((a, b) => h(a).localeCompare(h(b)));
   return l;
+}
+
+// Short random ID
+export const srid = (len = 10) => {
+  const alpha = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('');
+  let id = '';
+  for (let i = 0; i < len; i++) {
+    id += alpha[Math.floor(Math.random() * alpha.length)];
+  }
+  return id;
 }
 
 export const chunkList = (list, maxBytes) => {
@@ -107,7 +117,7 @@ export const shortObjHash = (obj) => {
     .createHash('sha256')
     .update(JSON.stringify(obj))
     .digest('hex')
-    .substr(0, 16);
+    .substr(0, 32);
   return hash;
 }
 

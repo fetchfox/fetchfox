@@ -1,18 +1,15 @@
 import { logger } from '../log/logger.js';
-import { validate } from './util.js';
-import { chunkList } from '../util.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
-    this.usage.requests++
+    this.usage.requests++;
     const maxPages = options?.maxPages;
     const fetchOptions = options?.fetchOptions || {};
-    const seen = {};
 
-    const start = (new Date()).getTime();
+    const start = new Date().getTime();
 
     const docsChannel = createChannel();
     const resultsChannel = createChannel();
@@ -22,7 +19,7 @@ export const Crawler = class extends BaseCrawler {
     if (this.signal) {
       abortListener = () => {
         done = true;
-      }
+      };
       this.signal.addEventListener('abort', abortListener);
     }
 
@@ -44,11 +41,9 @@ export const Crawler = class extends BaseCrawler {
           docsChannel.send({ doc });
         }
         ok();
-
-      } catch(e) {
+      } catch (e) {
         logger.error(`${this} Error in documents worker: ${e}`);
         bad(e);
-
       } finally {
         if (abortListener) {
           this.signal.removeEventListener('abort', abortListener);
@@ -86,29 +81,27 @@ export const Crawler = class extends BaseCrawler {
           workerPromises.push(
             new Promise(async (ok, bad) => {
               try {
-                for await (const r of this._processDoc(doc, query, seen, options)) {
+                for await (const r of this._processDoc(doc, query)) {
                   resultsChannel.send({ result: r });
                 }
 
                 logger.debug(`${this} Link worker done ${myIndex} (${workerPromises.length})`);
                 ok();
-
-              } catch(e) {
+              } catch (e) {
                 logger.error(`${this} Error in link promise: ${e}`);
                 bad(e);
               }
-            }));
+            }),
+          );
         }
 
         // Got all documents, now wait for workers to complete
         logger.debug(`${this} Wait for link workers`);
         await Promise.all(workerPromises);
         ok();
-
       } catch (e) {
         logger.error(`${this} Error in link worker: ${e}`);
         bad(e);
-
       } finally {
         logger.debug(`${this} All link workers done ${done}`);
         resultsChannel.end();
@@ -130,96 +123,34 @@ export const Crawler = class extends BaseCrawler {
 
       await docsPromise;
       await resultsPromise;
-
     } catch (e) {
       logger.error(`${this} Crawler caught error: ${e}`);
       throw e;
-
     } finally {
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
       this.usage.runtime += took;
       done = true;
     }
   }
 
-  async *_processDoc(doc, query, seen, options) {
-    doc.parseLinks(options?.css);
-    const links = doc.links;
-    doc.parseLinks();
-
-    // TODO: move this initailization to a better spot.
+  async *_processDoc(doc, query) {
+    // TODO: move this init to a better spot.
     // maybe make getAI() async and put it there.
     await this.ai.init();
 
-    // Cap max bytes to limit number of links examined a a time
-    const maxBytes = Math.min(10000, this.ai.maxTokens / 2);
+    const context = {
+      query,
+      url: doc.url,
+      body: doc.selectHtml,
+    };
+    const prompts = await gather.renderMulti(context, 'body', this.ai);
 
-    const slimmer = item => ({
-      id: item.id,
-      html: item.html.substr(0, 200),
-      text: item.text,
-      url: item.url,
-    });
-
-    const chunked = chunkList(links.map(slimmer), maxBytes);
-
-    for (let i = 0; i < chunked.length; i++) {
-      const chunk = chunked[i];
-      const prompt = gather.render({
-        query,
-        links: JSON.stringify(
-          chunk.filter(l => validate(l.url)),
-          null,
-          2),
-      });
-
-      const toLink = {};
-      for (const link of links) {
-        toLink[link.id] = link;
-      }
-
+    for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
-
       for await (const { delta } of stream) {
-        if (!toLink[delta.id]) {
-          logger.warn(`${this} Could not find link with id ${delta.id}`);
-          continue;
-        }
-
-        const link = toLink[delta.id];
-
-        if (seen[link.url]) continue;
-        seen[link.url] = true;
-        delete link.id;
-
-        logger.info(`Found link ${link.url} in response to "${query}"`);
-
-        this.usage.count++;
-        yield Promise.resolve({ _url: link.url });
+        logger.info(`Found link ${delta.url} in response to "${query}"`);
+        yield Promise.resolve({ _url: delta.url });
       }
     }
   }
-
-  async all(url, query, options) {
-    options = {...options, stream: false };
-    let result = [];
-    for await (const r of this.run(url, query, options)) {
-      result.push(r);
-    }
-    return result;
-  }
-
-  async one(url, query, options) {
-    options = {...options, stream: true };
-    for await (const r of this.run(url, query, options)) {
-      return r;
-    }
-  }
-
-  async *stream(url, query, options) {
-    options = {...options, stream: true };
-    for await (const r of this.run(url, query, options)) {
-      yield Promise.resolve(r);
-    }
-  }
-}
+};

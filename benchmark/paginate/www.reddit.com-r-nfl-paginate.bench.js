@@ -5,17 +5,11 @@ import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate www.reddit.com/r/nfl/', async function() {
-  const matrix = standardMatrix(
-    {
-      fetcher: [['playwright', { headless: false }]],
-    },
-    {
-      useCdp: false,
-    });
+  const matrix = standardMatrix();
 
   const wf = await fox
     .init('https://www.reddit.com/r/nfl/')
-    .fetch({ pages: 5 })
+    .fetch({ maxPages: 5 })
     .plan();
 
   return itRunMatrix(
@@ -24,7 +18,7 @@ describe('paginate www.reddit.com/r/nfl/', async function() {
     wf.dump(),
     matrix,
     [
-      checkIncreasingSize,
+      (items) => checkIncreasingSize(items, 5),
     ],
     { shouldSave: true });
 });

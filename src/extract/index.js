@@ -1,6 +1,5 @@
 import { logger } from '../log/logger.js';
 import { SinglePromptExtractor } from './SinglePromptExtractor.js';
-import { CodeGenExtractor } from './CodeGenExtractor.js';
 
 export { BaseExtractor } from './BaseExtractor.js';
 export const DefaultExtractor = SinglePromptExtractor;
@@ -14,9 +13,6 @@ export const getExtractor = (which, options) => {
   let extractorClass = {
     sp: SinglePromptExtractor,
     'single-prompt': SinglePromptExtractor,
-
-    cg: CodeGenExtractor,
-    'code-gen': CodeGenExtractor,
   }[which];
 
   if (!extractorClass) {

@@ -1,6 +1,8 @@
 import PQueue from 'p-queue';
 import { logger } from '../log/logger.js';
+import { shortObjHash } from '../util.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
+import { Item } from '../item/Item.js';
 
 // Some steps will need a larger batch size, but otherwise keep
 // step batches to size of 1 so that items are passed to next
@@ -131,6 +133,8 @@ export const BaseStep = class {
 
     let done = false;
 
+    const seen = {};
+
     // The following promise resolves on one of three conditions:
     // 1) Hit output limit on the current step
     // 2) Parent is done, and all its outputs are completed
@@ -164,7 +168,23 @@ export const BaseStep = class {
               const itemPromise = this.process(
                 { cursor, item, index, batch: b },
                 (output) => {
-                  this.results.push(output);
+                  let hash
+                  let s;
+                  if (output instanceof Item) {
+                    s = JSON.stringify(output.publicOnly());
+                  } else {
+                    s = JSON.stringify(output);
+                  }
+                  hash = shortObjHash({ s });
+
+                  const dupe = seen[hash];
+                  seen[hash] = true;
+
+                  if (dupe) {
+                    logger.debug(`${this} Dropping dupe ${hash}`);
+                  } else {
+                    this.results.push(output);
+                  }
                   const hitLimit = this.limit && this.results.length >= this.limit;
 
                   if (hitLimit) {
@@ -172,7 +192,7 @@ export const BaseStep = class {
                   }
 
                   meta.status = 'done';
-                  if (!done) {
+                  if (!dupe && !done) {
                     cursor.publish(
                       firstId,
                       { ...output, _meta: meta },
@@ -200,7 +220,7 @@ export const BaseStep = class {
               );
 
               itemPromise.catch((e) => {
-                logger.error(`${this} Got error while processing: ${e}`);
+                logger.error(`${this} Got error while processing item=${JSON.stringify(item)}: ${e}`);
 
                 meta.status = 'error';
                 meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
@@ -238,22 +258,18 @@ export const BaseStep = class {
         }
 
         return Promise.all(qPromises)
-          .then(tasks => Promise.all(tasks))
-          .then(() => {
-            completed += b.length;
-            if (!done) {
-              done ||= maybeOk();
-            }
-            return;
-          })
+          .then(tasks => Promise.allSettled(tasks))
           .catch((e) => {
             if (e.name == 'AbortError') {
               ok();
               return;
             }
             logger.error(`${this} Got error while waiting for all: ${e}`);
+          })
+          .finally(() => {
+            completed += b.length;
+            done ||= maybeOk();
           });
-
 
       }; // end processBatch
 

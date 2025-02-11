@@ -1,12 +1,16 @@
 import os from 'os';
 import fs from 'fs';
+import { logger } from '../../src/log/logger.js';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('news.ycombinator.com', function() {
-  this.timeout(5 * 60 * 1000);
+
+  before(() => {
+    logger.testMode();
+  });
 
   it('should work @run @fast', async () => {
     let countPartials = 0;

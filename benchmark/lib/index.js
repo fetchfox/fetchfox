@@ -12,7 +12,6 @@ const populate = (json, config) => {
 }
 
 export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
-  console.log('Running benchmark matrix', name, matrix);
   for (const config of matrix) {
     const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
 
@@ -29,10 +28,13 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
           options);
 
         if (options.shouldSave) {
-          await storeScores(scores);
+          const commit = process.env.COMMIT || 'local';
+          const date = new Date().toISOString().split('T')[0];
+          const key = `benchout/${date}-${commit}-${name.replaceAll(' ', '_')}.jsonl`;
+          await storeScores(scores, key);
         }
       } catch (e) {
-        logger.error(`Benchmark ${testName} had an error: ${e}`);
+        logger.error(`Benchmark ${testName} had an error: ${e} ${e.stack}`);
       }
     });
   }
@@ -77,14 +79,20 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       delete fullConfig.cache;
     }
 
-    const out = await fox
-      .load(populate(json, config))
-      .config(fullConfig)
-      .run();
 
-    console.log(JSON.stringify(out.context.ai.usage, null, 2));
-    console.log(JSON.stringify(out.context.ai.cost, null, 2));
-    console.log(JSON.stringify(out.context.ai.runtime, null, 2));
+    const wf = await fox
+      .load(populate(json, config))
+      .config(fullConfig);
+
+    const before = JSON.parse(JSON.stringify(wf.ctx.ai.stats));
+
+    const out = await wf.run();
+
+    const after = JSON.parse(JSON.stringify(wf.ctx.ai.stats));
+    const diff = diffStats(before, after);
+
+    console.log('AI stats:');
+    console.log(JSON.stringify(diff, null, 2));
 
     logger.info(``);
     logger.info(`  Running benchmark ${++i}/${matrix.length} with config ${JSON.stringify(config)}`);
@@ -105,9 +113,8 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       branch,
       commit,
       config: { ...config },
+      stats: diff,
       score,
-      tokens: out.context?.ai?.usage?.total,
-      cost: out.context?.ai?.cost?.total,
       items: out.items,
     };
 
@@ -116,11 +123,25 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     console.log(JSON.stringify(copy, null, 2));
 
     scores.push(s);
-
-    if (options?.shouldSave) {
-      await storeScores([s]);
-    }
   }
 
   return scores;
+}
+
+const diffStats = (left, right) => {
+  const diff = {};
+  for (const key of Object.keys(left)) {
+    diff[key] = diffObjects(left[key] || {}, right[key] || {});
+  }
+  return diff;
+}
+
+const diffObjects = (l, r) => {
+  const diff = {};
+  for (const key of Object.keys(l)) {
+    const valL = l[key] || 0;
+    const valR = r[key] || 0;
+    diff[key] = valR - valL;
+  }
+  return diff;
 }
