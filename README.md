@@ -133,5 +133,5 @@ The following providers are supported
 * __OpenRouter__: Model strings are `openrouter:...`, for example `openrouter:anthropic/claude-3.5-haiku`
 
 
-By default, FetchFox uses OpenAI's `gpt-4o-mini` model. We've found this model to provide a good tradeoff between cost, runtime, and accuracy. We have a [public benchmakrks dashboard](http://dashboard.fetchfox.ai/) where you can review performance data on recent commits.
+By default, FetchFox uses OpenAI's `gpt-4o-mini` model. We've found this model to provide a good tradeoff between cost, runtime, and accuracy. We have a [public benchmarks dashboard](http://dashboard.fetchfox.ai/) where you can review performance data on recent commits.
 
