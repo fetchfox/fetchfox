@@ -212,7 +212,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       case 'bottom':
         /* eslint-disable no-undef */
         await ctx.page.evaluate(async () => {
-          const scrollToBottom = async () => {
+          document.scrollToBottom = async () => {
             const top = document.documentElement.scrollHeight;
             return new Promise((ok) => {
               const fn = () => {
@@ -224,7 +224,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             });
           }
 
-          await scrollToBottom();
+          await document.scrollToBottom();
         });
         /* eslint-enable no-undef */
         break;
