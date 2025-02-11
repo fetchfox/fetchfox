@@ -1,7 +1,8 @@
-import { logger } from '../log/logger.js';
+2import { logger } from '../log/logger.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
+import { url } from 'inspector';
 
 export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
@@ -148,8 +149,22 @@ export const Crawler = class extends BaseCrawler {
     for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
-        logger.info(`Found link ${delta.url} in response to "${query}"`);
-        yield Promise.resolve({ _url: delta.url });
+        // Map / filter to get matching urls
+        const toLinkEntries = Object.entries(toLink);
+        const toLinkUrls = toLinkEntries.map(([key, value]) => [key, value.url]);
+        const matchedUrls = toLinkUrls.filter(([key, value]) => value.match(delta.regex));
+        const urls = Object.values(Object.fromEntries(matchedUrls));
+
+        const links = []
+        for (const url of urls) {
+          if (seen[url]) continue;
+          seen[url] = true;
+
+          logger.info(`Found link ${url} in response to "${query}"`);
+
+          this.usage.count++;
+          yield Promise.resolve({ _url: url });
+        }
       }
     }
   }
