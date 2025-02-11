@@ -31,7 +31,7 @@ describe('crawl deviantart.com', async function() {
           score[1]++;
           const url = item.url || item._url;
           if (!url) continue;
-          if (!url.match(/^https:\/\/www\.deviantart\.com\/\w+\/art\//)) continue;
+          if (!url.match(/^https:\/\/www\.deviantart\.com\/[^/]+\/art\//)) continue;
           score[0]++;
         }
 
