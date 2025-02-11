@@ -150,7 +150,11 @@ export const Crawler = class extends BaseCrawler {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
         // Map / filter to get matching urls
-        logger.debug(`Using regex ${delta.regex}`)
+        if (!delta.regex) {
+          logger.debug(`regex field not included in ${delta}`);
+          continue;
+        }
+        logger.debug(`Using regex ${delta.regex}`);
         const toLinkEntries = Object.entries(toLink);
         const toLinkUrls = toLinkEntries.map(([key, value]) => [key, value.url]);
         const matchedUrls = toLinkUrls.filter(([key, value]) => value.search(delta.regex) != -1);
