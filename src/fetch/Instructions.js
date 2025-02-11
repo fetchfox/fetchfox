@@ -96,6 +96,7 @@ export const Instructions = class {
           html: doc.html,
           command: command.prompt,
         };
+
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
@@ -130,15 +131,9 @@ export const Instructions = class {
               r = { ok: false };
             }
 
-
             if (command.pagination) {
               const after = await this.current(fetcher, ctx);
-              // TODO: General check for if the action worked, looking at intelligent
-              // subset the before/after results to account for context window
-              const sameHtml = before.html == after.html;
-              const sameText = before.text == after.text;
-              logger.debug(`${this} Heuristic check: sameHtml=${sameHtml} sameText=${sameText}`);
-              r.ok &&= !sameText && !sameHtml;
+              r.ok &&= await this.checkAction('Go to next page', before, after);
             }
 
             if (r.ok) {
@@ -165,6 +160,7 @@ export const Instructions = class {
       }
 
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
+
     } finally {
       await fetcher.finish(ctx);
     }
@@ -323,6 +319,22 @@ export const Instructions = class {
     const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
     logger.debug(`${this} Got document: ${doc}`);
     return doc;
+  }
+
+  async checkAction(goal, before, after) {
+    const context = {
+      goal,
+      before: `URL: ${before.url}\nText: ${before.text}`,
+      after: `URL: ${after.url}\nText: ${after.text}`,
+    };
+
+    // TODO: support / use two flex fields
+    const { prompt } = await prompts.checkAction.renderCapped(context, 'after', this.ai);
+
+    logger.debug(`${this} Check if ${goal} succeeded`);
+    const answer = await this.ai.ask(prompt, { format: 'json' });
+    logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
+    return answer.partial.didSucceed == 'yes';
   }
 }
 
