@@ -1,6 +1,4 @@
 import OpenAILib from 'openai';
-import { zodResponseFormat } from 'openai/helpers/zod';
-import { z } from 'zod';
 import { BaseAI } from './BaseAI.js';
 import { logger } from '../log/logger.js';
 
@@ -85,30 +83,6 @@ export const OpenAI = class extends BaseAI {
     if (!canStream) {
       delete args.stream;
       delete args.stream_options;
-    }
-
-    if (options?.schema) {
-      const toZod = (x) => {
-        if (Array.isArray(x)) {
-          const first = x.length == 0 ? '' : x[0];
-          return z.array(toZod(first));
-        } else if (typeof x == 'object') {
-          const o = {};
-          for (const key of Object.keys(x)) {
-            o[key] = toZod(x[key]);
-          }
-          return z.object(o);
-        } else if (typeof x == 'number') {
-          return z.number();
-        } else if (typeof x == 'boolean') {
-          return z.boolean();
-        } else {
-          // Fall back to string
-          return z.string();
-        }
-      };
-
-      args.response_format = zodResponseFormat(toZod(options.schema), 'item');
     }
 
     const aiOptions = {};

@@ -6,7 +6,6 @@ export const nameMap = {
   FetchStep: 'fetch',
   FilterStep: 'filter',
   LimitStep: 'limit',
-  SchemaStep: 'schema',
   UniqueStep: 'unique',
 };
 
@@ -165,20 +164,6 @@ export const stepDescriptionsMap = {
     name: 'limit',
     description: 'Limit the number of results',
     args: {},
-  }),
-
-  schema: combineInfo({
-    hideFromAI: true,
-    name: 'schema',
-    description: 'Reformat items into a target schema',
-    args: {
-      schema: {
-        description: 'The desired target schema',
-        format: 'object',
-        example: '{"title": "article title", "authors": ["list of authors..."]}',
-        required: true,
-      },
-    },
   }),
 
   unique: combineInfo({

@@ -92,8 +92,8 @@ export const BaseAI = class {
     }
   }
 
-  cacheKey(prompt, { systemPrompt, format, cacheHint, schema }) {
-    const hash = shortObjHash({ prompt, systemPrompt, format, cacheHint, schema });
+  cacheKey(prompt, { systemPrompt, format, cacheHint }) {
+    const hash = shortObjHash({ prompt, systemPrompt, format, cacheHint });
     const promptPart = prompt.replaceAll(/[^A-Za-z0-9]+/g, '-').substr(0, 32);
     return `ai-${this.constructor.name}-${this.model}-${promptPart}-${hash}`
   }
@@ -101,8 +101,8 @@ export const BaseAI = class {
   async getCache(prompt, options) {
     if (!this.cache) return;
 
-    const { systemPrompt, format, cacheHint, schema } = options || {};
-    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
+    const { systemPrompt, format, cacheHint } = options || {};
+    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
     let result;
     try {
       result = await this.cache.get(key);
@@ -118,8 +118,8 @@ export const BaseAI = class {
   async setCache(prompt, options, val) {
     if (!this.cache) return;
 
-    const { systemPrompt, format, cacheHint, schema } = options || {};
-    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint, schema });
+    const { systemPrompt, format, cacheHint } = options || {};
+    const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
     logger.debug(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'prompt');
   }
