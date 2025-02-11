@@ -389,70 +389,23 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   try {
     /* eslint-disable no-undef */
     outs = await page.evaluate(async () => {
-      // Attach the function to document to avoid errors in certain situatios,
-      // eg. https://github.com/privatenumber/tsx/issues/113
-      document.toText = (min, node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          return node.nodeValue;
-        }
-
-        let r = '';
-
-        for (const child of node.childNodes) {
-          const name = (child.tagName || '').toLowerCase();
-          const keep = (min.keep?.tags || []).includes(name);
-          if (keep) {
-            let str = ` <${name}`;
-            for (const attr of min.keep.attrs || []) {
-              str += ` ${attr}="${child.getAttribute(attr)}"`;
-            }
-            str += '>';
-
-            let ccText = '';
-            for (const cc of child.childNodes) {
-              ccText += ' ' + document.toText(min, cc) + ' ';
-            }
-            ccText = ccText.trim();
-
-            // Heuristic: if it's really short, use the inner HTML
-            if (ccText.length < 10) {
-              ccText = child.innerHTML;
-            }
-
-            str += ccText;
-
-            str += `</${name}> `;
-
-            r += str;
-          } else {
-            r += document.toText(min, child);
-          }
-        }
-
-        return r;
-      };
-
+      // Configuration objects.
       const remove = {
         tags: ['script', 'style', 'svg', 'symbol', 'link', 'meta'],
         attrs: ['style'],
       };
 
       const minimizers = [
-        // Default minimizer removes large junk tags and style attribute
         {
           name: 'html',
           remove,
           keep: {},
         },
-
-        // Text only minimizer
         {
           name: 'text',
           remove,
           text: true,
         },
-
-        // Links minimzer keeps only text and <a href="...">
         {
           name: 'selectHtml',
           remove,
@@ -468,25 +421,82 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       for (const min of minimizers) {
         const clone = document.documentElement.cloneNode(true);
 
-        // Remove tags
-        (min.remove?.tags || []).forEach(tag => {
+        // Remove unwanted tags.
+        (min.remove?.tags || []).forEach(tag =>
           clone.querySelectorAll(tag).forEach(element => {
             element.replaceWith('');
-          });
-        });
+          })
+        );
 
-        // Remove attributes
-        clone.querySelectorAll('*').forEach(el => {
+        // Remove unwanted attributes.
+        clone.querySelectorAll('*').forEach(el =>
           (min.remove?.attrs || []).forEach(attr => {
             el.removeAttribute(attr);
-          });
-        });
+          })
+        );
 
         let result = clone.outerHTML;
 
-        // Text conversion
         if (min.text) {
-          result = document.toText(min, clone);
+          let res = '';
+          const stack = [];
+          // Push the initial frame onto the stack.
+          stack.push({
+            node: clone,
+            i: 0,
+            textBuffer: '',
+            kept: (
+              clone.nodeType === Node.ELEMENT_NODE &&
+              (min.keep?.tags || []).includes(clone.tagName.toLowerCase())
+            ),
+          });
+
+          // Process the tree iteratively.
+          while (stack.length > 0) {
+            const frame = stack[stack.length - 1];
+            if (frame.i < frame.node.childNodes.length) {
+              const child = frame.node.childNodes[frame.i];
+              frame.i++;
+              if (child.nodeType === Node.TEXT_NODE) {
+                // If the parent is marked as "kept", add extra spacing.
+                frame.textBuffer += frame.kept ? (' ' + child.nodeValue + ' ') : child.nodeValue;
+              } else {
+                // Push a new frame for this child element, with an inline "isKept" check.
+                stack.push({
+                  node: child,
+                  i: 0,
+                  textBuffer: '',
+                  kept: child.nodeType === Node.ELEMENT_NODE &&
+                  (min.keep?.tags || []).includes(child.tagName.toLowerCase())
+                });
+              }
+            } else {
+              // Finished processing this frame.
+              let frameResult = frame.textBuffer;
+              if (frame.node.nodeType === Node.ELEMENT_NODE && frame.kept) {
+                let ccText = frameResult.trim();
+                // Heuristic: if the text is very short, fall back to innerHTML.
+                if (ccText.length < 10) {
+                  ccText = frame.node.innerHTML;
+                }
+                const tag = frame.node.tagName.toLowerCase();
+                let tagStr = ` <${tag}`;
+                (min.keep?.attrs || []).forEach(attr => {
+                  tagStr += ` ${attr}="${frame.node.getAttribute(attr)}"`;
+                });
+                tagStr += `>${ccText}</${tag}> `;
+                frameResult = tagStr;
+              }
+              stack.pop();
+              if (stack.length > 0) {
+                const parentFrame = stack[stack.length - 1];
+                parentFrame.textBuffer += parentFrame.kept ? (' ' + frameResult + ' ') : frameResult;
+              } else {
+                res = frameResult;
+              }
+            }
+          }
+          result = res.replace(/[ \t\n]+/g, ' ').trim();
         }
 
         outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();
@@ -494,6 +504,113 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 
       return outs;
     });
+
+    // outs = await page.evaluate(async () => {
+    //   // Attach the function to document to avoid errors in certain situatios,
+    //   // eg. https://github.com/privatenumber/tsx/issues/113
+    //   document.toText = (min, node) => {
+    //     if (node.nodeType === Node.TEXT_NODE) {
+    //       return node.nodeValue;
+    //     }
+
+    //     let r = '';
+
+    //     for (const child of node.childNodes) {
+    //       const name = (child.tagName || '').toLowerCase();
+    //       const keep = (min.keep?.tags || []).includes(name);
+    //       if (keep) {
+    //         let str = ` <${name}`;
+    //         for (const attr of min.keep.attrs || []) {
+    //           str += ` ${attr}="${child.getAttribute(attr)}"`;
+    //         }
+    //         str += '>';
+
+    //         let ccText = '';
+    //         for (const cc of child.childNodes) {
+    //           ccText += ' ' + document.toText(min, cc) + ' ';
+    //         }
+    //         ccText = ccText.trim();
+
+    //         // Heuristic: if it's really short, use the inner HTML
+    //         if (ccText.length < 10) {
+    //           ccText = child.innerHTML;
+    //         }
+
+    //         str += ccText;
+
+    //         str += `</${name}> `;
+
+    //         r += str;
+    //       } else {
+    //         r += document.toText(min, child);
+    //       }
+    //     }
+
+    //     return r;
+    //   };
+
+    //   const remove = {
+    //     tags: ['script', 'style', 'svg', 'symbol', 'link', 'meta'],
+    //     attrs: ['style'],
+    //   };
+
+    //   const minimizers = [
+    //     // Default minimizer removes large junk tags and style attribute
+    //     {
+    //       name: 'html',
+    //       remove,
+    //       keep: {},
+    //     },
+
+    //     // Text only minimizer
+    //     {
+    //       name: 'text',
+    //       remove,
+    //       text: true,
+    //     },
+
+    //     // Links minimzer keeps only text and <a href="...">
+    //     {
+    //       name: 'selectHtml',
+    //       remove,
+    //       text: true,
+    //       keep: {
+    //         tags: ['a'],
+    //         attrs: ['href'],
+    //       },
+    //     },
+    //   ];
+
+    //   const outs = {};
+    //   for (const min of minimizers) {
+    //     const clone = document.documentElement.cloneNode(true);
+
+    //     // Remove tags
+    //     (min.remove?.tags || []).forEach(tag => {
+    //       clone.querySelectorAll(tag).forEach(element => {
+    //         element.replaceWith('');
+    //       });
+    //     });
+
+    //     // Remove attributes
+    //     clone.querySelectorAll('*').forEach(el => {
+    //       (min.remove?.attrs || []).forEach(attr => {
+    //         el.removeAttribute(attr);
+    //       });
+    //     });
+
+    //     let result = clone.outerHTML;
+
+    //     // Text conversion
+    //     if (min.text) {
+    //       result = document.toText(min, clone);
+    //     }
+
+    //     outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();
+    //   }
+
+    //   return outs;
+    // });
     /* eslint-enable no-undef */
   } catch (e) {
     logger.warn(`${this} Error while getting HTML: ${e}`);
