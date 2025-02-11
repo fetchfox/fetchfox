@@ -389,7 +389,6 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   try {
     /* eslint-disable no-undef */
     outs = await page.evaluate(async () => {
-      // Configuration objects.
       const remove = {
         tags: ['script', 'style', 'svg', 'symbol', 'link', 'meta'],
         attrs: ['style'],
@@ -524,8 +523,6 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
 }
 
 const getHtmlFromError = async (page) => {
-  // Disable undefined variable linting for document variables
-  // which is available in Playwright's browser context.
   /* eslint-disable no-undef */
   try {
     logger.debug(`Get HTML from error result on ${page.url()}`);
