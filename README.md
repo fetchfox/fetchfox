@@ -6,7 +6,7 @@
 
 <p>FetchFox is an AI powered scraping, automation, and data extraction library.</p>
   
-<p>It can scrape data from any webpage using just plain English. It is made by the developers of the <a href="https://fetchfoxai.com">FetchFox Chrome Extension</a>.</p>
+<p>It can scrape data from any webpage using just plain English. It is made by the developers of the <a href="https://fetchfox.ai">FetchFox AI scraper</a>.</p>
 </div>
 
 <div align="center">
@@ -30,10 +30,13 @@ Then use it. Here is the callback style:
 ```javascript
 import { fox } from 'fetchfox';
 
-const results = await fox
+const workflow = await fox
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
+  .plan();
+
+const results = workflow
   .run(null, (delta) => { console.log(delta.item) });
   
 for (const result of results) {
@@ -56,7 +59,35 @@ for await (const delta of stream) {
 }
 ```
 
-Read on below for instructions on how to configure your API key and AI model.
+## Following URLs
+
+You'll often want to scrape over multiple levels. You can do this using the `url` field. If you extract a `url` field, FetchFox will follow that URL on the next step.
+
+For example, you can get HP and attack on the second page of the Pokedex:
+
+const workflow = await fox
+  .init('https://pokemondb.net/pokedex/national')
+  .extract({ 
+    url: 'URL of pokemon profile', 
+    name: 'Pokemon name', 
+    number: 'Pokemon number'
+  })
+  .extract({ 
+    hp: 'Pokemon HP', 
+    attack: 'Pokemon attack power', 
+  })
+  .limit(3)
+  .plan();
+
+const results = workflow
+  .run(null, (delta) => { console.log(delta.item) });
+  
+for (const result of results) {
+  console.log('Item:', result.item);
+}
+```
+
+This scraper will start at https://pokemondb.net/pokedex/national, and then go to detail pages like https://pokemondb.net/pokedex/pikachu to get the HP and attack values.
 
 ## Enter your API key
 
@@ -75,99 +106,31 @@ import { fox } from 'fetchfox';
 
 const results = await fox
   .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' }})
-  .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
+  .init('https://pokemondb.net/pokedex/national')
+  .extract({ name: 'Pokemon name', number: 'Pokemon number' })
+  .limit(3)
+  .run();
 ```
  
-This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can pass in other models, including models from other providers like this:
+This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can also use OpenRouter to access AI models from other providers:
 
 ```javascript
 const results = await fox
-  .config({ ai: { model: 'anthropic:claude-3-5-sonnet-20240620', apiKey: 'your-anthropic-key' }})
-  .run(`https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
+  .config({ ai: { model: 'openrouter:google/gemini-flash-1.5', apiKey: 'your-openrouter-key' }})
+  .init('https://pokemondb.net/pokedex/national')
+  .extract({ name: 'Pokemon name', number: 'Pokemon number' })
+  .limit(3)
+  .run();
 ```
 
 Choose the AI model that best suits your needs.
 
-## Start prompting
+The following providers are supported
 
-Easiest is to use a single prompt, like in the example below.
+* __OpenAI__: Model strings are openai:..., for example openai:gpt-4o
+* __Google__: Model strings are google:..., for example google:gemini-1.5-flash
+* __OpenRouter__: Model strings are openroutere:..., for example openrouter:deepseek/deepseek-r1
 
-```javascript
-import { fox } from 'fetchfox';
 
-const results = await fox.run(
-  `https://news.ycombinator.com/news find links to comments, get basic data, export to out.jsonl`);
-```
-
-For more control, you can specify the steps like below.
-
-```javascript
-import { fox } from 'fetchfox';
-
-const results = await fox
-  .init('https://github.com/bitcoin/bitcoin/commits/master')
-  .crawl('find links to the comment pages')
-  .extract('get the following data: article name, top comment text, top commenter username')
-  .schema({ articleName: '', commentText: '', username: '' })
-  .export('out.jsonl');
-```
-
-You can chain steps to do more complicated scrapes. The example below does the following:
-
-1. Start on the GitHub page for the bitcoin project
-2. Find 10 commits
-3. Get data bout them including lines of code changed
-4. Filter for only the ones that change 10 lines of code
-5. Get the authors of those commits, and find the repos those authors commit to
-
-This scrape will take some time, so there is an option to output incremental results.
-
-```javascript
-import { fox } from 'fetchfox';
-
-const f = await fox
-  .config({ diskCache: '/tmp/fetchfox_cache'  })
-  .init('https://github.com/bitcoin/bitcoin/commits/master')
-  .crawl('find urls commits, limit: 10')
-  .extract('get commit hash, author, and loc changed')
-  .filter('commits that changed at least 10 lines')
-  .crawl('get urls of the authors of those commits')
-  .extract('get username and repos they commit to')
-  .schema({ username: 'username', repos: ['array of repos'] });
-
-const results = f.run(null, ({ delta, index }) => {
-  console.log(`Got incremental result on step ${index}: ${delta}`);
-});
-```
-
-The library is modular, and you can use the component individually.
-
-```javascript
-import { Crawler, SinglePromptExtractor } from 'fetchfox';
-
-const ai = 'openai:gpt-4o-mini';
-const crawler = new Crawler({ ai });
-const extractor = new SinglePromptExtractor({ ai });
-
-const url = 'https://news.ycombinator.com';
-const questions = [
-  'what is the article title?',
-  'how many points does this submission have? only number',
-  'how many comments does this submission have? only number',
-  'when was this article submitted? convert to YYYY-MM-DD HH:mm{am/pm} format',
-];
-
-for await (const link of crawler.stream(url, 'comment links')) {
-  console.log('Extract from:', link.url);
-  for await (const item of extractor.stream(link.url, questions)) {
-    console.log(item);
-  }
-}
-```
-
-## Choosing the right AI model
-
-FetchFox lets you swap in a variety of different AI providers and models. You can check the [src/ai/...](https://github.com/fetchfox/fetchfox/tree/master/src/ai) directory for the list of currently supported providers.
-
-By default, FetchFox uses OpenAI's `gpt-4o-mini` model. We've found this model to provide a good tradeoff between cost, runtime, and accuracy. You can read [more about benchmarking on our blog](https://ortutay.substack.com/p/the-most-accurate-and-cheapest-ai).
+By default, FetchFox uses OpenAI's `gpt-4o-mini` model. We've found this model to provide a good tradeoff between cost, runtime, and accuracy. We have a [public benchmakrks dashboard](http://dashboard.fetchfox.ai/) where you can review performance data on recent commits.
 
