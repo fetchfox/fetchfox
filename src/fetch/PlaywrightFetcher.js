@@ -215,11 +215,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           document.scrollToBottom = async () => {
             const top = document.documentElement.scrollHeight;
             return new Promise((ok) => {
-              const fn = () => {
-                document.removeEventListener('scrollend', fn);
-                ok();
-              }
-              document.addEventListener('scrollend', fn);
+              document.addEventListener('scrollend', ok);
               window.scrollTo({ top, behavior: 'smooth' });
             });
           }
