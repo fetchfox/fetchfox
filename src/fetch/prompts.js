@@ -89,3 +89,24 @@ IMPORTANT:
 
 Respond ONLY in JSONL, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
 `);
+
+export const checkAction = new Template(
+  ['goal', 'before', 'after'],
+  `You are part of a web scraping program. The browser has just taken an acction, in a attempt to satisfy a user goal. You have the before and after state of the browser. Your goal is to determine if the action achieved the stated goal. Respond in JSON format, as follows:
+
+Fields:
+- "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words.
+- "didSucceed": The string "yes" for success, or "no" if the goal was not achieved
+
+Below is the user input:
+
+>>>> The before state is:
+{{before}}
+
+>>>> The after state is:
+{{after}}
+
+>>>> The goal of the aciton is:
+{{goal}}
+
+Respond ONLY with JSON. Your response will be machine parsed with JSON.parse()`);

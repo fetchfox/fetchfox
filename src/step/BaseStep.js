@@ -177,10 +177,12 @@ export const BaseStep = class {
                   }
                   hash = shortObjHash({ s });
 
-                  const isNew = !seen[hash];
+                  const dupe = seen[hash];
                   seen[hash] = true;
 
-                  if (isNew) {
+                  if (dupe) {
+                    logger.debug(`${this} Dropping dupe ${hash}`);
+                  } else {
                     this.results.push(output);
                   }
                   const hitLimit = this.limit && this.results.length >= this.limit;
@@ -190,7 +192,7 @@ export const BaseStep = class {
                   }
 
                   meta.status = 'done';
-                  if (isNew && !done) {
+                  if (!dupe && !done) {
                     cursor.publish(
                       firstId,
                       { ...output, _meta: meta },

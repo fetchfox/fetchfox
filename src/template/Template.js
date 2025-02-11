@@ -108,7 +108,6 @@ export const Template = class {
       tokens = await countFn(prompt);
 
       const diff = maxTokens - tokens;
-      logger.debug(`${this} Render capped got tokens=${tokens}, max=${maxTokens}, diff=${diff}`);
 
       if (tokens < maxTokens && (guess == len || diff < accuracyTokens)) {
         lowerBound = guess;
