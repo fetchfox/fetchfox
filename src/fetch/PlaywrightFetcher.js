@@ -421,14 +421,12 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
       for (const min of minimizers) {
         const clone = document.documentElement.cloneNode(true);
 
-        // Remove unwanted tags.
         (min.remove?.tags || []).forEach(tag =>
           clone.querySelectorAll(tag).forEach(element => {
             element.replaceWith('');
           })
         );
 
-        // Remove unwanted attributes.
         clone.querySelectorAll('*').forEach(el =>
           (min.remove?.attrs || []).forEach(attr => {
             el.removeAttribute(attr);
@@ -440,7 +438,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
         if (min.text) {
           let res = '';
           const stack = [];
-          // Push the initial frame onto the stack.
+
           stack.push({
             node: clone,
             i: 0,
@@ -451,15 +449,20 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
             ),
           });
 
-          // Process the tree iteratively.
+          // Using iterative approach instead of recursion to workaround
+          // a Playwright bug:
+          // - https://github.com/privatenumber/tsx/issues/113
+          // - https://chatgpt.com/share/67aa9733-b56c-800e-a605-439bfa12bce8
           while (stack.length > 0) {
             const frame = stack[stack.length - 1];
             if (frame.i < frame.node.childNodes.length) {
               const child = frame.node.childNodes[frame.i];
               frame.i++;
+
               if (child.nodeType === Node.TEXT_NODE) {
                 // If the parent is marked as "kept", add extra spacing.
                 frame.textBuffer += frame.kept ? (' ' + child.nodeValue + ' ') : child.nodeValue;
+
               } else {
                 // Push a new frame for this child element, with an inline "isKept" check.
                 stack.push({
@@ -470,8 +473,8 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
                   (min.keep?.tags || []).includes(child.tagName.toLowerCase())
                 });
               }
+
             } else {
-              // Finished processing this frame.
               let frameResult = frame.textBuffer;
               if (frame.node.nodeType === Node.ELEMENT_NODE && frame.kept) {
                 let ccText = frameResult.trim();
@@ -487,7 +490,9 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
                 tagStr += `>${ccText}</${tag}> `;
                 frameResult = tagStr;
               }
+
               stack.pop();
+
               if (stack.length > 0) {
                 const parentFrame = stack[stack.length - 1];
                 parentFrame.textBuffer += parentFrame.kept ? (' ' + frameResult + ' ') : frameResult;
@@ -496,6 +501,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
               }
             }
           }
+
           result = res.replace(/[ \t\n]+/g, ' ').trim();
         }
 
