@@ -190,9 +190,9 @@ export const BaseAI = class {
             }
 
             if (this.signal?.aborted) {
-              logger.debug(`${this} Already aborted, break inner`);
+              logger.debug(`${this} Already aborted, but waiting for stream to finish`);
               done = true;
-              // Continue until usage appears
+              // Continue until stream finishes
               continue;
             }
 
