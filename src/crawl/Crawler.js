@@ -1,4 +1,4 @@
-2import { logger } from '../log/logger.js';
+import { logger } from '../log/logger.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
