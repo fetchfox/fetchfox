@@ -145,6 +145,7 @@ export const Crawler = class extends BaseCrawler {
       body: doc.selectHtml,
     };
     const prompts = await gather.renderMulti(context, 'body', this.ai);
+    const seen = {};
 
     for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
@@ -155,17 +156,15 @@ export const Crawler = class extends BaseCrawler {
           continue;
         }
         logger.debug(`Using regex ${delta.regex}`);
-        const toLinkEntries = Object.entries(toLink);
-        const toLinkUrls = toLinkEntries.map(([key, value]) => [key, value.url]);
-        const matchedUrls = toLinkUrls.filter(([key, value]) => value.search(delta.regex) != -1);
-        const urls = Object.values(Object.fromEntries(matchedUrls));
 
-        const links = []
-        for (const url of urls) {
+        const regex = new RegExp(delta.regex);
+        const matches = doc.urls.filter(url => regex.test(url));
+
+        for (const url of matches) {
           if (seen[url]) continue;
           seen[url] = true;
 
-          logger.info(`Found link ${url} in response to "${query}"`);
+          logger.info(`Found link ${url} in response to "${query}" matching ${regex}`);
 
           this.usage.count++;
           yield Promise.resolve({ _url: url });
