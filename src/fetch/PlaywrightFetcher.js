@@ -237,6 +237,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let html;
     let text;
     let selectHtml;
+    let urls;
     let status;
 
     timer.push('PlaywrightFetcher _docFromPage');
@@ -258,6 +259,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       html = result.result.html;
       text = result.result.text;
       selectHtml = result.result.selectHtml;
+      urls = result.result.urls;
     } catch (e) {
 
       logger.error(`Playwright could not get from ${page.url()}: ${e}`);
@@ -291,7 +293,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       body: html,
       html,
       text,
-      selectHtml: selectHtml,
+      selectHtml,
+      urls,
       headers: {'content-type': 'text/html' },
     };
 
@@ -488,6 +491,9 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
         outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();
       }
 
+      const anchors = document.querySelectorAll('a[href]');
+      outs.urls = Array.from(anchors, anchor => anchor.href);
+
       return outs;
     });
     /* eslint-enable no-undef */
@@ -499,6 +505,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     html: outs.html,
     text: outs.text,
     selectHtml: outs.selectHtml,
+    urls: outs.urls,
   };
 }
 

@@ -2,6 +2,7 @@ import { logger } from '../log/logger.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
+import { url } from 'inspector';
 
 export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
@@ -144,12 +145,30 @@ export const Crawler = class extends BaseCrawler {
       body: doc.selectHtml,
     };
     const prompts = await gather.renderMulti(context, 'body', this.ai);
+    const seen = {};
 
     for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
-        logger.info(`Found link ${delta.url} in response to "${query}"`);
-        yield Promise.resolve({ _url: delta.url });
+        // Map / filter to get matching urls
+        if (!delta.regex) {
+          logger.debug(`regex field not included in ${delta}`);
+          continue;
+        }
+        logger.debug(`Using regex ${delta.regex}`);
+
+        const regex = new RegExp(delta.regex);
+        const matches = doc.urls.filter(url => regex.test(url));
+
+        for (const url of matches) {
+          if (seen[url]) continue;
+          seen[url] = true;
+
+          logger.info(`Found link ${url} in response to "${query}" matching ${regex}`);
+
+          this.usage.count++;
+          yield Promise.resolve({ _url: url });
+        }
       }
     }
   }
