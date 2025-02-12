@@ -39,8 +39,8 @@ const workflow = await fox
 const results = await workflow
   .run(null, (delta) => { console.log(delta.item) });
   
-for (const result of results) {
-  console.log('Item:', result.item);
+for (const item of results.items) {
+  console.log('Item:', item);
 }
 ```
 
@@ -83,8 +83,8 @@ const workflow = await fox
 const results = await workflow
   .run(null, (delta) => { console.log(delta.item) });
   
-for (const result of results) {
-  console.log('Item:', result.item);
+for (const item of results.items) {
+  console.log('Item:', item);
 }
 ```
 
