@@ -4,7 +4,16 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkIncreasingSize } from '../lib/checks.js';
 
 describe('paginate google.com maps restaurants search', async function() {
-  const matrix = standardMatrix();
+  const matrix = standardMatrix({
+    fetcher: [
+      [
+        'playwright',
+        {
+          headless: false,
+        }
+      ]
+    ]
+  });
 
   const wf = await fox
     .init('https://www.google.com/maps/search/Restaurants/@42.3233141,-71.162825,14z/')
@@ -17,7 +26,7 @@ describe('paginate google.com maps restaurants search', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkIncreasingSize(items, 2),
+      (items) => checkIncreasingSize(items, 5),
     ],
     { shouldSave: true }
   );

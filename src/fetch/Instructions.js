@@ -101,11 +101,9 @@ export const Instructions = class {
           .renderMulti(context, 'html', this.ai);
 
         for (const actionPrompt of actionPrompts) {
-          const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
-          let ok = true
+          const answer = await this.ai.ask(actionPrompt, { format: 'jsonl' });
           const incr = [];
-
-          for await (const { delta } of stream) {
+          for (const delta of answer.partial.result) {
             logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
 
             if (delta.actionType == 'none') {
@@ -117,37 +115,16 @@ export const Instructions = class {
             const action = {
               type: delta.actionType,
               arg: delta.actionArgument,
-              limit: command.limit,
-              mode: command.mode || 'distinct',
+              mode: 'first',
             };
+            incr.push(action);
 
-            const before = await this.current(fetcher, ctx);
-
-            let r;
-            try {
-              r = await fetcher.act(ctx, action, {});
-            } catch (e) {
-              logger.error(`${this}: Got error while learning action, ignoring: ${e}`);
-              r = { ok: false };
-            }
-
-            if (command.pagination) {
-              const after = await this.current(fetcher, ctx);
-              r.ok &&= await this.checkAction('Go to next page', before, after);
-            }
-
-            if (r.ok) {
-              incr.push(action);
-            }
-
-            ok &&= r.ok;
+            await fetcher.act(ctx, action, {});
           }
 
+          incr[incr.length - 1].mode = command.mode;
+          incr[incr.length - 1].limit = command.limit;
           learned.push(...incr);
-
-          if (ok) {
-            break;
-          }
         }
       }
 
@@ -322,15 +299,19 @@ export const Instructions = class {
   }
 
   async checkAction(goal, before, after) {
+    if (domainSpecificInstructions(this.url)) {
+      logger.debug(`${this} Assume action is correct because of domain specficic instructions for ${this.url}`);
+      return;
+    }
+
     const context = {
       goal,
-      before: `URL: ${before.url}\nText: ${before.text}`,
-      after: `URL: ${after.url}\nText: ${after.text}`,
+      before: `>>>> URL before action: ${before.url}\n>>>> Text before action: ${before.text}`,
+      after: `>>>> URL after action: ${after.url}\n>>>> Text after action: ${after.text}`,
     };
 
     // TODO: support / use two flex fields
     const { prompt } = await prompts.checkAction.renderCapped(context, 'after', this.ai);
-
     logger.debug(`${this} Check if ${goal} succeeded`);
     const answer = await this.ai.ask(prompt, { format: 'json' });
     logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
