@@ -166,11 +166,16 @@ export const BaseAI = class {
     try {
       let retries = Math.min(this.maxRetries, options?.retries ?? 2);
       let done = false;
+      let hardStop = false;
 
       while (!done) {
         // Track start time relative to the  successful attempt
         this.stats.requests.attempts++;
         start = (new Date()).getTime();
+        const hardStopListener = () => {
+          setTimeout(() => hardStop = true, 2000);
+        }
+        this.signal.addEventListener('abort', hardStopListener);
 
         try {
           for await (const chunk of this.inner(prompt, options)) {
@@ -190,9 +195,13 @@ export const BaseAI = class {
             }
 
             if (this.signal?.aborted) {
-              logger.debug(`${this} Already aborted, but waiting for stream to finish`);
               done = true;
-              // Continue until stream finishes
+              if (hardStop) {
+                logger.debug(`${this} Already aborted, reached hardstop`);
+                break;
+              }
+              logger.debug(`${this} Already aborted, but temporarily waiting for stream to finish`);
+              // Continue until stream finishes or hardstop timeout reached
               continue;
             }
 
@@ -244,6 +253,8 @@ export const BaseAI = class {
       const msec = (new Date()).getTime() - start;
       this.stats.runtime.msec += msec;
       this.stats.runtime.sec += msec / 1000;
+
+      this.signal.removeEventListener('abort', hardStopListener);
 
       if (err) {
         logger.warn(`${this} Error during AI stream, not caching`);
