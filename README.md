@@ -117,7 +117,7 @@ This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can
 
 ```javascript
 const results = await fox
-  .config({ ai: { model: 'openrouter:google/gemini-flash-1.5', apiKey: 'your-openrouter-key' }})
+  .config({ ai: ['openrouter:google/gemini-flash-1.5', { apiKey: 'your-openrouter-key' }])
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
