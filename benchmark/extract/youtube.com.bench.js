@@ -5,7 +5,12 @@ import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('extract from youtube.com', async function() {
-  const matrix = standardMatrix({});
+  const matrix = standardMatrix({
+    view: [
+      'html',
+      'text',
+    ]
+  });
 
   const cases = [
     {
@@ -39,6 +44,7 @@ describe('extract from youtube.com', async function() {
           title: 'What is the title of this video?',
           creator: 'Who is the creator of this video?',
         },
+        view: '{{view}}',
         single: true
       })
       .plan();
