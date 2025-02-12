@@ -174,12 +174,6 @@ export const BaseAI = class {
 
         try {
           for await (const chunk of this.inner(prompt, options)) {
-            if (this.signal?.aborted) {
-              logger.debug(`${this} Already aborted, break inner`);
-              done = true;
-              break;
-            }
-
             const norm = this.normalizeChunk(chunk);
             const parsed = this.parseChunk(norm, ctx);
 
@@ -193,6 +187,13 @@ export const BaseAI = class {
                 this.stats.cost.output = this.stats.tokens.output * this.pricing.output;
                 this.stats.cost.total = this.stats.cost.input + this.stats.cost.output;
               }
+            }
+
+            if (this.signal?.aborted) {
+              logger.debug(`${this} Already aborted, break inner`);
+              done = true;
+              // Continue until usage appears
+              continue;
             }
 
             if (!parsed) continue;
