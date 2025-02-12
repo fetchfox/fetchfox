@@ -163,18 +163,20 @@ export const BaseAI = class {
 
     let result;
     let start;
+    let hardStop = false;
+    const hardStopListener = () => {
+      setTimeout(() => hardStop = true, 2000);
+    }
+
     try {
       let retries = Math.min(this.maxRetries, options?.retries ?? 2);
       let done = false;
-      let hardStop = false;
 
       while (!done) {
         // Track start time relative to the  successful attempt
         this.stats.requests.attempts++;
         start = (new Date()).getTime();
-        const hardStopListener = () => {
-          setTimeout(() => hardStop = true, 2000);
-        }
+
         this.signal.addEventListener('abort', hardStopListener);
 
         try {
