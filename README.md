@@ -36,7 +36,7 @@ const workflow = await fox
   .limit(3)
   .plan();
 
-const results = workflow
+const results = await workflow
   .run(null, (delta) => { console.log(delta.item) });
   
 for (const result of results) {
@@ -80,7 +80,7 @@ const workflow = await fox
   .limit(3)
   .plan();
 
-const results = workflow
+const results = await workflow
   .run(null, (delta) => { console.log(delta.item) });
   
 for (const result of results) {
