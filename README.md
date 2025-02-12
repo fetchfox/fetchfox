@@ -106,7 +106,7 @@ Alternatively, you can pass in your API key in code, like this:
 import { fox } from 'fetchfox';
 
 const results = await fox
-  .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' }})
+  .config({ ai: ['openai:gpt-4o-mini', { apiKey: 'sk-your-key' }])
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
