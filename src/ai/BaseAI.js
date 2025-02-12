@@ -163,6 +163,11 @@ export const BaseAI = class {
 
     let result;
     let start;
+    let hardStop = false;
+    const hardStopListener = () => {
+      setTimeout(() => hardStop = true, 2000);
+    }
+
     try {
       let retries = Math.min(this.maxRetries, options?.retries ?? 2);
       let done = false;
@@ -172,14 +177,10 @@ export const BaseAI = class {
         this.stats.requests.attempts++;
         start = (new Date()).getTime();
 
+        this.signal.addEventListener('abort', hardStopListener);
+
         try {
           for await (const chunk of this.inner(prompt, options)) {
-            if (this.signal?.aborted) {
-              logger.debug(`${this} Already aborted, break inner`);
-              done = true;
-              break;
-            }
-
             const norm = this.normalizeChunk(chunk);
             const parsed = this.parseChunk(norm, ctx);
 
@@ -193,6 +194,17 @@ export const BaseAI = class {
                 this.stats.cost.output = this.stats.tokens.output * this.pricing.output;
                 this.stats.cost.total = this.stats.cost.input + this.stats.cost.output;
               }
+            }
+
+            if (this.signal?.aborted) {
+              done = true;
+              if (hardStop) {
+                logger.debug(`${this} Already aborted, reached hardstop`);
+                break;
+              }
+              logger.debug(`${this} Already aborted, but temporarily waiting for stream to finish`);
+              // Continue until stream finishes or hardstop timeout reached
+              continue;
             }
 
             if (!parsed) continue;
@@ -243,6 +255,8 @@ export const BaseAI = class {
       const msec = (new Date()).getTime() - start;
       this.stats.runtime.msec += msec;
       this.stats.runtime.sec += msec / 1000;
+
+      this.signal.removeEventListener('abort', hardStopListener);
 
       if (err) {
         logger.warn(`${this} Error during AI stream, not caching`);
