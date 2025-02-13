@@ -189,8 +189,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`${this} Found new element ${el} after ${i} iterations`);
     }
 
-    await el.scrollIntoViewIfNeeded();
-    await el.click();
+    try {
+      await el.scrollIntoViewIfNeeded({ timeout: 4000 });
+      await el.click({ timeout: 4000 });
+    } catch (e) {
+      logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
+      return { ok: false };
+    }
 
     return { ok: true, text, html };
   }
@@ -216,6 +221,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             const top = document.documentElement.scrollHeight;
             return new Promise((ok) => {
               document.addEventListener('scrollend', ok);
+              setTimeout(ok, 2000);
               window.scrollTo({ top, behavior: 'smooth' });
             });
           }

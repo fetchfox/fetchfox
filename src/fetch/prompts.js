@@ -46,40 +46,41 @@ export const pageAction = new Template(
 
 Your goal is: {{command}}
 
-Your task is to determine the **most direct action** to achieve the goal **without unnecessary intermediate steps**.
+Respond with JSON as follows:
 
-Respond with JSONL, with JSON object in lines as follows:
+{
+  "actionAnalysis": "string...",
+  "candidates": [
+    {
+      "candidateAnalysis": "Reason for why this one might work",
+      "candidateAction": "The action to perform. For now this is always 'click'",
+      "candidateCss": "CSS selector for this candidate function"
+    },
+    {
+      "candidateAnalysis": "Reason for why this one might work",
+      "candidateAction": "The action to perform. For now this is always 'click'",
+      "candidateCss": "CSS selector for this candidate function"
+    },
+  ]
+}
 
-{ "actionAnalysis": "string...", "actionElementCss": "string...", "actionElementText": "string...", "actionType": "string...", "actionArgument": "string...", "isPaginationAction": "string..." }
-
-- "actionAnalysis": 10-30 word English description of what action should be taken on the page, or if no action is required.
-- "actionElementCss": "css selector of the element that needs interaction, if one exists. null otherwise",
-- "actionElementText": "text of the element to be used for an xpath selector, if relevant. null otherwise",
-- "actionType": The action to perform:
-  - "click" if you need to click on elements, links, or other clickable elements. There can be multiple clickable elements, in which case your selector should match all of them.
-  - "scroll" if scrolling is needed to trigger content or reveal a hidden element.
-  - "evaluate" if a more complex action requires executing JavaScript directly on the page.
-  - "none" if no action is required.
-- "actionArgument": The value depends on the command:
-  - If command is "click", provide the text or CSS selector. Use the format:
-    - prepend "text=" for matching text content
-    - prepend "css=" for matching css selectors
-  - If command is "scroll", specify how much to scroll: either "window" (for window height) or "bottom" (for scrolling to the bottom of the page).
-  - If command is "evaluate", give JavaScript that will execute to trigger the action. This JavaScript will be a parameter to new Function().
-- "isPaginationAction": Answer "yes" if this is an action that does pagination. If you are returning multiple actions for pagination, only return "yes" for the last one that does the pagination. If the action is not the last action doing pagination, or if it is unrelated to pagination, return "no"
+Information on these fields:
+- "actionAnalysis": Describe the desired action and your approach in 10-20 words
+- "candidates": A list of 0 or more possible ways to do this action
+- "candidateAnalysis": A 10-20 word analysis of this approach
+- "candidateAction": For now this is always "click"
+- "candidateCss": The CSS selector for the item to click to achieve the goal
 
 Follow these important rules:
 - Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
 - Avoid hardcoding specific text or values when possible. Instead, try to generalize the command to make it reusable across different pages.
 - Keep the CSS selectors as simple and specific as possible, making them compatible with document.querySelector().
 - Do NOT invent or guess at CSS selectors. If you don't see one that works, return "none"
-- If no action is needed, return "none" as the command.
+- If no action is needed, or if you can't find a way to do it, return empty list for candidates
 - You might need one or two commands to complete action, maybe three, but usually not that many
 
 IMPORTANT:
 - Do NOT use ":contains(...)" pseudo selector for any css= selectors
-- If the task is related to pagination, and it's not obvious how to do it, try scrolling to the bottom. This answer will be checked and discarded if it's wrong. Do this if there are no obvious other ways to paginate.
-
 
 >>>> Analyze this HTML:
 {{html}}
@@ -87,12 +88,12 @@ IMPORTANT:
 >>>> Remember, your goal is this:
 {{command}}
 
-Respond ONLY in JSONL, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
+Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
 `);
 
 export const checkAction = new Template(
-  ['goal', 'before', 'after'],
-  `You are part of a web scraping program. The browser has just taken an acction, in a attempt to satisfy a user goal. You have the before and after state of the browser. Your goal is to determine if the action achieved the stated goal. Respond in JSON format, as follows:
+  ['action', 'goal', 'iterations'],
+  `You are part of a web scraping program. The browser has just taken an action, in a attempt to satisfy a user goal. You have the before and after state of the browser. Your goal is to determine if the action achieved the stated goal. Respond in JSON format, as follows:
 
 Fields:
 - "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words.
@@ -100,13 +101,12 @@ Fields:
 
 Below is the user input:
 
->>>> The before state is:
-{{before}}
+{{iterations}}
 
->>>> The after state is:
-{{after}}
+>>>> The action taken was:
+{{action}}
 
->>>> The goal of the aciton is:
+>>>> The goal of the action is:
 {{goal}}
 
 Respond ONLY with JSON. Your response will be machine parsed with JSON.parse()`);

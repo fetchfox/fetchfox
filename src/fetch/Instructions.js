@@ -82,7 +82,8 @@ export const Instructions = class {
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         if (command.prompt == '{{nextPage}}') {
-          command.prompt = 'Go to the next page.';
+          command.prompt = 'Go to the next page or somehow load more data.';
+          // command.prompt = 'Click to load more data.';
           const domainSpecific = domainSpecificInstructions(this.url);
           if (domainSpecific) {
             command.prompt += domainSpecific;
@@ -100,54 +101,56 @@ export const Instructions = class {
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
-        for (const actionPrompt of actionPrompts) {
-          const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
-          let ok = true
-          const incr = [];
+        const answers = (
+          await Promise.allSettled(actionPrompts.map(
+            (prompt) => this.ai.ask(prompt, { format: 'json' })
+          ))
+        )
+          .filter(result => result.status == 'fulfilled');
 
-          for await (const { delta } of stream) {
-            logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+        console.log('answers', answers);
 
-            if (delta.actionType == 'none') {
-              logger.debug(`${this} Ignoring "none" action`);
-              ok = false;
-              continue;
+        const candidates = [];
+        for (const { value: answer } of answers) {
+          const raw = answer.partial?.candidates || [];
+          const remapped = raw.map(it => ({
+            type: it.candidateAction,
+            arg: `css=${it.candidateCss}`,
+            limit: command.limit,
+            mode: command.mode || 'distinct',
+          }));
+          candidates.push(...remapped);
+        }
+
+        console.log('candidates', candidates);
+
+        const outcomes = [];
+        let working;
+        for (const action of candidates) {
+          let ok;
+          try {
+            ok = await this.checkAction(fetcher, doc, command.prompt, action);
+          } catch (e) {
+            logger.warn(`${this} Got error while checking action ${JSON.stringify(action)}, skipping: ${e}`);
+            if (process.env.STRICT_ERRORS) {
+              throw e;
             }
-
-            const action = {
-              type: delta.actionType,
-              arg: delta.actionArgument,
-              limit: command.limit,
-              mode: command.mode || 'distinct',
-            };
-
-            const before = await this.current(fetcher, ctx);
-
-            let r;
-            try {
-              r = await fetcher.act(ctx, action, {});
-            } catch (e) {
-              logger.error(`${this}: Got error while learning action, ignoring: ${e}`);
-              r = { ok: false };
-            }
-
-            if (command.pagination) {
-              const after = await this.current(fetcher, ctx);
-              r.ok &&= await this.checkAction('Go to next page', before, after);
-            }
-
-            if (r.ok) {
-              incr.push(action);
-            }
-
-            ok &&= r.ok;
+            ok = false;
           }
-
-          learned.push(...incr);
-
+          logger.debug(`${this} Checked action ${JSON.stringify(action)} and got ok=${ok}`);
           if (ok) {
-            break;
+            working = action;
           }
+        }
+
+        logger.debug(`${this} Found working action=${JSON.stringify(working)} for ${command.prompt}`);
+
+        console.log('working', working);
+
+        if (working) {
+          learned.push(working);
+        } else {
+          logger.warn(`${this} Could not find a working action for ${command.prompt}`);
         }
       }
 
@@ -321,21 +324,44 @@ export const Instructions = class {
     return doc;
   }
 
-  async checkAction(goal, before, after) {
-    const context = {
-      goal,
-      before: `URL: ${before.url}\nText: ${before.text}`,
-      after: `URL: ${after.url}\nText: ${after.text}`,
-    };
+  async checkAction(fetcher, before, goal, action) {
+    // TODO: make this work for multistep actions
 
-    // TODO: support / use two flex fields
-    const { prompt } = await prompts.checkAction.renderCapped(context, 'after', this.ai);
+    this.learned = [{ ...action, limit: 2 }]; // TODO: multistep
+    console.log('check exec', goal);
+    const docs = [];
+    for await (const { doc } of this.execute(fetcher)) {
+      if (!doc) continue;
+      docs.push(doc);
+    }
+
+    // let outputs = `>>>> Starting URL: ${before.url}\n>>>>Starting text: ${before.text}`;
+    let count = 1;
+    let iterations = '';
+    for (const doc of docs) {
+      iterations += `>>>> URL on action iteration ${count}: ${doc.url}\n`;
+      iterations += `>>>> Page size on iteration ${count}: ${doc}\n`;
+      iterations += `>>>> Text on action iteration ${count}: ${doc.text}\n`;
+      iterations += `\n\n\n`;
+      count++;
+    }
+
+    const context = {
+      action: JSON.stringify(action, null, 2),
+      goal,
+      iterations,
+    };
+    const { prompt } = await prompts.checkAction.renderCapped(
+      context, 'iterations', this.ai);
+
+    console.log('prompt', prompt);
 
     logger.debug(`${this} Check if ${goal} succeeded`);
     const answer = await this.ai.ask(prompt, { format: 'json' });
     logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
     return answer.partial.didSucceed == 'yes';
   }
+
 }
 
 const domainSpecificInstructions = (url) => {

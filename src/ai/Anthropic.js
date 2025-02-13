@@ -18,6 +18,8 @@ export const Anthropic = class extends BaseAI {
   normalizeChunk(chunk) {
     const { id, model } = chunk;
 
+    console.log('anthropic chunk', chunk);
+
     let message;
     if (chunk.content) {
       const content = chunk.content[0];
