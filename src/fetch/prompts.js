@@ -92,7 +92,7 @@ Respond ONLY in JSON, with no explanation. Your response will be machine consume
 `);
 
 export const checkAction = new Template(
-  ['action', 'goal', 'iterations'],
+  ['actions', 'goal', 'iterations'],
   `You are part of a web scraping program. The browser has just taken an action, in a attempt to satisfy a user goal. You have the before and after state of the browser. Your goal is to determine if the action achieved the stated goal. Respond in JSON format, as follows:
 
 Fields:
@@ -103,10 +103,10 @@ Below is the user input:
 
 {{iterations}}
 
->>>> The action taken was:
-{{action}}
+>>>> The actions taken were:
+{{actions}}
 
->>>> The goal of the action is:
+>>>> The goal of the actions is:
 {{goal}}
 
 Respond ONLY with JSON. Your response will be machine parsed with JSON.parse()`);

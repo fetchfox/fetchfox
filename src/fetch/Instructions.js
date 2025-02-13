@@ -75,6 +75,11 @@ export const Instructions = class {
       // cache a chain of url + commands
       for (const command of this.commands) {
         const doc = await this.current(fetcher, ctx);
+
+        console.log('before:', doc.html);
+
+        // throw 'STOP1111';
+
         if (!doc) {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
         }
@@ -129,7 +134,11 @@ export const Instructions = class {
         for (const action of candidates) {
           let ok;
           try {
-            ok = await this.checkAction(fetcher, doc, command.prompt, action);
+            ok = await this.checkAction(
+              fetcher,
+              doc,
+              command.prompt,
+              [...learned, action]);
           } catch (e) {
             logger.warn(`${this} Got error while checking action ${JSON.stringify(action)}, skipping: ${e}`);
             if (process.env.STRICT_ERRORS) {
@@ -163,6 +172,8 @@ export const Instructions = class {
       }
 
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
+
+      console.log('this.learned', this.learned);
 
     } finally {
       await fetcher.finish(ctx);
@@ -324,42 +335,51 @@ export const Instructions = class {
     return doc;
   }
 
-  async checkAction(fetcher, before, goal, action) {
-    // TODO: make this work for multistep actions
+  async checkAction(fetcher, before, goal, sequence) {
+    const copy = JSON.parse(JSON.stringify(sequence))
+      .map(it => ({ ...it, limit: 2 }));
+    const old = this.learned;
+    this.learned = copy;
 
-    this.learned = [{ ...action, limit: 2 }]; // TODO: multistep
-    console.log('check exec', goal);
-    const docs = [];
-    for await (const { doc } of this.execute(fetcher)) {
-      if (!doc) continue;
-      docs.push(doc);
+    try {
+      console.log('check exec', goal);
+      const docs = [before];
+      for await (const { doc } of this.execute(fetcher)) {
+        if (!doc) continue;
+        docs.push(doc);
+      }
+
+      // let outputs = `>>>> Starting URL: ${before.url}\n>>>>Starting text: ${before.text}`;
+      let count = 1;
+      let iterations = '';
+      for (const doc of docs) {
+        iterations += `>>>> URL on action iteration ${count}: ${doc.url}\n`;
+        iterations += `>>>> Page size on iteration ${count}: ${doc}\n`;
+        iterations += `>>>> Page state on action iteration ${count}: ${doc.html}\n`;
+        iterations += `\n\n\n`;
+        count++;
+      }
+
+      const context = {
+        actions: JSON.stringify(sequence, null, 2),
+        goal,
+        iterations,
+      };
+      const { prompt } = await prompts.checkAction.renderCapped(
+        context, 'iterations', this.ai);
+
+      console.log('prompt', prompt);
+
+      logger.debug(`${this} Check if ${goal} succeeded`);
+      const answer = await this.ai.ask(prompt, { format: 'json' });
+      logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
+
+      console.log('answer.partial', answer.partial);
+
+      return answer.partial.didSucceed == 'yes';
+    } finally {
+      this.learned = old;
     }
-
-    // let outputs = `>>>> Starting URL: ${before.url}\n>>>>Starting text: ${before.text}`;
-    let count = 1;
-    let iterations = '';
-    for (const doc of docs) {
-      iterations += `>>>> URL on action iteration ${count}: ${doc.url}\n`;
-      iterations += `>>>> Page size on iteration ${count}: ${doc}\n`;
-      iterations += `>>>> Text on action iteration ${count}: ${doc.text}\n`;
-      iterations += `\n\n\n`;
-      count++;
-    }
-
-    const context = {
-      action: JSON.stringify(action, null, 2),
-      goal,
-      iterations,
-    };
-    const { prompt } = await prompts.checkAction.renderCapped(
-      context, 'iterations', this.ai);
-
-    console.log('prompt', prompt);
-
-    logger.debug(`${this} Check if ${goal} succeeded`);
-    const answer = await this.ai.ask(prompt, { format: 'json' });
-    logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
-    return answer.partial.didSucceed == 'yes';
   }
 
 }

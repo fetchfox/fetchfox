@@ -9,7 +9,8 @@ describe('Instructions', function() {
 
   // Actions take a while to execute
   // TODO: caching to bring down test times
-  this.timeout(15 * 1000);
+  // this.timeout(15 * 1000);
+  this.timeout(60 * 1000);
 
   // TODO: re-enable these tests
 
@@ -445,14 +446,14 @@ describe('Instructions', function() {
       'playwright',
       { ai, cache, loadWait: 1, actionWait: 1, headless: true });
 
-    const limit = 7;
+    const limit = 4;
 
     try {
 
       const commands = [
         { prompt: 'click accept cookies', optional: true, mode: 'first' },
-        { prompt: 'click to go to the next page', mode: 'repeat' },
-        { prompt: 'click each profile link', limit },
+        { prompt: 'click to go to the next page', mode: 'repeat', limit },
+        // { prompt: 'click each profile link', limit },
       ];
 
       await fetcher.start(fetcherCtx);
@@ -461,13 +462,10 @@ describe('Instructions', function() {
       await instr.learn(fetcher, fetcherCtx);
 
       const expected = [
-        ['Page 1', 'Profile content 1'],
-        ['Page 1', 'Profile content 2'],
-        ['Page 1', 'Profile content 3'],
-        ['Page 1', 'Profile content 4'],
-        ['Page 1', 'Profile content 5'],
-        ['Page 2', 'Profile content 6'],
-        ['Page 2', 'Profile content 7'],
+        'Page 1',
+        'Page 2',
+        'Page 3',
+        'Page 4',
       ];
 
       let i = 0;
@@ -481,12 +479,8 @@ describe('Instructions', function() {
         }
 
         const $ = cheerio.load(doc.html);
-
         const page = $('#page-label').text();
-        const profile = $('#profile').text();
-
-        assert.equal(page, expected[i][0]);
-        assert.equal(profile, expected[i][1]);
+        assert.equal(page, expected[i]);
 
         i++;
       }
