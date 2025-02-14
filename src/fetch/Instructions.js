@@ -78,7 +78,7 @@ export const Instructions = class {
         this.commands.length == 1 &&
         this.commands[0].prompt == nextPageCommand
       );
-      if (false && onlyPagination) {
+      if (onlyPagination) {
         logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
         const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
@@ -115,17 +115,12 @@ export const Instructions = class {
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
-        console.log('actionPrompts:', actionPrompts.length);
-
         const answers = (
           await Promise.allSettled(actionPrompts.map(
             (prompt) => this.ai.ask(prompt, { format: 'json' })
           ))
         )
           .filter(result => result.status == 'fulfilled');
-
-        console.log('answers', answers);
-        console.log('answers json', JSON.stringify(answers, null, 2));
 
         const candidates = [];
         for (const { value: answer } of answers) {
@@ -179,10 +174,6 @@ export const Instructions = class {
           }
         }
 
-        console.log('candidates', candidates);
-        console.log('candidates json', JSON.stringify(candidates, null, 2));
-        // throw 'stop1';
-
         let working;
         for (const set of candidates) {
           let ok;
@@ -194,7 +185,7 @@ export const Instructions = class {
               [...learned, ...set]);
 
           } catch (e) {
-            logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e}`);
+            logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
             if (process.env.STRICT_ERRORS) {
               throw e;
             }
@@ -383,9 +374,7 @@ export const Instructions = class {
   }
 
   async current(fetcher, ctx) {
-    console.log('instructions current ->', this.loadTimeout);
     const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-    // const doc = await fetcher.current(ctx);
     logger.debug(`${this} Got document: ${doc}`);
     return doc;
   }
@@ -434,12 +423,10 @@ export const Instructions = class {
 
       if (domainSpecific) {
         context.domainSpecific = `>>>> Note that these actions are based on the domain specific instructions below: ${domainSpecific}`;
-      }f
+      }
 
       const { prompt } = await prompts.checkAction.renderCapped(
         context, 'iterations', this.ai);
-
-      console.log('check action prompt ->', prompt);
 
       logger.debug(`${this} Check if ${goal} succeeded`);
       const answer = await this.ai.ask(prompt, { format: 'json' });

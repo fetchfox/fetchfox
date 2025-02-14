@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { logger } from '../log/logger.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { gather } from './prompts.js';
@@ -148,7 +149,7 @@ export const Crawler = class extends BaseCrawler {
     for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
-        logger.info(`Found link ${delta.url} in response to "${query}"`);
+        logger.info(`${chalk.yellow('\u{25CF}')} Found link ${delta.url} in response to "${query}"`);
         yield Promise.resolve({ _url: delta.url });
       }
     }

@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
@@ -251,7 +252,7 @@ export const BaseFetcher = class {
 
           await this.putS3(doc);
 
-          logger.info(`${this} Yielding document: ${doc}`);
+          logger.info(`${chalk.yellow('\u{25CF}')} Yielding document: ${doc}`);
           yield Promise.resolve(pushAndReturn(doc));
         }
       } catch (e) {
