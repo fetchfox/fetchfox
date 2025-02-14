@@ -32,7 +32,7 @@ export const BaseFetcher = class {
     this.loadWait = options?.loadWait || 4000;
     this.loadTimeout = options?.loadTimeout || 60000;
     this.actionWait = options?.actionWait || 2000;
-    this.locatorTimeout = options?.locatorTimeout || 1000;
+    this.locatorTimeout = options?.locatorTimeout || 60 * 1000;
   }
 
   toString() {
@@ -203,6 +203,7 @@ export const BaseFetcher = class {
                   break;
                 }
                 if (skipOne) {
+                  logger.debug(`${this} Skip one ${doc}`);
                   skipOne = false;
                   continue;
                 }

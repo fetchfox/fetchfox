@@ -131,27 +131,32 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, seen) {
+    const timer = ctx.timer || new Timer();
     logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
-    let r;
+    timer.push(`PlaywrightFetcher act ${action.type} ${action.arg}`);
+    try {
+      let r;
+      switch (action.type) {
+        case 'click':
+          r = await this.click(ctx, action.arg, seen);
+          break;
 
-    switch (action.type) {
-      case 'click':
-        r = await this.click(ctx, action.arg, seen);
-        break;
+        case 'scroll':
+          r = await this.scroll(ctx, action.arg, seen);
+          break;
 
-      case 'scroll':
-        r = await this.scroll(ctx, action.arg, seen);
-        break;
+        default:
+          throw new Error(`Unhandled action type: ${action.type}`);
+      }
 
-      default:
-        throw new Error(`Unhandled action type: ${action.type}`);
+      logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
+      r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
+
+      return r;
+    } finally {
+      timer.pop();
     }
-
-    logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
-    r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
-
-    return r;
   }
 
   async click(ctx, selector, seen) {

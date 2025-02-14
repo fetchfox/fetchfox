@@ -452,7 +452,7 @@ const domainSpecificInstructions = (url) => {
     },
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/,
-      instruction: 'You are on Google Maps. Paginate using by clicking on the text "Results" once to focus on the results area and scrolling down a page length using the page down buttona.',
+      instruction: 'You are on Google Maps. Paginate using by clicking on the text "Results" once to focus on the results area and scrolling down a page length using the page down button.',
     },
     {
       prefix: /^https:\/\/www.steimatzky.co.il/,

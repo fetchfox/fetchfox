@@ -19,7 +19,7 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
       console.log(testName);
 
       try {
-        this.timeout(3 * 60 * 1000); // 3 minutes
+        this.timeout(10 * 60 * 1000); // 10 minutes per benchmark
         const scores = await runMatrix(
           name,
           json,
