@@ -9,10 +9,7 @@ describe('Instructions', function() {
 
   // Actions take a while to execute
   // TODO: caching to bring down test times
-  // this.timeout(15 * 1000);
-  this.timeout(60 * 1000);
-
-  // TODO: re-enable these tests
+  this.timeout(15 * 1000);
 
   const cases = [
     // Objects as the commands
@@ -149,8 +146,6 @@ describe('Instructions', function() {
           const page = $('#page-label').text();
           const profile = $('#profile').text();
 
-          console.log('got -->', page, profile);
-
           assert.equal(page, expected[i][0]);
           assert.equal(profile, expected[i][1]);
 
@@ -247,7 +242,6 @@ describe('Instructions', function() {
         const page = $('#page-label').text();
         const profile = $('#profile').text();
 
-        console.log('got', page, profile);
         assert.equal(page, expected[i]);
         i++;
       }
@@ -350,8 +344,6 @@ describe('Instructions', function() {
         const $ = cheerio.load(doc.html);
         const page = $('#page-label').text();
         const profile = $('#profile').text();
-
-        console.log('got:', page, profile);
 
         assert.equal(page, expected[i][0]);
         assert.equal(profile, expected[i][1]);

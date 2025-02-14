@@ -122,7 +122,6 @@ export const Instructions = class {
           candidates.push(...remapped);
         }
 
-        const outcomes = [];
         let working;
         for (const action of candidates) {
           let ok;
