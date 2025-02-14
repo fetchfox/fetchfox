@@ -29,7 +29,7 @@ export const BaseFetcher = class {
     this.signal = options?.signal;
 
     this.loadWait = options?.loadWait || 4000;
-    this.loadTimeout = options?.loadTimeout || 15000;
+    this.loadTimeout = options?.loadTimeout || 60000;
     this.actionWait = options?.actionWait || 2000;
     this.locatorTimeout = options?.locatorTimeout || 1000;
   }

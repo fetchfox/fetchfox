@@ -25,8 +25,8 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
-    this.ai = options?.ai || getAI(null, { cache });
-    this.loadTimeout = options?.loadTimeout || 15000;
+    this.ai = options?.ai || getAI(null, { cache: this.cache });
+    this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
   }
 
@@ -187,18 +187,11 @@ export const Instructions = class {
         for (const set of candidates) {
           let ok;
           try {
-            // ok = await this.checkAction(
-            //   fetcher,
-            //   doc,
-            //   command.prompt,
-            //   [...learned, ...set]);
-
-            console.log('check:', set);
-            console.log('check:', set);
-            console.log('check:', set);
-            console.log('check:', set);
-
-            ok = true;
+            ok = await this.checkAction(
+              fetcher,
+              doc,
+              command.prompt,
+              [...learned, ...set]);
 
           } catch (e) {
             logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e}`);
@@ -390,7 +383,9 @@ export const Instructions = class {
   }
 
   async current(fetcher, ctx) {
+    console.log('instructions current ->', this.loadTimeout);
     const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+    // const doc = await fetcher.current(ctx);
     logger.debug(`${this} Got document: ${doc}`);
     return doc;
   }
