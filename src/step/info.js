@@ -57,7 +57,6 @@ export const stepDescriptionsMap = {
         description: 'An array of objects to add.',
         format: 'array',
         example: [{ url: 'https://example.com' }],
-        required: true,
       },
     },
   }),
