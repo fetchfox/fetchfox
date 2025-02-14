@@ -76,9 +76,6 @@ export const Instructions = class {
       for (const command of this.commands) {
         const doc = await this.current(fetcher, ctx);
 
-        console.log('before:', doc.html);
-
-        // throw 'STOP1111';
 
         if (!doc) {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
@@ -113,9 +110,6 @@ export const Instructions = class {
         )
           .filter(result => result.status == 'fulfilled');
 
-        console.log('answers', answers);
-        console.log('answers json', JSON.stringify(answers, null, 2));
-
         const candidates = [];
         for (const { value: answer } of answers) {
           const raw = answer.partial?.candidates || [];
@@ -127,8 +121,6 @@ export const Instructions = class {
           }));
           candidates.push(...remapped);
         }
-
-        console.log('candidates', candidates);
 
         const outcomes = [];
         let working;
@@ -155,8 +147,6 @@ export const Instructions = class {
 
         logger.debug(`${this} Found working action=${JSON.stringify(working)} for ${command.prompt}`);
 
-        console.log('working', working);
-
         if (working) {
           learned.push(working);
         } else {
@@ -173,8 +163,6 @@ export const Instructions = class {
       }
 
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
-
-      console.log('this.learned', this.learned);
 
     } finally {
       await fetcher.finish(ctx);
@@ -343,7 +331,6 @@ export const Instructions = class {
     this.learned = copy;
 
     try {
-      console.log('check exec', goal);
       const docs = [before];
       for await (const { doc } of this.execute(fetcher)) {
         if (!doc) continue;
@@ -369,13 +356,9 @@ export const Instructions = class {
       const { prompt } = await prompts.checkAction.renderCapped(
         context, 'iterations', this.ai);
 
-      console.log('prompt', prompt);
-
       logger.debug(`${this} Check if ${goal} succeeded`);
       const answer = await this.ai.ask(prompt, { format: 'json' });
       logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
-
-      console.log('answer.partial', answer.partial);
 
       return answer.partial.didComplete == 'yes';
     } finally {

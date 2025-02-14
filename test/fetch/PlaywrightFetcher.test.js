@@ -42,7 +42,7 @@ describe('PlaywrightFetcher', function() {
     assert.ok(took < 500);
   });
 
-  it('should fetch live site @run @fast', async () => {
+  it('should fetch live site @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end('<html><body><h1>Hello, world!</h1></body></html>');
@@ -66,7 +66,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should fetch live site with dynamic content @run @fast', async () => {
+  it('should fetch live site with dynamic content @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -109,7 +109,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should fetch and paginate through 5 pages on a live site @run @fast', async () => {
+  it('should fetch and paginate through 5 pages on a live site @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -157,7 +157,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should timeout properly @run @fast', async () => {
+  it('should timeout properly @fast', async () => {
     const server = http.createServer(async (req, res) => {
       await new Promise(ok => setTimeout(ok, 20));
       res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -200,7 +200,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should minimize HTML content @run @fast', async () => {
+  it('should minimize HTML content @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -254,7 +254,7 @@ describe('PlaywrightFetcher', function() {
   });
 
 
-  it('should fetch pdf @run @fast', async () => {
+  it('should fetch pdf @fast', async () => {
     const cache = testCache();
     const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
 
@@ -265,7 +265,7 @@ describe('PlaywrightFetcher', function() {
     assert.ok(doc.text.indexOf('bitcoin') != -1);
   });
     
-  it('should handle protected pdf @run @fast', async () => {
+  it('should handle protected pdf @fast', async () => {
     const cache = testCache();
     const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
 

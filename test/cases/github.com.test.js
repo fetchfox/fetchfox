@@ -9,7 +9,7 @@ describe('github.com', function() {
 
   this.timeout(5 * 1000);
 
-  it('should do basic scrape @run @fast', async () => {
+  it('should do basic scrape @fast', async () => {
     let countPartials = 0;
     const wf = await fox
       .config({

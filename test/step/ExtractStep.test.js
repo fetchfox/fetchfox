@@ -4,7 +4,7 @@ import { fox } from '../../src/index.js';
 import { testCache } from '../lib/util.js';
 
 describe('ExtractStep', function() {
-  it('should supplement items with subsequent extractions @run @fast', async () => {
+  it('should supplement items with subsequent extractions @fast', async () => {
     const f = await fox
       .config({
         ai: 'openai:gpt-4o',

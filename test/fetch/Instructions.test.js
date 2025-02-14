@@ -17,7 +17,7 @@ describe('Instructions', function() {
   const cases = [
     // Objects as the commands
     {
-      name: 'should handle next page pagination with objects @run @fast',
+      name: 'should handle next page pagination with objects @fast',
       commands: [
         { prompt: 'click to go to the next page', mode: 'repeat' },
         { prompt: 'click each profile link', mode: 'distinct', limit: 12 },
@@ -42,7 +42,7 @@ describe('Instructions', function() {
 
     // Strings as the commands
     {
-      name: 'should handle next page pagination with strings @run @fast',
+      name: 'should handle next page pagination with strings @fast',
       commands: [
         'click to go to the next page',
         'click each profile link',
@@ -164,7 +164,7 @@ describe('Instructions', function() {
 
   }
 
-  it('should handle load more pagination @run @fast', async () => {
+  it('should handle load more pagination @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -257,7 +257,7 @@ describe('Instructions', function() {
     }
   });
 
-  it('should handle load more pagination and click profiles @run @fast', async () => {
+  it('should handle load more pagination and click profiles @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -364,7 +364,7 @@ describe('Instructions', function() {
     }
   });
 
-  it('should handle cookie button before pagination @run @fast', async () => {
+  it('should handle cookie button before pagination @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
