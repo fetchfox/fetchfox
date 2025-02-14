@@ -16,7 +16,7 @@ describe('OpenAI', function() {
     assert.ok(answer.partial.includes('test'));
   });
 
-  it('should use api key @run @fast', async () => {
+  it('should use api key @fast', async () => {
     const ai = getAI('openai:gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 });
     let err;
     try {
@@ -27,14 +27,14 @@ describe('OpenAI', function() {
     assert.ok(!!err);
   });
 
-  it('should run query (cached) @run @fast', async () => {
+  it('should run query (cached) @fast', async () => {
     const cache = testCache();
     const ai = getAI('openai:gpt-4o-mini', { cache });
     const answer = await ai.ask('return the word test five times', { format: 'text' });
     assert.ok(answer.partial.includes('test'));
   });
 
-  it('should abort @run @fast', async () => {
+  it('should abort @fast', async () => {
     const controller = new AbortController();
     const signal = controller.signal;
     const ai = getAI('openai:gpt-4o-mini', { signal });

@@ -12,7 +12,7 @@ describe('Workflow', function() {
     logger.testMode();
   });
 
-  it('should load steps from json @run @fast', async () => {
+  it('should load steps from json @fast', async () => {
     const data = {
       "steps": [
         {
@@ -63,7 +63,7 @@ describe('Workflow', function() {
       JSON.stringify(data.steps, null, 2));
   });
 
-  it('should publish all steps @run @fast', async () => {
+  it('should publish all steps @fast', async () => {
     const f = await fox
       .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
@@ -114,7 +114,7 @@ describe('Workflow', function() {
     f2.abort();
   });
 
-  it('should describe @run @fast', async () => {
+  it('should describe @fast', async () => {
     const data = {
       "steps": [
         {
@@ -169,7 +169,7 @@ describe('Workflow', function() {
       'description sanity check');
   });
 
-  it('should use global limit @run @fast', async function() {
+  it('should use global limit @fast', async function() {
     const data = {
       "options": {
         "limit": 2,
@@ -351,7 +351,7 @@ describe('Workflow', function() {
     }
   }
 
-  it('should abort @run @fast', async function () {
+  it('should abort @fast', async function () {
     const cases = [
       [1, 100],
       [10, 200],
@@ -373,7 +373,7 @@ describe('Workflow', function() {
     await runAbortCases(cases);
   });
 
-  it('should use api key @run @fast', async () => {
+  it('should use api key @fast', async () => {
     const f = await fox
       .config({
         cache: testCache(),

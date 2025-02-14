@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
 import { logger } from '../log/logger.js';
@@ -29,9 +30,11 @@ export const BaseFetcher = class {
     this.signal = options?.signal;
 
     this.loadWait = options?.loadWait || 4000;
-    this.actionWait = options?.actionWait || 4000;
-    this.paginationWait = options?.paginationWait || this.loadWait;
-    this.loadTimeout = options?.loadTimeout || 15000;
+    this.actionWait = options?.actionWait || 2000;
+
+    this.loadTimeout = options?.loadTimeout || 60000;
+    this.locatorTimeout = options?.locatorTimeout || 60000;
+    this.actionTimeout = options?.actionTimeout || 60000;
   }
 
   toString() {
@@ -182,16 +185,30 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${instr.url}`);
 
-              await instr.learn(this);
+              let skipOne = false;
+              for await (const r of instr.learn(this)) {
+                const doc = r?.doc;
+                if (this.signal?.aborted) {
+                  break;
+                }
+                if (doc) {
+                  channel.send({ doc });
+                  skipOne = true;
+                }
+              }
+
               const gen = await instr.execute(this);
 
               for await (const r of gen) {
                 const doc = r?.doc;
-
                 if (this.signal?.aborted) {
                   break;
                 }
-
+                if (skipOne) {
+                  logger.debug(`${this} Skip one ${doc}`);
+                  skipOne = false;
+                  continue;
+                }
                 if (doc) {
                   channel.send({ doc });
                 }
@@ -238,7 +255,7 @@ export const BaseFetcher = class {
 
           await this.putS3(doc);
 
-          logger.info(`${this} Yielding document: ${doc}`);
+          logger.info(`${chalk.yellow('\u{25CF}')} Yielding document: ${doc}`);
           yield Promise.resolve(pushAndReturn(doc));
         }
       } catch (e) {

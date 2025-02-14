@@ -12,7 +12,7 @@ describe('news.ycombinator.com', function() {
     logger.testMode();
   });
 
-  it('should work @run @fast', async () => {
+  it('should work @fast', async () => {
     let countPartials = 0;
     const wf = await fox
       .config({ cache: testCache() })
@@ -44,7 +44,7 @@ describe('news.ycombinator.com', function() {
     wf.abort();
   });
 
-  it('should crawl @run @fast', async () => {
+  it('should crawl @fast', async () => {
     let countPartials = 0;
     const wf = await fox
       .config({ cache: testCache() })

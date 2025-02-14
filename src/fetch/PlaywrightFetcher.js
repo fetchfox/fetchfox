@@ -131,27 +131,32 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, seen) {
+    const timer = ctx.timer || new Timer();
     logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
-    let r;
+    timer.push(`PlaywrightFetcher act ${action.type} ${action.arg}`);
+    try {
+      let r;
+      switch (action.type) {
+        case 'click':
+          r = await this.click(ctx, action.arg, seen);
+          break;
 
-    switch (action.type) {
-      case 'click':
-        r = await this.click(ctx, action.arg, seen);
-        break;
+        case 'scroll':
+          r = await this.scroll(ctx, action.arg, seen);
+          break;
 
-      case 'scroll':
-        r = await this.scroll(ctx, action.arg, seen);
-        break;
+        default:
+          throw new Error(`Unhandled action type: ${action.type}`);
+      }
 
-      default:
-        throw new Error(`Unhandled action type: ${action.type}`);
+      logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
+      r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
+
+      return r;
+    } finally {
+      timer.pop();
     }
-
-    logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
-    r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
-
-    return r;
   }
 
   async click(ctx, selector, seen) {
@@ -171,7 +176,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // Look for the first matching element not in seen
     for (let i = 0; el == null; i++) {
       try {
-        await loc.nth(i).waitFor({ state: 'attached', timeout: 1000 });
+        await loc.nth(i).waitFor({ state: 'attached', timeout: this.locatorTimeout });
       } catch (e) {
         logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
         return { ok: false };
@@ -189,8 +194,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       logger.debug(`${this} Found new element ${el} after ${i} iterations`);
     }
 
-    await el.scrollIntoViewIfNeeded();
-    await el.click();
+    try {
+      await el.scrollIntoViewIfNeeded({ timeout: this.actionTimeout });
+      await el.click({ timeout: this.actionTimeout });
+    } catch (e) {
+      logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
+      return { ok: false };
+    }
 
     return { ok: true, text, html };
   }
@@ -205,7 +215,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // TODO: Check if scrolling worked
 
     switch (type) {
-      case 'window':
+      case 'page-down':
         await ctx.page.keyboard.press('PageDown');
         break;
 
@@ -216,6 +226,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             const top = document.documentElement.scrollHeight;
             return new Promise((ok) => {
               document.addEventListener('scrollend', ok);
+              setTimeout(ok, 2000);
               window.scrollTo({ top, behavior: 'smooth' });
             });
           }
@@ -492,7 +503,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     });
     /* eslint-enable no-undef */
   } catch (e) {
-    logger.warn(`${this} Error while getting HTML: ${e}`);
+    logger.error(`Error while getting HTML: ${e}`);
   }
 
   return {

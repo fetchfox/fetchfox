@@ -17,7 +17,7 @@ describe('Fetch', function() {
     assert.ok(took < 2000);
   });
 
-  it('should abort @run @fast', async () => {
+  it('should abort @fast', async () => {
     const controller = new AbortController();
     const signal = controller.signal;
 

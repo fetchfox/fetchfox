@@ -8,7 +8,7 @@ import { testCache } from '../lib/util.js';
 // Test the examples from README.md
 describe('examples', function() {
 
-  it('should do basic example @run @fast', async () => {
+  it('should do basic example @fast', async () => {
     const cases = [
       { ai: 'openai:gpt-4o-mini' },
       { ai: 'openrouter:openai/gpt-4o-mini' },
@@ -43,7 +43,7 @@ describe('examples', function() {
     }
   });
 
-  it('should do streaming example @run @fast', async () => {
+  it('should do streaming example @fast', async () => {
     const stream = fox
       .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')

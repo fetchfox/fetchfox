@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { logger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
@@ -185,6 +186,7 @@ export const BaseExtractor = class {
             break;
           }
           logger.debug(`${this} Found ${++count} items so far`);
+          logger.debug(`${chalk.green('\u{25CF}')} Yielding item ${JSON.stringify(val.result)}`);
           yield Promise.resolve(val.result);
         }
       } catch (e) {

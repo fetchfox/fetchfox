@@ -9,6 +9,8 @@ import * as prompts from './prompts.js';
 // - More generally, this applies if there is only a single `repeat` action
 // - Detect and use changes in URL as a shortcut
 
+const nextPageCommand = '{{nextPage}}';
+
 export const Instructions = class {
   constructor(url, commands, options) {
     this.url = url;
@@ -23,8 +25,8 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
-    this.ai = options?.ai || getAI();
-    this.loadTimeout = options?.loadTimeout || 15000;
+    this.ai = options?.ai || getAI(null, { cache: this.cache });
+    this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
   }
 
@@ -49,7 +51,7 @@ export const Instructions = class {
     return `instructions-${hash}`;
   }
 
-  async learn(fetcher) {
+  async *learn(fetcher) {
     const learned = [];
 
     const key = this.cacheKey();
@@ -70,19 +72,32 @@ export const Instructions = class {
       await fetcher.start(ctx);
       await fetcher.goto(this.url, ctx);
 
+      // If pagination is the only action, yield the first page before
+      // learning how to do pagination
+      const onlyPagination = (
+        this.commands.length == 1 &&
+        this.commands[0].prompt == nextPageCommand
+      );
+      if (onlyPagination) {
+        logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
+        const doc = await this.current(fetcher, ctx);
+        yield Promise.resolve({ doc });
+      }
+
       // TODO: It would be nice of learning supported caching. Right now,
       // we use the live page for interactions, but it should be possible to
       // cache a chain of url + commands
       for (const command of this.commands) {
         const doc = await this.current(fetcher, ctx);
+
         if (!doc) {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
         }
 
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
-        if (command.prompt == '{{nextPage}}') {
-          command.prompt = 'Go to the next page.';
+        if (command.prompt == nextPageCommand) {
+          command.prompt = 'Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.';
           const domainSpecific = domainSpecificInstructions(this.url);
           if (domainSpecific) {
             command.prompt += domainSpecific;
@@ -100,58 +115,97 @@ export const Instructions = class {
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
-        for (const actionPrompt of actionPrompts) {
-          const stream = this.ai.stream(actionPrompt, { format: 'jsonl' });
-          let ok = true
-          const incr = [];
+        const answers = (
+          await Promise.allSettled(actionPrompts.map(
+            (prompt) => this.ai.ask(prompt, { format: 'json' })
+          ))
+        )
+          .filter(result => result.status == 'fulfilled');
 
-          for await (const { delta } of stream) {
-            logger.debug(`${this} Received action: ${JSON.stringify(delta)}`);
+        const candidates = [];
+        for (const { value: answer } of answers) {
+          const raw = answer.partial.candidates || [];
 
-            if (delta.actionType == 'none') {
-              logger.debug(`${this} Ignoring "none" action`);
-              ok = false;
-              continue;
+          for (const it of raw) {
+            const type = it.candidateAction;
+            const limit = command.limit;
+            const mode = command.mode || answer.partial.actionMode || 'distinct';
+            switch (type) {
+              case 'click':
+                candidates.push([
+                  {
+                    type,
+                    arg: it.candidatePlaywrightSelector,
+                    limit,
+                    mode,
+                  }
+                ]);
+                break;
+
+              case 'scroll':
+                candidates.push([
+                  {
+                    type,
+                    arg: it.candidateScrollType,
+                    limit,
+                    mode,
+                  }
+                ]);
+                break;
+
+              case 'click-scroll':
+                candidates.push([
+                  {
+                    type: 'click',
+                    arg: it.candidatePlaywrightSelector,
+                    limit,
+                    mode: 'first',
+                  },
+                  {
+                    type: 'scroll',
+                    arg: it.candidateScrollType,
+                    limit,
+                    mode,
+                  },
+                ]);
+                break;
+
             }
-
-            const action = {
-              type: delta.actionType,
-              arg: delta.actionArgument,
-              limit: command.limit,
-              mode: command.mode || 'distinct',
-            };
-
-            const before = await this.current(fetcher, ctx);
-
-            let r;
-            try {
-              r = await fetcher.act(ctx, action, {});
-            } catch (e) {
-              logger.error(`${this}: Got error while learning action, ignoring: ${e}`);
-              r = { ok: false };
-            }
-
-            if (command.pagination) {
-              const after = await this.current(fetcher, ctx);
-              r.ok &&= await this.checkAction('Go to next page', before, after);
-            }
-
-            if (r.ok) {
-              incr.push(action);
-            }
-
-            ok &&= r.ok;
           }
+        }
 
-          learned.push(...incr);
+        let working;
+        for (const set of candidates) {
+          let ok;
+          try {
+            ok = await this.checkAction(
+              fetcher,
+              doc,
+              command.prompt,
+              [...learned, ...set]);
 
+          } catch (e) {
+            logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
+            if (process.env.STRICT_ERRORS) {
+              throw e;
+            }
+            ok = false;
+          }
+          logger.debug(`${this} Checked action ${JSON.stringify(set)} and got ok=${ok}`);
           if (ok) {
-            break;
+            working = set;
           }
+        }
+
+        logger.debug(`${this} Found working action set=${JSON.stringify(working)} for ${command.prompt}`);
+
+        if (working) {
+          learned.push(...working);
+        } else {
+          logger.warn(`${this} Could not find a working action for ${command.prompt}`);
         }
       }
 
-      // TODO: Check if the learned actions work, and retry if they don't
       this.learned = learned;
 
       if (this.cache) {
@@ -160,6 +214,10 @@ export const Instructions = class {
       }
 
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
+
+    } catch (e) {
+      logger.error(`${this} Got error: ${e}`);
+      throw e;
 
     } finally {
       await fetcher.finish(ctx);
@@ -321,28 +379,72 @@ export const Instructions = class {
     return doc;
   }
 
-  async checkAction(goal, before, after) {
-    const context = {
-      goal,
-      before: `URL: ${before.url}\nText: ${before.text}`,
-      after: `URL: ${after.url}\nText: ${after.text}`,
-    };
+  async checkAction(fetcher, before, goal, sequence) {
+    const copy = JSON.parse(JSON.stringify(sequence))
+      .map(it => ({ ...it, limit: 2 }));
+    const old = this.learned;
+    this.learned = copy;
 
-    // TODO: support / use two flex fields
-    const { prompt } = await prompts.checkAction.renderCapped(context, 'after', this.ai);
+    const domainSpecific = domainSpecificInstructions(this.url);
 
-    logger.debug(`${this} Check if ${goal} succeeded`);
-    const answer = await this.ai.ask(prompt, { format: 'json' });
-    logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
-    return answer.partial.didSucceed == 'yes';
+    try {
+      const docs = [before];
+      for await (const { doc } of this.execute(fetcher)) {
+        if (!doc) continue;
+        docs.push(doc);
+      }
+
+      let count = 1;
+      let iterations = '';
+      for (const doc of docs) {
+        // Remove port so that URLs are stable in testing for cache keys
+        const noPort = (url) => {
+          try {
+            const u = new URL(url);
+            u.port = '';
+            return u.toString();
+          } catch {
+            return url;
+          }
+        }
+
+        iterations += `>>>> URL on action iteration ${count}: ${noPort(doc.url)}\n`;
+        iterations += `>>>> Page state on action iteration ${count}: ${doc.text}\n`;
+        iterations += `\n\n`;
+        count++;
+      }
+
+      const context = {
+        action: JSON.stringify(sequence[sequence.length - 1], null, 2),
+        goal,
+        iterations,
+        domainSpecific: '',
+      };
+
+      if (domainSpecific) {
+        context.domainSpecific = `>>>> Note that these actions are based on the domain specific instructions below: ${domainSpecific}`;
+      }
+
+      const { prompt } = await prompts.checkAction.renderCapped(
+        context, 'iterations', this.ai);
+
+      logger.debug(`${this} Check if ${goal} succeeded`);
+      const answer = await this.ai.ask(prompt, { format: 'json' });
+      logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
+
+      return answer.partial.didComplete == 'yes';
+    } finally {
+      this.learned = old;
+    }
   }
+
 }
 
 const domainSpecificInstructions = (url) => {
   const matchers = [
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/,
-      instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
+      instruction: 'You are on x.com, which paginates by scrolling down exactly one window height using page down. Your pagination should do this.',
     },
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/,
@@ -350,7 +452,7 @@ const domainSpecificInstructions = (url) => {
     },
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/,
-      instruction: 'You are on Google Maps. Paginate using these two steps: (1) Click on the text "Results" to focus on the results area and (2) scroll down exactly one window length.',
+      instruction: 'You are on Google Maps. Paginate using by clicking on the text "Results" once to focus on the results area and scrolling down a page length using the page down button.',
     },
     {
       prefix: /^https:\/\/www.steimatzky.co.il/,
