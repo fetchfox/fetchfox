@@ -44,25 +44,27 @@ Information on these fields:
   - "page-down" to scroll down a window height using the page down button
   - "bottom" to scroll all the way to the bottom using javascript
 
-Follow these important rules:
-- Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
-- Avoid hardcoding specific text or values when possible. Instead, try to generalize the command to make it reusable across different pages.
-- Keep the CSS selectors as simple and specific as possible, making them compatible with document.querySelector().
-- Do NOT invent or guess at CSS selectors. If you don't see one that works, return "none"
-- If no action is needed, or if you can't find a way to do it, return empty list for candidates
-- You might need one or two commands to complete action, maybe three, but usually not that many
-
-REMEMBER:
-- Each candidate is a distinct possible way to achieve the goal. They are NOT related to each other.
-
-IMPORTANT:
-- Do NOT use ":contains(...)" pseudo selector for any css= selectors
-
 >>>> Analyze this HTML:
 {{html}}
 
 >>>> Remember, your goal is this:
 {{command}}
+
+Follow these important rules:
+- Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
+- Avoid hardcoding specific text or values when possible. Instead, try to generalize the command to make it reusable across different pages.
+- If no action is needed, or if you can't find a way to do it, return empty list for candidates
+- You might need one or two commands to complete action, maybe three, but usually not that many
+
+REMEMBER:
+- Each candidate is a distinct possible way to achieve the goal. They are NOT related to each other.
+- Do *NOT* guess at CSS selectors that may exist. ONLY incldue ones you see in the portion of the page you are lookin at
+- Keep the CSS selectors as SIMPLE as possible and human understandable
+- If you are matching text, you must use "text=...". Do NOT try to use CSS to match text. Playwright can do both, but you must use text= for text matching.
+
+IMPORTANT:
+- Do NOT use ":contains(...)" pseudo selector for any css= selectors
+- Do NOT invent CSS selectors to match text. NEVER MATCH TEXT WITH css=...
 
 Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
 `);

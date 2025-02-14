@@ -125,7 +125,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return;
     }
 
-    logger.debug(`${this} Closing browser`);
+    logger.trace(`${this} Closing browser`);
     await ctx.browser.close();
     delete ctx.browser;
   }
@@ -498,7 +498,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     });
     /* eslint-enable no-undef */
   } catch (e) {
-    logger.warn(`${this} Error while getting HTML: ${e}`);
+    logger.trace(`Error while getting HTML: ${e}`);
   }
 
   return {

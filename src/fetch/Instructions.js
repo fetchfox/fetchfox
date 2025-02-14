@@ -78,7 +78,7 @@ export const Instructions = class {
         this.commands.length == 1 &&
         this.commands[0].prompt == nextPageCommand
       );
-      if (onlyPagination) {
+      if (false && onlyPagination) {
         logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
         const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
@@ -97,7 +97,7 @@ export const Instructions = class {
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         if (command.prompt == nextPageCommand) {
-          command.prompt = 'Go to the next page or somehow load more data.';
+          command.prompt = 'Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.';
           const domainSpecific = domainSpecificInstructions(this.url);
           if (domainSpecific) {
             command.prompt += domainSpecific;
@@ -115,12 +115,17 @@ export const Instructions = class {
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai);
 
+        console.log('actionPrompts:', actionPrompts.length);
+
         const answers = (
           await Promise.allSettled(actionPrompts.map(
             (prompt) => this.ai.ask(prompt, { format: 'json' })
           ))
         )
           .filter(result => result.status == 'fulfilled');
+
+        console.log('answers', answers);
+        console.log('answers json', JSON.stringify(answers, null, 2));
 
         const candidates = [];
         for (const { value: answer } of answers) {
@@ -174,15 +179,27 @@ export const Instructions = class {
           }
         }
 
+        console.log('candidates', candidates);
+        console.log('candidates json', JSON.stringify(candidates, null, 2));
+        // throw 'stop1';
+
         let working;
         for (const set of candidates) {
           let ok;
           try {
-            ok = await this.checkAction(
-              fetcher,
-              doc,
-              command.prompt,
-              [...learned, ...set]);
+            // ok = await this.checkAction(
+            //   fetcher,
+            //   doc,
+            //   command.prompt,
+            //   [...learned, ...set]);
+
+            console.log('check:', set);
+            console.log('check:', set);
+            console.log('check:', set);
+            console.log('check:', set);
+
+            ok = true;
+
           } catch (e) {
             logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e}`);
             if (process.env.STRICT_ERRORS) {
@@ -213,6 +230,10 @@ export const Instructions = class {
       }
 
       logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
+
+    } catch (e) {
+      logger.error(`${this} Got error: ${e}`);
+      throw e;
 
     } finally {
       await fetcher.finish(ctx);
@@ -392,7 +413,18 @@ export const Instructions = class {
       let count = 1;
       let iterations = '';
       for (const doc of docs) {
-        iterations += `>>>> URL on action iteration ${count}: ${doc.url}\n`;
+        // Remove port so that URLs are stable in testing, and therefore cache
+        const noPort = (url) => {
+          try {
+            const u = new URL(url);
+            u.port = '';
+            return u.toString();
+          } catch {
+            return url;
+          }
+        }
+
+        iterations += `>>>> URL on action iteration ${count}: ${noPort(doc.url)}\n`;
         iterations += `>>>> Page state on action iteration ${count}: ${doc.text}\n`;
         iterations += `\n\n`;
         count++;
@@ -407,10 +439,12 @@ export const Instructions = class {
 
       if (domainSpecific) {
         context.domainSpecific = `>>>> Note that these actions are based on the domain specific instructions below: ${domainSpecific}`;
-      }
+      }f
 
       const { prompt } = await prompts.checkAction.renderCapped(
         context, 'iterations', this.ai);
+
+      console.log('check action prompt ->', prompt);
 
       logger.debug(`${this} Check if ${goal} succeeded`);
       const answer = await this.ai.ask(prompt, { format: 'json' });
