@@ -397,7 +397,7 @@ export const Instructions = class {
       let count = 1;
       let iterations = '';
       for (const doc of docs) {
-        // Remove port so that URLs are stable in testing, and therefore cache
+        // Remove port so that URLs are stable in testing for cache keys
         const noPort = (url) => {
           try {
             const u = new URL(url);

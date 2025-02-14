@@ -125,7 +125,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return;
     }
 
-    logger.trace(`${this} Closing browser`);
+    logger.debug(`${this} Closing browser`);
     await ctx.browser.close();
     delete ctx.browser;
   }
@@ -195,8 +195,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     try {
-      await el.scrollIntoViewIfNeeded({ timeout: 4000 });
-      await el.click({ timeout: 4000 });
+      await el.scrollIntoViewIfNeeded({ timeout: this.actionTimeout });
+      await el.click({ timeout: this.actionTimeout });
     } catch (e) {
       logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
       return { ok: false };
@@ -503,7 +503,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     });
     /* eslint-enable no-undef */
   } catch (e) {
-    logger.trace(`Error while getting HTML: ${e}`);
+    logger.error(`Error while getting HTML: ${e}`);
   }
 
   return {

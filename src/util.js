@@ -130,7 +130,7 @@ export const abortable = async (signal, promise) => {
       if (signal?.aborted) {
         return { aborted: true };
       }
-      logger.trace(`Abortable got error: ${e}`);
+      logger.error(`Abortable got error: ${e}`);
       throw e;
     });
 
