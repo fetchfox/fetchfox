@@ -114,6 +114,7 @@ export const Instructions = class {
           .filter(result => result.status == 'fulfilled');
 
         console.log('answers', answers);
+        console.log('answers json', JSON.stringify(answers, null, 2));
 
         const candidates = [];
         for (const { value: answer } of answers) {
@@ -122,7 +123,7 @@ export const Instructions = class {
             type: it.candidateAction,
             arg: `css=${it.candidateCss}`,
             limit: command.limit,
-            mode: command.mode || 'distinct',
+            mode: command.mode || answer.partial.actionMode || 'distinct',
           }));
           candidates.push(...remapped);
         }
@@ -361,7 +362,7 @@ export const Instructions = class {
       }
 
       const context = {
-        actions: JSON.stringify(sequence, null, 2),
+        action: JSON.stringify(sequence[sequence.length - 1], null, 2),
         goal,
         iterations,
       };
@@ -376,7 +377,7 @@ export const Instructions = class {
 
       console.log('answer.partial', answer.partial);
 
-      return answer.partial.didSucceed == 'yes';
+      return answer.partial.didComplete == 'yes';
     } finally {
       this.learned = old;
     }

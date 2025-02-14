@@ -50,6 +50,7 @@ Respond with JSON as follows:
 
 {
   "actionAnalysis": "string...",
+  "actionMode": "one of 'distinct', 'first', or 'repeat'"
   "candidates": [
     {
       "candidateAnalysis": "Reason for why this one might work",
@@ -66,6 +67,10 @@ Respond with JSON as follows:
 
 Information on these fields:
 - "actionAnalysis": Describe the desired action and your approach in 10-20 words
+- "actionMode": One of the following:
+  - "distinct": If we should click each distinct element. This is for situations like clicking each link to a profile page or each link to a detail page.
+  - "first": If we always execute this action exactly once on an element. This is for situations like accepting a cookie waiver, where you always click it once.
+  - "repeat": If we execute on the *same* element, but more and more times. For example, pagination repeats: to get to page 2, you repeat 2 times, to get to page 3 you repeat 3 times, and so on.
 - "candidates": A list of 0 or more possible ways to do this action
 - "candidateAnalysis": A 10-20 word analysis of this approach
 - "candidateAction": For now this is always "click"
@@ -92,21 +97,21 @@ Respond ONLY in JSON, with no explanation. Your response will be machine consume
 `);
 
 export const checkAction = new Template(
-  ['actions', 'goal', 'iterations'],
-  `You are part of a web scraping program. The browser has just taken an action, in a attempt to satisfy a user goal. You have the before and after state of the browser. Your goal is to determine if the action achieved the stated goal. Respond in JSON format, as follows:
+  ['action', 'goal', 'iterations'],
+  `You are part of a web scraping program. The browser has just taken an action basd on a user prompt. You have the before and after state of the browser. Your goal is to determine if that action was properly executed. Respond in JSON format, as follows:
 
 Fields:
-- "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words.
-- "didSucceed": The string "yes" for success, or "no" if the goal was not achieved
+- "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words. Remember, for an actions that repeat, only a SINGLE iteration was executed. If your analysis shows that the action was a success, we will thereafter complet the later iterations.
+- "didComplete": The string "yes" if that action was completed for one good iteration, or "no" if the action was not completed
 
 Below is the user input:
 
 {{iterations}}
 
->>>> The actions taken were:
-{{actions}}
+>>>> The following action was taken, expressed in a machine readable format:
+{{action}}
 
->>>> The goal of the actions is:
+>>>> The user prompt for actions is:
 {{goal}}
 
 Respond ONLY with JSON. Your response will be machine parsed with JSON.parse()`);

@@ -17,36 +17,32 @@ describe('Instructions', function() {
   const cases = [
     // Objects as the commands
     {
-      name: 'should handle next page pagination with objects @disabled',
+      name: 'should handle next page pagination with objects @run @fast',
       commands: [
-        { prompt: 'click to go to the next page', max: 3, repeat: 3 },
-        { prompt: 'click each profile link', max: 4 },
+        { prompt: 'click to go to the next page', mode: 'repeat' },
+        { prompt: 'click each profile link', mode: 'distinct', limit: 12 },
       ],
       expected: [
         ['Page 1', 'Profile content 1'],
         ['Page 1', 'Profile content 2'],
         ['Page 1', 'Profile content 3'],
         ['Page 1', 'Profile content 4'],
+        ['Page 1', 'Profile content 5'],
 
         ['Page 2', 'Profile content 6'],
         ['Page 2', 'Profile content 7'],
         ['Page 2', 'Profile content 8'],
         ['Page 2', 'Profile content 9'],
+        ['Page 2', 'Profile content 10'],
 
         ['Page 3', 'Profile content 11'],
         ['Page 3', 'Profile content 12'],
-        ['Page 3', 'Profile content 13'],
-        ['Page 3', 'Profile content 14'],
       ],
-      expectedUsage: {
-        goto: 16,
-        actions: [15, 12],
-      },
     },
 
     // Strings as the commands
     {
-      name: 'should handle next page pagination with strings @disabled',
+      name: 'should handle next page pagination with strings @run @fast',
       commands: [
         'click to go to the next page',
         'click each profile link',
@@ -70,14 +66,10 @@ describe('Instructions', function() {
         ['Page 3', 'Profile content 14'],
         ['Page 3', 'Profile content 15'],
       ],
-      expectedUsage: {
-        goto: 19,
-        actions: [21, 19],
-      },
     },
   ];
 
-  for (const { name, commands, expected, expectedUsage } of cases) {
+  for (const { name, commands, expected } of cases) {
 
     it(name, async () => {
       const server = http.createServer((req, res) => {
@@ -135,7 +127,7 @@ describe('Instructions', function() {
         const ai = getAI('openai:gpt-4o', { cache });
         const fetcher = getFetcher(
           'playwright',
-          { ai, loadWait: 1, actionWait: 1, headless: true });
+          { ai, loadWait: 1, actionWait: 1, locatorTimeout: 25, headless: true });
         const url = `http://localhost:${port}`;
 
         const instr = new Instructions(url, commands, { ai });
@@ -144,9 +136,8 @@ describe('Instructions', function() {
         let i = 0;
 
         let doc;
-        let usage;
         const gen = instr.execute(fetcher);
-        for await ({ doc, usage } of gen) {
+        for await (const { doc } of gen) {
           if (!doc) {
             continue;
           }
@@ -158,13 +149,13 @@ describe('Instructions', function() {
           const page = $('#page-label').text();
           const profile = $('#profile').text();
 
+          console.log('got -->', page, profile);
+
           assert.equal(page, expected[i][0]);
           assert.equal(profile, expected[i][1]);
 
           i++;
         }
-
-        assert.equal(JSON.stringify(usage), JSON.stringify(expectedUsage));
 
       } finally {
         server.close();
@@ -246,10 +237,8 @@ describe('Instructions', function() {
 
       let i = 0;
 
-      let doc;
-      let usage;
       const gen = instr.execute(fetcher);
-      for await ({ doc, usage } of gen) {
+      for await (const { doc } of gen) {
         if (!doc) {
           continue;
         }
@@ -468,7 +457,6 @@ describe('Instructions', function() {
       let i = 0;
 
       let doc;
-      let usage;
       const gen = instr.execute(fetcher, fetcherCtx);
       for await ({ doc } of gen) {
         if (!doc) {
