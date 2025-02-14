@@ -37,6 +37,9 @@ export const storeScores = async (scores, key) => {
       score0: score.score[0] || 0,
       score1: score.score[1] || 0,
 
+      first_msec: score.firstMsec,
+      total_msec: score.totalMsec,
+
       cost_input: score.stats?.cost?.input ?? -1,
       cost_output: score.stats?.cost?.output ?? -1,
       cost_total: score.stats?.cost?.total ?? -1,
