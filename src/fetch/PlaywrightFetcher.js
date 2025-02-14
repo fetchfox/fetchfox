@@ -171,7 +171,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // Look for the first matching element not in seen
     for (let i = 0; el == null; i++) {
       try {
-        await loc.nth(i).waitFor({ state: 'attached', timeout: 1000 });
+        await loc.nth(i).waitFor({ state: 'attached', timeout: this.locatorTimeout });
       } catch (e) {
         logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
         return { ok: false };

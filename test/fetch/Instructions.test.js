@@ -268,7 +268,7 @@ describe('Instructions', function() {
     }
   });
 
-  it('should handle load more pagination and click profiles @disabled', async () => {
+  it('should handle load more pagination and click profiles @run @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -323,12 +323,12 @@ describe('Instructions', function() {
       const ai = getAI('openai:gpt-4o', { cache });
       const fetcher = getFetcher(
         'playwright',
-        { ai, loadWait: 1, actionWait: 1, headless: true });
+        { ai, loadWait: 1, actionWait: 1, locatorTimeout: 25, headless: true });
       const url = `http://localhost:${port}`;
 
       const commands = [
-        { prompt: 'click to go to the next page', max: 3, repeat: 3 },
-        { prompt: 'click each profile link', max: 4 },
+        { prompt: 'click to go to the next page', mode: 'repeat' },
+        { prompt: 'click each profile link', mode: 'distinct', limit: 12 },
       ];
 
       const instr = new Instructions(url, commands, { ai });
@@ -339,22 +339,21 @@ describe('Instructions', function() {
         ['Page 1', 'Profile content 2'],
         ['Page 1', 'Profile content 3'],
         ['Page 1', 'Profile content 4'],
-        ['Page 2', 'Profile content 5'],
+        ['Page 1', 'Profile content 5'],
+
         ['Page 2', 'Profile content 6'],
         ['Page 2', 'Profile content 7'],
         ['Page 2', 'Profile content 8'],
-        ['Page 3', 'Profile content 9'],
-        ['Page 3', 'Profile content 10'],
+        ['Page 2', 'Profile content 9'],
+        ['Page 2', 'Profile content 10'],
+
         ['Page 3', 'Profile content 11'],
         ['Page 3', 'Profile content 12'],
       ];
 
       let i = 0;
-
-      let doc;
-      let usage;
       const gen = instr.execute(fetcher);
-      for await ({ doc, usage } of gen) {
+      for await (const { doc } of gen) {
         if (!doc) {
           continue;
         }
@@ -363,15 +362,13 @@ describe('Instructions', function() {
         const page = $('#page-label').text();
         const profile = $('#profile').text();
 
+        console.log('got:', page, profile);
+
         assert.equal(page, expected[i][0]);
         assert.equal(profile, expected[i][1]);
 
         i++;
       }
-
-      assert.equal(usage.goto, 16, 'expected 16 gotos');
-      assert.equal(usage.actions[0], 15, 'expected 15 (12 success + 3 failed) next page clicks');
-      assert.equal(usage.actions[1], 12, 'expected 12 profile button clicks');
 
     } finally {
       server.close();

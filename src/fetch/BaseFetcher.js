@@ -29,9 +29,9 @@ export const BaseFetcher = class {
     this.signal = options?.signal;
 
     this.loadWait = options?.loadWait || 4000;
-    this.actionWait = options?.actionWait || 4000;
-    this.paginationWait = options?.paginationWait || this.loadWait;
     this.loadTimeout = options?.loadTimeout || 15000;
+    this.actionWait = options?.actionWait || 4000;
+    this.locatorTimeout = options?.locatorTimeout || 1000;
   }
 
   toString() {
