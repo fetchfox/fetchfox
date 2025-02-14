@@ -9,6 +9,8 @@ import * as prompts from './prompts.js';
 // - More generally, this applies if there is only a single `repeat` action
 // - Detect and use changes in URL as a shortcut
 
+const nextPageCommand = '{{nextPage}}';
+
 export const Instructions = class {
   constructor(url, commands, options) {
     this.url = url;
@@ -23,7 +25,7 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
-    this.ai = options?.ai || getAI();
+    this.ai = options?.ai || getAI(null, { cache });
     this.loadTimeout = options?.loadTimeout || 15000;
     this.limit = options?.limit;
   }
@@ -49,7 +51,7 @@ export const Instructions = class {
     return `instructions-${hash}`;
   }
 
-  async learn(fetcher) {
+  async *learn(fetcher) {
     const learned = [];
 
     const key = this.cacheKey();
@@ -70,12 +72,23 @@ export const Instructions = class {
       await fetcher.start(ctx);
       await fetcher.goto(this.url, ctx);
 
+      // If pagination is the only action, yield the first page before
+      // learning how to do pagination
+      const onlyPagination = (
+        this.commands.length == 1 &&
+        this.commands[0].prompt == nextPageCommand
+      );
+      if (onlyPagination) {
+        logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
+        const doc = await this.current(fetcher, ctx);
+        yield Promise.resolve({ doc });
+      }
+
       // TODO: It would be nice of learning supported caching. Right now,
       // we use the live page for interactions, but it should be possible to
       // cache a chain of url + commands
       for (const command of this.commands) {
         const doc = await this.current(fetcher, ctx);
-
 
         if (!doc) {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
@@ -83,9 +96,8 @@ export const Instructions = class {
 
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
-        if (command.prompt == '{{nextPage}}') {
+        if (command.prompt == nextPageCommand) {
           command.prompt = 'Go to the next page or somehow load more data.';
-          // command.prompt = 'Click to load more data.';
           const domainSpecific = domainSpecificInstructions(this.url);
           if (domainSpecific) {
             command.prompt += domainSpecific;
@@ -112,48 +124,87 @@ export const Instructions = class {
 
         const candidates = [];
         for (const { value: answer } of answers) {
-          const raw = answer.partial?.candidates || [];
-          const remapped = raw.map(it => ({
-            type: it.candidateAction,
-            arg: `css=${it.candidateCss}`,
-            limit: command.limit,
-            mode: command.mode || answer.partial.actionMode || 'distinct',
-          }));
-          candidates.push(...remapped);
+          const raw = answer.partial.candidates || [];
+
+          for (const it of raw) {
+            const type = it.candidateAction;
+            const limit = command.limit;
+            const mode = command.mode || answer.partial.actionMode || 'distinct';
+            switch (type) {
+              case 'click':
+                candidates.push([
+                  {
+                    type,
+                    arg: it.candidatePlaywrightSelector,
+                    limit,
+                    mode,
+                  }
+                ]);
+                break;
+
+              case 'scroll':
+                candidates.push([
+                  {
+                    type,
+                    arg: it.candidateScrollType,
+                    limit,
+                    mode,
+                  }
+                ]);
+                break;
+
+              case 'click-scroll':
+                candidates.push([
+                  {
+                    type: 'click',
+                    arg: it.candidatePlaywrightSelector,
+                    limit,
+                    mode: 'first',
+                  },
+                  {
+                    type: 'scroll',
+                    arg: it.candidateScrollType,
+                    limit,
+                    mode,
+                  },
+                ]);
+                break;
+
+            }
+          }
         }
 
         let working;
-        for (const action of candidates) {
+        for (const set of candidates) {
           let ok;
           try {
             ok = await this.checkAction(
               fetcher,
               doc,
               command.prompt,
-              [...learned, action]);
+              [...learned, ...set]);
           } catch (e) {
-            logger.warn(`${this} Got error while checking action ${JSON.stringify(action)}, skipping: ${e}`);
+            logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e}`);
             if (process.env.STRICT_ERRORS) {
               throw e;
             }
             ok = false;
           }
-          logger.debug(`${this} Checked action ${JSON.stringify(action)} and got ok=${ok}`);
+          logger.debug(`${this} Checked action ${JSON.stringify(set)} and got ok=${ok}`);
           if (ok) {
-            working = action;
+            working = set;
           }
         }
 
-        logger.debug(`${this} Found working action=${JSON.stringify(working)} for ${command.prompt}`);
+        logger.debug(`${this} Found working action set=${JSON.stringify(working)} for ${command.prompt}`);
 
         if (working) {
-          learned.push(working);
+          learned.push(...working);
         } else {
           logger.warn(`${this} Could not find a working action for ${command.prompt}`);
         }
       }
 
-      // TODO: Check if the learned actions work, and retry if they don't
       this.learned = learned;
 
       if (this.cache) {
@@ -329,6 +380,8 @@ export const Instructions = class {
     const old = this.learned;
     this.learned = copy;
 
+    const domainSpecific = domainSpecificInstructions(this.url);
+
     try {
       const docs = [before];
       for await (const { doc } of this.execute(fetcher)) {
@@ -336,14 +389,12 @@ export const Instructions = class {
         docs.push(doc);
       }
 
-      // let outputs = `>>>> Starting URL: ${before.url}\n>>>>Starting text: ${before.text}`;
       let count = 1;
       let iterations = '';
       for (const doc of docs) {
         iterations += `>>>> URL on action iteration ${count}: ${doc.url}\n`;
-        iterations += `>>>> Page size on iteration ${count}: ${doc}\n`;
-        iterations += `>>>> Page state on action iteration ${count}: ${doc.html}\n`;
-        iterations += `\n\n\n`;
+        iterations += `>>>> Page state on action iteration ${count}: ${doc.text}\n`;
+        iterations += `\n\n`;
         count++;
       }
 
@@ -351,7 +402,13 @@ export const Instructions = class {
         action: JSON.stringify(sequence[sequence.length - 1], null, 2),
         goal,
         iterations,
+        domainSpecific: '',
       };
+
+      if (domainSpecific) {
+        context.domainSpecific = `>>>> Note that these actions are based on the domain specific instructions below: ${domainSpecific}`;
+      }
+
       const { prompt } = await prompts.checkAction.renderCapped(
         context, 'iterations', this.ai);
 
@@ -371,7 +428,7 @@ const domainSpecificInstructions = (url) => {
   const matchers = [
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?x\.com/,
-      instruction: 'You are on x.com, which paginates by scrolling down exactly one window length. Your pagination should do this.',
+      instruction: 'You are on x.com, which paginates by scrolling down exactly one window height using page down. Your pagination should do this.',
     },
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?producthunt\.com/,
@@ -379,7 +436,7 @@ const domainSpecificInstructions = (url) => {
     },
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/,
-      instruction: 'You are on Google Maps. Paginate using these two steps: (1) Click on the text "Results" to focus on the results area and (2) scroll down exactly one window length.',
+      instruction: 'You are on Google Maps. Paginate using by clicking on the text "Results" once to focus on the results area and scrolling down a page length using the page down buttona.',
     },
     {
       prefix: /^https:\/\/www.steimatzky.co.il/,

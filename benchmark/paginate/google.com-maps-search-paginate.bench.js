@@ -17,7 +17,7 @@ describe('paginate google.com maps restaurants search', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkIncreasingSize(items, 2),
+      (items) => checkIncreasingSize(items, 5),
     ],
     { shouldSave: true }
   );

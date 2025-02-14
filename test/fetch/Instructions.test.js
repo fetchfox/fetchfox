@@ -7,8 +7,7 @@ import * as cheerio from 'cheerio';
 
 describe('Instructions', function() {
 
-  // Actions take a while to execute
-  // TODO: caching to bring down test times
+  // TODO: fix caching on these to bring down test times
   this.timeout(15 * 1000);
 
   const cases = [
@@ -128,7 +127,7 @@ describe('Instructions', function() {
         const url = `http://localhost:${port}`;
 
         const instr = new Instructions(url, commands, { ai });
-        await instr.learn(fetcher);
+        for await (const unused of instr.learn(fetcher)) {}
 
         let i = 0;
 
@@ -222,7 +221,7 @@ describe('Instructions', function() {
       ];
 
       const instr = new Instructions(url, commands, { ai });
-      await instr.learn(fetcher);
+      for await (const unused of instr.learn(fetcher)) {}
 
       const expected = [
         'Page 1',
@@ -315,7 +314,7 @@ describe('Instructions', function() {
       ];
 
       const instr = new Instructions(url, commands, { ai });
-      await instr.learn(fetcher);
+      for await (const unused of instr.learn(fetcher)) {}
 
       const expected = [
         ['Page 1', 'Profile content 1'],
@@ -437,7 +436,7 @@ describe('Instructions', function() {
       await fetcher.start(fetcherCtx);
 
       const instr = new Instructions(url, commands, { ai, cache });
-      await instr.learn(fetcher, fetcherCtx);
+      for await (const unused of instr.learn(fetcher, fetcherCtx)) {}
 
       const expected = [
         'Page 1',

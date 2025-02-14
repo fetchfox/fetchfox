@@ -210,7 +210,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // TODO: Check if scrolling worked
 
     switch (type) {
-      case 'window':
+      case 'page-down':
         await ctx.page.keyboard.press('PageDown');
         break;
 

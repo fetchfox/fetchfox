@@ -30,7 +30,7 @@ export const BaseFetcher = class {
 
     this.loadWait = options?.loadWait || 4000;
     this.loadTimeout = options?.loadTimeout || 15000;
-    this.actionWait = options?.actionWait || 4000;
+    this.actionWait = options?.actionWait || 2000;
     this.locatorTimeout = options?.locatorTimeout || 1000;
   }
 
@@ -182,16 +182,29 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${instr.url}`);
 
-              await instr.learn(this);
+              let skipOne = false;
+              for await (const r of instr.learn(this)) {
+                const doc = r?.doc;
+                if (this.signal?.aborted) {
+                  break;
+                }
+                if (doc) {
+                  channel.send({ doc });
+                  skipOne = true;
+                }
+              }
+
               const gen = await instr.execute(this);
 
               for await (const r of gen) {
                 const doc = r?.doc;
-
                 if (this.signal?.aborted) {
                   break;
                 }
-
+                if (skipOne) {
+                  skipOne = false;
+                  continue;
+                }
                 if (doc) {
                   channel.send({ doc });
                 }
