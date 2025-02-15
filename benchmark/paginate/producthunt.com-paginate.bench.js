@@ -4,8 +4,6 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-const s3 = { bucket: 'ffcloud', acl: 'public-read', region: 'us-west-2' };
-
 describe('paginate producthunt.com', async function() {
   const matrix = standardMatrix();
 
