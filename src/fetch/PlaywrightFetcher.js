@@ -33,7 +33,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
-  async goto(url, ctx) {
+  async _goto(url, ctx) {
     if (!ctx.page) {
       ctx.page = await ctx.browser.newPage();
     }

@@ -141,7 +141,7 @@ describe('PlaywrightFetcher', function() {
       const ai = getAI('openai:gpt-4o-mini', { cache });
       const fetcher = getFetcher(
         'playwright',
-        { ai, cache, loadWait: 10, actionWait: 10, headless: true });
+        { ai, cache, loadWait: 10, actionWait: 10 });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;

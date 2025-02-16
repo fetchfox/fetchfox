@@ -250,6 +250,80 @@ describe('Instructions', function() {
     }
   });
 
+  it('should handle next page pagination and optimize single repeat @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Pagination Test</title>
+          <script>
+            let currentPage = 1;
+            function goToNextPage() {
+              currentPage++;
+              document.getElementById('page-label').textContent = 'Page ' + currentPage;
+            }
+          </script>
+        </head>
+        <body>
+          <div id="page-label">Page 1</div>
+          <button id="next-page" onclick="goToNextPage()">Next Page</button>
+        </body>
+      </html>
+    `);
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    try {
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o', { cache });
+      const fetcher = getFetcher(
+        'playwright',
+        { ai, loadWait: 1, actionWait: 1, locatorTimeout: 25 });
+      const url = `http://localhost:${port}`;
+      const commands = [{ prompt: '{{nextPage}}', limit: 4 }];
+
+      const instr = new Instructions(url, commands, { ai });
+      for await (const unused of instr.learn(fetcher)) {}
+
+      const expected = [
+        'Page 1',
+        'Page 2',
+        'Page 3',
+        'Page 4',
+      ];
+
+      let i = 0;
+      const gen = instr.execute(fetcher);
+      let usage;
+      for await (const r of gen) {
+        const doc = r.doc;
+        usage = r.usage;
+        if (!doc) {
+          continue;
+        }
+
+        const $ = cheerio.load(doc.html);
+        const page = $('#page-label').text();
+
+        assert.equal(page, expected[i]);
+
+        i++;
+      }
+
+      // Verify that single repeat has O(N) usage of goto
+      assert.equal(fetcher.usage.goto, 3);
+      assert.equal(usage.goto, 1);
+      assert.equal(usage.actions[0], 3);
+
+    } finally {
+      server.close();
+    }
+  });
+
   it('should handle load more pagination and click profiles @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
