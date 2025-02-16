@@ -12,12 +12,7 @@ export const BaseFetcher = class {
     this.cache = options?.cache;
     this.ai = options?.ai || getAI();
     this.queue = [];
-    this.usage = {
-      requests: 0,
-      completed: 0,
-      cached: 0,
-      runtime: 0,
-    };
+    this.usage = { goto: 0 };
 
     this.q = new PQueue({
       concurrency: options?.concurrency || 4,
@@ -60,6 +55,11 @@ export const BaseFetcher = class {
   }
 
   async finish() {
+  }
+
+  async goto(url, ctx) {
+    this.usage.goto++;
+    return this._goto(url, ctx);
   }
 
   async *fetch(target, options) {

@@ -261,7 +261,7 @@ export const Instructions = class {
 
     const seen = {};
 
-    const act = async (i, state) => {
+    const act = async (i, state, { singleRepeat }) => {
       const action = state[i].action;
 
       let ok = true;
@@ -272,9 +272,17 @@ export const Instructions = class {
           // `repeat` mode exeutes an action multiple times on the same element.
           // It first exeutes it 0 times, then 1 times, then 2 times, etc.
           outcome = { ok: true };
-          for (let r = 0; r < state[i].repetition; r++) {
-            outcome = await fetcher.act(ctx, action, {});
-            usage.actions[i]++;
+          if (singleRepeat) {
+            if (state[i].repetition > 0) {
+              outcome = await fetcher.act(ctx, action, {});
+              usage.actions[i]++;
+            }
+
+          } else {
+            for (let r = 0; r < state[i].repetition; r++) {
+              outcome = await fetcher.act(ctx, action, {});
+              usage.actions[i]++;
+            }
           }
           break;
 
@@ -307,10 +315,21 @@ export const Instructions = class {
 
     try {
       await fetcher.start(ctx);
+      await goto();
 
-      if (!this.learned || this.learned.length == 0) {
+      const noActions = !this.learned || this.learned.length == 0;
+
+      // This is an optimization for when there is only one action that is a
+      // repeat action. In those cases, we don't need to restart on every
+      // iteration. Instead, we "goto" the starting URL, and yield after each
+      // iteration.
+      const singleRepeat = (
+        this.learned?.length == 1 &&
+        this.learned[0].mode == 'repeat'
+      );
+
+      if (noActions) {
         logger.debug(`${this} No actions, just a simple URL goto`);
-        await goto();
         const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
         return;
@@ -324,7 +343,9 @@ export const Instructions = class {
           break;
         }
 
-        await goto();
+        if (!singleRepeat) {
+          await goto();
+        }
 
         // Don't use doc, but this is needed to check load conditions
         await this.current(fetcher, ctx);
@@ -332,7 +353,7 @@ export const Instructions = class {
         let i;
         let ok;
         for (i = 0; i < state.length; i++) {
-          ok = await act(i, state);
+          ok = await act(i, state, { singleRepeat });
           logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
 
           if (!ok) {
