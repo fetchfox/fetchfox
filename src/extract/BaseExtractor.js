@@ -186,7 +186,7 @@ export const BaseExtractor = class {
             break;
           }
           logger.debug(`${this} Found ${++count} items so far`);
-          logger.debug(`${chalk.green('\u{25CF}')} Yielding item ${JSON.stringify(val.result)}`);
+          logger.info(`${chalk.green('\u{25CF}')} Yielding item ${JSON.stringify(val.result)}`);
           yield Promise.resolve(val.result);
         }
       } catch (e) {
