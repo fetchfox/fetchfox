@@ -1,5 +1,7 @@
+import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { logger } from '../log/logger.js';
+import { Document } from '../document/Document.js';
 import { shortObjHash } from '../util.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
 import { Item } from '../item/Item.js';
@@ -193,6 +195,17 @@ export const BaseStep = class {
 
                   meta.status = 'done';
                   if (!dupe && !done) {
+                    let serialized;
+                    if (output instanceof Document) {
+                      serialized = '' + output;
+                    } else {
+                      serialized = JSON.stringify(output);
+                    }
+                    if (serialized.length > 300) {
+                      serialized = serialized.substring(0, 280) + '...'
+                    }
+                    logger.info(`${chalk.bold.cyan('' + this + ' (' + index + ')')} ${chalk.bold.cyan('\u{25B6}')} Got a result: ${serialized}`)
+
                     cursor.publish(
                       firstId,
                       { ...output, _meta: meta },
