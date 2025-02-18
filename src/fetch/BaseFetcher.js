@@ -24,12 +24,15 @@ export const BaseFetcher = class {
     this.css = options?.css;
     this.signal = options?.signal;
 
-    this.loadWait = options?.loadWait || 4000;
-    this.actionWait = options?.actionWait || 2000;
+    this.wait = options?.wait || 4000;
+    this.timeout = options?.timeout || 60000;
 
-    this.loadTimeout = options?.loadTimeout || 60000;
-    this.locatorTimeout = options?.locatorTimeout || 60000;
-    this.actionTimeout = options?.actionTimeout || 60000;
+    this.loadWait = options?.loadWait || this.wait;
+    this.actionWait = options?.actionWait || this.wait;
+
+    this.loadTimeout = options?.loadTimeout || this.timeout;
+    this.locatorTimeout = options?.locatorTimeout || this.timeout;
+    this.actionTimeout = options?.actionTimeout || this.timeout60000;
   }
 
   toString() {

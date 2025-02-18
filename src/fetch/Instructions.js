@@ -97,7 +97,9 @@ export const Instructions = class {
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         if (command.prompt == nextPageCommand) {
-          command.prompt = 'Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.';
+          command.prompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
+
+You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.`;
           const domainSpecific = domainSpecificInstructions(this.url);
           if (domainSpecific) {
             command.prompt += domainSpecific;
@@ -129,6 +131,7 @@ export const Instructions = class {
           for (const it of raw) {
             const type = it.candidateAction;
             const limit = command.limit;
+            const optional = command.optional;
             const mode = command.mode || answer.partial.actionMode || 'distinct';
             switch (type) {
               case 'click':
@@ -138,6 +141,7 @@ export const Instructions = class {
                     arg: it.candidatePlaywrightSelector,
                     limit,
                     mode,
+                    optional,
                   }
                 ]);
                 break;
@@ -149,6 +153,7 @@ export const Instructions = class {
                     arg: it.candidateScrollType,
                     limit,
                     mode,
+                    optional,
                   }
                 ]);
                 break;
@@ -166,6 +171,7 @@ export const Instructions = class {
                     arg: it.candidateScrollType,
                     limit,
                     mode,
+                    optional,
                   },
                 ]);
                 break;
@@ -261,7 +267,7 @@ export const Instructions = class {
 
     const seen = {};
 
-    const act = async (i, state, { singleRepeat }) => {
+    const act = async (i, state, { tailRepeat }) => {
       const action = state[i].action;
 
       let ok = true;
@@ -272,7 +278,7 @@ export const Instructions = class {
           // `repeat` mode exeutes an action multiple times on the same element.
           // It first exeutes it 0 times, then 1 times, then 2 times, etc.
           outcome = { ok: true };
-          if (singleRepeat) {
+          if (tailRepeat) {
             if (state[i].repetition > 0) {
               outcome = await fetcher.act(ctx, action, {});
               usage.actions[i]++;
@@ -319,14 +325,14 @@ export const Instructions = class {
 
       const noActions = !this.learned || this.learned.length == 0;
 
-      // This is an optimization for when there is only one action that is a
-      // repeat action. In those cases, we don't need to restart on every
-      // iteration. Instead, we "goto" the starting URL, and yield after each
-      // iteration.
-      const singleRepeat = (
-        this.learned?.length == 1 &&
-        this.learned[0].mode == 'repeat'
-      );
+      // This is an optimization for when the last action is a repeat. In
+      // those cases, we don't need to goto the original URL on each iteration.
+      // This is common for pagination and dramatically reduces runtime for
+      // those cases, becuase it becomes O(N) on number of pages.
+      const tailRepeat = (
+        this.learned?.length &&
+        this.learned.filter(it => !['repeat', 'first'].includes(it.mode)).length == 0 &&
+        this.learned[this.learned.length - 1].mode == 'repeat');
 
       if (noActions) {
         logger.debug(`${this} No actions, just a simple URL goto`);
@@ -343,7 +349,7 @@ export const Instructions = class {
           break;
         }
 
-        if (!singleRepeat) {
+        if (!tailRepeat) {
           await goto();
         }
 
@@ -353,7 +359,7 @@ export const Instructions = class {
         let i;
         let ok;
         for (i = 0; i < state.length; i++) {
-          ok = await act(i, state, { singleRepeat });
+          ok = await act(i, state, { tailRepeat });
           logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
 
           if (!ok) {
@@ -473,7 +479,7 @@ const domainSpecificInstructions = (url) => {
     },
     {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/,
-      instruction: 'You are on Google Maps. Paginate using by clicking on the text "Results" once to focus on the results area and scrolling down a page length using the page down button.',
+      instruction: 'You are on Google Maps. Paginate using by clicking to focus on the results area. If you see the text "Results", click on that. Otherwise, find some other text to click on to focus on the results area. Then, scroll down a page length using the page down button.',
     },
     {
       prefix: /^https:\/\/www.steimatzky.co.il/,

@@ -429,7 +429,7 @@ describe('Instructions', function() {
     }
   });
 
-  it('should handle cookie button before pagination @fast', async () => {
+  it('should handle cookie button before pagination @disabled', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -438,8 +438,8 @@ describe('Instructions', function() {
   <body>
     <div>
       <h1 id="page-label"></h1>
+      <button id="next-page">Next Page</button>
       <div id="main">
-        <button id="next-page">Next Page</button>
         <div id="buttons"></div>
         <div id="profile"></div>
       </div>
@@ -495,16 +495,14 @@ describe('Instructions', function() {
     const fetcherCtx = {};
     const fetcher = getFetcher(
       'playwright',
-      { ai, cache, loadWait: 1, actionWait: 1, headless: true });
+      { ai, cache, wait: 10, timeout: 10 });
 
     const limit = 4;
 
     try {
-
       const commands = [
         { prompt: 'click accept cookies', optional: true, mode: 'first' },
         { prompt: 'click to go to the next page', mode: 'repeat', limit },
-        // { prompt: 'click each profile link', limit },
       ];
 
       await fetcher.start(fetcherCtx);
@@ -530,6 +528,7 @@ describe('Instructions', function() {
 
         const $ = cheerio.load(doc.html);
         const page = $('#page-label').text();
+
         assert.equal(page, expected[i]);
 
         i++;

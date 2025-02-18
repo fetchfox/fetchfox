@@ -216,6 +216,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     switch (type) {
       case 'page-down':
+        // Do it twice for cases like Google Maps
+        await ctx.page.keyboard.press('PageDown');
+        await new Promise(ok => setTimeout(ok, 2000));
         await ctx.page.keyboard.press('PageDown');
         break;
 
