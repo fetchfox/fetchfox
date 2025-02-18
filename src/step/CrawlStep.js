@@ -26,7 +26,7 @@ export const CrawlStep = class extends BaseStep {
       fetchOptions: { priority: index },
     };
 
-    const url = item.getUrl();
+    const url = item.getUrl ? item.getUrl() : (item.url || item._url);
 
     try {
       for await (const output of crawler.run(url, this.query, options)) {
