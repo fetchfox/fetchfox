@@ -17,8 +17,8 @@ export const ActionStep = class extends BaseStep {
     const fetcherCtx = {};
     await cursor.ctx.fetcher.start(fetcherCtx);
     try {
-      const gen = cursor.ctx.fetcher(instr);
-      for await (const { doc } of gen) {
+      const gen = cursor.ctx.fetcher.fetch(instr);
+      for await (const doc of gen) {
         if (!doc) {
           logger.warn(`${this} Got null doc for ${instr}`);
           continue;
