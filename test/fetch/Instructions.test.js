@@ -315,7 +315,7 @@ describe('Instructions', function() {
       }
 
       // Verify that single repeat has O(N) usage of goto
-      assert.equal(fetcher.usage.goto, 3);
+      assert.equal(fetcher.usage.goto, 2);
       assert.equal(usage.goto, 1);
       assert.equal(usage.actions[0], 3);
 

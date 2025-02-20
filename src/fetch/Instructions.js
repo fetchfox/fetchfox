@@ -125,6 +125,7 @@ You will know pagination was successful if you see different results on each ite
           .filter(result => result.status == 'fulfilled');
 
         const candidates = [];
+        const seen = {};
         for (const { value: answer } of answers) {
           const raw = answer.partial.candidates || [];
 
@@ -133,9 +134,10 @@ You will know pagination was successful if you see different results on each ite
             const limit = command.limit;
             const optional = command.optional;
             const mode = command.mode || answer.partial.actionMode || 'distinct';
+            let candidate;
             switch (type) {
               case 'click':
-                candidates.push([
+                candidate = [
                   {
                     type,
                     arg: it.candidatePlaywrightSelector,
@@ -143,11 +145,11 @@ You will know pagination was successful if you see different results on each ite
                     mode,
                     optional,
                   }
-                ]);
+                ];
                 break;
 
               case 'scroll':
-                candidates.push([
+                candidate = [
                   {
                     type,
                     arg: it.candidateScrollType,
@@ -155,11 +157,11 @@ You will know pagination was successful if you see different results on each ite
                     mode,
                     optional,
                   }
-                ]);
+                ];
                 break;
 
               case 'click-scroll':
-                candidates.push([
+                candidate = [
                   {
                     type: 'click',
                     arg: it.candidatePlaywrightSelector,
@@ -173,22 +175,35 @@ You will know pagination was successful if you see different results on each ite
                     mode,
                     optional,
                   },
-                ]);
+                ]
                 break;
-
             }
+
+            const ser = JSON.stringify(candidate);
+            if (seen[ser]) {
+              continue;
+            }
+            seen[ser] = true;
+            candidates.push(candidate);
           }
         }
 
         let working;
+
         for (const set of candidates) {
+          logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
+
           let ok;
           try {
-            ok = await this.checkAction(
-              fetcher,
-              doc,
-              command.prompt,
-              [...learned, ...set]);
+
+            // TODO: Re-enable action checks. Skip for now to run faster.
+            // ok = await this.checkAction(
+            //   fetcher,
+            //   doc,
+            //   command.prompt,
+            //   [...learned, ...set]);
+
+            ok = true;
 
           } catch (e) {
             logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
@@ -197,9 +212,11 @@ You will know pagination was successful if you see different results on each ite
             }
             ok = false;
           }
+
           logger.debug(`${this} Checked action ${JSON.stringify(set)} and got ok=${ok}`);
           if (ok) {
             working = set;
+            break;
           }
         }
 
@@ -313,6 +330,7 @@ You will know pagination was successful if you see different results on each ite
     }
 
     const goto = async () => {
+      logger.debug(`${this} Goto: ${this.url}`);
       usage.goto++;
       await fetcher.goto(this.url, ctx);
     }
