@@ -11,7 +11,7 @@ describe('examples', function() {
   it('should do basic example @fast', async () => {
     const cases = [
       { ai: 'openai:gpt-4o-mini' },
-      { ai: 'openrouter:openai/gpt-4o-mini' },
+      { ai: 'openrouter:openai/gpt-4o' },
     ];
 
     for (const { ai } of cases) {
@@ -45,9 +45,12 @@ describe('examples', function() {
 
   it('should do streaming example @fast', async () => {
     const stream = fox
-      .config({ cache: testCache() })
+      .config({ ai: 'openai:gpt-4o-mini', cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
-      .extract({ name: 'Pokemon name', number: 'Pokemon number, format: #XXXX' })
+      .extract({
+        name: 'Pokemon name, starting with the first pokemon',
+        number: 'Pokemon number, format: #XXXX',
+      })
       .limit(3)
       .stream();
 

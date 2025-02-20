@@ -122,10 +122,10 @@ export const Workflow = class extends BaseWorkflow {
     this.cursor = new Cursor(this.ctx, this.steps, cb);
     const last = this.steps[this.steps.length - 1];
 
-    let originalLimit = last.limit;
-
     if (this.ctx.limit) {
-      last.limit = last.limit ? Math.min(this.ctx.limit, last.limit) : this.ctx.limit;
+      for (const step of this.steps) {
+        step.limit = step.limit ? Math.min(this.ctx.limit, step.limit) : this.ctx.limit;
+      }
     }
 
     const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
@@ -139,7 +139,6 @@ export const Workflow = class extends BaseWorkflow {
       return this.cursor.out(true);
 
     } finally {
-      last.limit = originalLimit;
       this.cursor.finishAll();
 
       if (this.controller) {
@@ -174,10 +173,17 @@ for (const stepName of stepNames) {
         return this.step(new cls(prompt));
       } else if (Array.isArray(prompt) || isPlainObject(prompt)) {
         const args = { questions: JSON.parse(JSON.stringify(prompt)) };
-        if (isPlainObject(args.questions) && args.questions.single === true) {
-          delete args.questions.single;
-          args.single = true;
+
+        if (isPlainObject(args.questions) && args.questions.view) {
+          delete args.questions.view;
+          args.view = true;
         }
+
+        if (isPlainObject(args.questions) && args.questions.mode) {
+          delete args.questions.mode;
+          args.mode = true;
+        }
+
         return this.step(new cls(args));
       }
 

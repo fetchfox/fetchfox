@@ -11,13 +11,30 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   async *_run(doc, questions, options) {
     logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    let { description, single } = options || {};
+    let { description, mode } = options || {};
     let extraRules = '';
-    if (single) {
-      extraRules = `These rules OVERRIDE previous instructions:
-- You must find ONLY ONE result`;
-    } else {
-      extraRules = `- Make sure to find ALL the results`;
+
+    switch (mode) {
+      case 'single':
+        extraRules = `You are in SINGLE item extraction mode. Return EXACTLY ONE result. This rule overrides previous instructions.`;
+        break;
+      case 'multiple':
+        extraRules = `You are in MULTIPLE item extraction mode. Return ONE OR MORE results. This rule overrides previous instructions.`;
+        break;
+      case 'auto':
+        extraRules = `Before beginning extraction, return a single JSONL result that is an analysis result. The format will be like this:
+
+{ "_meta": true, "analysis": "...your analysis here...", "mode": "'single' or 'multiple'", "itemCountGuess": "a number, your guess at the number of results expected"}
+
+* The topic of your analysis is whether you should be extracting one item, or multiple items. To determine this, consider BOTH the user extraction goal, AND the content of the page. Are there multiple items on the page matching the user's goal? Or just one?
+
+* After you complete the analysis, you must respect the results of this analysis. So if your analysis says there is a single item, return only one result. If you analysis says there are multiple items, return multiple results.
+
+* Max 30 words for analysis.
+`;
+        break;
+      default:
+        throw new Error(`Unexpected mode: ${mode}`);
     }
 
     let view = options?.view || 'html';
@@ -53,9 +70,11 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       try {
         const stream = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of stream) {
-          if (delta.itemCount) {
+          if (delta._meta) {
+            logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)}`);
             continue;
           }
+
           yield Promise.resolve(new Item(delta, doc));
         }
 

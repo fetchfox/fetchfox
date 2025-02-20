@@ -131,6 +131,9 @@ export const BaseExtractor = class {
               new Promise(async (ok, bad) => {
                 try {
                   for await (const r of this._run(doc, questions, options)) {
+                    if (this.signal?.aborted) {
+                      break;
+                    }
                     if (done) {
                       break;
                     }
@@ -209,7 +212,7 @@ export const BaseExtractor = class {
       }
 
     } finally {
-      logger.info(`${this} done extracting ${target}`);
+      logger.info(`${this} Done extracting ${JSON.stringify(target).substring(0, 400)}`);
 
       done = true;
       const took = (new Date()).getTime() - start;
