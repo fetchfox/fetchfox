@@ -14,8 +14,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let { description, mode } = options || {};
     let extraRules = '';
 
-    console.log('mode:', mode);
-
     switch (mode) {
       case 'single':
         extraRules = `You are in SINGLE item extraction mode. Return EXACTLY ONE result. This rule overrides previous instructions.`;
@@ -26,17 +24,18 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       case 'auto':
         extraRules = `Before beginning extraction, return a single JSONL result that is an analysis result. The format will be like this:
 
-{ "_meta": true, "analysis": "...your analysis here...", "mode": "'single' or 'multiple'", "itemCount": "a number, your guess at the number of results expected"}
+{ "_meta": true, "analysis": "...your analysis here...", "mode": "'single' or 'multiple'", "itemCountGuess": "a number, your guess at the number of results expected"}
 
-* The topic of your analysis is whether you should be extracting one item, or multiple items. To determine this, consider the user extraction goal, and the content of the page. Are there multiple items on the page matching the user's goal? Or just one?
+* The topic of your analysis is whether you should be extracting one item, or multiple items. To determine this, consider BOTH the user extraction goal, AND the content of the page. Are there multiple items on the page matching the user's goal? Or just one?
 
-* After you complete the analysis, you must respect the results of this analysis. So if your analysis says there is a single item, return only one result. If you analysis says there are multiple items, return multiple results.`;
+* After you complete the analysis, you must respect the results of this analysis. So if your analysis says there is a single item, return only one result. If you analysis says there are multiple items, return multiple results.
+
+* Max 30 words for analysis.
+`;
         break;
       default:
         throw new Error(`Unexpected mode: ${mode}`);
     }
-
-    console.log('extraRules', extraRules);
 
     let view = options?.view || 'html';
     if (!['html', 'text', 'selectHtml'].includes(view)) {
@@ -71,12 +70,11 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       try {
         const stream = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of stream) {
-
-          console.log('delta', delta);
-
-          if (delta.itemCount) {
+          if (delta._meta) {
+            logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)}`);
             continue;
           }
+
           yield Promise.resolve(new Item(delta, doc));
         }
 

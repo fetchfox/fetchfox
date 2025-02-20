@@ -42,6 +42,8 @@ describe('Workflow', function() {
               technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",
               url: "What is the URL? Format: Absolute URL"
             },
+            "mode": "auto",
+            "view": "html",
             "maxPages": "10"
           }
         },

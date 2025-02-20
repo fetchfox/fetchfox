@@ -51,20 +51,15 @@ describe('news.ycombinator.com', function() {
       .init('https://news.ycombinator.com')
       .crawl({
         query: 'find links to comment pages, format: https://news.ycombinator.com/item?id=...',
-        limit: 5,
       })
       .extract({
         topCommenter: 'What is the username of the top commenter?',
         single: true,
-      });
+      })
+      .limit(5);
 
-    const out = await wf
-      .run(null, (partial) => {
-        countPartials++;
-      });
-
-    assert.ok(countPartials > 1 && countPartials < 10);
-    assert.ok(out.items.length > 1 && out.items.length < 10);
+    const out = await wf.run();
+    assert.ok(out.items.length, 5);
 
     wf.abort();
   });

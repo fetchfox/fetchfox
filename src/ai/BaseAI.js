@@ -208,6 +208,7 @@ export const BaseAI = class {
                   partial: parsed.partial,
                   usage: parsed.usage,
                 };
+
                 result.push(r);
                 yield Promise.resolve(r);
               }

@@ -34,9 +34,10 @@ export const parseAnswer = (text, format) => {
     const lines = clean.split('\n');
     const result = [];
     let leftover = '';
+
     for (const line of lines) {
-      if (leftover) {
-        leftover += line;
+      if (leftover.trim()) {
+        leftover += line.trim();
         continue;
       }
 
