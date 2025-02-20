@@ -8,8 +8,6 @@ If you're unable to answer a question fill in the value "(not found)", but make 
 
 Your response will be parsed by a computer program, so respond ONLY with valid JSONL. Each line must be parseable JSON.
 
-The first JSON object your return will have one field, "itemCount", indicating how many items are to come.
-
 The remaining JSON objects you returns will be items. There will be one item per line. Each field in these objects corresponds to the questions.
 
 Follow these important rules:
@@ -22,12 +20,10 @@ Follow these important rules:
 - For URL, always include the FULL ABSOLUTE URL
 
 Example of a valid response with multiple items:
-{"itemCount": 2}
 {"authorName": "Ernest Hemingway", "bookName": "The Old Man and the Sea"}
 {"authorName": "George Orwell", "bookName": "1984"}
 
 Example of a valid response with a single item:
-{"itemCount": 1}
 {"article_title": "New Find at the Great Wall of China", "article_date": "2024-02-04", countries: ["China", "India"]}
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>

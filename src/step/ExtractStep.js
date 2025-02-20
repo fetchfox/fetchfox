@@ -2,16 +2,20 @@ import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { BaseStep } from './BaseStep.js';
 import { isPlainObject } from '../util.js';
+import { stepDescriptionsMap } from './info.js';
 
 export const ExtractStep = class extends BaseStep {
   constructor(args) {
     super(args);
 
-    if (args?.single) {
-      this.single = !!args.single;
-      delete args.single;
+    const modeChoices = stepDescriptionsMap.extract.args.mode.choices;
+    if (args?.mode && modeChoices.includes(args.mode)) {
+      this.mode = args?.mode;
+      delete args.mode;
     }
-    if (args?.view) {
+
+    const viewChoices = stepDescriptionsMap.extract.args.view.choices;
+    if (args?.view && viewChoices.includes(args.view)) {
       this.view = args.view;
       delete args.view;
     }
@@ -30,6 +34,10 @@ export const ExtractStep = class extends BaseStep {
     this.questions = questions;
 
     if (args?.examples) this.examples = args.examples;
+
+    this.view ??= 'html';
+    this.mode ??= 'auto';
+    this.maxPages ??= 1;
   }
 
   async finish(cursor) {
@@ -47,10 +55,10 @@ export const ExtractStep = class extends BaseStep {
         item,
         this.questions,
         {
-          single: this.single,
+          mode: this.mode,
+          view: this.view,
           maxPages: this.maxPages,
           fetchOptions: { priority: index },
-          view: this.view,
         });
       for await (const output of stream) {
         const took = (new Date()).getTime() - start;
@@ -67,7 +75,7 @@ export const ExtractStep = class extends BaseStep {
         if (done) {
           break;
         }
-        if (this.single) {
+        if (this.mode == 'single') {
           break;
         }
       }

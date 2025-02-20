@@ -77,16 +77,19 @@ export const stepDescriptionsMap = {
         },
         required: true,
       },
-      single: {
+      mode: {
         description:
-          'If true, the extraction will find only one item per page. If false, it can find multiple. Typically, if there is a "crawl" step before extraction, you will want single=true, and if there is no "crawl" step you will want single=false',
-        format: 'boolean',
-        example: true,
+          `The extraction mode for this step can be "single", "multiple", or "auto". The value "single" means each input page will give exactly one output item. The value "multiple" means each input page can have multiple items. The default value of "auto" asks the AI to figure out which mode to use based on the page content.`,
+        format: 'choices',
+        choices: ['auto', 'single', 'multiple'],
+        example: 'auto',
+        default: 'auto',
         required: false,
       },
       view: {
-        description: 'Should we look at full HTML or the text of the page? Must be one of html, text, or selectHtml',
-        format: 'string',
+        description: `Should we look at full HTML or the text of the page? Must be one of "html", "text", or "selectHtml"`,
+        format: 'choices',
+        choices: ['html', 'text', 'selectHtml'],
         example: 'html',
         default: 'html',
         required: false,

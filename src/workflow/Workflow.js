@@ -173,10 +173,17 @@ for (const stepName of stepNames) {
         return this.step(new cls(prompt));
       } else if (Array.isArray(prompt) || isPlainObject(prompt)) {
         const args = { questions: JSON.parse(JSON.stringify(prompt)) };
-        if (isPlainObject(args.questions) && args.questions.single === true) {
-          delete args.questions.single;
-          args.single = true;
+
+        if (isPlainObject(args.questions) && args.questions.view) {
+          delete args.questions.view;
+          args.view = true;
         }
+
+        if (isPlainObject(args.questions) && args.questions.mode) {
+          delete args.questions.mode;
+          args.mode = true;
+        }
+
         return this.step(new cls(args));
       }
 
