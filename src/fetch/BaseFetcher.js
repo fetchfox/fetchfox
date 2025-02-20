@@ -32,7 +32,7 @@ export const BaseFetcher = class {
 
     this.loadTimeout = options?.loadTimeout || this.timeout;
     this.locatorTimeout = options?.locatorTimeout || this.timeout;
-    this.actionTimeout = options?.actionTimeout || this.timeout60000;
+    this.actionTimeout = options?.actionTimeout || this.timeout;
   }
 
   toString() {
