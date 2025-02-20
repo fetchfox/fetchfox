@@ -28,11 +28,11 @@ Example of a valid response with a single item:
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
->>>> The URL of the website:
-{{url}}
-
 >>>> HTML text from innerHTML of the page:
 {{html}}
+
+>>>> The URL of the website:
+{{url}}
 
 >>>> {{description}}
 

@@ -24,13 +24,18 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       case 'auto':
         extraRules = `Before beginning extraction, return a single JSONL result that is an analysis result. The format will be like this:
 
-{ "_meta": true, "analysis": "...your analysis here...", "mode": "'single' or 'multiple'", "itemCountGuess": "a number, your guess at the number of results expected"}
+{ "_meta": true, "pageType": "'detail' or 'list' or 'other'":, "analysis": "...your analysis here...", "mode": "'single' or 'multiple'"}
 
-* The topic of your analysis is whether you should be extracting one item, or multiple items. To determine this, consider BOTH the user extraction goal, AND the content of the page. Are there multiple items on the page matching the user's goal? Or just one?
+Field meanings:
+- "_meta": indicates this is a meta result. Always true.
+- "pageType": some pages are detail pages, which means they give detail on a single item. They may have links to similar items, or list multiple target items, but if the main point of this page is to give detail about a single specific item, say "detail". If this page's main point is to link to other detail pages, then say "list". If this page is in neither category, say "other"
+- "analysis": given the page info, the pageType, analyze the situation in up to 30 words. The topic of your analysis is whether you should be extracting one item, or multiple items. To determine this, consider BOTH the user extraction goal, AND the content of the page. Are there multiple items on the page matching the user's goal? Or just one?
+- "mode": Give all the above, should the extraction mode be "single" or "multiple"
 
-* After you complete the analysis, you must respect the results of this analysis. So if your analysis says there is a single item, return only one result. If you analysis says there are multiple items, return multiple results.
+Important: consider BOTH the page content, and also the URL of the page. Sometimes the URL will give clues about whether this is a detail page or a list page, and therefore single or multiple extraction.
 
-* Max 30 words for analysis.
+* Once this analysis is complete, the REST of your response MUST respect the outcome of this analysis
+
 `;
         break;
       default:
@@ -71,7 +76,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
         const stream = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of stream) {
           if (delta._meta) {
-            logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)}`);
+            logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
             continue;
           }
 
