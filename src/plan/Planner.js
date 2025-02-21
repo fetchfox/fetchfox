@@ -5,7 +5,7 @@ import {
   classMap,
   BaseStep,
 } from '../step/index.js';
-import { singleStep, combined, prePlan, describe, guided } from './prompts.js';
+import { singleStep, combined, describe, guided } from './prompts.js';
 import { isPlainObject } from '../util.js';
 
 const stepLibrary = stepDescriptions
@@ -77,11 +77,6 @@ export const Planner = class {
           allSteps,
           step: str,
         }
-        if (this.user) {
-          context.user = userPrompt(this.user);
-        } else {
-          context.user = '';
-        }
         const prompt = singleStep.render(context);
         const answer = await this.ai.ask(prompt, { format: 'json' });
         logger.debug(`Step planned "${str}" into ${JSON.stringify(answer.partial)}`);
@@ -101,11 +96,6 @@ export const Planner = class {
       url: '',
       html: ''
     };
-    if (this.user) {
-      context.user = userPrompt(this.user);
-    } else {
-      context.user = '';
-    }
     const prompt = combined.render(context);
 
     const answer = await this.ai.ask(prompt, { format: 'json' });
@@ -160,40 +150,19 @@ export const Planner = class {
   async fromPrompt(scrapePrompt, args) {
     logger.debug(`Plan from prompt: prompt=${scrapePrompt} args=${JSON.stringify(args).substr(0, 120)}`);
 
-    const prePlanContext = {
+    const context = {
       stepLibrary,
       prompt: scrapePrompt,
-      url: (args.url || '').substr(0, 1000),
-      html: (args.html || '').substr(0, Math.max(0, this.ai.maxTokens - 5000)),
+      url: args.url || '(url not available)',
+      html: args.html || '(html not available)',
     };
-    if (this.user) {
-      prePlanContext.user = userPrompt(this.user);
-    } else {
-      prePlanContext.user = '';
-    }
 
-    const prePlanPrompt = prePlan.render(prePlanContext);
-    const prePlanAnswer = (await this.ai.ask(prePlanPrompt, { format: 'json' })).partial;
+    const { prompt } = await guided.renderCapped(context, 'html', this.ai);
+    const answer = await this.ai.ask(prompt, { format: 'json' });
 
-    logger.debug(`Got pre plan answer:\n${JSON.stringify(prePlanAnswer, null, 2)}`);
+    logger.debug(`Guided plan answer: ${JSON.stringify(answer.partial, null, 2)}`);
 
-    const guidedContext = {
-      stepLibrary,
-      prompt: scrapePrompt,
-      intent: prePlanAnswer.intentAnalysis,
-      itemDescription: prePlanAnswer.itemDescription,
-      detailFields: '- ' + prePlanAnswer.detailFields.join('\n - '),
-      shouldCrawl: (
-        prePlanAnswer.scrapeType == 'multiPage' ? 'This scrape should crawl to find more URLs' : 'This scrape should NOT have a crawl step'),
-      itemsPerPage: (prePlanAnswer.perPage == 'multiple' ? 'You are looking for MULTIPLE items in each extraction' : 'You are looking for a SINGLE item per page in extraction'),
-      url: (args.url || '').substr(0, 1000),
-    };
-    const guidedPrompt = guided.render(guidedContext);
-    const guidedAnswer = (await this.ai.ask(guidedPrompt, { format: 'json' })).partial;
-
-    logger.debug(`Guided plan answer: ${JSON.stringify(guidedAnswer, null, 2)}`);
-
-    const steps = guidedAnswer.map(x => this.fromJson(x));
+    const steps = answer.partial.map(x => this.fromJson(x));
 
     // Make sure URL is unchanged
     if (steps[0].name() == 'const') {
@@ -202,12 +171,6 @@ export const Planner = class {
 
     return {
       steps,
-      itemDescription: prePlanAnswer.itemDescription,
     }
   }
 }
-
-const userPrompt = (user) => `The user executing this prompt is below.
-- For export steps, take into account the users available platforms and folders on those platforms
-- UNLESS there is GOOD CLEAR MATCH, use a new folder named "FetchFox Export"
-${JSON.stringify(user, null, 2)}`;
