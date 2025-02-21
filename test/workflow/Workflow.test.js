@@ -3,10 +3,10 @@ import os from 'os';
 import { logger } from '../../src/log/logger.js';
 import { fox, OpenAI, Fetcher } from '../../src/index.js';
 import { redditSampleHtml } from './data.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('Workflow', function() {
-  this.timeout(10 * 1000);
+  setTestTimeout(this, 10 * 1000);
 
   before(() => {
     logger.testMode();
@@ -224,8 +224,8 @@ describe('Workflow', function() {
     f.abort();
   });
 
-  it('should finish with flakey fetcher @run', async function () {
-    this.timeout(45 * 1000);
+  it('should finish with flakey fetcher @slow', async function () {
+    setTestTimeout(this, 45 * 1000);
 
     let count = 0;
     const FlakeyFetcher = class extends Fetcher {
@@ -261,8 +261,8 @@ describe('Workflow', function() {
     assert.equal(out.items.length, 5);
   });
 
-  it('should finish incomplete with flakey AI @run @slow', async function () {
-    this.timeout(45 * 1000);
+  it('should finish incomplete with flakey AI @slow', async function () {
+    setTestTimeout(this, 45 * 1000);
 
     let count = 0;
     const FlakeyAI = class extends OpenAI {
@@ -295,8 +295,8 @@ describe('Workflow', function() {
     assert.equal(out.items.length, 2);
   });
 
-  it('should finish crawl with flakey AI @run @slow', async function () {
-    this.timeout(45 * 1000);
+  it('should finish crawl with flakey AI @slow', async function () {
+    setTestTimeout(this, 45 * 1000);
 
     let count = 0;
     const FlakeyAI = class extends OpenAI {

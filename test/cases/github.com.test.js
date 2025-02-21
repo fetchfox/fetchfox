@@ -3,11 +3,11 @@ import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('github.com', function() {
 
-  this.timeout(5 * 1000);
+  setTestTimeout(this);
 
   it('should do basic scrape @fast', async () => {
     let countPartials = 0;

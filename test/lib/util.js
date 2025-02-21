@@ -28,3 +28,14 @@ export const testCache = () => {
     new S3Cache(params),
   ]);
 }
+
+export const setTestTimeout = (that, msec) => {
+  if (
+    process.env.WRITE_TEST_CACHE ||
+    process.env.WRITE_ONLY_TEST_CACHE
+  ) {
+    that.timeout(60 * 1000);
+  } else if (msec) {
+    that.timeout(msec);
+  }
+}

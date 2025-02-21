@@ -132,7 +132,7 @@ You will know pagination was successful if you see different results on each ite
           for (const it of raw) {
             const type = it.candidateAction;
             const limit = command.limit;
-            const optional = command.optional;
+            const optional = command.optional || it.optionalAction == 'yes';
             const mode = command.mode || answer.partial.actionMode || 'distinct';
             let candidate;
             switch (type) {

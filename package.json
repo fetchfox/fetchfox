@@ -12,6 +12,7 @@
   "scripts": {
     "lint": "eslint src/",
     "test": "mocha test/**/*.test.js -g @fast",
+    "test-cache": "WRITE_TEST_CACHE=1 mocha test/**/*.test.js -g @fast",
     "bench": "mocha benchmark/**/*.bench.js -g @bench",
     "bench-4o": "BENCH_MATRIX_AI=openai:gpt-4o mocha benchmark/**/*.bench.js -g @bench",
     "bench-cdp-4o": "BENCH_USE_CDP=1 BENCH_MATRIX_AI=openai:gpt-4o mocha benchmark/**/*.bench.js -g @bench",
