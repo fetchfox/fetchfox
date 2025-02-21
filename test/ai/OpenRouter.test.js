@@ -1,9 +1,11 @@
 import assert from 'assert';
 import { logger } from '../../src/log/logger.js';
 import { getAI } from '../../src/index.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('OpenRouter', function() {
+
+  setTestTimeout(this);
 
   before(() => {
     logger.testMode();

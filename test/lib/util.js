@@ -35,7 +35,7 @@ export const setTestTimeout = (that, msec) => {
     process.env.WRITE_ONLY_TEST_CACHE
   ) {
     that.timeout(60 * 1000);
-  } else {
+  } else if (msec) {
     that.timeout(msec);
   }
 }

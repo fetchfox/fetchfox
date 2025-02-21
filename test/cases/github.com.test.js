@@ -7,7 +7,7 @@ import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('github.com', function() {
 
-  setTestTimeout(this, 5 * 1000);
+  setTestTimeout(this);
 
   it('should do basic scrape @fast', async () => {
     let countPartials = 0;

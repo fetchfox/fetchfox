@@ -4,9 +4,11 @@ import { logger } from '../../src/log/logger.js';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('news.ycombinator.com', function() {
+
+  setTestTimeout(this);
 
   before(() => {
     logger.testMode();

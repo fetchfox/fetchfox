@@ -2,9 +2,11 @@ import assert from 'assert';
 import os from 'os';
 import { fox } from '../../src/index.js';
 import { BaseStep } from '../../src/step/BaseStep.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('BaseStep', function() {
+
+  setTestTimeout(this);
 
   const batchSize = 3;
   const ai = 'openai:gpt-4o'

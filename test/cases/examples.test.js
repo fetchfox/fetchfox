@@ -3,10 +3,12 @@ import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 // Test the examples from README.md
 describe('examples', function() {
+
+  setTestTimeout(this);
 
   it('should do basic example @fast', async () => {
     const cases = [
