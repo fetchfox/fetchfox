@@ -79,6 +79,26 @@ export const Instructions = class {
         this.commands[0].prompt == nextPageCommand
       );
       if (onlyPagination) {
+        const domainSpecific = domainSpecificInstructions(this.url);
+
+        this.commands = [
+          {
+            prompt: acceptCookiesPrompt,
+            optional: true,
+            // In case there are multiple, click up to three times
+            // TODO: more robust solution here
+            mode: 'all',
+            limit: 3,
+          },
+          {
+            prompt: nextPagePrompt + domainSpecific,
+            mode: 'repeat',
+            pagination: true,
+            limit: this.commands[0].limit,
+          },
+        ];
+
+        logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(this.commands, null, 2)}`);
         logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
         const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
@@ -95,19 +115,6 @@ export const Instructions = class {
         }
 
         logger.debug(`${this} Learn how to do: ${command.prompt}`);
-
-        if (command.prompt == nextPageCommand) {
-          command.prompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
-
-You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.`;
-          const domainSpecific = domainSpecificInstructions(this.url);
-          if (domainSpecific) {
-            command.prompt += domainSpecific;
-          }
-          logger.debug(`${this} Expanded prompt: ${command.prompt}`);
-          command.mode = 'repeat';
-          command.pagination = true;
-        }
 
         const context = {
           html: doc.html,
@@ -309,6 +316,21 @@ You will know pagination was successful if you see different results on each ite
           }
           break;
 
+        case 'all':
+          {
+            // `all` mode always executes the action on all elements each time, up to limit
+            let attempt = 0;
+            while (true) {
+              if (attempt > action.limit) break;
+              outcome = await fetcher.act(ctx, action, seen);
+              seen[outcome.html] = true;
+              usage.actions[i]++;
+              if (!outcome.ok) break;
+              attempt++;
+            }
+          }
+          break;
+
         case 'first':
           // `first` mode always executes the action on the same element
           outcome = await fetcher.act(ctx, action, {});
@@ -349,7 +371,7 @@ You will know pagination was successful if you see different results on each ite
       // those cases, becuase it becomes O(N) on number of pages.
       const tailRepeat = (
         this.learned?.length &&
-        this.learned.filter(it => !['repeat', 'first'].includes(it.mode)).length == 0 &&
+        this.learned.filter(it => !['repeat', 'first', 'all'].includes(it.mode)).length == 0 &&
         this.learned[this.learned.length - 1].mode == 'repeat');
 
       if (noActions) {
@@ -514,3 +536,12 @@ const domainSpecificInstructions = (url) => {
   }
   return result;
 }
+
+const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. This is an optional step, if there is no cookie or other terms to accept, do nothing
+
+If there are multiple cookie prompts, return one action for each.
+`;
+
+const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
+
+You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.`;

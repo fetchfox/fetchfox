@@ -162,6 +162,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   async click(ctx, selector, seen) {
     logger.debug(`${this} Click selector=${selector}`);
 
+    // TODO: for text= matchers, add a heuristic to prefer tighter  matches
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       logger.warn(`{this} Invalid selector: ${selector}`);
       return { ok: false };

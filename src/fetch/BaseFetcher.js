@@ -285,11 +285,11 @@ export const BaseFetcher = class {
   }
 
   async putS3(doc) {
-    logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     if (!this.s3) {
       return;
     }
 
+    logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     const bucket = this.s3.bucket;
     const region = this.s3.region;
     const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
