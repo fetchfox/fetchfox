@@ -15,6 +15,7 @@ Respond with JSON as follows:
     {
       "candidateAnalysis": "Reason for why this one might work",
       "candidateAction": "The action to perform. Either 'click', 'scroll', or 'click-scroll'",
+      "optionalAction": "Return 'yes' if this action should be considered optional",
       "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector for this candidate function",
       "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'"
     },
@@ -39,6 +40,7 @@ Information on these fields:
   - "click" if you need to click an element
   - "scroll" if you need to scroll on the page
   - "click-scroll" if you need to focus on a specic element, and *then* scroll
+- "optionalAction": Some actions are optional. A typical example is accepting cookies or other terms of service: if these fail, it's not important and we should continue. If the user prompt indicates the action is optional, follow that guidance. Return "yes" for optional actions, and "no" for required ones.
 - "candidatePlaywrightSelector": If action is "click" or "click-scroll", give the selector for the item to click to achieve the goal. You can do either "css=..." for css selector, or "text=..." for text base selector. This will be used in Playwright.
 - "candidateScrollType": If action is "scroll" or "click-scroll", return either "page-down" or "bottom"
   - "page-down" to scroll down a window height using the page down button

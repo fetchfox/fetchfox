@@ -1,14 +1,14 @@
 import assert from 'assert';
 import http from 'http';
 import { logger } from '../../src/log/logger.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 import { getFetcher, getAI } from '../../src/index.js';
 import { Instructions } from '../../src/fetch/Instructions.js';
 
 describe('PlaywrightFetcher', function() {
 
   // Playwright tests take a little longer to execute
-  this.timeout(60 * 1000);
+  setTestTimeout(this, 15 * 1000);
 
   before(() => {
     logger.testMode();

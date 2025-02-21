@@ -1,14 +1,14 @@
 import assert from 'assert';
 import http from 'http';
 import { logger } from '../../src/log/logger.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 import { getFetcher, getAI, Instructions } from '../../src/index.js';
 import * as cheerio from 'cheerio';
 
 describe('Instructions', function() {
 
   // TODO: fix caching on these to bring down test times
-  this.timeout(15 * 1000);
+  setTestTimeout(this, 15 * 1000);
 
   const cases = [
     // Objects as the commands
