@@ -367,7 +367,7 @@ const isPdf = async (url) => {
 
     return contentType && contentType.startsWith('application/pdf');
   } catch (e) {
-    logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
+    logger.warn(`Error while fetching content type for ${url}: ${e}`);
     return false;
   }
 }
