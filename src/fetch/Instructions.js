@@ -89,6 +89,7 @@ export const Instructions = class {
             // TODO: more robust solution here
             mode: 'all',
             limit: 3,
+            timeout: 5000,
           },
           {
             prompt: nextPagePrompt + domainSpecific,
@@ -139,18 +140,19 @@ export const Instructions = class {
           for (const it of raw) {
             const type = it.candidateAction;
             const limit = command.limit;
+            const timeout = command.timeout;
             const optional = command.optional || it.optionalAction == 'yes';
             const mode = command.mode || answer.partial.actionMode || 'distinct';
+
+            const shared = { type, limit, timeout, optional, mode };
+
             let candidate;
             switch (type) {
               case 'click':
                 candidate = [
                   {
-                    type,
+                    ...shared,
                     arg: it.candidatePlaywrightSelector,
-                    limit,
-                    mode,
-                    optional,
                   }
                 ];
                 break;
@@ -158,11 +160,8 @@ export const Instructions = class {
               case 'scroll':
                 candidate = [
                   {
-                    type,
+                    ...shared,
                     arg: it.candidateScrollType,
-                    limit,
-                    mode,
-                    optional,
                   }
                 ];
                 break;
@@ -170,17 +169,15 @@ export const Instructions = class {
               case 'click-scroll':
                 candidate = [
                   {
+                    ...shared,
                     type: 'click',
                     arg: it.candidatePlaywrightSelector,
-                    limit,
                     mode: 'first',
                   },
                   {
+                    ...shared,
                     type: 'scroll',
                     arg: it.candidateScrollType,
-                    limit,
-                    mode,
-                    optional,
                   },
                 ]
                 break;

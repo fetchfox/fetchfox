@@ -139,11 +139,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       let r;
       switch (action.type) {
         case 'click':
-          r = await this.click(ctx, action.arg, seen);
+          r = await this.click(
+            ctx,
+            action.arg,
+            seen,
+            { timeout: action.timeout || this.actionTimeout });
           break;
 
         case 'scroll':
-          r = await this.scroll(ctx, action.arg, seen);
+          r = await this.scroll(
+            ctx,
+            action.arg,
+            seen,
+            { timeout: action.timeout || this.actionTimeout });
           break;
 
         default:
@@ -159,7 +167,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async click(ctx, selector, seen) {
+  async click(ctx, selector, seen, options) {
     logger.debug(`${this} Click selector=${selector}`);
 
     // TODO: for text= matchers, add a heuristic to prefer tighter  matches
@@ -168,6 +176,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return { ok: false };
     }
 
+    const timeout = options?.timeout;
     const loc = ctx.page.locator(selector);
 
     let el;
@@ -177,7 +186,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // Look for the first matching element not in seen
     for (let i = 0; el == null; i++) {
       try {
-        await loc.nth(i).waitFor({ state: 'attached', timeout: this.locatorTimeout });
+        await loc.nth(i).waitFor({ state: 'attached', timeout });
       } catch (e) {
         logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
         return { ok: false };
@@ -196,8 +205,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     try {
-      await el.scrollIntoViewIfNeeded({ timeout: this.actionTimeout });
-      await el.click({ timeout: this.actionTimeout });
+      await el.scrollIntoViewIfNeeded({ timeout });
+      await el.click({ timeout });
     } catch (e) {
       logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
       return { ok: false };
