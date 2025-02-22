@@ -5,18 +5,7 @@ import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('https://www.eclecticrecruitment.co.uk/jobs', async function() {
-  const matrix = standardMatrix({
-    fetcher: [
-      [
-        'playwright',
-        {
-          headless: false,
-          timeout: 15 * 1000,
-          timeout: 5 * 1000,
-        }
-      ]
-    ]
-  });
+  const matrix = standardMatrix();
 
   const expected = [
     { url: 'https://www.eclecticrecruitment.co.uk/jobs/' },
