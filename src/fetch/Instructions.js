@@ -536,8 +536,7 @@ const domainSpecificInstructions = (url) => {
 
 const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. This is an optional step, if there is no cookie or other terms to accept, do nothing
 
-If there are multiple cookie prompts, return one action for each.
-`;
+If there are multiple cookie prompts, return one action for each.`;
 
 const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
 
