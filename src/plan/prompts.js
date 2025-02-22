@@ -113,7 +113,15 @@ The user's scraping job is as follows:
 The user top level prompt is: {{prompt}}
 
 * Prefer mode='auto' in almost all cases, unless you are SURE a different mode is needed
+* use snake_case for all fields in extract steps
+
+Your plan should follow one of the following formats:
+
+(1) Extract only: if all the information is on the first page, just do a single extract step that gets all the data
+(2) Crawl for URLs and then extract: if there a bunch of links to detail pages, and the detail pages are likely to contain all the info, the crawl for URLs linking to those detail pages, and then extract all the data from the detail pages
+(3) Extact URLs + info on this page, and some more info on the detail pages. This is useful if there is some info on this page, and there are also links to detail pages, and you expect the detail pages to include additional data/fields. If you do this format, you *MUST* have a field named "url" in the first extraction step. This url will be the detail page, and will be followed to extract additional info
+
+So you will have 1-2 steps in your plan.
+
 * Make sure to ONLY return JSON, with no explanation. Your output will parsed using JSON.parse()
-
-
 `);

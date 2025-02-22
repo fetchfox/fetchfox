@@ -41,11 +41,6 @@ export const stepDescriptionsMap = {
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
         required: true,
       },
-      css: {
-        description: 'A CSS selector, if present we will look only in this section',
-        format: 'string',
-        required: false,
-      },
     },
   }),
 

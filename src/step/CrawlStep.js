@@ -14,14 +14,12 @@ export const CrawlStep = class extends BaseStep {
     if (!query) throw new Error('no query');
 
     this.query = query;
-    this.css = args?.css;
   }
 
   async process({ cursor, item, index }, cb) {
     const crawler = cursor.ctx.crawler;
 
     const options = {
-      css: this.css,
       maxPages: this.maxPages,
       fetchOptions: { priority: index },
     };
