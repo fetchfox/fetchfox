@@ -121,9 +121,7 @@ describe('Instructions', function() {
       try {
         const cache = testCache();
         const ai = getAI('openai:gpt-4o', { cache });
-        const fetcher = getFetcher(
-          'playwright',
-          { ai, loadWait: 1, actionWait: 1, locatorTimeout: 25, headless: true });
+        const fetcher = getFetcher('playwright', { ai, cache, wait: 1, timeout: 25 });
         const url = `http://localhost:${port}`;
 
         const instr = new Instructions(url, commands, { ai });
@@ -211,9 +209,7 @@ describe('Instructions', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o', { cache });
-      const fetcher = getFetcher(
-        'playwright',
-        { ai, loadWait: 1, actionWait: 1, headless: true });
+      const fetcher = getFetcher('playwright', { ai, cache, wait: 1, timeout: 25 });
       const url = `http://localhost:${port}`;
 
       const commands = [
@@ -280,9 +276,7 @@ describe('Instructions', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o', { cache });
-      const fetcher = getFetcher(
-        'playwright',
-        { ai, loadWait: 1, actionWait: 1, locatorTimeout: 25 });
+      const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 100 });
       const url = `http://localhost:${port}`;
       const commands = [{ prompt: '{{nextPage}}', limit: 4 }];
 
@@ -377,9 +371,7 @@ describe('Instructions', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o', { cache });
-      const fetcher = getFetcher(
-        'playwright',
-        { ai, loadWait: 1, actionWait: 1, locatorTimeout: 25, headless: true });
+      const fetcher = getFetcher('playwright', { ai, cache, wait: 1, timeout: 25 });
       const url = `http://localhost:${port}`;
 
       const commands = [
@@ -493,9 +485,7 @@ describe('Instructions', function() {
     const url = `http://localhost:${port}`;
 
     const fetcherCtx = {};
-    const fetcher = getFetcher(
-      'playwright',
-      { ai, cache, wait: 10, timeout: 10 });
+    const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 10 });
 
     const limit = 4;
 

@@ -31,7 +31,6 @@ export const BaseFetcher = class {
     this.actionWait = options?.actionWait || this.wait;
 
     this.loadTimeout = options?.loadTimeout || this.timeout;
-    this.locatorTimeout = options?.locatorTimeout || this.timeout;
     this.actionTimeout = options?.actionTimeout || this.timeout;
   }
 
