@@ -56,7 +56,7 @@ const registerCommit = async () => {
     await docClient.send(new TransactWriteCommand(transactParams));
     logger.debug(`Registered commit ${commit}`)
   } catch (error) {
-    if (error.code === 'TransactionCanceledException') {
+    if (error.name === 'TransactionCanceledException') {
         logger.debug('Commit already registered, doing nothing.');
     } else {
       logger.warn(`Error registering commit: ${error}`);
