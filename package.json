@@ -28,6 +28,8 @@
   },
   "homepage": "https://github.com/fetchfox/fetchfox",
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@aws-sdk/lib-dynamodb": "^3.751.0",
     "@eslint/js": "^9.17.0",
     "chai": "^5.1.1",
     "cheerio": "^1.0.0",
@@ -39,9 +41,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.2",
-    "@aws-sdk/client-dynamodb": "^3.751.0",
     "@aws-sdk/client-s3": "^3.669.0",
-    "@aws-sdk/lib-dynamodb": "^3.751.0",
     "@aws-sdk/s3-request-presigner": "^3.686.0",
     "@google/generative-ai": "^0.19.0",
     "chalk": "^5.3.0",
