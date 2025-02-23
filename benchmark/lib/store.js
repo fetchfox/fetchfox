@@ -1,6 +1,6 @@
 import { logger } from '../../src/log/logger.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocument, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { randomUUID } from 'crypto';
 
 const allScores = [];
@@ -34,16 +34,30 @@ const registerCommit = async () => {
   const docClient = getDocClient();
 
   try {
-    // Conditionally put commmit if not already there
-    await docClient.put({
-      TableName: commitsTable,
-      Item: { lookup, commit, branch, timestamp, date },
-      ConditionExpression: 'attribute_not_exists(lookup)',
-    });
+    // Conditionally put commmit if not already there (transaction / lock)
+    const transactParams = {
+      TransactItems: [
+        {
+          Put: {
+            TableName: commitsTable,
+            Item: { lookup: "LOCK", timestamp: commit },
+            ConditionExpression: 'attribute_not_exists(lookup)',
+          }
+        },
+        {
+          Put: {
+            TableName: commitsTable,
+            Item: { lookup, commit, branch, timestamp, date },
+            ConditionExpression: 'attribute_not_exists(lookup)',
+          }
+        },
+      ]
+    }
+    await docClient.send(new TransactWriteCommand(transactParams));
     logger.debug(`Registered commit ${commit}`)
   } catch (error) {
-    if (error.code === 'ConditionalCheckFailedException') {
-      logger.debug('Commit already registered, doing nothing.');
+    if (error.code === 'TransactionCanceledException') {
+        logger.debug('Commit already registered, doing nothing.');
     } else {
       logger.warn(`Error registering commit: ${error}`);
     }
