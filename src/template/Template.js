@@ -53,12 +53,12 @@ export const Template = class {
     return prompt;
   }
 
-  async renderMulti(context, flexField, ai) {
+  async renderMulti(context, flexField, ai, options) {
     const copy = { ...context };
     const prompts = [];
     while (true) {
       const { prompt, bytesUsed, done } = await this.renderCapped(
-        copy, flexField, ai);
+        copy, flexField, ai, options);
       prompts.push(prompt);
       if (done) {
         break;
@@ -68,13 +68,13 @@ export const Template = class {
     return prompts;
   }
 
-  async renderCapped(context, flexField, ai) {
+  async renderCapped(context, flexField, ai, options) {
     await ai.init();
 
     const timer = new Timer();
     timer.push('Template.renderCapped');
 
-    const maxTokens = (ai.maxTokens || 128000) * this.safetyMarginPercent;
+    const maxTokens = (options?.maxTokens || ai.maxTokens || 128000) * this.safetyMarginPercent;
     const countFn = async (str) => ai.countTokens(str, { timer });
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
@@ -144,7 +144,7 @@ export const Template = class {
     const timer = options?.timer || new Timer();
     timer.push('Template.renderCappedFromMemory');
 
-    const maxTokens = ai.maxTokens || 128000;
+    const maxTokens = options?.maxTokens || ai.maxTokens || 128000;
 
     const sum = this.bytesPerTokenMemory.reduce((acc, x) => acc + x, 0);
     const bytesPerTokenAvg = sum / this.bytesPerTokenMemory.length;

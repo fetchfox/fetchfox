@@ -7,12 +7,13 @@ import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, signal, cache, hardCapTokens } = options || {};
+    const { ai, fetcher, signal, cache, hardCapTokens, hint } = options || {};
     this.signal = signal;
     this.cache = cache;
     this.ai = getAI(ai, { cache, signal });
     this.fetcher = getFetcher(fetcher, { cache, signal });
     this.hardCapTokens = hardCapTokens || 1e7;
+    this.hint = hint;
     this.usage = {
       requests: 0,
       runtime: 0,

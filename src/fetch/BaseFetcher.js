@@ -88,6 +88,7 @@ export const BaseFetcher = class {
             ai: this.ai,
             cache: this.cache,
             loadTimeout: this.loadTimeout,
+            hint: options?.hint,
           });
       }
 

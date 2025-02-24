@@ -16,6 +16,8 @@ export const BaseStep = class {
   constructor(args) {
     this.batchSize = args?.batchSize || defaultBatchSize;
     this.limit = args?.limit;
+    this.hint = args?.hint;
+
     // TODO: pull defaults from info
     this.maxPages = args?.maxPages || 1;
 
@@ -204,7 +206,7 @@ export const BaseStep = class {
                     if (serialized.length > 300) {
                       serialized = serialized.substring(0, 280) + '...'
                     }
-                    logger.info(`${chalk.bold.cyan('' + this + ' (' + index + ')')} ${chalk.bold.cyan('\u{25B6}')} Got a result: ${serialized}`)
+                    logger.info(`${chalk.bold.cyan('' + this +' (' + index + ')' + ' #' + this.results.length)} ${chalk.bold.cyan('\u{25B6}')} ${serialized}`);
 
                     cursor.publish(
                       firstId,

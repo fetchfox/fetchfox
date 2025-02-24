@@ -28,6 +28,7 @@ export const Instructions = class {
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
+    this.hint = options?.hint;
   }
 
   toString() {
@@ -101,6 +102,7 @@ export const Instructions = class {
 
         logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(this.commands, null, 2)}`);
         logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
+
         const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
       }
@@ -120,6 +122,7 @@ export const Instructions = class {
         const context = {
           html: doc.html,
           command: command.prompt,
+          hint: this.hint,
         };
 
         const actionPrompts = await prompts.pageAction
@@ -162,6 +165,9 @@ export const Instructions = class {
                   {
                     ...shared,
                     arg: it.candidateScrollType,
+
+                    // Infinite scroll should only yield one document
+                    singleYield: it.candidateScrollType == 'bottom',
                   }
                 ];
                 break;
@@ -341,6 +347,9 @@ export const Instructions = class {
           usage.actions[i]++;
           seen[outcome.html] = true;
           break;
+
+        default:
+          throw new Error(`Unhandled mode: ${action.mode}`);
       }
 
       ok &&= outcome?.ok || action.optional;
@@ -355,6 +364,11 @@ export const Instructions = class {
     }
 
     const ctx = {};
+
+    // For infinite scroll, only yield one document. The `finalDoc` variable
+    // keeps track of the last document we saw, which is expected to have
+    // the most data in it.
+    let finalDoc;
 
     try {
       await fetcher.start(ctx);
@@ -396,7 +410,9 @@ export const Instructions = class {
         let i;
         let ok;
         for (i = 0; i < state.length; i++) {
+
           ok = await act(i, state, { tailRepeat });
+
           logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
 
           if (!ok) {
@@ -426,7 +442,12 @@ export const Instructions = class {
         if (ok) {
           const doc = await this.current(fetcher, ctx);
           logger.debug(`${this} Yielding a document: ${doc}`);
-          yield Promise.resolve({ doc, usage });
+
+          if (this.learned[i].singleYield) {
+            finalDoc = doc;
+          } else {
+            yield Promise.resolve({ doc, usage });
+          }
         }
       }
 
@@ -434,7 +455,7 @@ export const Instructions = class {
       await fetcher.finish(ctx);
     }
 
-    yield Promise.resolve({ usage });
+    yield Promise.resolve({ usage, doc: finalDoc });
   }
 
   async current(fetcher, ctx) {
@@ -522,10 +543,10 @@ const domainSpecificInstructions = (url) => {
       prefix: /^https:\/\/www.steimatzky.co.il/,
       instruction: 'You are on steimatzky.co.il. Paginate by scrolling down to the bottom.',
     },
-    {
-      prefix: /^https:\/\/grailzee\.com/,
-      instruction: 'You are on grailzee.com. Paginate by scrolling down to the bottom.',
-    },
+    // {
+    //   prefix: /^https:\/\/grailzee\.com/,
+    //   instruction: 'You are on grailzee.com. Paginate by scrolling down to the bottom.',
+    // },
   ];
   const match = matchers.find(({ prefix }) => prefix.test(url));
   let result;

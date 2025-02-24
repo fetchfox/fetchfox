@@ -19,7 +19,12 @@ export const SinglePromptExtractor = class extends BaseExtractor {
         extraRules = `You are in SINGLE item extraction mode. Return EXACTLY ONE result. This rule overrides previous instructions.`;
         break;
       case 'multiple':
-        extraRules = `You are in MULTIPLE item extraction mode. Return ONE OR MORE results. This rule overrides previous instructions.`;
+        extraRules = `You are in MULTIPLE item extraction mode. Return ONE OR MORE results. This rule overrides previous instructions. Make sure to find ALL items.
+
+* After every one or two dozen items, return another "_meta" result with an update on your status, how many items you think you have left to find, your confidence, and so on. No more than 100 words total. The format should be:
+
+{ "_meta": true, "analysis": "...your analysis here..."}
+`;
         break;
       case 'auto':
         extraRules = `Before beginning extraction, return a single JSONL result that is an analysis result. The format will be like this:
@@ -35,8 +40,10 @@ Field meanings:
 Important: consider BOTH the page content, and also the URL of the page. Sometimes the URL will give clues about whether this is a detail page or a list page, and therefore single or multiple extraction.
 
 * Once this analysis is complete, the REST of your response MUST respect the outcome of this analysis
+* If instructed to find multiple items, make sure to find ALL items that match
+* If instructed to find a single item, return ONLY return one actual result item
 * The "_meta" result does NOT count to the result limit. If you are in single mode, return one _meta result, and then one actual result.
-
+* If you are extracting multiple items, after every 10 items, return another "_meta" result with an update on your status, how many items you think you have left to find, your confidence, and so on. No more than 100 words total.
 `;
         break;
       default:
@@ -61,33 +68,30 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
       : ''),
     };
 
+    // let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai, { maxTokens: 40000 });
     let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
 
-    const max = 50;
+    const max = 32
     if (prompts.length > max) {
       logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
       prompts = prompts.slice(0, max);
     }
 
-    let count = 0;
-    for (const prompt of prompts) {
-      logger.debug(`${this} Streaming prompt ${++count} of ${prompts.length}`);
-
-      try {
-        const stream = this.ai.stream(prompt, { format: 'jsonl' });
-        for await (const { delta } of stream) {
+    try {
+      for (const prompt of prompts) {
+        const gen = this.ai.stream(prompt, { format: 'jsonl' });
+        for await (const { delta } of gen) {
           if (delta._meta) {
-            logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
+            logger.info(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
             continue;
           }
 
           yield Promise.resolve(new Item(delta, doc));
         }
-
-      } catch(e) {
-        logger.error(`${this} Got error while streaming: ${e}`);
-        throw e;
       }
+    } catch (e) {
+      logger.error(`${this} Got error while extracting: ${e}`);
+      throw e;
     }
   }
 }

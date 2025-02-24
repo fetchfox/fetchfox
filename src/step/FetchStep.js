@@ -22,6 +22,7 @@ export const FetchStep = class extends BaseStep {
     if (this.maxPages) options.maxPages = this.maxPages;
     if (this.active) options.active = this.active;
     if (this.css) options.css = this.css;
+    if (this.hint) options.hint = this.hint;
 
     const url = item.url || item._url;
     const stream = await cursor.ctx.fetcher.fetch(url, options);
