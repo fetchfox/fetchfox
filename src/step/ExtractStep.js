@@ -67,7 +67,8 @@ export const ExtractStep = class extends BaseStep {
         if (item instanceof Document) {
           combined = output;
         } else {
-          combined = { ...output, ...item };
+          // TODO: intelligently merge so new stuff goes first, and isn't overriden
+          combined = { ...item, ...output };
         }
         logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
 
