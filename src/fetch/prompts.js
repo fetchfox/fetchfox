@@ -67,6 +67,8 @@ REMEMBER:
 IMPORTANT:
 - Do NOT use ":contains(...)" pseudo selector for any css= selectors
 - Do NOT invent CSS selectors to match text. NEVER MATCH TEXT WITH css=...
+- You MUST prefix css= or text= to your CSS selectors
+- ALWAYS USE VALID CSS SYNTAX
 
 Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
 `);

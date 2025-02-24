@@ -16,26 +16,12 @@ jobs:
         node-version: [22.x]
         attempt: [1,2,3,4]
         ai:
-          - openai:gpt-4o-mini
           - openai:gpt-4o
-          - openai:o3-mini
+          - openai:gpt-4o-mini
           - google:gemini-1.5-pro
           - google:gemini-1.5-flash
           - google:gemini-2.0-flash
-          - groq:llama-3.2-11b-vision-preview
-          - groq:llama-3.2-90b-vision-preview
-          - openrouter:openai/o3-mini
-          - openrouter:meta-llama/llama-3.2-1b-instruct
           - openrouter:meta-llama/llama-3.3-70b-instruct
-          - openrouter:google/gemini-flash-1.5-8b
-          - openrouter:google/gemini-flash-1.5
-          - openrouter:google/gemini-pro-1.5
-          - openrouter:google/gemini-2.0-flash-001
-          - openrouter:deepseek/deepseek-r1
-          - openrouter:deepseek/deepseek-chat
-          - openrouter:deepseek/deepseek-r1-distill-llama-70b
-          - openrouter:anthropic/claude-3.5-haiku
-          - openrouter:anthropic/claude-3.5-sonnet
 
     steps:
     - uses: actions/checkout@v4
