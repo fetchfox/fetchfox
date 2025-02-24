@@ -522,6 +522,10 @@ const domainSpecificInstructions = (url) => {
       prefix: /^https:\/\/www.steimatzky.co.il/,
       instruction: 'You are on steimatzky.co.il. Paginate by scrolling down to the bottom.',
     },
+    {
+      prefix: /^https:\/\/grailzee\.com/,
+      instruction: 'You are on grailzee.com. Paginate by scrolling down to the bottom.',
+    },
   ];
   const match = matchers.find(({ prefix }) => prefix.test(url));
   let result;
