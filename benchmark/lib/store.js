@@ -66,7 +66,7 @@ const persistAllScores = async () => {
 
   if (commit == 'local') {
     logger.debug(`Skipping putting aggregate scores in DynamoDB, logging to debug ${allScores.length} rows instead`);
-    logger.debug(JSON.stringify(updated))
+    logger.debug(JSON.stringify(allScores));
     return;
   }
 

@@ -18,6 +18,14 @@ const combineInfo = (info) => {
     required: false,
   };
 
+  if (['extract', 'fetch'].includes(info.name)) {
+    combined.args.hint = {
+      description: 'Add an optional hint to the AI of how to complete this step.',
+      format: 'string',
+      required: false,
+    };
+  }
+
   if (['const', 'extract', 'crawl', 'fetch'].includes(info.name)) {
     combined.args.maxPages = {
       description: 'Max number of pages to fetch from source URLs',

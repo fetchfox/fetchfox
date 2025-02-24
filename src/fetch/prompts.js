@@ -1,7 +1,7 @@
 import { Template } from '../template/Template.js';
 
 export const pageAction = new Template(
-  ['html', 'command'],
+  ['html', 'command', 'hint'],
   `You are part of a web scraping program. You are given some HTML and a goal.
 
 Your goal is: {{command}}
@@ -69,6 +69,9 @@ IMPORTANT:
 - Do NOT invent CSS selectors to match text. NEVER MATCH TEXT WITH css=...
 - You MUST prefix css= or text= to your CSS selectors
 - ALWAYS USE VALID CSS SYNTAX
+
+>>>> The user has passed in this hint, this is important for this specific action:
+{{hint}}
 
 Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
 `);
