@@ -50,7 +50,7 @@ const registerCommit = async () => {
     if (e.name == 'TransactionCanceledException') {
         logger.debug('Commit already registered, doing nothing.');
     } else {
-      logger.warn(`Error registering commit: ${e}`);
+      throw new Error(`Error registering commit: ${e}`);
     }
   }
 }
@@ -75,10 +75,10 @@ const persistAllScores = async () => {
   logger.debug(`Putting aggregate scores in DynamoDB with ${allScores.length} rows`);
 
   // batch update scores using AWS DynamoDB DocumentClient
-  const BATCH_SIZE = 25; // DynamoDB batchWrite has a max of 25 items per batch
+  const batchSize = 25; // DynamoDB batchWrite has a max of 25 items per batch
 
-  for (let i = 0; i < allScores.length; i += BATCH_SIZE) {
-    const batchItems = allScores.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < allScores.length; i += batchSize) {
+    const batchItems = allScores.slice(i, i + batchSize);
     const requestItems = {
       [scoresTable]: batchItems.map(score => ({
         PutRequest: {
