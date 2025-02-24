@@ -29,6 +29,8 @@
   },
   "homepage": "https://github.com/fetchfox/fetchfox",
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@aws-sdk/lib-dynamodb": "^3.751.0",
     "@eslint/js": "^9.17.0",
     "chai": "^5.1.1",
     "cheerio": "^1.0.0",
