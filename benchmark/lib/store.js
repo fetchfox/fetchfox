@@ -1,20 +1,12 @@
 import { logger } from '../../src/log/logger.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { randomUUID } from 'crypto';
+import { srid } from '../../src/util.js'
 
 const allScores = [];
 let id = 0; // per parallel execution sequential id, combined with uuid
 
-let docClient;
-
-const getDocClient = () => {
-  if (!docClient) {
-    const client = new DynamoDBClient({});
-    docClient = DynamoDBDocument.from(client);
-  }
-  return docClient;
-}
+const docClient = DynamoDBDocument.from(new DynamoDBClient());
 
 const registerCommit = async () => {
   const commitsTable = process.env.BENCH_COMMITS_TABLE;
@@ -31,7 +23,6 @@ const registerCommit = async () => {
     logger.debug('Skipping registering commit in DynamoDB');
     return;
   }
-  const docClient = getDocClient();
 
   try {
     // Conditionally put commmit if not already there (transaction / lock)
@@ -55,11 +46,11 @@ const registerCommit = async () => {
     }
     await docClient.send(new TransactWriteCommand(transactParams));
     logger.debug(`Registered commit ${commit}`)
-  } catch (error) {
-    if (error.name === 'TransactionCanceledException') {
+  } catch (e) {
+    if (e.name == 'TransactionCanceledException') {
         logger.debug('Commit already registered, doing nothing.');
     } else {
-      logger.warn(`Error registering commit: ${error}`);
+      logger.warn(`Error registering commit: ${e}`);
     }
   }
 }
@@ -75,14 +66,13 @@ const persistAllScores = async () => {
 
   if (commit == 'local') {
     logger.debug(`Skipping putting aggregate scores in DynamoDB, logging to debug ${allScores.length} rows instead`);
-    logger.debug(updated)
+    logger.debug(JSON.stringify(updated))
     return;
   }
 
   await registerCommit();
 
   logger.debug(`Putting aggregate scores in DynamoDB with ${allScores.length} rows`);
-  const docClient = getDocClient();
 
   // batch update scores using AWS DynamoDB DocumentClient
   const BATCH_SIZE = 25; // DynamoDB batchWrite has a max of 25 items per batch
@@ -113,13 +103,12 @@ const persistAllScores = async () => {
           logger.debug('Batch write successful for scores:', batchItems.length);
           done = true;
         }
-      } catch (error) {
-        logger.warn('Batch write error:', error);
+      } catch (e) {
+        logger.warn('Batch write error:', e);
         retries--;
       }
       if (retries <= 0) {
-        logger.error('Failed to write all score items to DB after retries');
-        done = true;
+        throw new Error('Failed to write all score items to DB after retries');
       }
     }
   }
@@ -132,7 +121,7 @@ export const storeScores = async (scores) => {
     // currently overwrites if commit / id already in database
     const row = {
       commit: score.commit || 'unknown', // partition key
-      id: `${id++}#${randomUUID()}`, // sort key, must be string
+      id: `${id++}#${srid()}`, // sort key, must be unique string
       name: score.name || 'unknown',
       date: score.date || new Date().toISOString().split('T')[0],
       branch: score.branch || 'unknown',
@@ -188,11 +177,11 @@ export const storeScores = async (scores) => {
 if (!global.__persistHookRegistered) {
   // Check that the Mocha global `after` function is available.
   // It should be if this file is loaded within a test context.
-  if (typeof after === 'function') {
+  if (typeof after == 'function') {
     after(function() {
       // Persist scores after all tests in this process have finished
-      persistAllScores().catch(err => {
-        logger.error("Error persisting benchmark scores:", err);
+      persistAllScores().catch(e => {
+        logger.error("Error persisting benchmark scores:", e);
       });
     });
     global.__persistHookRegistered = true;
