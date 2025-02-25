@@ -188,7 +188,9 @@ export const BaseFetcher = class {
             try {
               logger.debug(`${this} Starting at ${instr.url}`);
 
-              let skipOne = false;
+              const hash = (doc) => shortObjHash({ data: doc.selectHtml || doc.text || doc.html });
+
+              const seen = {};
               for await (const r of instr.learn(this)) {
                 const doc = r?.doc;
                 if (this.signal?.aborted) {
@@ -196,7 +198,7 @@ export const BaseFetcher = class {
                 }
                 if (doc) {
                   channel.send({ doc });
-                  skipOne = true;
+                  seen[hash(doc)] = true;
                 }
               }
 
@@ -207,13 +209,13 @@ export const BaseFetcher = class {
                 if (this.signal?.aborted) {
                   break;
                 }
-                if (skipOne) {
-                  logger.debug(`${this} Skip one ${doc}`);
-                  skipOne = false;
+                if (seen[hash(doc)]) {
+                  logger.debug(`${this} Skip seen html ${doc}`);
                   continue;
                 }
                 if (doc) {
                   channel.send({ doc });
+                  seen[hash(doc)] = true;
                 }
               }
 

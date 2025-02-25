@@ -539,14 +539,6 @@ const domainSpecificInstructions = (url) => {
       prefix: /^https:\/\/([a-zA-Z0-9-]+\.)?google\.com\/maps/,
       instruction: 'You are on Google Maps. Paginate using by clicking to focus on the results area. If you see the text "Results", click on that. Otherwise, find some other text to click on to focus on the results area. Then, scroll down a page length using the page down button.',
     },
-    {
-      prefix: /^https:\/\/www.steimatzky.co.il/,
-      instruction: 'You are on steimatzky.co.il. Paginate by scrolling down to the bottom.',
-    },
-    // {
-    //   prefix: /^https:\/\/grailzee\.com/,
-    //   instruction: 'You are on grailzee.com. Paginate by scrolling down to the bottom.',
-    // },
   ];
   const match = matchers.find(({ prefix }) => prefix.test(url));
   let result;

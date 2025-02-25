@@ -21,7 +21,8 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       case 'multiple':
         extraRules = `You are in MULTIPLE item extraction mode. Return ONE OR MORE results. This rule overrides previous instructions. Make sure to find ALL items.
 
-* After every one or two dozen items, return another "_meta" result with an update on your status, how many items you think you have left to find, your confidence, and so on. No more than 100 words total. The format should be:
+* After every 25 items, return another "_meta" result with an update on your status, how many items you think you have left to find, and a FIRM instruction to yourself on how to proceed. No more than 100 words total.
+* Consider the results of each _meta when looking for more results
 
 { "_meta": true, "analysis": "...your analysis here..."}
 `;
@@ -43,7 +44,8 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
 * If instructed to find multiple items, make sure to find ALL items that match
 * If instructed to find a single item, return ONLY return one actual result item
 * The "_meta" result does NOT count to the result limit. If you are in single mode, return one _meta result, and then one actual result.
-* If you are extracting multiple items, after every 10 items, return another "_meta" result with an update on your status, how many items you think you have left to find, your confidence, and so on. No more than 100 words total.
+* If you are extracting multiple items, after every 25 items, return another "_meta" result with an update on your status, how many items you think you have left to find, and a FIRM instruction to yourself on how to proceed. No more than 100 words total.
+* Consider the results of each _meta when looking for more results and deciding if you should stop
 `;
         break;
       default:
@@ -68,7 +70,6 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
       : ''),
     };
 
-    // let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai, { maxTokens: 40000 });
     let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
 
     const max = 32
@@ -82,7 +83,7 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
         const gen = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of gen) {
           if (delta._meta) {
-            logger.info(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
+            logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
             continue;
           }
 
