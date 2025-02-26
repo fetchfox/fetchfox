@@ -1,4 +1,6 @@
 import { logger } from '../log/logger.js';
+import { parse } from 'node-html-parser';
+import { shortObjHash } from '../util.js';
 
 // TODO: refactor Document entirely
 export const Document = class {
@@ -121,6 +123,53 @@ export const Document = class {
 
     const took = (new Date()).getTime() - start;
     logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
+  }
+
+  diff(otherDoc) {
+    const me = parse(this.html);
+    const other = parse(otherDoc.html);
+
+    const hash = (node) => {
+      return shortObjHash({ d: node.innerHTML });
+    }
+
+    const hashes = (node) => {
+      let results = [hash(node)];
+      for (const child of node.childNodes) {
+        const h = hashes(child);
+        results.push(...h);
+      }
+      return results;
+    }
+
+    const trim = (node, rm) => {
+      for (const child of node.childNodes) {
+        const h = hash(child);
+        if (rm.includes(h)) {
+          node.removeChild(child)
+        } else {
+          trim(child, rm);
+        }
+      }
+    }
+
+    const myHashes = hashes(me);
+    trim(other, myHashes);
+
+    const html = other.innerHTML;
+    const data = {
+      url: other.url,
+      body: html,
+      html,
+      text: html, // TODO
+      selectHtml: html, // TODO
+      htmlUrl: other.htmlUrl, // TODO
+      resp: other.resp,
+      contentType: other.contentType,
+    };
+    const diff = new Document();
+    diff.loadData(data);
+    return diff;
   }
 }
 

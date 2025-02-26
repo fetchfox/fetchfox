@@ -6,14 +6,14 @@ import { storeScores } from '../lib/store.js';
 
 describe('startops.network', async function() {
   const matrix = standardMatrix({
-    fetcher: [
-      [
-        'playwright',
-        {
-          headless: false,
-        }
-      ]
-    ]
+    // fetcher: [
+    //   [
+    //     'playwright',
+    //     {
+    //       headless: false,
+    //     }
+    //   ]
+    // ]
   });
 
   const wf = await fox

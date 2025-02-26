@@ -177,10 +177,6 @@ export const BaseFetcher = class {
       const channel = createChannel();
       const p = this.q.add(
         () => {
-          // We should replace `createChannel` with another library. Until then,
-          // allow async Promise executor here to support an async generator
-          // feeding into a channel.
-          // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok) => {
             logger.debug(`${this} Queue is starting fetch of: ${instr} ${debugStr()}`);

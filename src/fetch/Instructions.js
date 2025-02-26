@@ -444,6 +444,11 @@ export const Instructions = class {
           logger.debug(`${this} Yielding a document: ${doc}`);
 
           if (this.learned[i].singleYield) {
+            if (finalDoc) {
+              const diff = doc.diff(finalDoc);
+              console.log('got diff:' + diff);
+            }
+
             finalDoc = doc;
           } else {
             yield Promise.resolve({ doc, usage });
