@@ -203,7 +203,8 @@ export const Instructions = class {
         for (const set of candidates) {
           logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
-          let ok;
+          let ok = true;
+
           try {
 
             // TODO: Re-enable action checks. Skip for now to run faster.
@@ -213,7 +214,11 @@ export const Instructions = class {
             //   command.prompt,
             //   [...learned, ...set]);
 
-            ok = true;
+            // Instead, quickly check if the elements exist
+            for (const { arg } of set) {
+              const el = await fetcher.select(ctx, arg, { timeout: 1000 });
+              ok &&= (await el.count());
+            }
 
           } catch (e) {
             logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
