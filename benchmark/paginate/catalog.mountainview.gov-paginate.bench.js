@@ -4,7 +4,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate catalog.mountainview.gov', async function() {
+describe('catalog.mountainview.gov', async function() {
   const matrix = standardMatrix({
     fetcher: ['playwright'],
   });
@@ -24,7 +24,7 @@ describe('paginate catalog.mountainview.gov', async function() {
 
   return itRunMatrix(
     it,
-    'paginate catalog.mountainview.gov', 
+    'should paginate',
     wf.dump(),
     matrix,
     [

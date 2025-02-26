@@ -17,13 +17,15 @@ Respond with JSON as follows:
       "candidateAction": "The action to perform. Either 'click', 'scroll', or 'click-scroll'",
       "optionalAction": "Return 'yes' if this action should be considered optional",
       "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector for this candidate function",
-      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'"
+      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
+      "candidateConfidence": "number in range 1..100"
     },
     {
       "candidateAnalysis": "Reason for why this one might work",
       "candidateAction": "The action to perform. Either 'click', 'scroll', or 'click-scroll'",
       "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector for this candidate function",
-      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'"
+      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
+      "candidateConfidence": "number in range 1..100"
     },
   ]
 }
@@ -45,6 +47,7 @@ Information on these fields:
 - "candidateScrollType": If action is "scroll" or "click-scroll", return either "page-down" or "bottom"
   - "page-down" to scroll down a window height using the page down button
   - "bottom" to scroll all the way to the bottom using javascript
+- "candidateConfidence": A rating from 1-100 of how confident you are that this is the right action
 
 >>>> Analyze this HTML:
 {{html}}
