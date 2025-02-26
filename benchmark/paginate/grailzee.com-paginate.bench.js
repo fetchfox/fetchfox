@@ -24,7 +24,7 @@ describe('grailzee.com', async function() {
 
   return itRunMatrix(
     it,
-    'should paginate using infinite scroll',
+    'should paginate grailzee.com',
     wf.dump(),
     matrix,
     [

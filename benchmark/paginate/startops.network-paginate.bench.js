@@ -32,7 +32,7 @@ describe('startops.network', async function() {
 
   return itRunMatrix(
     it,
-    'should paginate',
+    'should paginate startops.network',
     wf.dump(),
     matrix,
     [

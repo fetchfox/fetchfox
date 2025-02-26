@@ -22,7 +22,7 @@ describe('https://www.eclecticrecruitment.co.uk/jobs', async function() {
 
   return itRunMatrix(
     it,
-    'should paginate',
+    'should paginate eclecticrecruitment.co.uk',
     wf.dump(),
     matrix,
     [
