@@ -571,7 +571,7 @@ const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. Th
 
 If there are multiple cookie prompts, return one action for each.`;
 
-const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
+const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If you are having trouble finding how to get to the next page and there is a button to Load More data or Show More data, click that, since it is similar to pagination.
 
 You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
 
