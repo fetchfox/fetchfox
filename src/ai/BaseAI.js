@@ -1,3 +1,4 @@
+import { getAI } from './index.js';
 import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 import { parseAnswer, sleep, getModelData } from './util.js';
@@ -13,6 +14,7 @@ export const BaseAI = class {
       retryMsec,
       model,
       apiKey,
+      advanced,
     } =
     Object.assign(
       {
@@ -44,6 +46,8 @@ export const BaseAI = class {
       }
     }
 
+    this._advanced = advanced ? getAI(advanced) : null;
+
     this.provider = this.constructor.name.toLowerCase();
     this.model = model;
     this.apiKey = apiKey;
@@ -74,10 +78,18 @@ export const BaseAI = class {
       return;
     }
 
+    const p = this._advanced ? this._advanced.init() : Promise.resolve();
+
     const data = await getModelData(this.provider, this.model, this.cache);
     this.maxTokens = data.maxTokens;
     this.pricing = data.pricing;
     this.didInit = true;
+
+    await p;
+  }
+
+  get advanced() {
+    return this._advanced || this;
   }
 
   async countTokens(str, options) {
