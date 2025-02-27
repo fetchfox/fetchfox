@@ -126,11 +126,11 @@ export const Instructions = class {
         };
 
         const actionPrompts = await prompts.pageAction
-          .renderMulti(context, 'html', this.ai);
+          .renderMulti(context, 'html', this.ai.advanced);
 
         const answers = (
           await Promise.allSettled(actionPrompts.map(
-            (prompt) => this.ai.ask(prompt, { format: 'json' })
+            (prompt) => this.ai.advanced.ask(prompt, { format: 'json' })
           ))
         )
           .filter(result => result.status == 'fulfilled');
@@ -511,10 +511,10 @@ export const Instructions = class {
       }
 
       const { prompt } = await prompts.checkAction.renderCapped(
-        context, 'iterations', this.ai);
+        context, 'iterations', this.ai.advanced);
 
       logger.debug(`${this} Check if ${goal} succeeded`);
-      const answer = await this.ai.ask(prompt, { format: 'json' });
+      const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
       logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
 
       return answer.partial.didComplete == 'yes';

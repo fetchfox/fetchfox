@@ -50,6 +50,35 @@ describe('OpenAI', function() {
     assert.ok(took < 500, 'fast abort');
   });
 
+  it('should support advanced @fast', async () => {
+    const cache = testCache();
+
+    const advanced = getAI('openai:gpt-4o', { cache });
+    const ai = getAI('google:gemini-1.5-flash', { advanced, cache });
+
+    const answerBasic = await ai.ask('what AI model are you?');
+    const answerAdvanced = await ai.advanced.ask('what AI model are you?');
+
+    assert.ok(answerBasic.partial.toLowerCase().includes('google'));
+    assert.ok(!answerBasic.partial.toLowerCase().includes('openai'));
+    assert.ok(answerAdvanced.partial.toLowerCase().includes('openai'));
+    assert.ok(!answerAdvanced.partial.toLowerCase().includes('google'));
+  });
+
+  it('should support fall back if no advanced @fast', async () => {
+    const cache = testCache();
+
+    const ai = getAI('google:gemini-1.5-flash', { cache });
+
+    const answerBasic = await ai.ask('what AI model are you?');
+    const answerAdvanced = await ai.advanced.ask('what AI model are you?');
+
+    assert.ok(answerBasic.partial.toLowerCase().includes('google'));
+    assert.ok(!answerBasic.partial.toLowerCase().includes('openai'));
+    assert.ok(answerAdvanced.partial.toLowerCase().includes('google'));
+    assert.ok(!answerAdvanced.partial.toLowerCase().includes('openai'));
+  });
+
   it('should receive base URL @run @slow', async () => {
     const controller = new AbortController();
     const signal = controller.signal;
