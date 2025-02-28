@@ -167,6 +167,22 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
+  async select(ctx, selector, options) {
+    if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
+      logger.warn(`{this} Invalid selector: ${selector}`);
+      return { ok: false };
+    }
+
+    const timeout = options?.timeout;
+    const loc = ctx.page.locator(selector);
+    try {
+      const el = await loc.first({ timeout });
+      return el;
+    } catch {
+      return null;
+    }
+  }
+
   async click(ctx, selector, seen, options) {
     logger.debug(`${this} Click selector=${selector}`);
 
@@ -176,7 +192,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return { ok: false };
     }
 
-    const timeout = options?.timeout;
+    const timeout = options?.timeout || this.actionTimeout;
     const loc = ctx.page.locator(selector);
 
     let el;

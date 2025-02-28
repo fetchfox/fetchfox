@@ -146,8 +146,9 @@ export const Instructions = class {
             const timeout = command.timeout;
             const optional = command.optional || it.optionalAction == 'yes';
             const mode = command.mode || answer.partial.actionMode || 'distinct';
+            const confidence = it.candidateConfidence;
 
-            const shared = { type, limit, timeout, optional, mode };
+            const shared = { type, limit, timeout, optional, mode, confidence };
 
             let candidate;
             switch (type) {
@@ -198,12 +199,22 @@ export const Instructions = class {
           }
         }
 
+        // Sort in confidence order, and for now just pick the first one
+        // Use confidence of the last action in the series
+        candidates.sort((a, b) => {
+          const aCon = (a[a.length - 1].confidence || 0);
+          const bCon = (b[b.length - 1].confidence || 0);
+          return bCon - aCon;
+        });
+
         let working;
 
+        console.log(candidates);
         for (const set of candidates) {
           logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
-          let ok;
+          let ok = true;
+
           try {
 
             // TODO: Re-enable action checks. Skip for now to run faster.
@@ -213,7 +224,13 @@ export const Instructions = class {
             //   command.prompt,
             //   [...learned, ...set]);
 
-            ok = true;
+            // Instead, quickly check if the elements exist
+            for (const { type, arg } of set) {
+              if (type == 'click') {
+                const el = await fetcher.select(ctx, arg, { timeout: 1000 });
+                ok &&= (await el.count());
+              }
+            }
 
           } catch (e) {
             logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
@@ -240,7 +257,6 @@ export const Instructions = class {
       }
 
       this.learned = learned;
-
       if (this.cache) {
         logger.debug(`${this} Setting cache for ${key}`);
         await this.cache.set(key, this.learned);
@@ -555,6 +571,8 @@ const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. Th
 
 If there are multiple cookie prompts, return one action for each.`;
 
-const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
+const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. You may click a button to Load More data or Show More data.
 
-You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.`;
+You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
+
+Unless otherwise noted, your pagination should focus on the *main* content of the page, not extra content or small widgets.`;
