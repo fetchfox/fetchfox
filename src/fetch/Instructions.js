@@ -138,7 +138,7 @@ export const Instructions = class {
           ))
         )
           .filter(result => result.status == 'fulfilled');
-        logger.debug(JSON.stringify(answers));
+        logger.info(JSON.stringify(answers));
 
         const candidates = [];
         const seen = {};
@@ -581,8 +581,11 @@ This includes any of the following
 
 const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
 
-If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If you're less confident you may scroll or click a button to Load More data or Show More data.
+Note: 
+- If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.
+- The next button may have the word next, or some sort of right-arrow like character.
+- If you're less confident you may scroll or click a button to Load More data or Show More data.
 
 You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
 
-Unless otherwise noted, your pagination should focus on the *main* content of the page, not extra content or small widgets.`;
+Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets.`;
