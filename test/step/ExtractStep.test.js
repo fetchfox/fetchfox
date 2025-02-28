@@ -18,9 +18,11 @@ describe('ExtractStep', function() {
         url: 'What is the URL of this pokemon',
         name: 'What is the name of the pokemon?',
         number: 'What is the pokedex number?',
+        maxPages: 1,
       })
       .extract({
         height: 'What is the height of this pokemon?',
+        maxPages: 1,
       })
       .limit(3);
 

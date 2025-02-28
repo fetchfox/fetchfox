@@ -20,8 +20,11 @@ describe('news.ycombinator.com', function() {
       .config({ cache: testCache() })
       .init('https://news.ycombinator.com')
       .extract({
-        articleTitle: 'What is the title of the article?',
-        numComments: 'What is the number of comments?',
+        questions: {
+          articleTitle: 'What is the title of the article?',
+          numComments: 'What is the number of comments?',
+        },
+        maxPages: 1,
       });
 
     const out = await wf
@@ -53,10 +56,14 @@ describe('news.ycombinator.com', function() {
       .init('https://news.ycombinator.com')
       .crawl({
         query: 'find links to comment pages, format: https://news.ycombinator.com/item?id=...',
+        maxPages: 1,
       })
       .extract({
-        topCommenter: 'What is the username of the top commenter?',
-        single: true,
+        questions: {
+          topCommenter: 'What is the username of the top commenter?',
+          single: true,
+        },
+        maxPages: 1,
       })
       .limit(5);
 

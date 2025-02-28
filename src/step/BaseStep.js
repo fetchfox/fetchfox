@@ -19,7 +19,7 @@ export const BaseStep = class {
     this.hint = args?.hint;
 
     // TODO: pull defaults from info
-    this.maxPages = args?.maxPages || 1;
+    this.maxPages = args?.maxPages || 5;
 
     this.callbacks = {};
 

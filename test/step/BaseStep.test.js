@@ -18,8 +18,11 @@ describe('BaseStep', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
-        name: 'Pokemon name, starting with the first pokemon',
-        number: 'Pokemon number, format: #XXXX',
+        maxPages: 1,
+        question: {
+          name: 'Pokemon name, starting with the first pokemon',
+          number: 'Pokemon number, format: #XXXX',
+        }
       })
       .limit(limit)
       .plan();
@@ -40,8 +43,11 @@ describe('BaseStep', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
-        name: 'Pokemon name, starting with the first pokemon',
-        number: 'Pokemon number, format: #XXXX',
+        maxPages: 1,
+        question: {
+          name: 'Pokemon name, starting with the first pokemon',
+          number: 'Pokemon number, format: #XXXX',
+        }
       })
       .limit(limit)
       .plan();
@@ -61,8 +67,11 @@ describe('BaseStep', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
-        name: 'Pokemon name, starting with the first pokemon',
-        number: 'Pokemon number, format: #XXXX',
+        maxPages: 1,
+        question: {
+          name: 'Pokemon name, starting with the first pokemon',
+          number: 'Pokemon number, format: #XXXX',
+        }
       })
       .limit(limit)
       .plan();
@@ -83,8 +92,11 @@ describe('BaseStep', function() {
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         batchSize,
-        name: 'Pokemon name, starting with the first pokemon',
-        number: 'Pokemon number, format: #XXXX',
+        maxPages: 1,
+        question: {
+          name: 'Pokemon name, starting with the first pokemon',
+          number: 'Pokemon number, format: #XXXX',
+        }
       })
       .limit(limit)
       .plan();
