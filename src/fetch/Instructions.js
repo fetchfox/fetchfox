@@ -55,6 +55,10 @@ export const Instructions = class {
   async *learn(fetcher) {
     const learned = [];
 
+    if (this.commands.length == 0 && this.hint) {
+      this.commands.push({ prompt: this.hint });
+    }
+
     const key = this.cacheKey();
     if (this.cache) {
       const cached = await this.cache.get(key);
