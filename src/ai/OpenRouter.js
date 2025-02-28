@@ -15,7 +15,8 @@ export const OpenRouter = class extends OpenAI {
       return;
     }
 
-    const parts = this.model.split('/');
+    // Get primary model information
+    const parts = this.model.split('|')[0].split('/');
     const data = await getModelData(parts[0], parts[1], this.cache);
     this.maxTokens = data.maxTokens;
     this.pricing = data.pricing;

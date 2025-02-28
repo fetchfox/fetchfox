@@ -67,6 +67,14 @@ export const OpenAI = class extends BaseAI {
       stream_options: { include_usage: true },
     };
 
+    if (this.provider == 'openrouter') {
+      const models = this.model.split('|');
+      if (models.length > 1) {
+        args.model = models[0]
+        args.extra_body = { models };
+      }
+    }
+
     if (options?.imageUrl) {
       logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
       const existing = args.messages[0].content;
