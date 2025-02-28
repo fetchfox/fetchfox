@@ -26,8 +26,11 @@ describe('examples', function() {
           'https://pokemondb.net/pokedex/national',
         )
         .extract({
-          name: 'Pokemon name, starting with the first pokemon',
-          number: 'Pokemon number, format: #XXXX',
+          questions: {
+            name: 'Pokemon name, starting with the first pokemon',
+            number: 'Pokemon number, format: #XXXX',
+          },
+          maxPages: 1,
         })
         .limit(3);
 
@@ -50,8 +53,11 @@ describe('examples', function() {
       .config({ ai: 'openai:gpt-4o-mini', cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
-        name: 'Pokemon name, starting with the first pokemon',
-        number: 'Pokemon number, format: #XXXX',
+        questions:  {
+          name: 'Pokemon name, starting with the first pokemon',
+          number: 'Pokemon number, format: #XXXX',
+        },
+        maxPages: 1,
       })
       .limit(3)
       .stream();

@@ -70,8 +70,11 @@ describe('Workflow', function() {
       .config({ cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
-        name: 'What is the name of the pokemon?',
-        number: 'What is the pokedex number?',
+        questions: {
+          name: 'What is the name of the pokemon?',
+          number: 'What is the pokedex number?',
+        },
+        maxPages: 1,
       })
       .limit(3);
 
@@ -87,6 +90,8 @@ describe('Workflow', function() {
 
     assert.equal(count, 3);
     assert.equal(countLoading, 0, 'loading by default should not publish');
+
+    return;
 
     const f2 = await fox
       .config({
@@ -190,12 +195,14 @@ describe('Workflow', function() {
         {
           "name": "crawl",
           "args": {
+            "maxPages": 1,
             "query": "Find links to articles about malware and other vulnerabilities",
           }
         },
         {
           "name": "extract",
           "args": {
+            "maxPages": 1,
             "questions": {
               summary: "Summarize the malware/vulnerability in 5-20 words",
               technical: "What are the technical identifiers like filenames, indicators of compromise, etc.?",

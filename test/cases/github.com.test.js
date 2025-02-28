@@ -23,6 +23,7 @@ describe('github.com', function() {
       .init('https://github.com/bitcoin/bitcoin/commits/master')
       .crawl({
         query: 'find urls of commits, format: https://github.com/bitcoin/bitcoin/commit/...',
+        maxPages: 1,
       })
       .extract({
         questions: {
@@ -31,6 +32,7 @@ describe('github.com', function() {
           author: 'commit author',
           loc: 'loc changed, NUMBER only',
         },
+        maxPages: 1,
         single: true,
       })
       .limit(5);

@@ -175,13 +175,23 @@ for (const stepName of stepNames) {
         const args = { questions: JSON.parse(JSON.stringify(prompt)) };
 
         if (isPlainObject(args.questions) && args.questions.view) {
+          args.view = args.questions.view;
           delete args.questions.view;
-          args.view = true;
         }
 
         if (isPlainObject(args.questions) && args.questions.mode) {
+          args.mode = args.questions.mode;
           delete args.questions.mode;
-          args.mode = true;
+        }
+
+        if (isPlainObject(args.questions) && args.questions.maxPages) {
+          args.maxPages = args.questions.maxPages;
+          delete args.questions.maxPages;
+        }
+
+        if (isPlainObject(args.questions) && args.questions.batchSize) {
+          args.batchSize = args.questions.batchSize;
+          delete args.questions.batchSize;
         }
 
         return this.step(new cls(args));
