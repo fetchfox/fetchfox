@@ -10,6 +10,10 @@ describe('Instructions', function() {
   // TODO: fix caching on these to bring down test times
   setTestTimeout(this, 15 * 1000);
 
+  before(() => {
+    logger.testMode();
+  });
+
   const cases = [
     // Objects as the commands
     {
@@ -121,7 +125,7 @@ describe('Instructions', function() {
       try {
         const cache = testCache();
         const ai = getAI('openai:gpt-4o', { cache });
-        const fetcher = getFetcher('playwright', { ai, cache, wait: 1, timeout: 25 });
+        const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 100 });
         const url = `http://localhost:${port}`;
 
         const instr = new Instructions(url, commands, { ai });
@@ -209,7 +213,7 @@ describe('Instructions', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o', { cache });
-      const fetcher = getFetcher('playwright', { ai, cache, wait: 1, timeout: 25 });
+      const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 100 });
       const url = `http://localhost:${port}`;
 
       const commands = [
@@ -371,7 +375,7 @@ describe('Instructions', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o', { cache });
-      const fetcher = getFetcher('playwright', { ai, cache, wait: 1, timeout: 25 });
+      const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 100 });
       const url = `http://localhost:${port}`;
 
       const commands = [
@@ -485,7 +489,7 @@ describe('Instructions', function() {
     const url = `http://localhost:${port}`;
 
     const fetcherCtx = {};
-    const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 10 });
+    const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 100 });
 
     const limit = 4;
 

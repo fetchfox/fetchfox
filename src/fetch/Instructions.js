@@ -203,7 +203,7 @@ export const Instructions = class {
         for (const set of candidates) {
           logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
-          let ok;
+          let ok = true;
           try {
 
             // TODO: Re-enable action checks. Skip for now to run faster.
@@ -213,7 +213,11 @@ export const Instructions = class {
             //   command.prompt,
             //   [...learned, ...set]);
 
-            ok = true;
+            for (const action of set) {
+              const outcome = await fetcher.act(ctx, action, {});
+              ok &&= outcome.ok
+              if (!ok) break;
+            }
 
           } catch (e) {
             logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
@@ -551,9 +555,15 @@ const domainSpecificInstructions = (url) => {
   return result;
 }
 
-const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. This is an optional step, if there is no cookie or other terms to accept, do nothing
+const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. This is an optional step, if there is no cookie or other terms to accept, do nothing.
 
-If there are multiple cookie prompts, return one action for each.`;
+If there are multiple terms to accept, return one action for each.
+
+This includes any of the following
+- Cookie prompts (accept cookie)
+- Age verification terms (agree that you are the required age)
+- Accepting terms of service in general (accept the terms)
+`;
 
 const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
 
