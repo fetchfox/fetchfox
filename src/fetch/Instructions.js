@@ -138,6 +138,7 @@ export const Instructions = class {
           ))
         )
           .filter(result => result.status == 'fulfilled');
+        logger.debug(JSON.stringify(answers));
 
         const candidates = [];
         const seen = {};
@@ -213,7 +214,7 @@ export const Instructions = class {
 
         let working;
 
-        console.log(candidates);
+        logger.info(candidates);
         for (const set of candidates) {
           logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
@@ -573,12 +574,14 @@ const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. Th
 If there are multiple terms to accept, return one action for each.
 
 This includes any of the following
-- Cookie prompts (accept cookie)
+- Cookie prompts (accept cookie, do not manage unless necessary)
 - Age verification terms (agree that you are the required age)
 - Accepting terms of service in general (accept the terms)
 `;
 
-const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. You may click a button to Load More data or Show More data.
+const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
+
+If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If you're less confident you may scroll or click a button to Load More data or Show More data.
 
 You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
 

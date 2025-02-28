@@ -55,8 +55,6 @@ Information on these fields:
 >>>> Remember, your goal is this:
 {{command}}
 
->>>> You must provide instructions to get to the next page.
-
 Follow these important rules:
 - Ensure that the action is appropriate for the page context and can be reused for multiple pages if necessary.
 - Avoid hardcoding specific text or values when possible. Instead, try to generalize the command to make it reusable across different pages.
@@ -86,7 +84,7 @@ export const checkAction = new Template(
   `You are part of a web scraping program. The browser has just taken an action basd on a user prompt. You have the before and after state of the browser. Your goal is to determine if that action was properly executed. Respond in JSON format, as follows:
 
 Fields:
-- "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words. Remember, for an actions that repeat, only a SINGLE iteration was executed. If your analysis shows that the action was a success, we will thereafter complet the later iterations.
+- "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words. Remember, for an actions that repeat, only a SINGLE iteration was executed. If your analysis shows that the action was a success, we will thereafter complete the later iterations.
 - "didComplete": The string "yes" if that action was completed for one good iteration, or "no" if the action was not completed
 
 Below is the user input:
