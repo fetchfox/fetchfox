@@ -5,16 +5,7 @@ import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('scotchwhiskyauctions.com', async function() {
-  const matrix = standardMatrix({
-    fetcher: [
-      [
-        'playwright',
-        {
-          headless: false,
-        }
-      ]
-    ]
-  });
+  const matrix = standardMatrix();
 
   const expected = {
     item_name: `'Sideburn' 31 Year Old Blended Malt Whisky Sponge Edition No.95`,
