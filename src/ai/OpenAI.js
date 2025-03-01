@@ -74,7 +74,7 @@ export const OpenAI = class extends BaseAI {
     }
 
     if (this.provider == 'openrouter') {
-      const models = this.model.split('|');
+      const models = this.model.split(';');
       if (models.length > 1) {
         args.model = models[0]
         args.extra_body = { models };
