@@ -8,6 +8,11 @@ export const OpenRouter = class extends OpenAI {
   constructor(options) {
     options.baseURL ||= 'https://openrouter.ai/api/v1';
     super(options);
+    const models = this.model.split(';');
+    if (models.length > 1) {
+        this.model = models[0];
+        this.models = models;
+    }
   }
 
   async init() {
