@@ -30,10 +30,13 @@ export const Instructions = class {
     this.limit = options?.limit;
     this.hint = options?.hint;
     this.generationConfig = {
-      temperature: options?.temperature || 0.7,
+      temperature: options?.temperature || 0.8,
       topP: options?.topP || 0.3,
     };
-
+    if (this.ai.model.includes("o3-mini")) {
+      this.generationConfig.temperature = options?.temperature || 0.8;
+      this.generationConfig.topP = options?.topP || 0.6;
+    }
 
   }
 
