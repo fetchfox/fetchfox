@@ -29,6 +29,12 @@ export const Instructions = class {
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
+    this.generationConfig = {
+      temperature: options?.temperature || 0.7,
+      topP: options?.topP || 0.3,
+    };
+
+
   }
 
   toString() {
@@ -134,7 +140,7 @@ export const Instructions = class {
 
         const answers = (
           await Promise.allSettled(actionPrompts.map(
-            (prompt) => this.ai.advanced.ask(prompt, { format: 'json' })
+            (prompt) => this.ai.advanced.ask(prompt, { format: 'json', ...this.generationConfig })
           ))
         )
           .filter(result => result.status == 'fulfilled');
@@ -532,7 +538,7 @@ export const Instructions = class {
         context, 'iterations', this.ai.advanced);
 
       logger.debug(`${this} Check if ${goal} succeeded`);
-      const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+      const answer = await this.ai.advanced.ask(prompt, { format: 'json', ...this.generationConfig });
       logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
 
       return answer.partial.didComplete == 'yes';
@@ -579,7 +585,7 @@ This includes any of the following
 - Accepting terms of service in general (accept the terms)
 `;
 
-const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
+const nextPagePrompt = `>>>> Go to the next page.  You must provide an accurate action or actions to get to the next page.
 
 Note: 
 - If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.
