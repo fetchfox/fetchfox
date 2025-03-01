@@ -75,7 +75,7 @@ export const OpenAI = class extends BaseAI {
 
     // Add OpenRouter fallback models if provided
     if (this.provider == 'openrouter' && this.models) {
-      args.extra_body = { models };
+      args.extra_body = { models: this.models };
     }
 
     if (options?.imageUrl) {
