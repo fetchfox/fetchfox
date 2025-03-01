@@ -38,7 +38,7 @@ export const Gemini = class extends BaseAI {
 
   async *inner(prompt, options) {
     const gemini = new GoogleGenerativeAI(this.apiKey);
-    
+
     const generationConfig = {};
     if (options?.temperature) {
       generationConfig.temperature = options.temperature;
