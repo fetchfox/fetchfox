@@ -66,6 +66,12 @@ export const OpenAI = class extends BaseAI {
       stream: true,
       stream_options: { include_usage: true },
     };
+    if (options?.temperature) {
+      args.temperature = options.temperature;
+    }
+    if (options?.topP) {
+      args.top_p = options.topP;
+    }
 
     if (options?.imageUrl) {
       logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);

@@ -36,9 +36,18 @@ export const Gemini = class extends BaseAI {
     return { model: this.model, message, usage };
   }
 
-  async *inner(prompt) {
+  async *inner(prompt, options) {
     const gemini = new GoogleGenerativeAI(this.apiKey);
-    const model = gemini.getGenerativeModel({ model: this.model });
+    
+    const generationConfig = {};
+    if (options?.temperature) {
+      generationConfig.temperature = options.temperature;
+    }
+    if (options?.topP) {
+      generationConfig.topP = options.topP;
+    }
+
+    const model = gemini.getGenerativeModel({ model: this.model, generationConfig });
 
     const completion = await model.generateContentStream(prompt);
 
