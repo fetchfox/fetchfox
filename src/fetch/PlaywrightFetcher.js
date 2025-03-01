@@ -176,7 +176,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return { ok: false };
     }
 
-    const timeout = options?.timeout;
+    const timeout = options?.timeout || this.actionTimeout;
     const loc = ctx.page.locator(selector);
 
     let el;

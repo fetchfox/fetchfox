@@ -138,6 +138,7 @@ export const Instructions = class {
           ))
         )
           .filter(result => result.status == 'fulfilled');
+        logger.info(JSON.stringify(answers));
 
         const candidates = [];
         const seen = {};
@@ -150,8 +151,9 @@ export const Instructions = class {
             const timeout = command.timeout;
             const optional = command.optional || it.optionalAction == 'yes';
             const mode = command.mode || answer.partial.actionMode || 'distinct';
+            const confidence = it.candidateConfidence;
 
-            const shared = { type, limit, timeout, optional, mode };
+            const shared = { type, limit, timeout, optional, mode, confidence };
 
             let candidate;
             switch (type) {
@@ -202,8 +204,17 @@ export const Instructions = class {
           }
         }
 
+        // Sort in confidence order, and for now just pick the first one
+        // Use confidence of the last action in the series
+        candidates.sort((a, b) => {
+          const aCon = (a[a.length - 1].confidence || 0);
+          const bCon = (b[b.length - 1].confidence || 0);
+          return bCon - aCon;
+        });
+
         let working;
 
+        logger.info(candidates);
         for (const set of candidates) {
           logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
@@ -248,7 +259,6 @@ export const Instructions = class {
       }
 
       this.learned = learned;
-
       if (this.cache) {
         logger.debug(`${this} Setting cache for ${key}`);
         await this.cache.set(key, this.learned);
@@ -564,11 +574,18 @@ const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. Th
 If there are multiple terms to accept, return one action for each.
 
 This includes any of the following
-- Cookie prompts (accept cookie)
+- Cookie prompts (accept cookie, do not manage unless necessary)
 - Age verification terms (agree that you are the required age)
 - Accepting terms of service in general (accept the terms)
 `;
 
-const nextPagePrompt = `Go to the next page. If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page. The next button may have the word next, or some sort of right-arrow like character. If there is a button to Load More data or Show More data, click that, since it is similar to pagination.
+const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
 
-You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.`;
+Note: 
+- If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.
+- The next button may have the word next, or some sort of right-arrow like character.
+- If you're less confident you may scroll or click a button to Load More data or Show More data.
+
+You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
+
+Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets.`;

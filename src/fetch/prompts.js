@@ -2,7 +2,7 @@ import { Template } from '../template/Template.js';
 
 export const pageAction = new Template(
   ['html', 'command', 'hint'],
-  `You are part of a web scraping program. You are given some HTML and a goal.
+  `You are part of an elite web scraping program. You are given some HTML and a goal.
 
 Your goal is: {{command}}
 
@@ -17,13 +17,15 @@ Respond with JSON as follows:
       "candidateAction": "The action to perform. Either 'click', 'scroll', or 'click-scroll'",
       "optionalAction": "Return 'yes' if this action should be considered optional",
       "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector for this candidate function",
-      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'"
+      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
+      "candidateConfidence": "number in range 1..100"
     },
     {
       "candidateAnalysis": "Reason for why this one might work",
       "candidateAction": "The action to perform. Either 'click', 'scroll', or 'click-scroll'",
       "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector for this candidate function",
-      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'"
+      "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
+      "candidateConfidence": "number in range 1..100"
     },
   ]
 }
@@ -39,12 +41,13 @@ Information on these fields:
 - "candidateAction": One of "click", "scroll" or "click-scroll"
   - "click" if you need to click an element
   - "scroll" if you need to scroll on the page
-  - "click-scroll" if you need to focus on a specic element, and *then* scroll
+  - "click-scroll" if you need to focus on a specific element, and *then* scroll
 - "optionalAction": Some actions are optional. A typical example is accepting cookies or other terms of service: if these fail, it's not important and we should continue. If the user prompt indicates the action is optional, follow that guidance. Return "yes" for optional actions, and "no" for required ones.
 - "candidatePlaywrightSelector": If action is "click" or "click-scroll", give the selector for the item to click to achieve the goal. You can do either "css=..." for css selector, or "text=..." for text base selector. This will be used in Playwright.
 - "candidateScrollType": If action is "scroll" or "click-scroll", return either "page-down" or "bottom"
   - "page-down" to scroll down a window height using the page down button
   - "bottom" to scroll all the way to the bottom using javascript
+- "candidateConfidence": A rating from 1-100 of how confident you are that this is the right action
 
 >>>> Analyze this HTML:
 {{html}}
@@ -60,9 +63,9 @@ Follow these important rules:
 
 REMEMBER:
 - Each candidate is a distinct possible way to achieve the goal. They are NOT related to each other.
-- Do *NOT* guess at CSS selectors that may exist. ONLY incldue ones you see in the portion of the page you are lookin at
+- Do *NOT* guess at text or CSS selectors that may exist. ONLY include ones you see in the portion of the page you are looking at
 - Keep the CSS selectors as SIMPLE as possible and human understandable
-- If you are matching text, you must use "text=...". Do NOT try to use CSS to match text. Playwright can do both, but you must use text= for text matching.
+- If you are matching text to select an element from the page, you must use "text=...". Do NOT try to use CSS to match text. Playwright can do both, but you must use text= for text matching.
 
 IMPORTANT:
 - Do NOT use ":contains(...)" pseudo selector for any css= selectors
@@ -81,7 +84,7 @@ export const checkAction = new Template(
   `You are part of a web scraping program. The browser has just taken an action basd on a user prompt. You have the before and after state of the browser. Your goal is to determine if that action was properly executed. Respond in JSON format, as follows:
 
 Fields:
-- "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words. Remember, for an actions that repeat, only a SINGLE iteration was executed. If your analysis shows that the action was a success, we will thereafter complet the later iterations.
+- "analysis": Your analysis of the goal, the before state, the after state, and how you understand the situation. 10-50 words. Remember, for an actions that repeat, only a SINGLE iteration was executed. If your analysis shows that the action was a success, we will thereafter complete the later iterations.
 - "didComplete": The string "yes" if that action was completed for one good iteration, or "no" if the action was not completed
 
 Below is the user input:
