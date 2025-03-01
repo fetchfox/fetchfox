@@ -66,10 +66,16 @@ export const OpenAI = class extends BaseAI {
       stream: true,
       stream_options: { include_usage: true },
     };
+    if (options?.temperature) {
+      args.temperature = options.temperature;
+    }
+    if (options?.topP) {
+      args.top_p = options.topP;
+    }
 
     // Add OpenRouter fallback models if provided
     if (this.provider == 'openrouter' && this.models) {
-      args.extra_body = { models };
+      args.extra_body = { models: this.models };
     }
 
     if (options?.imageUrl) {
