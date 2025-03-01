@@ -34,8 +34,7 @@ export const Instructions = class {
       topP: options?.topP || 0.3,
     };
     if (this.ai.model.includes("o3-mini")) {
-      this.generationConfig.temperature = options?.temperature || 0.8;
-      this.generationConfig.topP = options?.topP || 0.6;
+      this.generationConfig = {};
     }
 
   }
