@@ -31,7 +31,7 @@ const combineInfo = (info) => {
       description: 'Max number of pages to fetch from source URLs',
       format: 'number',
       required: false,
-      default: 5,
+      default: 1,
     };
   }
 
