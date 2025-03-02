@@ -21,7 +21,10 @@ export const CrawlStep = class extends BaseStep {
 
     const options = {
       maxPages: this.maxPages,
-      fetchOptions: { priority: index },
+      fetchOptions: {
+        priority: index,
+        instructionsCacheKey: `index-${index}`,
+      },
     };
 
     const url = item.getUrl ? item.getUrl() : (item.url || item._url);
