@@ -25,6 +25,7 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
+    this._cacheKey = options?.cacheKey;
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
@@ -45,10 +46,23 @@ export const Instructions = class {
   }
 
   cacheKey() {
-    const hash = shortObjHash({
-      url: this.url,
-      commands: this.commands.map(it => it.prompt),
-    });
+    let hash;
+    if (this._cacheKey) {
+      logger.debug(`${this} Received cache key, using domain=${domain}, cacheKey=${this._cacheKey}`);
+      const domain = (new URL(this.url)).hostname;
+      hash = shortObjHash({
+        domain,
+        cacheKey: this._cacheKey,
+        commands: this.commands.map(it => it.prompt),
+      });
+    } else {
+      logger.debug(`${this} No cache key, using url=${this.url}`);
+      hash = shortObjHash({
+        url: this.url,
+        commands: this.commands.map(it => it.prompt),
+      });
+    }
+
     return `instructions-${hash}`;
   }
 

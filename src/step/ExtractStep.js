@@ -59,7 +59,11 @@ export const ExtractStep = class extends BaseStep {
           view: this.view,
           maxPages: this.maxPages,
           hint: this.hint,
-          fetchOptions: { priority: index, hint: this.hint },
+          fetchOptions: {
+            priority: index,
+            hint: this.hint,
+            instructionsCacheKey: `index-${index}`,
+          },
         });
       for await (const output of stream) {
         const took = (new Date()).getTime() - start;

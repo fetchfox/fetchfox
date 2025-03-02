@@ -190,8 +190,13 @@ export const BaseFetcher = class {
 
               const hash = (doc) => shortObjHash({ data: doc.selectHtml || doc.text || doc.html });
 
+              let cacheKey;
+              if (options?.instructionsCacheKey) {
+                cacheKey = options.instructionsCacheKey;
+              }
+
               const seen = {};
-              for await (const r of instr.learn(this)) {
+              for await (const r of instr.learn(this, { cacheKey })) {
                 const doc = r?.doc;
                 if (this.signal?.aborted) {
                   break;
