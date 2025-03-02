@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { logger } from '../log/logger.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
@@ -7,9 +7,10 @@ import { createChannel } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
-    const { ai, fetcher, signal, cache, hardCapTokens, hint } = options || {};
+    const { ai, fetcher, signal, cache, logger, hardCapTokens, hint } = options || {};
     this.signal = signal;
     this.cache = cache;
+    this.logger = logger || defaultLogger;
     this.ai = getAI(ai, { cache, signal });
     this.fetcher = getFetcher(fetcher, { cache, signal });
     this.hardCapTokens = hardCapTokens || 1e7;
@@ -25,7 +26,7 @@ export const BaseExtractor = class {
   }
 
   async clear() {
-    logger.info(`${this} clear associated fetch queue`);
+    this.logger.info(`${this} clear associated fetch queue`);
     this.fetcher.clear();
   }
 
@@ -49,12 +50,12 @@ export const BaseExtractor = class {
     try {
       new URL(url);
     } catch(e) {
-      logger.warn(`${this} Extractor dropping invalid url ${url}: ${e}`);
+      this.logger.warn(`${this} Extractor dropping invalid url ${url}: ${e}`);
       url = null;
     }
 
     if (!url) {
-      logger.warn(`${this} Could not find extraction target in ${target}`);
+      this.logger.warn(`${this} Could not find extraction target in ${target}`);
       return;
     }
 
@@ -85,22 +86,22 @@ export const BaseExtractor = class {
       // See https://github.com/fetchfox/fetchfox/issues/42
       /* eslint-disable no-async-promise-executor */
       const docsPromise = new Promise(async (ok, bad) => {
-        logger.info(`${this} Started pagination docs worker`);
+        this.logger.info(`${this} Started pagination docs worker`);
         const gen = this.getDocs(target, docsOptions);
 
         try {
           for await (const doc of gen) {
             if (done) break;
-            logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
+            this.logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
             docsChannel.send({ doc });
           }
           ok();
         } catch(e) {
-          logger.error(`${this} Error in documents worker: ${e}`);
+          this.logger.error(`${this} Error in documents worker: ${e}`);
           bad(e);
 
         } finally {
-          logger.debug(`${this} Done with docs worker`);
+          this.logger.debug(`${this} Done with docs worker`);
           docsChannel.end();
         }
       }); // end docsPromise
@@ -125,7 +126,7 @@ export const BaseExtractor = class {
 
             const doc = val.doc;
             const myIndex = workerPromises.length;
-            logger.info(`${this} Starting new worker on ${doc} (${myIndex}) done=${done}`);
+            this.logger.info(`${this} Starting new worker on ${doc} (${myIndex}) done=${done}`);
 
             // Start an extraction worker
             workerPromises.push(
@@ -141,7 +142,7 @@ export const BaseExtractor = class {
 
                     const ser = JSON.stringify(r.publicOnly());
                     if (seen[ser]) {
-                      logger.debug(`${this} Dropping duplicate result: ${ser}`);
+                      this.logger.debug(`${this} Dropping duplicate result: ${ser}`);
                       continue;
                     }
                     seen[ser] = true;
@@ -149,31 +150,31 @@ export const BaseExtractor = class {
                     if (doc.htmlUrl) r._htmlUrl = doc.htmlUrl;
                     if (doc.screenshotUrl) r._screenshotUrl = doc.screenshotUrl;
 
-                    logger.debug(`${this} Sending result ${r} onto channel`);
+                    this.logger.debug(`${this} Sending result ${r} onto channel`);
                     resultsChannel.send({ result: r });
                   }
 
-                  logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
+                  this.logger.debug(`${this} Extraction worker done ${myIndex} (${workerPromises.length})`);
                   ok();
 
                 } catch(e) {
-                  logger.error(`${this} Error in extraction promise: ${e}`);
+                  this.logger.error(`${this} Error in extraction promise: ${e}`);
                   bad(e);
                 }
               }));
           }
 
           // Got all documents, now wait for workers to complete
-          logger.debug(`${this} Wait for extraction workers`);
+          this.logger.debug(`${this} Wait for extraction workers`);
           await Promise.all(workerPromises);
           ok();
 
         } catch (e) {
-          logger.error(`${this} Error in extraction worker: ${e}`);
+          this.logger.error(`${this} Error in extraction worker: ${e}`);
           bad(e);
 
         } finally {
-          logger.debug(`${this} All extraction workers done ${done}`);
+          this.logger.debug(`${this} All extraction workers done ${done}`);
           resultsChannel.end();
         }
       }); // end resultsPromise
@@ -189,31 +190,31 @@ export const BaseExtractor = class {
           if (val.end) {
             break;
           }
-          logger.debug(`${this} Found ${++count} items so far`);
-          logger.info(`${chalk.green('\u{25CF}')} Yielding item ${JSON.stringify(val.result)}`);
+          this.logger.debug(`${this} Found ${++count} items so far`);
+          this.logger.info(`${chalk.green('\u{25CF}')} Yielding item ${JSON.stringify(val.result)}`);
           yield Promise.resolve(val.result);
         }
       } catch (e) {
-        logger.error(`${this} Error while reading form results channel: ${e}`);
+        this.logger.error(`${this} Error while reading form results channel: ${e}`);
         throw e;
       }
 
       try {
         await docsPromise;
       } catch (e) {
-        logger.error(`${this} Error while waiting for docs promise: ${e}`);
+        this.logger.error(`${this} Error while waiting for docs promise: ${e}`);
         throw e;
       }
 
       try {
         await resultsPromise;
       } catch (e) {
-        logger.error(`${this} Error while waiting for docs promise: ${e}`);
+        this.logger.error(`${this} Error while waiting for docs promise: ${e}`);
         throw e;
       }
 
     } finally {
-      logger.info(`${this} Done extracting ${JSON.stringify(target).substring(0, 400)}`);
+      this.logger.info(`${this} Done extracting ${JSON.stringify(target).substring(0, 400)}`);
 
       done = true;
       const took = (new Date()).getTime() - start;
@@ -244,7 +245,7 @@ export const BaseExtractor = class {
       }
       return result;
     } catch(e) {
-      logger.error(`${this} Got error: ${e}`);
+      this.logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }
@@ -262,7 +263,7 @@ export const BaseExtractor = class {
         yield Promise.resolve(r);
       }
     } catch(e) {
-      logger.error(`${this} Got error: ${e}`);
+      this.logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }
