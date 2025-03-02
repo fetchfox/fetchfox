@@ -11,7 +11,7 @@ export const OpenRouter = class extends OpenAI {
     const models = this.model.split(';');
     if (models.length > 1) {
         this.model = models[0];
-        this.models = models;
+        this.models = models.slice(1);
     }
   }
 
@@ -21,10 +21,22 @@ export const OpenRouter = class extends OpenAI {
     }
 
     // Get primary model information
-    const parts = this.model.split('|')[0].split('/');
-    const data = await getModelData(parts[0], parts[1], this.cache);
+    let parts = this.model.split('/');
+    let data = await getModelData(parts[0], parts[1], this.cache);
     this.maxTokens = data.maxTokens;
     this.pricing = data.pricing;
+
+    // Get fallback model information
+    if (this.models) {
+      for (let fallbackModel of this.models) {
+        parts = fallbackModel.split('/');
+        data = await getModelData(parts[0], parts[1], this.cache);
+        if (data.maxTokens < this.maxTokens) {
+          this.maxTokens = data.maxTokens;
+        }
+      }
+    }
+
     this.didInit = true;
   }
 }
