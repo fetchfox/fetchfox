@@ -30,23 +30,15 @@ prefix.apply(log.getLogger('critical'), {
   },
 });
 
-const callbacks = [];
-
-const send = (level, args) => {
-  for (const cb of callbacks) {
-    cb(level, args);
+export class Logger {
+  constructor(options) {
+    this.prefix = options?.prefix;
   }
-}
 
-export const addCallback = (level, cb) => {
-  callbacks.push((level_, args) => {
-    if (level_ == level) {
-      cb(level, args);
-    }
-  });
-}
+  _prefix(level) {
+    return this.prefix ? chalk.green(this.prefix) : '';
+  }
 
-class Logger {
   testMode() {
     if (envLogLevel()) {
       return;
@@ -59,8 +51,7 @@ class Logger {
       return;
     }
 
-    log.trace(...args);
-    send('trace', args);
+    log.trace(this._prefix(), ...args);
   }
 
   debug(...args) {
@@ -69,9 +60,8 @@ class Logger {
     }
 
     if (log.getLevel() <= log.levels.DEBUG) {
-      log.debug(...args);
+      log.debug(this._prefix(), ...args);
     }
-    send('debug', args);
   }
 
   info(...args) {
@@ -79,8 +69,7 @@ class Logger {
       return;
     }
 
-    log.info(...args);
-    send('info', args);
+    log.info(this._prefix(), ...args);
   }
 
   warn(...args) {
@@ -88,8 +77,7 @@ class Logger {
       return;
     }
 
-    log.warn(...args);
-    send('warn', args);
+    log.warn(this._prefix(), ...args);
   }
 
   error(...args) {
@@ -97,8 +85,7 @@ class Logger {
       return;
     }
 
-    log.error(...args);
-    send('error', args);
+    log.error(this._prefix(), ...args);
   }
 
   listen(cb) {

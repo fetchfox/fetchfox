@@ -21,6 +21,7 @@ describe('examples', function() {
         .config({
           ai,
           cache: testCache(),
+          prefix: 'jobid=123',
         })
         .init(
           'https://pokemondb.net/pokedex/national',
