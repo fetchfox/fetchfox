@@ -1,6 +1,6 @@
 import { chromium } from 'playwright-extra';
 import { Timer } from '../log/timer.js';
-import { logger } from '../log/logger.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { abortable } from '../util.js';
@@ -9,7 +9,7 @@ process.on('unhandledRejection', (e) => {
   if (e.name == 'TargetClosedError') {
     // These exceptions occur sometimes on browser launch, and we cannot
     // catch them in this as they happen.
-    logger.error(`Ignore unhandled rejection: ${e}`);
+    defaultLogger.error(`Ignore unhandled rejection: ${e}`);
   } else {
     throw e;
   }
@@ -23,6 +23,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
+    this.logger = options?.logger || defaultLogger;
   }
 
   cacheOptions() {
@@ -43,11 +44,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         this.signal,
         ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
       if (aborted) {
-        logger.warn(`${this} Aborted on goto`);
+        this.logger.warn(`${this} Aborted on goto`);
         return;
       }
     } catch (e) {
-      logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
+      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
   }
 
@@ -59,11 +60,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       aborted = result.aborted;
       doc = result.result;
     } catch (e) {
-      logger.error(`${this} Error while getting current doc: ${e}`);
+      this.logger.error(`${this} Error while getting current doc: ${e}`);
       return;
     }
     if (aborted) {
-      logger.warn(`${this} Aborted while getting current doc`);
+      this.logger.warn(`${this} Aborted while getting current doc`);
       return;
     }
 
@@ -74,7 +75,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
 
   async _launch() {
-    logger.debug(`Playwright launching...`);
+    this.logger.debug(`Playwright launching...`);
 
     let err;
     let i;
@@ -82,22 +83,22 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       try {
         let promise;
         if (this.cdp) {
-          logger.debug(`Playwright using CDP endpoint ${this.cdp}, attempt=${i}`);
+          this.logger.debug(`Playwright using CDP endpoint ${this.cdp}, attempt=${i}`);
           promise = chromium.connectOverCDP(this.cdp);
         } else {
-          logger.debug(`Playwright using local Chromium, attempt=${i}`);
+          this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
           promise = chromium.launch({ headless: this.headless });
         }
         const browser = await promise;
         return browser;
       } catch (e) {
-        logger.warn(`${this} Could not launch, retrying, attempt=${i}: ${e}`);
+        this.logger.warn(`${this} Could not launch, retrying, attempt=${i}: ${e}`);
         err = e;
         await new Promise(ok => setTimeout(ok, i * 4000));
       }
     }
 
-    logger.warn(`${this} Could not launch, throwing, attempt=${i}: ${err}`);
+    this.logger.warn(`${this} Could not launch, throwing, attempt=${i}: ${err}`);
     throw err;
   }
 
@@ -111,11 +112,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     try {
       ctx.browser = await this._launch({ timer });
     } catch (e) {
-      logger.error(`${this} Caught error while launching browser: ${e}`);
+      this.logger.error(`${this} Caught error while launching browser: ${e}`);
       throw e;
     }
 
-    logger.debug(`${this} Got browser`);
+    this.logger.debug(`${this} Got browser`);
 
     return ctx;
   }
@@ -125,14 +126,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return;
     }
 
-    logger.debug(`${this} Closing browser`);
+    this.logger.debug(`${this} Closing browser`);
     await ctx.browser.close();
     delete ctx.browser;
   }
 
   async act(ctx, action, seen) {
     const timer = ctx.timer || new Timer();
-    logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
+    this.logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
     timer.push(`PlaywrightFetcher act ${action.type} ${action.arg}`);
     try {
@@ -158,7 +159,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           throw new Error(`Unhandled action type: ${action.type}`);
       }
 
-      logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
+      this.logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
       r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
 
       return r;
@@ -168,11 +169,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async click(ctx, selector, seen, options) {
-    logger.debug(`${this} Click selector=${selector}`);
+    this.logger.debug(`${this} Click selector=${selector}`);
 
     // TODO: for text= matchers, add a heuristic to prefer tighter  matches
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
-      logger.warn(`{this} Invalid selector: ${selector}`);
+      this.logger.warn(`{this} Invalid selector: ${selector}`);
       return { ok: false };
     }
 
@@ -188,7 +189,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       try {
         await loc.nth(i).waitFor({ state: 'attached', timeout });
       } catch (e) {
-        logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
+        this.logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
         return { ok: false };
       }
 
@@ -201,14 +202,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         continue;
       }
 
-      logger.debug(`${this} Found new element ${el} after ${i} iterations`);
+      this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
     }
 
     try {
       await el.scrollIntoViewIfNeeded({ timeout });
       await el.click({ timeout });
     } catch (e) {
-      logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
+      this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
       return { ok: false };
     }
 
@@ -220,7 +221,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async scroll(ctx, type) {
-    logger.debug(`${this} Scroll type=${type}`);
+    this.logger.debug(`${this} Scroll type=${type}`);
 
     // TODO: Check if scrolling worked
 
@@ -249,7 +250,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         /* eslint-enable no-undef */
         break;
       default:
-        logger.error(`${this} Unhandled scroll type: ${type}`);
+        this.logger.error(`${this} Unhandled scroll type: ${type}`);
     }
 
     return { ok: true };
@@ -272,6 +273,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           {
             loadWait: this.loadWait,
             pullIframes: this.pullIframes,
+            logger: this.logger,
           }));
 
       if (result.aborted) {
@@ -284,25 +286,27 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       selectHtml = result.result.selectHtml;
     } catch (e) {
 
-      logger.error(`Playwright could not get from ${page.url()}: ${e}`);
-      logger.debug(`Trying to salvage results`);
+      this.logger.error(`Playwright could not get from ${page.url()}: ${e}`);
+      this.logger.debug(`Trying to salvage results`);
 
       try {
-        const result = await abortable(this.signal, getHtmlFromError(page));
+        const result = await abortable(
+          this.signal,
+          getHtmlFromError(page, { logger: this.logger }));
         if (result.aborted) {
           return;
         }
         html = result.result.html;
 
       } catch (e) {
-        logger.warn(`Could not salvage results, give up: ${e}`);
+        this.logger.warn(`Could not salvage results, give up: ${e}`);
         return;
       }
       if (!html) {
-        logger.warn(`Could not salvage results, give up`);
+        this.logger.warn(`Could not salvage results, give up`);
         return;
       }
-      logger.warn(`Read ${html.length} bytes from failed Playwright request`);
+      this.logger.warn(`Read ${html.length} bytes from failed Playwright request`);
       status = 500;
     } finally {
       timer.pop();
@@ -326,7 +330,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 }
 
-const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
+const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
   logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 
@@ -337,7 +341,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     try {
       frames = await page.frames();
     } catch (e) {
-      logger.error(`${this} Error while getting frames: ${e}`);
+      this.logger.error(`${this} Error while getting frames: ${e}`);
       throw e;
     }
     const iframes = [];
@@ -526,7 +530,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   };
 }
 
-const getHtmlFromError = async (page) => {
+const getHtmlFromError = async (page, { logger }) => {
   // Disable undefined variable linting for document variables
   // which is available in Playwright's browser context.
   /* eslint-disable no-undef */

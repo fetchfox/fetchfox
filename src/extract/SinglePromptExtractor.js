@@ -1,5 +1,4 @@
 import { Item } from '../item/Item.js';
-import { logger } from '../log/logger.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { scrapeOnce } from './prompts.js';
 
@@ -9,7 +8,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   }
 
   async *_run(doc, questions, options) {
-    logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
+    this.logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     let { description, mode } = options || {};
     let extraRules = '';
@@ -54,7 +53,7 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
 
     let view = options?.view || 'html';
     if (!['html', 'text', 'selectHtml'].includes(view)) {
-      logger.error(`${this} Invalid view, switching to HTML: ${view}`);
+      this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
       view = 'html';
     }
     const body = doc[view];
@@ -74,7 +73,7 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
 
     const max = 32
     if (prompts.length > max) {
-      logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
+      this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
       prompts = prompts.slice(0, max);
     }
 
@@ -83,7 +82,7 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
         const gen = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of gen) {
           if (delta._meta) {
-            logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
+            this.logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
             continue;
           }
 
@@ -91,7 +90,7 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
         }
       }
     } catch (e) {
-      logger.error(`${this} Got error while extracting: ${e}`);
+      this.logger.error(`${this} Got error while extracting: ${e}`);
       throw e;
     }
   }

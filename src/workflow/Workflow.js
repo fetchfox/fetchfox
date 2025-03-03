@@ -1,5 +1,4 @@
 import { setMaxListeners } from 'events';
-import { logger } from '../log/logger.js';
 import { Cursor } from '../cursor/Cursor.js';
 import { Context } from '../context/Context.js';
 import { Planner } from '../plan/Planner.js';
@@ -32,7 +31,7 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   async plan(...args) {
-    logger.info(`Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`);
+    this.ctx.logger.info(`Workflow plan based on ${JSON.stringify(args).substr(0, 200)}`);
 
     if (args && args.length == 1 && args[0].prompt != undefined) {
       args = args[0];
@@ -42,7 +41,7 @@ export const Workflow = class extends BaseWorkflow {
     let planPromise
 
     if (args.prompt != undefined) {
-      logger.debug(`Plan workflow from prompt`);
+      this.ctx.logger.debug(`Plan workflow from prompt`);
       planPromise = planner.fromPrompt(
         args.prompt,
         {
@@ -51,10 +50,9 @@ export const Workflow = class extends BaseWorkflow {
         });
 
     } else {
-      logger.debug(`Plan workflow from string steps`);
-
       if (args) this.parseRunArgs(args);
       const steps = [...this.steps, ...this._stepsInput];
+      this.ctx.logger.debug(`Plan workflow from: ${JSON.stringify(steps)}`);
       const stepsPlain = steps.map(step => {
         if (step instanceof BaseStep) {
           return step.dump();
@@ -129,10 +127,10 @@ export const Workflow = class extends BaseWorkflow {
     }
 
     const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
-    logger.info('╔' + '═'.repeat(msg.length) + '╗');
-    logger.info('║' + msg + '║');
-    logger.info('╚' + '═'.repeat(msg.length) + '╝');
-    logger.info(`Running with global limit=${this.ctx.limit}`);
+    this.ctx.logger.info('╔' + '═'.repeat(msg.length) + '╗');
+    this.ctx.logger.info('║' + msg + '║');
+    this.ctx.logger.info('╚' + '═'.repeat(msg.length) + '╝');
+    this.ctx.logger.info(`Running with global limit=${this.ctx.limit}`);
 
     try {
       await last.run(this.cursor, this.steps, this.steps.length - 1);
@@ -152,9 +150,9 @@ export const Workflow = class extends BaseWorkflow {
   }
 
   abort() {
-    logger.info(`${this} Aborting`);
+    this.ctx.logger.info(`${this} Aborting`);
     if (!this.controller) {
-      logger.warn(`${this} Could not abort without a controller`);
+      this.ctx.logger.warn(`${this} Could not abort without a controller`);
       return;
     }
     this.controller.abort();

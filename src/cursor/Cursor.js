@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { Context } from '../context/Context.js';
 import { Item } from '../item/Item.js';
 
@@ -113,7 +112,7 @@ export const Cursor = class {
   }
 
   finish(stepIndex) {
-    logger.info(`Finish step ${stepIndex} in cursor`);
+    this.ctx.logger.info(`Finish step ${stepIndex} in cursor`);
 
     this.full[stepIndex].done = true;
     delete this.full[stepIndex].loading;
@@ -127,7 +126,7 @@ export const Cursor = class {
   }
 
   finishAll() {
-    logger.info(`Finish all in cursor`);
+    this.ctx.logger.info(`Finish all in cursor`);
     for (let i = 0; i < this.full.length; i++) {
       if (!this.full[i].done) {
         this.finish(i);

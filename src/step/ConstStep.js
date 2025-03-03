@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 import { Item } from '../item/Item.js';
 
@@ -19,7 +18,7 @@ export const ConstStep = class extends BaseStep {
   }
 
   async run(cursor, parent, index) {
-    logger.debug(`${this} Run const special case`);
+    cursor.ctx.logger.debug(`${this} Run const special case`);
 
     for (const data of this.items) {
       const copy = { ...data };
