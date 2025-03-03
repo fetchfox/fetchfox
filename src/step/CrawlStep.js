@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 
 export const CrawlStep = class extends BaseStep {
@@ -29,7 +28,7 @@ export const CrawlStep = class extends BaseStep {
     try {
       for await (const output of crawler.run(url, this.query, options)) {
         if (!output._url) {
-          logger.error(`No URL found for item ${item}`);
+          cursor.ctx.logger.error(`No URL found for item ${item}`);
           continue;
         }
 
@@ -37,7 +36,7 @@ export const CrawlStep = class extends BaseStep {
         if (done) break;
       }
     } catch (e) {
-      logger.error(`${this} Got error: ${e}`);
+      cursor.ctx.logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }

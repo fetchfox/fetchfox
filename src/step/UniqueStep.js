@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 
 export const UniqueStep = class extends BaseStep {
@@ -25,15 +24,15 @@ export const UniqueStep = class extends BaseStep {
     this.seen = {};
   }
 
-  async process({ item }, cb) {
+  async process({ cursor, item }, cb) {
     const fields = this.fields || Object.keys(item).sort();
     const val = this.fields.map(f => item[f] || '(not found)').join('_');
     if (this.seen[val]) {
-      logger.debug(`Already seen "${fields.join(', ')}"="${val}", skipping ${item}`);
+      cursor.ctx.logger.debug(`Already seen "${fields.join(', ')}"="${val}", skipping ${item}`);
       return;
     }
 
-    logger.debug(`Seeing "${fields.join(', ')}"="${val}" for the first time, using ${item}`);
+    cursor.ctx.logger.debug(`Seeing "${fields.join(', ')}"="${val}" for the first time, using ${item}`);
     this.seen[val] = true;
     cb(item);
   }

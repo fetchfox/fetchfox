@@ -1,7 +1,6 @@
 import { logger as defaultLogger } from '../log/logger.js';
 import fs from 'fs';
 import path from 'path';
-import { logger } from '../log/logger.js';
 
 export const DiskCache = class {
   constructor(dirname, options) {

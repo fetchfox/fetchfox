@@ -4,8 +4,8 @@ import prefix from 'loglevel-plugin-prefix';
 
 const colors = {
   TRACE: chalk.magenta,
-  DEBUG: chalk.cyan,
-  INFO: chalk.blue,
+  DEBUG: chalk.blue,
+  INFO: chalk.cyan,
   WARN: chalk.yellow,
   ERROR: chalk.red,
 };
@@ -35,8 +35,24 @@ export class Logger {
     this.prefix = options?.prefix;
   }
 
-  _prefix(level) {
-    return this.prefix ? chalk.green(this.prefix) : '';
+  _suffix() {
+    const lines = new Error().stack.split('\n');
+    let filename;
+    for (const line of lines) {
+      if (!line.includes('fetchfox') || line.match(/src.log.logger/)) {
+        continue;
+      }
+      const parts = line.split('/');
+      const filepart = parts[parts.length - 1];//.replace(/^(.*):.+$/, '$1');
+      const [filename_, lineno] = filepart.split(':');
+      filename = filename_ + ':' + lineno;
+      break;
+    }
+    return chalk.gray(filename);
+  }
+
+  _prefix() {
+    return this.prefix ? `${this.prefix}` : '';
   }
 
   testMode() {
@@ -51,7 +67,7 @@ export class Logger {
       return;
     }
 
-    log.trace(this._prefix(), ...args);
+    log.trace(this._prefix(), ...args, this._suffix());
   }
 
   debug(...args) {
@@ -60,7 +76,7 @@ export class Logger {
     }
 
     if (log.getLevel() <= log.levels.DEBUG) {
-      log.debug(this._prefix(), ...args);
+      log.debug(this._prefix(), ...args, this._suffix());
     }
   }
 
@@ -69,7 +85,7 @@ export class Logger {
       return;
     }
 
-    log.info(this._prefix(), ...args);
+    log.info(this._prefix(), ...args, this._suffix());
   }
 
   warn(...args) {
@@ -77,7 +93,7 @@ export class Logger {
       return;
     }
 
-    log.warn(this._prefix(), ...args);
+    log.warn(this._prefix(), ...args, this._suffix());
   }
 
   error(...args) {
@@ -85,15 +101,7 @@ export class Logger {
       return;
     }
 
-    log.error(this._prefix(), ...args);
-  }
-
-  listen(cb) {
-    if (this.disabled) {
-      return;
-    }
-
-    callbacks.push(cb);
+    log.error(this._prefix(), ...args, this._suffix());
   }
 }
 

@@ -1,4 +1,4 @@
-import { Logger } from '../log/logger.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { getAI, BaseAI } from '../ai/index.js';
 import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
@@ -16,13 +16,13 @@ export const decodeableKeys = [
 ];
 
 const decodeArgs = (args, cache) => {
-
-  const logger = new Logger({ prefix: args.prefix });
+  const logger = args?.logger || defaultLogger;
 
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
   decoded.signal = args.signal;
   decoded.cache = cache;
+  decoded.logger = logger;
 
   const diskCache = args.diskCache || process.env.DISK_CACHE;
   if (diskCache) {
@@ -33,9 +33,9 @@ const decodeArgs = (args, cache) => {
     args.cache = new S3Cache(s3Cache, { logger });
   }
   if (args.cache) {
+    args.cache.logger = logger;
     decoded.cache = args.cache;
   }
-
 
   for (const [key, getter, parentClass] of decodeableKeys) {
     let val;
@@ -80,6 +80,7 @@ export const Context = class {
     }
 
     this.args = args;
+    this.logger = args?.logger || defaultLogger;
   }
 
   dump() {
@@ -109,6 +110,9 @@ export const Context = class {
     }
 
     this.args = combined;
+    if (this.args.logger) {
+      this.logger = this.args.logger;
+    }
 
     return this;
   }

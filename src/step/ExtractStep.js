@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { BaseStep } from './BaseStep.js';
 import { isPlainObject } from '../util.js';
@@ -45,9 +44,8 @@ export const ExtractStep = class extends BaseStep {
   }
 
   async process({ cursor, item, index }, cb) {
-    logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
+    cursor.ctx.logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
     const start = (new Date()).getTime();
-
     const ex = cursor.ctx.extractor;
 
     try {
@@ -63,7 +61,7 @@ export const ExtractStep = class extends BaseStep {
         });
       for await (const output of stream) {
         const took = (new Date()).getTime() - start;
-        logger.debug(`${this } Extract took ${(took/1000).toFixed(1)} sec so far`);
+        cursor.ctx.logger.debug(`${this } Extract took ${(took/1000).toFixed(1)} sec so far`);
         let combined;
         if (item instanceof Document) {
           combined = output;
@@ -71,7 +69,7 @@ export const ExtractStep = class extends BaseStep {
           // TODO: intelligently merge so new stuff goes first, and isn't overriden
           combined = { ...item, ...output };
         }
-        logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
+        cursor.ctx.logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
 
         const done = cb(combined);
         if (done) {
@@ -82,7 +80,7 @@ export const ExtractStep = class extends BaseStep {
         }
       }
     } catch (e) {
-      logger.error(`${this} Got error: ${e}`);
+      cursor.ctx.logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }

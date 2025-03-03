@@ -6,7 +6,7 @@ describe('Logger', function() {
 
   it('prefix job id', () => {
 
-    const logger = new Logger({ prefix: `jobid=123` });
+    const logger = new Logger({ prefix: `abc123xyz` });
     logger.trace('test trace');
     logger.debug('test debug');
     logger.info('test info');

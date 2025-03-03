@@ -42,8 +42,6 @@ export const Planner = class {
   }
 
   async planArray(stepsInput) {
-    logger.debug(`Plan from array: ${JSON.stringify(stepsInput)}`);
-
     const objs = [];
 
     const stringify = (input) => {
@@ -67,7 +65,6 @@ export const Planner = class {
         objs.push(input);
 
       } else if (isPlainObject(input) && input.name) {
-        logger.debug(`Planner parsing JSON input ${JSON.stringify(input)} into steps`);
         objs.push(this.fromJson(input));
 
       } else {
@@ -79,7 +76,6 @@ export const Planner = class {
         }
         const prompt = singleStep.render(context);
         const answer = await this.ai.ask(prompt, { format: 'json' });
-        logger.debug(`Step planned "${str}" into ${JSON.stringify(answer.partial)}`);
         objs.push(this.fromJson(answer.partial));
       }
     }
@@ -105,10 +101,7 @@ export const Planner = class {
   }
 
   fromJson(json) {
-    logger.debug(`Plan from JSON: ${JSON.stringify(json)}`);
     const cls = classMap[json.name];
-    logger.debug(`Got JSON args: ${JSON.stringify(json.args)}`);
-
     if (json.name == 'limit') {
       const parsed = parseInt(json.args);
       if (!isNaN(parsed)) {
@@ -139,7 +132,6 @@ export const Planner = class {
 
       json.args = { items };
     }
-    logger.debug(`Cleaned JSON args: ${JSON.stringify(json.args)}`);
 
     if (!cls) {
       throw new Error(`Planner got invalid JSON: ${JSON.stringify(json)}`);
