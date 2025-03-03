@@ -52,22 +52,36 @@ export const Instructions = class {
     this.commands.unshift(command);
   }
 
-  cacheKey() {
-    const hash = shortObjHash({
-      url: this.url,
-      commands: this.commands.map(it => it.prompt),
-    });
+  cacheKey(hint) {
+    let hash;
+    if (hint) {
+      logger.debug(`${this} Received cache key, using domain=${domain}, hint=${hint}`);
+      const domain = (new URL(this.url)).hostname;
+      hash = shortObjHash({
+        domain,
+        hint,
+        commands: this.commands.map(it => it.prompt),
+      });
+    } else {
+      logger.debug(`${this} No cache key, using url=${this.url}`);
+      hash = shortObjHash({
+        url: this.url,
+        commands: this.commands.map(it => it.prompt),
+      });
+    }
+
     return `instructions-${hash}`;
   }
 
-  async *learn(fetcher) {
+  async *learn(fetcher, options) {
+    const cacheKey = options?.cacheKey;
     const learned = [];
 
     if (this.commands.length == 0 && this.hint) {
       this.commands.push({ prompt: this.hint });
     }
 
-    const key = this.cacheKey();
+    const key = this.cacheKey(cacheKey);
     if (this.cache) {
       const cached = await this.cache.get(key);
       if (cached) {
