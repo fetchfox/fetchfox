@@ -45,23 +45,27 @@ export const Instructions = class {
     this.commands.unshift(command);
   }
 
-  cacheKey(hint) {
+  cacheKey() {
     let hash;
-    if (hint) {
-      logger.debug(`${this} Received cache key, using domain=${domain}, hint=${hint}`);
-      const domain = (new URL(this.url)).hostname;
-      hash = shortObjHash({
-        domain,
-        hint,
-        commands: this.commands.map(it => it.prompt),
-      });
-    } else {
-      logger.debug(`${this} No cache key, using url=${this.url}`);
-      hash = shortObjHash({
-        url: this.url,
-        commands: this.commands.map(it => it.prompt),
-      });
-    }
+
+    // TODO: re-enable this
+    // if (hint) {
+    //   this.logger.debug(`${this} Received cache key, using domain=${domain}, hint=${hint}`);
+    //   const domain = (new URL(this.url)).hostname;
+    //   hash = shortObjHash({
+    //     domain,
+    //     hint,
+    //     commands: this.commands.map(it => it.prompt),
+    //   });
+    // } else {
+    // }
+
+    this.logger.debug(`${this} No cache key, using url=${this.url}`);
+    hash = shortObjHash({
+      url: this.url,
+      commands: this.commands.map(it => it.prompt),
+    });
+
 
     return `instructions-${hash}`;
   }
