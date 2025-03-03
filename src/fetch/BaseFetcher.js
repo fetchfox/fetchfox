@@ -65,7 +65,7 @@ export const BaseFetcher = class {
   }
 
   async *fetch(target, options) {
-    logger.info(`${this} Fetch ${target} with ${this}`);
+    logger.info(`${this} Fetch ${target} with ${JSON.stringify(options)}`);
 
     const toInstructions = (target) => {
       let instr;
