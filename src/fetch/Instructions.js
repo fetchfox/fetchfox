@@ -33,7 +33,7 @@ export const Instructions = class {
       temperature: options?.temperature || 0.5,
       topP: options?.topP || 0.3,
     };
-    if (this.ai.model.includes("o3-mini") || this.ai.model.include("gemini")) {
+    if (this.ai.model.includes("o3-mini") || this.ai.model.includes("gemini")) {
       this.generationConfig = {};
     }
 
