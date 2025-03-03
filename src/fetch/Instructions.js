@@ -594,6 +594,6 @@ Note:
 - The next button may have the word next, or some sort of right-arrow like character.
 - If you're less confident you may scroll or click a button to Load More data or Show More data.
 
-Successful pagination will produce new results. The previous results may or may not still be visible, but you should see different results.
+You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
 
 Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets.`;
