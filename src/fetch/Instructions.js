@@ -66,7 +66,6 @@ export const Instructions = class {
       commands: this.commands.map(it => it.prompt),
     });
 
-
     return `instructions-${hash}`;
   }
 
