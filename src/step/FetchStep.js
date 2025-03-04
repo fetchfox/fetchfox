@@ -9,10 +9,6 @@ export const FetchStep = class extends BaseStep {
     this.maxPages = args?.maxPages || 5;
   }
 
-  async finish(cursor) {
-    await cursor.ctx.fetcher.clear();
-  }
-
   async process({ cursor, item, index }, cb) {
     cursor.ctx.logger.info(`Fetch step for ${item}`);
     const options = { multiple: true, priority: index };
