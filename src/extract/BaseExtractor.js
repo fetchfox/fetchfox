@@ -141,6 +141,16 @@ export const BaseExtractor = class {
                     }
 
                     const ser = JSON.stringify(r.publicOnly());
+
+                    let onlyNotFound = true;
+                    for (const val of Object.values(r.publicOnly())) {
+                      onlyNotFound = onlyNotFound && val == '(not found)';
+                    }
+                    if (onlyNotFound) {
+                      this.logger.debug(`${this} Dropping empty result: ${ser}`);
+                      continue;
+                    }
+
                     if (seen[ser]) {
                       this.logger.debug(`${this} Dropping duplicate result: ${ser}`);
                       continue;

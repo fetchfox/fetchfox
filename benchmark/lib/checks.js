@@ -41,25 +41,33 @@ export const checkItemsAI = async (items, expected, fields) => {
   const expectedJson = expected.map(x => JSON.stringify(removePrivate(x, fields))).sort();
   const itemsJson = items.map(x => JSON.stringify(removePrivate(x, fields))).sort();
 
+  const expectedStr = expectedJson.length ? expectedJson.join('\n') : '[]';
+  const itemsStr = itemsJson.length ? itemsJson.join('\n') : '[]';
+
   const prompt = `Give a score from 1 to 100 of how closely the actual results match the expected results.
 
 Format your response like this:
 
+- "analysis": 20-50 word analysis of the differences between the actual and expected results
+- "score": Based on the analysis and data you see, giv ea score from 1 to 100 of how good the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER
+
+Example of valid response:
 {
-  "analysis": "20-50 word analysis of the differences between the actual and expected results",
-  "score": "based on the analysis and data you see, giv ea score from 1 to 100 of how good the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER"
+  "analysis": "The actual results show username and comments, and those match the expected results, except the fromat of the username is wrong. Also, one result is missing.",
+  "score": 65
 }
 
 >>>> Expected results:
-${expectedJson.join('\n')}
+${expectedStr}
 
 >>>> Actual results:
- ${itemsJson.join('\n')}
+ ${itemsStr}
 
 Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse().`;
 
   const ai = getAI('openai:gpt-4o');
   const answer = await ai.ask(prompt, { format: 'json' });
+
   return [parseInt(answer.partial.score), 100];
 }
 
