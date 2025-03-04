@@ -42,6 +42,7 @@ export const checkItemsAI = async (items, expected, fields) => {
   const itemsJson = items.map(x => JSON.stringify(removePrivate(x, fields))).sort();
 
   const expectedStr = expectedJson.length ? expectedJson.join('\n') : '[]';
+  const itemsStr = itemsJson.length ? itemsJson.join('\n') : '[]';
 
   const prompt = `Give a score from 1 to 100 of how closely the actual results match the expected results.
 
@@ -60,16 +61,12 @@ Example of valid response:
 ${expectedStr}
 
 >>>> Actual results:
- ${itemsJson.join('\n')}
+ ${itemsStr}
 
 Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse().`;
 
-  console.log(prompt);
-
   const ai = getAI('openai:gpt-4o');
   const answer = await ai.ask(prompt, { format: 'json' });
-
-  console.log(answer);
 
   return [parseInt(answer.partial.score), 100];
 }
