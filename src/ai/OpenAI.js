@@ -1,6 +1,5 @@
 import OpenAILib from 'openai';
 import { BaseAI } from './BaseAI.js';
-import { logger } from '../log/logger.js';
 
 export const OpenAI = class extends BaseAI {
   static apiKeyEnvVariable = 'OPENAI_API_KEY';
@@ -51,7 +50,7 @@ export const OpenAI = class extends BaseAI {
 
   async *inner(prompt, options) {
     if (this.signal?.aborted) {
-      logger.debug(`${this} Already aborted, return early`);
+      this.logger.debug(`${this} Already aborted, return early`);
       return;
     }
 
@@ -79,7 +78,7 @@ export const OpenAI = class extends BaseAI {
     }
 
     if (options?.imageUrl) {
-      logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
+      this.logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
       const existing = args.messages[0].content;
       args.messages[0].content = [
         existing,
@@ -118,7 +117,7 @@ export const OpenAI = class extends BaseAI {
     try {
       completion = await openai.chat.completions.create(args, aiOptions);
       if (canStream) {
-        logger.debug(`${this} Stream the completion`);
+        this.logger.debug(`${this} Stream the completion`);
         for await (const chunk of completion) {
           yield Promise.resolve(chunk);
         }
@@ -128,11 +127,11 @@ export const OpenAI = class extends BaseAI {
       }
     } catch (e) {
       if (e.constructor.name == 'APIUserAbortError') {
-        logger.warn(`${this} Aborted while creating: ${e}`);
+        this.logger.warn(`${this} Aborted while creating: ${e}`);
         return;
       }
 
-      logger.error(`${this} Caught error while making completion: ${e}`);
+      this.logger.error(`${this} Caught error while making completion: ${e}`);
       throw e;
     } finally {
       if (listener) {

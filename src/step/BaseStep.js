@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import PQueue from 'p-queue';
-import { logger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { shortObjHash } from '../util.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
@@ -70,7 +69,7 @@ export const BaseStep = class {
     } finally {
       if (this.start) {
         const took = (new Date()).getTime() - this.start.getTime();
-        logger.debug(`${this} took total of ${(took / 1000).toFixed(2)} sec`);
+        cursor.ctx.logger.debug(`${this} took total of ${(took / 1000).toFixed(2)} sec`);
       }
       cursor.finish(index);
     }
@@ -116,7 +115,7 @@ export const BaseStep = class {
   }
 
   async _run(cursor, steps, index) {
-    logger.info(`Run ${this}`);
+    cursor.ctx.logger.info(`Run ${this}`);
 
     this.start = new Date();
 
@@ -185,14 +184,14 @@ export const BaseStep = class {
                   seen[hash] = true;
 
                   if (dupe) {
-                    logger.debug(`${this} Dropping dupe ${hash}`);
+                    cursor.ctx.logger.debug(`${this} Dropping dupe ${hash}`);
                   } else {
                     this.results.push(output);
                   }
                   const hitLimit = this.limit && this.results.length >= this.limit;
 
                   if (hitLimit) {
-                    logger.info(`${this} Hit limit with ${this.results.length} results`);
+                    cursor.ctx.logger.info(`${this} Hit limit with ${this.results.length} results`);
                   }
 
                   meta.status = 'done';
@@ -206,7 +205,7 @@ export const BaseStep = class {
                     if (serialized.length > 300) {
                       serialized = serialized.substring(0, 280) + '...'
                     }
-                    logger.info(`${chalk.bold.cyan('' + this +' (' + index + ')' + ' #' + this.results.length)} ${chalk.bold.cyan('\u{25B6}')} ${serialized}`);
+                    cursor.ctx.logger.info(`${chalk.bold.cyan('' + this +' (' + index + ')' + ' #' + this.results.length)} ${chalk.bold.cyan('\u{25B6}')} ${serialized}`);
 
                     cursor.publish(
                       firstId,
@@ -224,7 +223,7 @@ export const BaseStep = class {
                   done ||= hitLimit;
 
                   if (done) {
-                    logger.debug(`${this} Received done signal inside callback`);
+                    cursor.ctx.logger.debug(`${this} Received done signal inside callback`);
                     ok();
                   } else {
                     done = maybeOk();
@@ -235,7 +234,7 @@ export const BaseStep = class {
               );
 
               itemPromise.catch((e) => {
-                logger.error(`${this} Got error while processing item=${JSON.stringify(item)}: ${e}`);
+                cursor.ctx.logger.error(`${this} Got error while processing item=${JSON.stringify(item)}: ${e}`);
 
                 meta.status = 'error';
                 meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;
@@ -248,7 +247,7 @@ export const BaseStep = class {
                 if (process.env.STRICT_ERRORS) {
                   throw e;
                 } else {
-                  logger.warn(`${this} Strict mode not enabled, swallowing error: ${e.stack}`);
+                  cursor.ctx.logger.warn(`${this} Strict mode not enabled, swallowing error: ${e.stack}`);
                 }
               });
 
@@ -265,9 +264,9 @@ export const BaseStep = class {
             qPromises.push(p);
           } catch (e) {
             if (e.name == 'AbortError') {
-              logger.debug(`${this} Promise queue task aborted: ${e}`);
+              cursor.ctx.logger.debug(`${this} Promise queue task aborted: ${e}`);
             } else {
-              logger.error(`${this} Promise queue gave an error: ${e}`);
+              cursor.ctx.logger.error(`${this} Promise queue gave an error: ${e}`);
             }
           }
         }
@@ -279,7 +278,7 @@ export const BaseStep = class {
               ok();
               return;
             }
-            logger.error(`${this} Got error while waiting for all: ${e}`);
+            cursor.ctx.logger.error(`${this} Got error while waiting for all: ${e}`);
           })
           .finally(() => {
             completed += b.length;
@@ -289,7 +288,7 @@ export const BaseStep = class {
       }; // end processBatch
 
       const maybeOk = () => {
-        logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
+        cursor.ctx.logger.debug(`Check maybe ok ${this}: parentDone=${parentDone}, nextDone=${nextDone} received=${received}, completed=${completed}`);
 
         const isOk = (
           (parentDone && received == completed) ||
@@ -322,11 +321,11 @@ export const BaseStep = class {
           return;
         }
 
-        logger.debug(`${this} Pushing onto batch, current=${batch.length}, batch size=${batchSize}`);
+        cursor.ctx.logger.debug(`${this} Pushing onto batch, current=${batch.length}, batch size=${batchSize}`);
         batch.push(item);
 
         if (batch.length >= batchSize) {
-          logger.debug(`${this} Process batch`);
+          cursor.ctx.logger.debug(`${this} Process batch`);
           processBatch();
         }
       });
@@ -351,7 +350,7 @@ export const BaseStep = class {
       }
     }
     processPromise.catch((e) => {
-      logger.error(`${this} Caught exception while processing: ${e}`);
+      cursor.ctx.logger.error(`${this} Caught exception while processing: ${e}`);
       removeAbortListener();
       throw e;
     });
@@ -360,7 +359,7 @@ export const BaseStep = class {
 
     const finishPromise = this._finish(cursor, index);
     finishPromise.catch((e) => {
-      logger.error(`${this} Caught exception while finishing: ${e}`);
+      cursor.ctx.logger.error(`${this} Caught exception while finishing: ${e}`);
       removeAbortListener();
       throw e;
     });

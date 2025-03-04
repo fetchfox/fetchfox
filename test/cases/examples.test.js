@@ -2,6 +2,7 @@ import os from 'os';
 import fs from 'fs';
 import assert from 'assert';
 import process from 'node:process';
+import { Logger } from '../../src/log/logger.js';
 import { fox } from '../../src/index.js';
 import { testCache, setTestTimeout } from '../lib/util.js';
 
@@ -16,11 +17,15 @@ describe('examples', function() {
       { ai: 'openrouter:openai/gpt-4o' },
     ];
 
+    const logger = new Logger({ prefix: 'abc123xyz' });
+    const cache = testCache();
+
     for (const { ai } of cases) {
       const wf = await fox
         .config({
           ai,
-          cache: testCache(),
+          cache,
+          logger,
         })
         .init(
           'https://pokemondb.net/pokedex/national',
