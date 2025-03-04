@@ -1,5 +1,5 @@
 import pTimeout from 'p-timeout';
-import { logger } from "../log/logger.js";
+import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
 import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
@@ -37,6 +37,7 @@ export const Instructions = class {
       this.generationConfig = {};
     }
 
+    this.logger = options?.logger || defaultLogger
   }
 
   toString() {
@@ -52,23 +53,26 @@ export const Instructions = class {
     this.commands.unshift(command);
   }
 
-  cacheKey(hint) {
+  cacheKey() {
     let hash;
-    if (hint) {
-      logger.debug(`${this} Received cache key, using domain=${domain}, hint=${hint}`);
-      const domain = (new URL(this.url)).hostname;
-      hash = shortObjHash({
-        domain,
-        hint,
-        commands: this.commands.map(it => it.prompt),
-      });
-    } else {
-      logger.debug(`${this} No cache key, using url=${this.url}`);
-      hash = shortObjHash({
-        url: this.url,
-        commands: this.commands.map(it => it.prompt),
-      });
-    }
+
+    // TODO: re-enable this
+    // if (hint) {
+    //   this.logger.debug(`${this} Received cache key, using domain=${domain}, hint=${hint}`);
+    //   const domain = (new URL(this.url)).hostname;
+    //   hash = shortObjHash({
+    //     domain,
+    //     hint,
+    //     commands: this.commands.map(it => it.prompt),
+    //   });
+    // } else {
+    // }
+
+    this.logger.debug(`${this} No cache key, using url=${this.url}`);
+    hash = shortObjHash({
+      url: this.url,
+      commands: this.commands.map(it => it.prompt),
+    });
 
     return `instructions-${hash}`;
   }
@@ -85,11 +89,11 @@ export const Instructions = class {
     if (this.cache) {
       const cached = await this.cache.get(key);
       if (cached) {
-        logger.debug(`${this} Cache hit for ${key}`);
+        this.logger.debug(`${this} Cache hit for ${key}`);
         this.learned = cached;
         return;
       } else {
-        logger.debug(`${this} Cache miss for ${key}`);
+        this.logger.debug(`${this} Cache miss for ${key}`);
       }
     }
 
@@ -126,8 +130,8 @@ export const Instructions = class {
           },
         ];
 
-        logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(this.commands, null, 2)}`);
-        logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
+        this.logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(this.commands, null, 2)}`);
+        this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
 
         const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
@@ -142,8 +146,7 @@ export const Instructions = class {
         if (!doc) {
           throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
         }
-
-        logger.debug(`${this} Learn how to do: ${command.prompt}`);
+        this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         const context = {
           html: doc.html,
@@ -160,7 +163,7 @@ export const Instructions = class {
           ))
         )
           .filter(result => result.status == 'fulfilled');
-        logger.info(JSON.stringify(answers));
+        this.logger.info(JSON.stringify(answers));
 
         const candidates = [];
         const seen = {};
@@ -236,9 +239,9 @@ export const Instructions = class {
 
         let working;
 
-        logger.info(candidates);
+        this.logger.info(candidates);
         for (const set of candidates) {
-          logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
+          this.logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
           let ok = true;
           try {
@@ -257,39 +260,39 @@ export const Instructions = class {
             }
 
           } catch (e) {
-            logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
+            this.logger.warn(`${this} Got error while checking action set ${JSON.stringify(set)}, skipping: ${e} ${e.stack}`);
             if (process.env.STRICT_ERRORS) {
               throw e;
             }
             ok = false;
           }
 
-          logger.debug(`${this} Checked action ${JSON.stringify(set)} and got ok=${ok}`);
+          this.logger.debug(`${this} Checked action ${JSON.stringify(set)} and got ok=${ok}`);
           if (ok) {
             working = set;
             break;
           }
         }
 
-        logger.debug(`${this} Found working action set=${JSON.stringify(working)} for ${command.prompt}`);
+        this.logger.debug(`${this} Found working action set=${JSON.stringify(working)} for ${command.prompt}`);
 
         if (working) {
           learned.push(...working);
         } else {
-          logger.warn(`${this} Could not find a working action for ${command.prompt}`);
+          this.logger.warn(`${this} Could not find a working action for ${command.prompt}`);
         }
       }
 
       this.learned = learned;
       if (this.cache) {
-        logger.debug(`${this} Setting cache for ${key}`);
+        this.logger.debug(`${this} Setting cache for ${key}`);
         await this.cache.set(key, this.learned);
       }
 
-      logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
+      this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
     } catch (e) {
-      logger.error(`${this} Got error: ${e}`);
+      this.logger.error(`${this} Got error: ${e}`);
       throw e;
 
     } finally {
@@ -302,7 +305,7 @@ export const Instructions = class {
       throw new Error('must learn before execute');
     }
 
-    logger.info(`${this} Execute instructions: url=${this.url} learned=${JSON.stringify(this.learned)}`);
+    this.logger.info(`${this} Execute instructions: url=${this.url} learned=${JSON.stringify(this.learned)}`);
 
     // Track gotos (page loads) and actions taken
     const usage = {
@@ -398,7 +401,7 @@ export const Instructions = class {
     }
 
     const goto = async () => {
-      logger.debug(`${this} Goto: ${this.url}`);
+      this.logger.debug(`${this} Goto: ${this.url}`);
       usage.goto++;
       await fetcher.goto(this.url, ctx);
     }
@@ -426,7 +429,7 @@ export const Instructions = class {
         this.learned[this.learned.length - 1].mode == 'repeat');
 
       if (noActions) {
-        logger.debug(`${this} No actions, just a simple URL goto`);
+        this.logger.debug(`${this} No actions, just a simple URL goto`);
         const doc = await this.current(fetcher, ctx);
         yield Promise.resolve({ doc });
         return;
@@ -436,7 +439,7 @@ export const Instructions = class {
 
       while (true) {
         if (!limitsOk(state)) {
-          logger.debug(`${this} Hit limits, break`);
+          this.logger.debug(`${this} Hit limits, break`);
           break;
         }
 
@@ -453,7 +456,7 @@ export const Instructions = class {
 
           ok = await act(i, state, { tailRepeat });
 
-          logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
+          this.logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
 
           if (!ok) {
             for (let j = i; j < this.learned.length; j++) {
@@ -469,7 +472,7 @@ export const Instructions = class {
         if (!ok) {
           const upstream = this.learned.slice(0, i).filter(it => !it.optional);
           if (upstream.length == 0) {
-            logger.debug(`${this} Got not ok and all upstream are optional, done`);
+            this.logger.debug(`${this} Got not ok and all upstream are optional, done`);
             break;
           }
           i--;
@@ -477,11 +480,11 @@ export const Instructions = class {
 
         state = incrState(i, state);
 
-        logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
+        this.logger.debug(`${this} State after incrementing: ${JSON.stringify(state)}`);
 
         if (ok) {
           const doc = await this.current(fetcher, ctx);
-          logger.debug(`${this} Yielding a document: ${doc}`);
+          this.logger.debug(`${this} Yielding a document: ${doc}`);
 
           if (this.learned[i].singleYield) {
             finalDoc = doc;
@@ -500,7 +503,7 @@ export const Instructions = class {
 
   async current(fetcher, ctx) {
     const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
-    logger.debug(`${this} Got document: ${doc}`);
+    this.logger.debug(`${this} Got document: ${doc}`);
     return doc;
   }
 
@@ -553,9 +556,9 @@ export const Instructions = class {
       const { prompt } = await prompts.checkAction.renderCapped(
         context, 'iterations', this.ai.advanced);
 
-      logger.debug(`${this} Check if ${goal} succeeded`);
+      this.logger.debug(`${this} Check if ${goal} succeeded`);
       const answer = await this.ai.advanced.ask(prompt, { format: 'json', ...this.generationConfig });
-      logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
+      this.logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
 
       return answer.partial.didComplete == 'yes';
     } finally {
@@ -584,7 +587,7 @@ const domainSpecificInstructions = (url) => {
   let result;
   if (match) {
     result = '\n>> Follow this important domain specific guidance: ' + match.instruction;
-    logger.debug(`Adding domain specific prompt: ${result}`);
+    defaultLogger.debug(`Adding domain specific prompt: ${result}`);
   } else {
     result = '';
   }
