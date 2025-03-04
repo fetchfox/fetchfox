@@ -31,7 +31,7 @@ jobs:
 
     - name: Extract branch name
       id: get_branch
-      run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      run: echo "BRANCH=${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
