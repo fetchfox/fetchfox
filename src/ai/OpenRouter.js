@@ -11,7 +11,7 @@ export const OpenRouter = class extends OpenAI {
     const models = this.model.split(';');
     if (models.length > 1) {
         this.model = models[0];
-        this.models = models.slice(1);
+        this.fallbacks = models.slice(1);
     }
   }
 
@@ -27,12 +27,15 @@ export const OpenRouter = class extends OpenAI {
     this.pricing = data.pricing;
 
     // Get fallback model information
-    if (this.models) {
-      for (let fallbackModel of this.models) {
-        parts = fallbackModel.split('/');
-        data = await getModelData(parts[0], parts[1], this.cache);
+    if (this.fallbacks) {
+      const datas = await Promise.all(this.fallbacks.map(async fallback => {
+        const parts = fallback.split('/');
+        const data = await getModelData(parts[0], parts[1], this.cache);
+        return data;
+      }));
+      for (const data of datas) {
         if (data.maxTokens < this.maxTokens) {
-          this.maxTokens = data.maxTokens;
+          data.maxTokens = this.maxTokens;
         }
       }
     }
