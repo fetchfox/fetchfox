@@ -31,7 +31,7 @@ Respond with JSON as follows:
 }
 
 Information on these fields:
-- "actionAnalysis": Describe the desired action and your approach in 10-20 words
+- "actionAnalysis": Describe the desired action or actions and your approach in 10-200 words
 - "actionMode": One of the following:
   - "distinct": If we should click each distinct element. This is for situations like clicking each link to a profile page or each link to a detail page.
   - "first": If we always execute this action exactly once on an element. This is for situations like accepting a cookie waiver, where you always click it once.

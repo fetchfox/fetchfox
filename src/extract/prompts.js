@@ -11,7 +11,6 @@ Your response will be parsed by a computer program, so respond ONLY with valid J
 The remaining JSON objects you returns will be items. There will be one item per line. Each field in these objects corresponds to the questions.
 
 Follow these important rules:
-- Do NOT invent results that are not there.
 - Please make sure the response is valid JSONL. Only ONE JSON object per line. Remove any \n characters in questions and answers.
 - The VALUES of the questions dictionary is what you are looking for
 - Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
@@ -19,6 +18,8 @@ Follow these important rules:
 - Pay attention to user format specifications
 - Generally avoid returning results with many (not found) fields
 - For URL, always include the FULL ABSOLUTE URL
+- If there is no other valid string value, use an empty string
+- If a response is invalid or not accurate, add an "invalid" key to it.
 
 Example of a valid response with multiple items:
 {"authorName": "Ernest Hemingway", "bookName": "The Old Man and the Sea"}
