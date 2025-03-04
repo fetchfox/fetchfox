@@ -49,11 +49,6 @@ export const BaseFetcher = class {
     }
   }
 
-  async clear() {
-    this.logger.info(`${this} clear fetch queue`);
-    this.q.clear();
-  }
-
   async start() {
   }
 
@@ -170,7 +165,7 @@ export const BaseFetcher = class {
 
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
-      this.logger.debug(`${this} Adding to fetch queue: ${instr} ${debugStr()}`);
+      this.logger.debug(`${this} Adding to fetch queue: ${instr.url} ${debugStr()}`);
       const priority = options?.priority || 1;
 
       // Use channel + promise wrapper to convert async generator into a
@@ -184,7 +179,7 @@ export const BaseFetcher = class {
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok) => {
-            this.logger.debug(`${this} Queue is starting fetch of: ${instr} ${debugStr()}`);
+            this.logger.debug(`${this} Queue is starting fetch of: ${instr.url} ${debugStr()}`);
 
             try {
               this.logger.debug(`${this} Starting at ${instr.url}`);

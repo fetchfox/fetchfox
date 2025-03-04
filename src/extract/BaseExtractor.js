@@ -25,11 +25,6 @@ export const BaseExtractor = class {
     return `[${this.constructor.name}]`;
   }
 
-  async clear() {
-    this.logger.info(`${this} clear associated fetch queue`);
-    this.fetcher.clear();
-  }
-
   async *getDocs(target, options) {
     if (target instanceof Document) {
       yield Promise.resolve(target);
