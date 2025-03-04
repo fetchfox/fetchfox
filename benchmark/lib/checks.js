@@ -1,3 +1,5 @@
+import { getAI } from '../../src/ai/index.js';
+
 export const checkExcludeUrls = (items, str) => {
   const score = [0, 0];
   for (const item of items) {
@@ -10,36 +12,63 @@ export const checkExcludeUrls = (items, str) => {
 }
 
 export const checkAtLeast = (items, num) => {
-  console.log('checkAtLeast', items);
   return [
     Math.min(num, (items || []).length),
     num
   ];
 }
 
+const removePrivate = (item, fields) => {
+  const copy = {};
+  for (const key of Object.keys(item)) {
+    if (!fields) {
+      if (key.startsWith('_')) continue;
+      copy[key] = item[key];
+
+      continue;
+    }
+
+    if (!fields.includes(key)) continue;
+    copy[key] = item[key];
+  }
+
+  return copy;
+}
+
+
+export const checkItemsAI = async (items, expected, fields) => {
+  // Un-ordered check, so sort them as JSON
+  const expectedJson = expected.map(x => JSON.stringify(removePrivate(x, fields))).sort();
+  const itemsJson = items.map(x => JSON.stringify(removePrivate(x, fields))).sort();
+
+  const prompt = `Give a score from 1 to 100 of how closely the actual results match the expected results.
+
+Format your response like this:
+
+{
+  "analysis": "20-50 word analysis of the differences between the actual and expected results",
+  "score": "based on the analysis and data you see, giv ea score from 1 to 100 of how good the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER"
+}
+
+>>>> Expected results:
+${expectedJson.join('\n')}
+
+>>>> Actual results:
+ ${itemsJson.join('\n')}
+
+Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse().`;
+
+  const ai = getAI('openai:gpt-4o');
+  const answer = await ai.ask(prompt, { format: 'json' });
+  return [parseInt(answer.partial.score), 100];
+}
+
 export const checkItemsExact = (items, expected, fields) => {
   const score = [0, 0];
 
-  const removePrivate = (item) => {
-    const copy = {};
-    for (const key of Object.keys(item)) {
-      if (!fields) {
-        if (key.startsWith('_')) continue;
-        copy[key] = item[key];
-
-        continue;
-      }
-
-      if (!fields.includes(key)) continue;
-      copy[key] = item[key];
-    }
-
-    return copy;
-  }
-
   // Un-ordered check, so sort them as JSON
-  const itemsJson = items.map(x => JSON.stringify(removePrivate(x))).sort();
-  const expectedJson = expected.map(x => JSON.stringify(removePrivate(x))).sort();
+  const expectedJson = expected.map(x => JSON.stringify(removePrivate(x, fields))).sort();
+  const itemsJson = items.map(x => JSON.stringify(removePrivate(x, fields))).sort();
 
   // Check that all expected are found
   for (let i = 0; i < expectedJson.length; i++) {
