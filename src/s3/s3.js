@@ -3,9 +3,9 @@ import { logger } from '../log/logger.js';
 
 export const S3Helper = class {
   constructor (options) {
-    this.bucket = options.bucket || 'ffcloud';
-    this.region = options.region || 'us-west-2';
-    this.acl = options.acl || 'public-read';
+    this.bucket = options?.bucket || 'ffcloud';
+    this.region = options?.region || 'us-west-2';
+    this.acl = options?.acl || 'public-read';
     this.s3 = new S3Client({ region: this.region });
   }
 
