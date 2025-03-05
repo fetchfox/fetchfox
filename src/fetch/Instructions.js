@@ -29,12 +29,18 @@ export const Instructions = class {
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
-    this.generationConfig = {
-      temperature: options?.temperature || 0.5,
-      topP: options?.topP || 0.3,
-    };
-    if (this.ai.model.includes("o3-mini") || this.ai.model.includes("gemini")) {
+    if (this.ai.model.includes("o3-mini")) {
       this.generationConfig = {};
+    } else if (this.ai.model.includes("gemini")) {
+      this.generationConfig = {
+        temperature: options?.temperature || 0.2,
+        topP: options?.topP || 0.4,
+      };
+    } else {
+      this.generationConfig = {
+        temperature: options?.temperature || 0.5,
+        topP: options?.topP || 0.25,
+      };
     }
 
     this.logger = options?.logger || defaultLogger

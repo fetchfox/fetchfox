@@ -23,7 +23,7 @@ jobs:
           - google:gemini-1.5-flash
           - google:gemini-2.0-flash
           - openrouter:meta-llama/llama-3.3-70b-instruct
-          - openrouter:anthropic/claude-3.7-sonnet;openai/chatgpt-4o-latest;google/gemini-flash-1.5
+          - openrouter:anthropic/claude-3.7-sonnet;openai/chatgpt-4o-latest
           - openrouter:google/gemini-2.0-flash-001;google/gemini-1.5-flash
 
     steps:
