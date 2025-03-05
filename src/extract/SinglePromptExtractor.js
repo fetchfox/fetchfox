@@ -39,7 +39,7 @@ Field meanings:
 
 Important: consider BOTH the page content, and also the URL of the page. Sometimes the URL will give clues about whether this is a detail page or a list page, and therefore single or multiple extraction.
 
-* Once this analysis is complete, the REST of your response SHOULD respect the outcome of this analysis
+* Once this analysis is complete, the REST of your response MUST respect the outcome of this analysis
 * If instructed to find multiple items, make sure to find ALL items that match
 * If instructed to find a single item, return ONLY return one actual result item
 * The "_meta" result does NOT count to the result limit. If you are in single mode, return one _meta result, and then one actual result.

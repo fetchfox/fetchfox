@@ -39,7 +39,7 @@ export const Instructions = class {
     } else {
       this.generationConfig = {
         temperature: options?.temperature || 0.5,
-        topP: options?.topP || 0.25,
+        topP: options?.topP || 0.3,
       };
     }
 
