@@ -39,10 +39,6 @@ export const ExtractStep = class extends BaseStep {
     this.maxPages ??= 1;
   }
 
-  async finish(cursor) {
-    await cursor.ctx.extractor.clear();
-  }
-
   async process({ cursor, item, index }, cb) {
     cursor.ctx.logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
     const start = (new Date()).getTime();
