@@ -38,7 +38,7 @@ export const MediaExporter = class {
     if (supportedType) s3Url = await this.generalMediaExporter(mediaUrl, fileName, contentType);
     if (supportedVideo) s3Url = await this.youtubeExporter(mediaUrl, fileName);
 
-    logger.info(`Exported ${fileName}: ${s3Url}`);
+    if (s3Url) logger.info(`Exported ${fileName}: ${s3Url}`);
 
     return s3Url;
   }
@@ -60,15 +60,20 @@ export const MediaExporter = class {
   }
 
   async youtubeExporter(url, fileName) {
-    const stream = ytdl(url.href, { quality: 'lowestvideo' });
+    try {
+      const stream = ytdl(url.href, { quality: 'lowestvideo' });
 
-    const chunks = [];
-    for await (const chunk of stream) chunks.push(chunk);
-    const buffer = Buffer.concat(chunks);
+      const chunks = [];
+      for await (const chunk of stream) chunks.push(chunk);
+      const buffer = Buffer.concat(chunks);
 
-    const id = srid();
-    const key = `export/youtube/${id}/${fileName}.mp4`;
+      const id = srid();
+      const key = `export/youtube/${id}/${fileName}.mp4`;
 
-    return this.s3.put(key, buffer, 'video/mp4');
+      return this.s3.put(key, buffer, 'video/mp4');
+    } catch (e) {
+      logger.error(`Failed to export YouTube video from ${url.href}: ${e.message}`);
+      return '';
+    }
   }
 };
