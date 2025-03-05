@@ -36,7 +36,10 @@ export const MediaExporter = class {
     const fileName = mediaUrl.pathname.split('/').pop();
 
     if (supportedType) s3Url = await this.generalMediaExporter(mediaUrl, fileName, contentType);
-    if (supportedVideo) s3Url = await this.youtubeExporter(mediaUrl, fileName);
+    if (supportedVideo) {
+      if (mediaUrl.host.includes('youtube')) s3Url = await this.youtubeExporter(mediaUrl, fileName);
+      // Add more video exports later
+    }
 
     if (s3Url) logger.info(`Exported ${fileName}: ${s3Url}`);
 
