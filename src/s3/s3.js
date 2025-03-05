@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { logger } from '../log/logger.js';
 
 export const S3Helper = class {
-  constructor (options) {
+  constructor(options) {
     this.bucket = options?.bucket || 'ffcloud';
     this.region = options?.region || 'us-west-2';
     this.acl = options?.acl || 'public-read';
@@ -11,9 +11,9 @@ export const S3Helper = class {
 
   _getUrl = (key) => {
     return `https://${this.bucket}.s3.amazonaws.com/${key}`;
-  }
+  };
 
-  async put (key, val, contentType) {
+  async put(key, val, contentType) {
     const params = {
       Bucket: this.bucket,
       Key: key,
@@ -33,4 +33,4 @@ export const S3Helper = class {
       return '';
     }
   }
-}
+};
