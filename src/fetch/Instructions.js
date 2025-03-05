@@ -284,6 +284,9 @@ export const Instructions = class {
       }
 
       this.learned = learned;
+      if (!this.learned) {
+        this.learned = [];
+      }
       if (this.cache) {
         this.logger.debug(`${this} Setting cache for ${key}`);
         await this.cache.set(key, this.learned);

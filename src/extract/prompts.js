@@ -18,8 +18,6 @@ Follow these important rules:
 - Pay attention to user format specifications
 - Generally avoid returning results with many (not found) fields
 - For URL, always include the FULL ABSOLUTE URL
-- If there is no other valid string value, use an empty string
-- If a response is invalid or not accurate, add an "invalid" key to it.
 
 Example of a valid response with multiple items:
 {"authorName": "Ernest Hemingway", "bookName": "The Old Man and the Sea"}
