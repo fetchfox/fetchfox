@@ -26,7 +26,7 @@ describe('Export Media', function () {
   });
 
   it('should export youtube video', async () => {
-    const url = 'https://www.youtube.com/sshorts/N1934B5vaGI';
+    const url = 'https://www.youtube.com/shorts/N1934B5vaGI';
     const exporter = new MediaExporter();
     const { s3Url, fileSize } = await exporter.export(url);
 
