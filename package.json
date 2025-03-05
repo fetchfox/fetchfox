@@ -50,6 +50,7 @@
     "ioredis": "^5.4.1",
     "loglevel": "^1.9.2",
     "loglevel-plugin-prefix": "^0.8.4",
+    "mime-types": "^2.1.35",
     "node-fetch": "^3.3.2",
     "node-html-parser": "^6.1.13",
     "openai": "^4.58.1",
