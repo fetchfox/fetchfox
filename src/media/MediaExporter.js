@@ -32,18 +32,19 @@ export const MediaExporter = class {
       return '';
     }
 
-    let s3Url;
+    let resp;
     const fileName = mediaUrl.pathname.split('/').pop();
 
-    if (supportedType) s3Url = await this.generalMediaExporter(mediaUrl, fileName, contentType);
+    if (supportedType) resp = await this.generalMediaExporter(mediaUrl, fileName, contentType);
     if (supportedVideo) {
-      if (mediaUrl.host.includes('youtube')) s3Url = await this.youtubeExporter(mediaUrl, fileName);
+      if (mediaUrl.host.includes('youtube'))
+        resp = await this.youtubeExporter(mediaUrl, fileName);
       // Add more video exports later
     }
 
-    if (s3Url) logger.info(`Exported ${fileName}: ${s3Url}`);
+    if (resp) logger.info(`Exported ${fileName}: ${resp.s3Url}, Size: ${resp.fileSize}`);
 
-    return s3Url;
+    return resp;
   }
 
   async generalMediaExporter(url, fileName, contentType) {
@@ -51,15 +52,17 @@ export const MediaExporter = class {
 
     if (!resp.ok) {
       logger.error(`GET request failed for export ${url}: ${resp.statusText}`);
-      return '';
+      return null;
     }
 
     const buffer = await resp.arrayBuffer();
 
     const id = srid();
     const key = `export/media/${id}/${fileName}`;
+    const s3Url = await this.s3.put(key, buffer, contentType);
+    const fileSize = buffer.byteLength;
 
-    return this.s3.put(key, buffer, contentType);
+    return { s3Url, fileSize };
   }
 
   async youtubeExporter(url, fileName) {
@@ -72,11 +75,13 @@ export const MediaExporter = class {
 
       const id = srid();
       const key = `export/youtube/${id}/${fileName}.mp4`;
+      const s3Url = await this.s3.put(key, buffer, 'video/mp4');
+      const fileSize = buffer.byteLength;
 
-      return this.s3.put(key, buffer, 'video/mp4');
+      return { s3Url, fileSize };
     } catch (e) {
       logger.error(`Failed to export YouTube video from ${url.href}: ${e.message}`);
-      return '';
+      return null;
     }
   }
 };
