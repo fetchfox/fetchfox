@@ -35,7 +35,7 @@ export const OpenRouter = class extends OpenAI {
       }));
       for (const data of datas) {
         if (data.maxTokens < this.maxTokens) {
-          data.maxTokens = this.maxTokens;
+          this.maxTokens = data.maxTokens;
         }
       }
     }
