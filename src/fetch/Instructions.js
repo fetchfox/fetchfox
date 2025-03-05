@@ -118,7 +118,7 @@ export const Instructions = class {
             prompt: nextPagePrompt + domainSpecific,
             mode: 'repeat',
             pagination: true,
-            limit: this.commands[0].limit,
+            limit: this.commands[0].limit || 25,
           },
         ];
 
@@ -164,7 +164,7 @@ export const Instructions = class {
 
           for (const it of raw) {
             const type = it.candidateAction;
-            const limit = command.limit;
+            const limit = command.limit || 25;
             const timeout = command.timeout;
             const optional = command.optional || it.optionalAction == 'yes';
             const mode = command.mode || answer.partial.actionMode || 'distinct';
@@ -476,11 +476,13 @@ export const Instructions = class {
 
         if (ok) {
           const doc = await this.current(fetcher, ctx);
-          this.logger.debug(`${this} Yielding a document: ${doc}`);
+          this.logger.debug(`${this} Created a document: ${doc}`);
 
           if (this.learned[i].singleYield) {
+            this.logger.debug(`${this} Update document for yielding later: ${doc}`);
             finalDoc = doc;
           } else {
+            this.logger.debug(`${this} Yield document: ${doc}`);
             yield Promise.resolve({ doc, usage });
           }
         }
