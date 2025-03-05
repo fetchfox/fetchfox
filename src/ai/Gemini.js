@@ -47,7 +47,9 @@ export const Gemini = class extends BaseAI {
       generationConfig.topP = options.topP;
     }
 
-    const model = gemini.getGenerativeModel({ model: this.model, generationConfig });
+    const systemPrompt = 'Act as a web scraping assistant, adept at understanding HTML and CSS and producing structured output.  You will help navigate a page by identifying and selecting relevant elements to click , particularly for accepting cookies and reaching the next page of content.  Never try to select an element that that does not exist.';
+
+    const model = gemini.getGenerativeModel({ model: this.model, systemInstruction: systemPrompt, generationConfig });
 
     const completion = await model.generateContentStream(prompt);
 
