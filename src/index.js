@@ -1,4 +1,5 @@
 import events from 'events';
+
 events.EventEmitter.defaultMaxListeners = 50;
 
 export { getAI } from './ai/index.js';
@@ -15,6 +16,8 @@ export { Crawler } from './crawl/Crawler.js';
 export * from './fetch/index.js';
 
 export { SinglePromptExtractor } from './extract/SinglePromptExtractor.js';
+
+export { MediaExporter } from './media/MediaExporter.js';
 
 export { OpenAI } from './ai/OpenAI.js';
 export { Anthropic } from './ai/Anthropic.js';
