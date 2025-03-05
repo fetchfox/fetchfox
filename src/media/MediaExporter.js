@@ -60,7 +60,7 @@ export const MediaExporter = class {
   }
 
   async youtubeExporter(url, fileName) {
-    const stream = ytdl(url.href, { quality: 'highestvideo' });
+    const stream = ytdl(url.href, { quality: 'lowestvideo' });
 
     const chunks = [];
     for await (const chunk of stream) chunks.push(chunk);
