@@ -588,14 +588,18 @@ const domainSpecificInstructions = (url) => {
   return result;
 }
 
-const acceptCookiesPrompt = `Accept cookies or any other terms, if necessary. This is an optional step, if there is no cookie or other terms to accept, do nothing.
+const acceptCookiesPrompt = `Click through and prompts to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
 
-If there are multiple terms to accept, return one action for each.
+If there are multiple promps to accept, return one action for each.
 
 This includes any of the following
 - Cookie prompts (accept cookie, do not manage unless necessary)
 - Age verification terms (agree that you are the required age)
 - Accepting terms of service in general (accept the terms)
+- Closing email subscription popup
+- Closing any modal overlay
+
+Click ALL matching selectors using action mode = all
 `;
 
 const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
