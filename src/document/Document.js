@@ -122,6 +122,34 @@ export const Document = class {
     const took = (new Date()).getTime() - start;
     logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
   }
+
+  async learn(ai, template) {
+
+    const format = {};
+    for (const key of Object.keys(template)) {
+      format[key] = `css selector for ${key}`;
+    }
+    format.combined = `css selector for combined data that encapsulates everything the user is asking for`;
+
+    const prompt = `Give some HTML, give me the CSS selector to select all the elements related to what the user is scraping.
+
+>>> Page HTML is:
+${this.html.substring(0, 100000)}
+
+>>> The user is scraping:
+${JSON.stringify(template, null, 2)}
+
+>>> Respond in JSON format:
+${JSON.stringify(format, null, 2)}
+
+
+Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
+`;
+    console.log('prompt', prompt);
+
+    const answer = await ai.ask(prompt, { format: 'json' });
+    console.log('answer', answer);
+  }
 }
 
 async function fetchRetry(url, options={}, retries=3, delay=4000) {
