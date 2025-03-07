@@ -590,7 +590,7 @@ const domainSpecificInstructions = (url) => {
 
 const acceptCookiesPrompt = `Click through and prompts to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
 
-If there are multiple promps to accept, return one action for each.
+If there are multiple prompts to accept, return one action for each.
 
 This includes any of the following
 - Cookie prompts (accept cookie, do not manage unless necessary)
