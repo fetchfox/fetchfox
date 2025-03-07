@@ -6,14 +6,9 @@ import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('wholefoodsmarket.com', async function() {
-  const matrix = standardMatrix({
-    // fetcher: [
-    //   [
-    //     'playwright',
-    //     { headless: false },
-    //   ]
-    // ]
-  });
+  const matrix = standardMatrix();
+
+  const limit = 80;
 
   const wf = await fox
     .init('https://www.wholefoodsmarket.com/search?text=wine&category=white-wine')
@@ -24,6 +19,7 @@ describe('wholefoodsmarket.com', async function() {
       },
       maxPages: 5,
     })
+    .limit(limit)
     .plan();
 
   return itRunMatrix(
@@ -33,7 +29,7 @@ describe('wholefoodsmarket.com', async function() {
     matrix,
     [
       (items) => {
-        return [Math.min(items.length, 80), 80];
+        return [Math.min(items.length, limit), limit];
       }
     ],
     { shouldSave: true });
