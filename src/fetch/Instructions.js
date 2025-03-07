@@ -9,7 +9,7 @@ import * as prompts from './prompts.js';
 // - More generally, this applies if there is only a single `repeat` action
 // - Detect and use changes in URL as a shortcut
 
-const nextPageCommand = '{{nextPage}}';
+export const nextPageCommand = '{{nextPage}}';
 
 export const Instructions = class {
   constructor(url, commands, options) {
@@ -47,25 +47,10 @@ export const Instructions = class {
 
   cacheKey() {
     let hash;
-
-    // TODO: re-enable this
-    // if (hint) {
-    //   this.logger.debug(`${this} Received cache key, using domain=${domain}, hint=${hint}`);
-    //   const domain = (new URL(this.url)).hostname;
-    //   hash = shortObjHash({
-    //     domain,
-    //     hint,
-    //     commands: this.commands.map(it => it.prompt),
-    //   });
-    // } else {
-    // }
-
-    this.logger.debug(`${this} No cache key, using url=${this.url}`);
     hash = shortObjHash({
       url: this.url,
       commands: this.commands.map(it => it.prompt),
     });
-
     return `instructions-${hash}`;
   }
 
@@ -101,6 +86,9 @@ export const Instructions = class {
         this.commands.length == 1 &&
         this.commands[0].prompt == nextPageCommand
       );
+
+      let scrollPromise;
+
       if (onlyPagination) {
         const domainSpecific = domainSpecificInstructions(this.url);
 
@@ -126,6 +114,15 @@ export const Instructions = class {
         this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
 
         const doc = await this.current(fetcher, ctx);
+
+        if (!domainSpecific) {
+          const p = this.tryScrolling(fetcher, doc)
+            .catch((e) => {
+              this.logger.error(`Error while trying to scroll for pagination: ${e}`);
+            });
+          scrollPromise = pTimeout(p, { milliseconds: this.loadTimeout });
+        }
+
         yield Promise.resolve({ doc });
       }
 
@@ -221,6 +218,22 @@ export const Instructions = class {
           }
         }
 
+        let scroll;
+        if (scrollPromise) {
+          // If scrolling worked, add it with high confidence
+          try {
+            scroll = await scrollPromise;
+          } catch (e) {
+            this.logger.error(`${this} Error while waiting for try scrolling, ignoring: ${e}`);
+            if (process.env.STRICT_ERRORS) {
+              throw e;
+            }
+          }
+          if (scroll) {
+            candidates.push([{ ...scroll, confidence: 95 }]);
+          }
+        }
+
         // Sort in confidence order, and for now just pick the first one
         // Use confidence of the last action in the series
         candidates.sort((a, b) => {
@@ -292,21 +305,23 @@ export const Instructions = class {
     }
   }
 
-  async *execute(fetcher) {
-    if (this.commands?.length && !this.learned?.length) {
+  async *execute(fetcher, options) {
+    const learned = options?.learned || this.learned || []
+
+    if (this.commands?.length && !learned.length) {
       throw new Error('must learn before execute');
     }
 
-    this.logger.info(`${this} Execute instructions: url=${this.url} learned=${JSON.stringify(this.learned)}`);
+    this.logger.info(`${this} Execute instructions: url=${this.url} learned=${JSON.stringify(learned)}`);
 
     // Track gotos (page loads) and actions taken
     const usage = {
       goto: 0,
-      actions: new Array(this.learned.length).fill(0),
+      actions: new Array(learned.length).fill(0),
     };
 
     const zero = (action) => ({ repetition: 0, count: 0, action });
-    const zeroState = () => this.learned.map(action => zero(action));
+    const zeroState = () => learned.map(action => zero(action));
 
     const incrState = (i, state) => {
       const copy = JSON.parse(JSON.stringify(state));
@@ -409,16 +424,16 @@ export const Instructions = class {
       await fetcher.start(ctx);
       await goto();
 
-      const noActions = !this.learned || this.learned.length == 0;
+      const noActions = !learned || learned.length == 0;
 
       // This is an optimization for when the last action is a repeat. In
       // those cases, we don't need to goto the original URL on each iteration.
       // This is common for pagination and dramatically reduces runtime for
       // those cases, becuase it becomes O(N) on number of pages.
       const tailRepeat = (
-        this.learned?.length &&
-        this.learned.filter(it => !['repeat', 'first', 'all'].includes(it.mode)).length == 0 &&
-        this.learned[this.learned.length - 1].mode == 'repeat');
+        learned?.length &&
+        learned.filter(it => !['repeat', 'first', 'all'].includes(it.mode)).length == 0 &&
+        learned[learned.length - 1].mode == 'repeat');
 
       if (noActions) {
         this.logger.debug(`${this} No actions, just a simple URL goto`);
@@ -451,7 +466,7 @@ export const Instructions = class {
           this.logger.debug(`${this} Execute iteration ${i} ok=${ok} state=${JSON.stringify(state)}`);
 
           if (!ok) {
-            for (let j = i; j < this.learned.length; j++) {
+            for (let j = i; j < learned.length; j++) {
               state[j].repetition = 0;
             }
             i++;
@@ -462,7 +477,7 @@ export const Instructions = class {
         i--;
 
         if (!ok) {
-          const upstream = this.learned.slice(0, i).filter(it => !it.optional);
+          const upstream = learned.slice(0, i).filter(it => !it.optional);
           if (upstream.length == 0) {
             this.logger.debug(`${this} Got not ok and all upstream are optional, done`);
             break;
@@ -478,7 +493,7 @@ export const Instructions = class {
           const doc = await this.current(fetcher, ctx);
           this.logger.debug(`${this} Created a document: ${doc}`);
 
-          if (this.learned[i].singleYield) {
+          if (learned[i].singleYield) {
             this.logger.debug(`${this} Update document for yielding later: ${doc}`);
             finalDoc = doc;
           } else {
@@ -499,6 +514,39 @@ export const Instructions = class {
     const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
     this.logger.debug(`${this} Got document: ${doc}`);
     return doc;
+  }
+
+  async tryScrolling(fetcher, before) {
+    const scroll = {
+      type: 'scroll',
+      arg: 'bottom',
+      mode: 'repeat',
+      limit: 2,
+      singleYield: true,
+    };
+
+    let after;
+    try {
+      for await (const { doc } of this.execute(fetcher, { learned: [scroll] })) {
+        if (!doc) continue;
+        after = doc;
+      }
+    } catch (e) {
+      this.logger.error(`${this} Error while executing for try scroll: ${e}`);
+      throw e;
+    }
+
+    this.logger.debug(`${this} Checking scroll pagination, before=${before} after=${after}`);
+
+    const context = { before: before.text, after: after.text };
+    const { prompt } = await prompts.checkScroll.renderCapped(
+      context, ['before', 'after'], this.ai.advanced);
+
+    const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+    this.logger.debug(`${this} Checked scrolling pagination: ${JSON.stringify(answer.partial)}`);
+    const ok = answer.partial.didPaginate == 'yes';
+
+    return ok ? scroll : null;
   }
 
   async checkAction(fetcher, before, goal, sequence) {
