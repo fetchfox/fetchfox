@@ -425,7 +425,7 @@ describe('Instructions', function() {
     }
   });
 
-  it('should handle cookie button before pagination @disabled', async () => {
+  it('should handle cookie button before pagination @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -440,6 +440,119 @@ describe('Instructions', function() {
         <div id="profile"></div>
       </div>
 
+      <button id="cookie-button" onClick="cookieOk=true; render(); this.remove()">Accept Cookies</button>
+
+      <script type="text/javascript">
+       let page = 1;
+       let profile;
+       let cookieOk = false;
+
+       function render() {
+         if (!cookieOk) {
+           return;
+         }
+
+         document.getElementById("page-label").textContent = "Page " + page;
+         const el = document.getElementById('buttons');
+         el.innerHTML = '';
+
+         for (let i = 0; i < 5; i++) {
+           const num = (page - 1) * 5 + i + 1;
+           el.innerHTML += '<button class="profile-btn" onClick="profile=' + num + ';render()">profile ' + num + '</button>';
+         }
+
+         if (profile) {
+           document.getElementById('profile').innerHTML = 'Profile content ' + profile;
+         }
+       }
+
+       document.getElementById("next-page").addEventListener("click", function() {
+         page++;
+         profile = null;
+         render();
+       });
+
+       render();
+      </script>
+    </div>
+  </body>
+</html>
+`
+      );
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    const cache = testCache();
+    const ai = getAI('openai:gpt-4o', { cache });
+    const url = `http://localhost:${port}`;
+
+    const fetcherCtx = {};
+    const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 100 });
+
+    const limit = 4;
+
+    try {
+      const commands = [
+        { prompt: 'click accept cookies', optional: true, mode: 'first' },
+        { prompt: 'click to go to the next page', mode: 'repeat', limit },
+      ];
+
+      await fetcher.start(fetcherCtx);
+
+      const instr = new Instructions(url, commands, { ai, cache });
+      for await (const unused of instr.learn(fetcher, fetcherCtx)) {}
+
+      const expected = [
+        'Page 1',
+        'Page 2',
+        'Page 3',
+        'Page 4',
+      ];
+
+      let i = 0;
+
+      let doc;
+      const gen = instr.execute(fetcher, fetcherCtx);
+      for await ({ doc } of gen) {
+        if (!doc) {
+          continue;
+        }
+
+        const $ = cheerio.load(doc.html);
+        const page = $('#page-label').text();
+
+        assert.equal(page, expected[i]);
+
+        i++;
+      }
+
+      assert.equal(i, limit);
+
+    } finally {
+      fetcher.finish(fetcherCtx);
+      server.close();
+    }
+  });
+
+  it('should handle non visible cookie button before pagination @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+<!DOCTYPE html>
+<html>
+  <body>
+    <div>
+      <h1 id="page-label"></h1>
+      <button id="next-page">Next Page</button>
+      <div id="main">
+        <div id="buttons"></div>
+        <div id="profile"></div>
+      </div>
+
+      <button id="cookie-button" style="display: none;" onClick="cookieOk=true; render(); this.remove()">Accept Cookies</button>
+      <button id="cookie-button" style="visibility: hidden;" onClick="cookieOk=true; render(); this.remove()">Accept Cookies</button>
       <button id="cookie-button" onClick="cookieOk=true; render(); this.remove()">Accept Cookies</button>
 
       <script type="text/javascript">
