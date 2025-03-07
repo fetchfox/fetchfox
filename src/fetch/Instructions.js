@@ -167,7 +167,15 @@ export const Instructions = class {
             const mode = command.mode || answer.partial.actionMode || 'distinct';
             const confidence = it.candidateConfidence;
 
-            const shared = { type, limit, timeout, optional, mode, confidence };
+            const shared = {
+              prompt: command.prompt,
+              type,
+              limit,
+              timeout,
+              optional,
+              mode,
+              confidence,
+            };
 
             let candidate;
             switch (type) {
@@ -218,6 +226,14 @@ export const Instructions = class {
           }
         }
 
+        // Sort in confidence order, and for now just pick the first one
+        // Use confidence of the last action in the series
+        candidates.sort((a, b) => {
+          const aCon = (a[a.length - 1].confidence || 0);
+          const bCon = (b[b.length - 1].confidence || 0);
+          return bCon - aCon;
+        });
+
         let scroll;
         if (scrollPromise) {
           // If scrolling worked, add it with high confidence
@@ -230,17 +246,12 @@ export const Instructions = class {
             }
           }
           if (scroll) {
-            candidates.push([{ ...scroll, confidence: 95 }]);
+            const top = [...(candidates[0] || [])]
+              .filter(it => it.prompt != nextPagePrompt);
+            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 95 });
+            candidates.unshift(top);
           }
         }
-
-        // Sort in confidence order, and for now just pick the first one
-        // Use confidence of the last action in the series
-        candidates.sort((a, b) => {
-          const aCon = (a[a.length - 1].confidence || 0);
-          const bCon = (b[b.length - 1].confidence || 0);
-          return bCon - aCon;
-        });
 
         let working;
 
