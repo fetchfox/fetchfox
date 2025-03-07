@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 
 export const Template = class {
@@ -9,20 +8,6 @@ export const Template = class {
 
     // Reduce the bytes used by a percent as a safety buffer
     this.safetyMarginPercent = 0.6;
-
-    // Optimization for renderCapped:
-    // After counting tokens `memorySize` times, use the average
-    // tokens per byte with a safety buffer, and use that. This
-    // reduces expensive calls to count the tokens in a string,
-    // and takes advantage of the fairly stable value of tokens
-    // per byte for LLM's.
-
-    // Keep track of latest token counts per byte
-    this.memorySize = 16;
-    this.bytesPerTokenMemory = [];
-
-    // How often to sample after there is enough memory
-    this.memorySampleRate = 0.1;
   }
 
   toString() {
@@ -78,18 +63,15 @@ export const Template = class {
     const countFn = async (str) => ai.countTokens(str, { timer });
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
-    logger.debug(`${this} Memory=${this.bytesPerTokenMemory.length} target=${this.memorySize}`);
+    const flexFields = Array.isArray(flexField) ? flexField : [flexField];
 
-    // TODO: re-enable this
-
-    // if (
-    //   this.bytesPerTokenMemory.length >= this.memorySize &&
-    //   Math.random() > this.memorySampleRate
-    // ) {
-    //   return this.renderCappedFromMemory(context, flexField, ai, { timer });
-    // }
-
-    const len = context[flexField].length;
+    let len = 0;
+    const lens = {};
+    for (const it of flexFields) {
+      const l = (context[it] || '').length;
+      lens[it] = l;
+      len += l;
+    }
 
     let prompt;
     let tokens;
@@ -99,7 +81,10 @@ export const Template = class {
 
     const render = (size) => {
       const copy = { ...context };
-      copy[flexField] = context[flexField].substr(0, size);
+      const percent = size / len;
+      for (const it of flexFields) {
+        copy[it] = (context[it] || '').substr(0, lens[it] * percent);
+      }
       return this.render(copy);
     }
 
@@ -132,50 +117,7 @@ export const Template = class {
     timer.log(`bytes per token=${bytesPerToken.toFixed(2)}`);
     timer.pop();
 
-    this.bytesPerTokenMemory.push(bytesPerToken);
-    if (this.bytesPerTokenMemory.length > this.memorySize) {
-      this.bytesPerTokenMemory.shift();
-    }
-
     return { prompt, bytesUsed, done: bytesUsed == len };
   }
 
-  async renderCappedFromMemory(context, flexField, ai, options) {
-    const timer = options?.timer || new Timer();
-    timer.push('Template.renderCappedFromMemory');
-
-    const maxTokens = options?.maxTokens || ai.maxTokens || 128000;
-
-    const sum = this.bytesPerTokenMemory.reduce((acc, x) => acc + x, 0);
-    const bytesPerTokenAvg = sum / this.bytesPerTokenMemory.length;
-
-    if (!bytesPerTokenAvg) {
-      return;
-    }
-
-    logger.debug(`${this} Rendering from memory with bytes per token=${bytesPerTokenAvg.toFixed(2)}`);
-
-    const render = (size) => {
-      const copy = { ...context };
-      copy[flexField] = context[flexField].substr(0, size);
-      return this.render(copy);
-    }
-
-    const emptyTokens = render(0).length / bytesPerTokenAvg;
-
-    if (emptyTokens > maxTokens) {
-      throw new Error('Prompt without context likely larger than max tokens');
-    }
-
-    const availableTokens = (maxTokens - emptyTokens) * this.safetyMarginPercent;
-    const len = context[flexField].length;
-    const bytes = Math.min(len, availableTokens * bytesPerTokenAvg);
-    const final = render(bytes);
-
-    timer.pop();
-
-    logger.debug(`${this} Rendered from memory, got ${final.length} bytes`);
-
-    return { prompt: final, bytesUsed: bytes, done: bytes == len };
-  }
 }

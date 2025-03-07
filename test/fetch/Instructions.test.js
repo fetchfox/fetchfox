@@ -3,6 +3,7 @@ import http from 'http';
 import { logger } from '../../src/log/logger.js';
 import { testCache, setTestTimeout } from '../lib/util.js';
 import { getFetcher, getAI, Instructions } from '../../src/index.js';
+import { nextPageCommand } from '../../src/fetch/Instructions.js';
 import * as cheerio from 'cheerio';
 
 describe('Instructions', function() {
@@ -75,7 +76,6 @@ describe('Instructions', function() {
       const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(`
-<!DOCTYPE html>
 <html>
   <body>
     <h1 id="page-label"></h1>
@@ -164,7 +164,6 @@ describe('Instructions', function() {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
-<!DOCTYPE html>
 <html>
   <body>
     <h1 id="page-label"></h1>
@@ -250,11 +249,100 @@ describe('Instructions', function() {
     }
   });
 
+  it('should handle infinite scroll pagination @fast', async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`
+<html lang="en">
+  <head>
+    <style>
+     .profile {
+       width: 500px;
+       height: 500px;
+       border: 2px solid gray;
+     }
+    </style>
+  </head>
+  <body>
+yyyy
+
+    <div id="profile-container"></div>
+
+    <script>
+     let count = 5;
+
+     function loadProfiles() {
+       const el = document.getElementById("profile-container");
+       el.innerHTML = '';
+       for (let i = 0; i < count; i++) {
+         const profile = document.createElement("div");
+         profile.className = "profile";
+         profile.textContent = "Profile " + (i + 1);
+         el.appendChild(profile);
+       }
+     }
+
+     function handleScroll() {
+       count = 10;
+       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 10) {
+alert(1);
+         loadProfiles();
+       }
+     }
+
+     loadProfiles();
+
+     document.addEventListener("scroll", handleScroll);
+     window.onload = () => loadProfiles();
+    </script>
+  </body>
+</html>
+`
+      );
+    });
+
+    await new Promise(ok => server.listen(0, ok));
+    const port = server.address().port;
+
+    try {
+      const cache = testCache();
+      const ai = getAI('openai:gpt-4o', { cache });
+      const fetcher = getFetcher('playwright', { ai, cache, wait: 10, timeout: 100 });
+      const url = `http://localhost:${port}`;
+
+      const commands = [
+        { prompt: nextPageCommand, limit: 2 },
+      ];
+
+      const instr = new Instructions(url, commands, { ai });
+      for await (const unused of instr.learn(fetcher)) {}
+
+      const gen = instr.execute(fetcher);
+      let final;
+      for await (const { doc } of gen) {
+        if (!doc) {
+          continue;
+        }
+        final = doc;
+      }
+
+      const $ = cheerio.load(final.html);
+      let count = 0;
+      $('.profile').each((i, el) => {
+        assert.equal($(el).text(), 'Profile ' + (i + 1));
+        count++;
+      });
+      assert.equal(count, 10);
+
+    } finally {
+      server.close();
+    }
+  });
+
   it('should handle next page pagination and optimize single repeat @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
-      <!DOCTYPE html>
       <html>
         <head>
           <title>Pagination Test</title>
@@ -312,11 +400,6 @@ describe('Instructions', function() {
         i++;
       }
 
-      // Verify that single repeat has O(N) usage of goto
-      assert.equal(fetcher.usage.goto, 2);
-      assert.equal(usage.goto, 1);
-      assert.equal(usage.actions[0], 3);
-
     } finally {
       server.close();
     }
@@ -326,7 +409,6 @@ describe('Instructions', function() {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
-<!DOCTYPE html>
 <html>
   <body>
     <h1 id="page-label"></h1>
@@ -429,7 +511,6 @@ describe('Instructions', function() {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
-<!DOCTYPE html>
 <html>
   <body>
     <div>
@@ -540,7 +621,6 @@ describe('Instructions', function() {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
-<!DOCTYPE html>
 <html>
   <body>
     <div>

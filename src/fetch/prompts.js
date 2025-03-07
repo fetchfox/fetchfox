@@ -100,3 +100,35 @@ Below is the user input:
 {{domainSpecific}}
 
 Respond ONLY with JSON. Your response will be machine parsed with JSON.parse()`);
+
+export const checkScroll = new Template(
+  ['before', 'after'],
+  `You are part of a web scraping program. You are testing if scrolling down is a way to paginate to load more results on a page. You have the before and after state of the page. The before state is text/html from before scrolling down, and the after state is text/html is afterwards.
+
+Pagination worked if new, different results loaded on the page. Focus on the main content of the page. Do you see new, different results? The previous results may or may not still be there, but there should be new different results in the after HTML.
+
+>>> The state of the page from BEFORE scrolling:
+{{before}}
+
+>>> The state of the page from AFTER scrolling:
+{{after}}
+
+Return with JSON that has the following fields:
+
+- "analysis": A ~20-40 word analysis of the situation as it relates to whether pagination worked
+- "didPaginate": Either "yes" or "no". "yes" means new different results loaded, and pagination was successful. "no" means it was not
+
+Example valid responses:
+
+{
+  "analysis": "the page has shopping results, and the after HTML has new results that are different",
+  "didPaginate": "yes"
+}
+
+{
+  "analysis": "the page has news articles, and the after HTML is different, but there are no new news articles. Only a small widget changed, seemingly unrelated to scrolling or the main content",
+  "didPaginate": "no"
+}
+
+Return ONLY JSON, your response will be machine parsed using JSON.parse()
+`);
