@@ -6,7 +6,14 @@ import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('wholefoodsmarket.com', async function() {
-  const matrix = standardMatrix();
+  const matrix = standardMatrix({
+    // fetcher: [
+    //   [
+    //     'playwright',
+    //     { headless: false },
+    //   ]
+    // ]
+  });
 
   const wf = await fox
     .init('https://www.wholefoodsmarket.com/search?text=wine&category=white-wine')

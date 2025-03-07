@@ -184,48 +184,33 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let text;
     let html;
 
-    // A hacky retry for cases where elements cannot be scrolled into view
-    // or clicked properly. This is unreliable, since it mixes inaccessible
-    // elements with timeouts. We should find a better solution.
-    let attempts = 3;
-
     // Look for the first matching element not in seen
     for (let i = 0; el == null; i++) {
       try {
         await loc.nth(i).waitFor({ state: 'attached', timeout });
-      } catch (e) {
-        this.logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
+        el = await loc.nth(i);
 
-        if (attempts-- == 0) {
-          return { ok: false };
-        } else {
+        if (!await el.isVisible()) {
+          this.logger.debug(`${this} Skipping non visible element: ${el} on iteation ${i}`);
           el = null;
           continue;
         }
-      }
 
-      el = await loc.nth(i);
-      text = await el.textContent();
-      html = await el.evaluate(el => el.outerHTML);
+        text = await el.textContent();
+        html = await el.evaluate(el => el.outerHTML);
 
-      if (seen && (seen[text] || seen[html])) {
-        el = null;
-        continue;
-      }
+        if (seen && (seen[text] || seen[html])) {
+          el = null;
+          continue;
+        }
 
-      this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
-      try {
+        this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
         await el.scrollIntoViewIfNeeded({ timeout });
         await el.click({ timeout });
+
       } catch (e) {
         this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
-
-        if (attempts-- == 0) {
-          return { ok: false };
-        } else {
-          el = null;
-          continue;
-        }
+        return { ok: false };
       }
     }
 
