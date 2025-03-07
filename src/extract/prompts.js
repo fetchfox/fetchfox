@@ -28,17 +28,6 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 >>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS:
 {{questions}}
 
-Follow these important rules:
-- Do NOT invent results that are not there. Sometimes, there will be no results at all.
-- ONLY return data that you see in the HTML of the page.
-- Please make sure the response is valid JSONL. Only ONE JSON object per line. Remove any \n characters in questions and answers.
-- The VALUES of the questions dictionary is what you are looking for
-- Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
-- Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
-- Pay attention to user format specifications
-- Generally avoid returning results with many (not found) fields
-- For URL, always include the FULL ABSOLUTE URL
-
 {{extraRules}}
 `);
 

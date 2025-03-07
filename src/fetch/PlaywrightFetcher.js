@@ -188,29 +188,30 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     for (let i = 0; el == null; i++) {
       try {
         await loc.nth(i).waitFor({ state: 'attached', timeout });
+        el = await loc.nth(i);
+
+        if (!await el.isVisible()) {
+          this.logger.debug(`${this} Skipping non visible element: ${el} on iteation ${i}`);
+          el = null;
+          continue;
+        }
+
+        text = await el.textContent();
+        html = await el.evaluate(el => el.outerHTML);
+
+        if (seen && (seen[text] || seen[html])) {
+          el = null;
+          continue;
+        }
+
+        this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
+        await el.scrollIntoViewIfNeeded({ timeout });
+        await el.click({ timeout });
+
       } catch (e) {
-        this.logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
+        this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
         return { ok: false };
       }
-
-      el = await loc.nth(i);
-      text = await el.textContent();
-      html = await el.evaluate(el => el.outerHTML);
-
-      if (seen && (seen[text] || seen[html])) {
-        el = null;
-        continue;
-      }
-
-      this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
-    }
-
-    try {
-      await el.scrollIntoViewIfNeeded({ timeout });
-      await el.click({ timeout });
-    } catch (e) {
-      this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
-      return { ok: false };
     }
 
     return { ok: true, text, html };
