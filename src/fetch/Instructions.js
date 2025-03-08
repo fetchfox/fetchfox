@@ -249,7 +249,7 @@ export const Instructions = class {
           if (scroll) {
             const top = [...(candidates[0] || [])]
               .filter(it => it.prompt != nextPagePrompt);
-            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 95 });
+            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 80 });
             candidates.unshift(top);
           }
         }
