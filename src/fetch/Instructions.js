@@ -300,7 +300,9 @@ export const Instructions = class {
         }
       }
 
-      this.learned = learned;
+      // Remove prompt to clear up logs
+      this.learned = learned.map(it => ({ ...it, prompt: null }));
+
       if (this.cache) {
         this.logger.debug(`${this} Setting cache for ${key}`);
         await this.cache.set(key, this.learned);
