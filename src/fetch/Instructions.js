@@ -207,7 +207,7 @@ export const Instructions = class {
                     ...shared,
                     type: 'click',
                     arg: it.candidatePlaywrightSelector,
-                    mode: 'first',
+                    mode: 'once',
                   },
                   {
                     ...shared,
@@ -366,7 +366,7 @@ export const Instructions = class {
 
       switch (action.mode) {
         case 'repeat':
-          // `repeat` mode exeutes an action multiple times on the same element.
+          // `repeat` mode executes an action multiple times on the same element.
           // It first exeutes it 0 times, then 1 times, then 2 times, etc.
           outcome = { ok: true };
           if (tailRepeat) {
@@ -383,9 +383,24 @@ export const Instructions = class {
           }
           break;
 
+        case 'once':
+          // `once` mode executes an action only once
+          if (state[i].repetition == 0) {
+            outcome = await fetcher.act(ctx, action, {});
+            usage.actions[i]++;
+          }
+          break;
+
+        case 'first':
+          // `first` mode always executes the action on the same element
+          outcome = await fetcher.act(ctx, action, {});
+          usage.actions[i]++;
+          break;
+
         case 'all':
           {
-            // `all` mode always executes the action on all elements each time, up to limit
+            // `all` mode always executes the action on all elements each time,
+            // up to limit
             let attempt = 0;
             while (true) {
               if (attempt > action.limit) break;
@@ -396,12 +411,6 @@ export const Instructions = class {
               attempt++;
             }
           }
-          break;
-
-        case 'first':
-          // `first` mode always executes the action on the same element
-          outcome = await fetcher.act(ctx, action, {});
-          usage.actions[i]++;
           break;
 
         case 'distinct':
