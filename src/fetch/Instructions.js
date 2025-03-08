@@ -91,6 +91,7 @@ export const Instructions = class {
 
       if (onlyPagination) {
         const domainSpecific = domainSpecificInstructions(this.url);
+        const paginationLimit = this.commands[0].limit || 25;
 
         this.commands = [
           {
@@ -106,7 +107,7 @@ export const Instructions = class {
             prompt: nextPagePrompt + domainSpecific,
             mode: 'repeat',
             pagination: true,
-            limit: this.commands[0].limit || 25,
+            limit: paginationLimit,
           },
         ];
 
@@ -116,7 +117,7 @@ export const Instructions = class {
         const doc = await this.current(fetcher, ctx);
 
         if (!domainSpecific) {
-          const p = this.tryScrolling(fetcher, doc)
+          const p = this.tryScrolling(fetcher, doc, paginationLimit)
             .catch((e) => {
               this.logger.error(`Error while trying to scroll for pagination: ${e}`);
             });
@@ -527,7 +528,7 @@ export const Instructions = class {
     return doc;
   }
 
-  async tryScrolling(fetcher, before) {
+  async tryScrolling(fetcher, before, limit) {
     const scroll = {
       type: 'scroll',
       arg: 'bottom',
@@ -557,7 +558,7 @@ export const Instructions = class {
     this.logger.debug(`${this} Checked scrolling pagination: ${JSON.stringify(answer.partial)}`);
     const ok = answer.partial.didPaginate == 'yes';
 
-    return ok ? scroll : null;
+    return ok ? { ...scroll, limit } : null;
   }
 
   async checkAction(fetcher, before, goal, sequence) {

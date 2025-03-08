@@ -4,26 +4,35 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate steimatzky.co.il', async function() {
-  const matrix = standardMatrix();
+describe('rvtrader.com', async function() {
+  const matrix = standardMatrix({
+    fetcher: [
+      [
+        'playwright',
+        {
+          headless: false,
+        }
+      ]
+    ]
+  });
 
   const limit = 100;
 
   const wf = await fox
-    .init('https://www.steimatzky.co.il/%D7%A1%D7%A4%D7%A8%D7%99%D7%9D/%D7%A4%D7%A2%D7%95%D7%98%D7%95%D7%AA-%D7%95%D7%99%D7%9C%D7%93%D7%99%D7%9D?p=3&product_list_order=name')
+    .init('https://www.rvtrader.com/Used/rvs-for-sale?condition=U')
     .extract({
       questions: {
-        book: 'Name of the book',
-        price: 'Price of the book',
+        name: 'Name of the RV for sale',
+        url: 'URL of the RV for sale',
       },
-      maxPages: 8,
+      maxPages: 10,
     })
     .limit(limit)
     .plan();
 
   return itRunMatrix(
     it,
-    'paginate steimatzky.co.il',
+    'paginate rvtrader.com', 
     wf.dump(),
     matrix,
     [
