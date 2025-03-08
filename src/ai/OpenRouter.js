@@ -8,6 +8,11 @@ export const OpenRouter = class extends OpenAI {
   constructor(options) {
     options.baseURL ||= 'https://openrouter.ai/api/v1';
     super(options);
+    const models = this.model.split(';');
+    if (models.length > 1) {
+        this.model = models[0];
+        this.fallbacks = models.slice(1);
+    }
   }
 
   async init() {
@@ -15,10 +20,26 @@ export const OpenRouter = class extends OpenAI {
       return;
     }
 
-    const parts = this.model.split('/');
-    const data = await getModelData(parts[0], parts[1], this.cache);
+    // Get primary model information
+    let parts = this.model.split('/');
+    let data = await getModelData(parts[0], parts[1], this.cache);
     this.maxTokens = data.maxTokens;
     this.pricing = data.pricing;
+
+    // Get fallback model information
+    if (this.fallbacks) {
+      const datas = await Promise.all(this.fallbacks.map(async fallback => {
+        const parts = fallback.split('/');
+        const data = await getModelData(parts[0], parts[1], this.cache);
+        return data;
+      }));
+      for (const data of datas) {
+        if (data.maxTokens < this.maxTokens) {
+          this.maxTokens = data.maxTokens;
+        }
+      }
+    }
+
     this.didInit = true;
   }
 }
