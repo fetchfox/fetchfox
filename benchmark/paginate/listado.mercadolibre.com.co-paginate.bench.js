@@ -1,24 +1,22 @@
 import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkItemsExact } from '../lib/checks.js';
+import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate listado.mercadolibre.com.co', async function() {
-  const matrix = standardMatrix({
-    fetcher: ['playwright'],
-  });
+describe('listado.mercadolibre.com.co', async function() {
+  const matrix = standardMatrix();
 
-  const expected = [
-    { url: 'https://listado.mercadolibre.com.co/pantalla-vertical-pc' },
-    { url: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_51_NoIndex_True' },
-    { url: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_101_NoIndex_True' },
-    { url: 'https://listado.mercadolibre.com.co/computacion/monitores-accesorios/pantalla-vertical-pc_Desde_151_NoIndex_True' },
-  ];
-
+  const limit = 100;
   const wf = await fox
-    .init('https://listado.mercadolibre.com.co/pantalla-vertical-pc')
-    .fetch({ maxPages: 4 })
+    .init('https://listado.mercadolibre.com.co/monitor-75-hz')
+    .extract({
+      questions: {
+        name: 'Name of the product',
+      },
+      maxPages: 10,
+    })
+    .limit(limit)
     .plan();
 
   return itRunMatrix(
@@ -27,7 +25,7 @@ describe('paginate listado.mercadolibre.com.co', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkItemsExact(items, expected, ['url']),
+      (items) => checkAtLeast(items, limit),
     ],
     { shouldSave: true });
 });
