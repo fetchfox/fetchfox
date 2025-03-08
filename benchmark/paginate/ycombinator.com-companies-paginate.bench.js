@@ -1,15 +1,22 @@
 import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkIncreasingSize } from '../lib/checks.js';
+import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate ycombinator.com/companies', async function() {
   const matrix = standardMatrix();
 
+  const limit = 100;
   const wf = await fox
     .init('https://www.ycombinator.com/companies')
-    .fetch({ maxPages: 5 })
+    .extract({
+      questions: {
+        name: 'Name of the company',
+      },
+      maxPages: 10
+    })
+    .limit(limit)
     .plan();
 
   return itRunMatrix(
@@ -18,7 +25,7 @@ describe('paginate ycombinator.com/companies', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkIncreasingSize(items, 5),
+      (items) => checkAtLeast(items, limit)
     ],
     { shouldSave: true });
 });
