@@ -2,6 +2,7 @@ import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
 import { shortObjHash } from '../util.js';
+import { CodeInstructions } from './CodeInstructions.js';
 import * as prompts from './prompts.js';
 
 // TODO:
@@ -12,7 +13,12 @@ import * as prompts from './prompts.js';
 export const nextPageCommand = '{{nextPage}}';
 
 export const Instructions = class {
-  constructor(url, commands, options) {
+  constructor(...args) {
+    const [url, commands, options] = args;
+
+    // TODO: migrate everthing to CodeInstructions
+    this.codeInstructions = new CodeInstructions(...args);
+
     this.url = url;
     this.commands = [];
     for (const command of commands) {
@@ -43,6 +49,8 @@ export const Instructions = class {
   unshiftCommand(command) {
     this.learned = null;
     this.commands.unshift(command);
+
+    this.codeInstructions.unshiftCommand(command);
   }
 
   cacheKey() {
@@ -54,7 +62,20 @@ export const Instructions = class {
     return `instructions-${hash}`;
   }
 
-  async *learn(fetcher, options) {
+  useCode() {
+    return this.url.includes('google.com/maps');
+  }
+
+  async *learn(...args) {
+    const [fetcher, options] = args;
+    if (this.useCode()) {
+      const gen = this.codeInstructions.learn(...args);
+      for await (const r of gen) {
+        yield r;
+      }
+      return;
+    }
+
     const cacheKey = options?.cacheKey;
     const learned = [];
 
@@ -319,7 +340,18 @@ export const Instructions = class {
     }
   }
 
-  async *execute(fetcher, options) {
+  async *execute(...args) {
+    const [fetcher, options] = args;
+    if (this.useCode()) {
+      const gen = this.codeInstructions.execute(...args);
+      for await (const r of gen) {
+        // console.log('r:', r);
+        // this.logger.trace(`yield r ${r}`);
+        yield Promise.resolve(r);
+      }
+      return;
+    }
+
     const learned = options?.learned || this.learned || []
 
     if (this.commands?.length && !learned.length) {

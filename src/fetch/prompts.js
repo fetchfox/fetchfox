@@ -132,3 +132,87 @@ Example valid responses:
 
 Return ONLY JSON, your response will be machine parsed using JSON.parse()
 `);
+
+export const pageActionCode = new Template(
+  ['html', 'command', 'limit', 'hint'],
+  `You are part of an elite web scraping program. You are given some HTML and a goal.
+
+Response with Javascript code that accomplishes this goal.
+
+The Javascript code will have the parameters available:
+
+* page: a Playwright page object
+* fnSendHtml: a function to send the current page's HTML for evaluation. Call this whenever you expect relevant new results on the page for scraping. This is an async function. You MUST await it.
+* fnDebugLog: a function to log helpful debug output, use this to explain what is going on
+* done: call this when the function is done
+
+>>> The page HTML is:
+{{html}}
+
+>>> Your goal is:
+{{command}}
+
+{{hint}}
+
+>>> Your must perform the action up to {{limit}} times
+
+Recall some useful Playwright functions:
+
+Navigation & Waiting:
+
+- page.goto(url, options) – Navigates to a specified URL.
+- page.waitForSelector(selector, options) – Waits for a specific element to appear, ensuring the page is ready before further actions.
+- page.waitForNavigation(options) – Useful for waiting after actions that trigger page loads (like clicking a pagination button).
+
+Element Interaction & Data Extraction:
+
+- page.click(selector, options) – Simulates a mouse click on an element.
+- page.fill(selector, value, options) – Enters text into an input field.
+- page.locator(selector) – Provides a robust way to locate elements for interactions or data extraction. Its API supports chaining and waiting for conditions.
+- page.evaluate(pageFunction, ...args) – Executes JavaScript in the page context, ideal for custom scraping logic or extracting specific data.
+- page.content() – Retrieves the full HTML of the page, which is useful for scraping raw content.
+
+Pagination Handling:
+
+- page.click(selector) on pagination buttons or links to navigate between pages.
+Combination with waiting methods (like page.waitForNavigation or page.waitForSelector) to ensure that each page is fully loaded before scraping data.
+
+BEFORE writing code:
+* Write comments about your approach
+* Use these sections:
+  * Goal (10-20 words): Summarize the goal in your own words
+  * Relevance (20-30 words): Is this goal feasible and relvent given the HTML?
+  * Selector analysis (10-100 words): Which relevant selectors exist on the page, and how do they relate to the task at hand? If none exist, say so. Do not suggest selectors that don't exist on the page.
+
+AFTER writing code:
+* Give a comment line in exactly this format:
+
+// Confidence: 0..100
+
+This is your confidence level that the code will work and is correct given the goal. 0 =low confidence, 100=very high confidence
+
+IMPORTANT RESPONSE FORMATING DIRECTIONS:
+
+Your response will be exactly copied into "new Function(...)" like this:
+
+    const func = new Function("page", "fnSendHtml", "fnDebugLog", "done" "... your response here ");
+
+Therefore:
+
+* You MUST respond with ONLY Javascript code
+* Your COMMENTS must be preceded by // on EACH LINE to avoid parsing errors
+* Do NOT give \`\`\`javascript formatting in your response
+* Do NOT give ANY function signature, jump straight into code
+* The parameters will be made available using the new Function(...) constructor
+
+Important guidelines:
+* Your code will be used on the page HTML above, and similar pages
+* Do NOT guess at selectors you don't see on the page
+* If the action seems impossible, or not relevant, just write a noop function that calls done() right away
+* Do not waste time trying to click selectors that don't exist
+
+Again, the goal is:
+{{command}}
+
+Remember, your robust javascript code will be directly passed into new Function(...);
+`);
