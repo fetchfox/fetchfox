@@ -134,7 +134,7 @@ Return ONLY JSON, your response will be machine parsed using JSON.parse()
 `);
 
 export const pageActionCode = new Template(
-  ['html', 'command', 'limit', 'hint'],
+  ['html', 'command', 'limit', 'timeout', 'hint'],
   `You are part of an elite web scraping program. You are given some HTML and a goal.
 
 Response with Javascript code that accomplishes this goal.
@@ -142,7 +142,7 @@ Response with Javascript code that accomplishes this goal.
 The Javascript code will have the parameters available:
 
 * page: a Playwright page object
-* fnSendHtml: a function to send the current page's HTML for evaluation. Call this whenever you expect relevant new results on the page for scraping. This is an async function. You MUST await it.
+* fnSendHtml: a function to send the current page's HTML for evaluation. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue.
 * fnDebugLog: a function to log helpful debug output, use this to explain what is going on
 * done: call this when the function is done
 
@@ -155,6 +155,8 @@ The Javascript code will have the parameters available:
 {{hint}}
 
 >>> Your must perform the action up to {{limit}} times
+
+>>>> Use a timeout of {{timeout}} milliseconds when waiting for locators
 
 Recall some useful Playwright functions:
 
@@ -216,3 +218,27 @@ Again, the goal is:
 
 Remember, your robust javascript code will be directly passed into new Function(...);
 `);
+
+export const evaluateFn = new Template(
+  ['before', 'after', 'code', 'command'],
+  `You have just executed some code in Playwright, with the purpose of achieving a goal. Evaluate whether the code executed achieved the goal, based on the before HTML, after HTML, and the code.
+
+>>> HTML before the code:
+{{before}}
+
+>>> HTML after the code:
+{{after}}
+
+>>> The code exeuted:
+{{code}}
+
+>>> The goal was:
+{{command}}
+
+Give your response in JSON format, with the following fields:
+
+- "analysis": analyze the situation, include how you will decide if the goal is achieved. Decide if the goal is even possible, and what differences you'll look for before/after. 10-100 words
+- "rating": on a scale of 0 to 100, was the goal achieved? 0 = completely failed, 100 = perfect success. If the goal was not possible or optional, that counts as a high scores
+- "feedback": give some feedabck on how to improve the code. 10-100 words
+
+Your response will be machine parsed, so respond ONLY with valid JSON that can fed into JSON.parse()`);

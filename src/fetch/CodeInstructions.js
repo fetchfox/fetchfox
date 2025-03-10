@@ -1,8 +1,14 @@
+import chalk from 'chalk';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
 import { shortObjHash, createChannel } from '../util.js';
 import * as prompts from './prompts.js';
+
+const aiLog = (logger, msg) => {
+  logger.debug(`${this} ${chalk.bold('AI Log Message:')} ${msg}`);
+}
+
 
 export const nextPageCommand = '{{nextPage}}';
 
@@ -73,11 +79,11 @@ export const CodeInstructions = class {
         const paginationLimit = this.commands[0].limit || 25;
 
         this.commands = [
-          {
-            prompt: acceptCookiesPrompt,
-            optional: true,
-            timeout: 5000,
-          },
+          // {
+          //   prompt: acceptCookiesPrompt,
+          //   optional: true,
+          //   timeout: 5000,
+          // },
           {
             prompt: nextPagePrompt + domainSpecific,
             pagination: true,
@@ -85,8 +91,6 @@ export const CodeInstructions = class {
           },
         ];
       }
-
-      console.log('this.commands', this.commands);
 
       for (const command of this.commands) {
         const doc = await this.current(fetcher, ctx);
@@ -100,6 +104,7 @@ export const CodeInstructions = class {
           html: doc.html,
           command: command.prompt,
           limit: command.limit,
+          timeout: fetcher.actionTimeout,
           hint: this.hint,
         };
 
@@ -113,31 +118,28 @@ export const CodeInstructions = class {
         )
           .filter(result => result.status == 'fulfilled');
 
-        console.log('answers:');
-        console.log(JSON.stringify(answers, null, 2));
-
         const answer = answers[0];
-        console.log('FIRST ANSWER:');
-        console.log(answer.value.partial);
+        this.logger.debug(`${this} Got code for command ${command.prompt}: ${answer.value.partial}`);
+
 
         const code = answer.value.partial
           .replaceAll('```javascript', '')
           .replaceAll('```', '');
-
         const chan = createChannel();
-
         const fn = new Function('page', 'fnSendHtml', 'fnDebugLog', 'done', code);
+
+        const evaluation = await this.evaluateFn(fetcher, ctx, command.prompt, fn);
+
+        throw 'STOP';
+
         const cb = async () => {
           const doc = await this.current(fetcher, ctx);
-          console.log('got doc: ' + doc);
           chan.send({ doc });
+          return true;
         }
-        const log = (msg) => {
-          console.log('ai log:', msg);
-        }
-        console.log('exec fn:', fn);
+
         const fnp = new Promise(ok => {
-          fn(ctx.page, cb, log,
+          fn(ctx.page, cb, (msg) => aiLog(this.logger, msg),
              () => {
                chan.end();
                ok();
@@ -163,6 +165,45 @@ export const CodeInstructions = class {
     } finally {
       await fetcher.finish(ctx);
     }
+  }
+
+  async evaluateFn(fetcher, ctx, goal, fn) {
+    const before = await this.current(fetcher, ctx);
+    let i = 0;
+    const after = await new Promise((ok) => {
+      fn(
+        ctx.page,
+        async () => {
+          const doc = await this.current(fetcher, ctx);
+          ok(doc);
+          return false;
+        },
+        (msg) => aiLog(this.logger, msg),
+        () => {
+          console.log('done?');
+          ok();
+        });
+    });
+
+    console.log('before: ' + before);
+    console.log('after:  ' + after);
+    console.log('fn.toString()', fn.toString());
+
+    const context = {
+      before: before.html,
+      after: after?.html || 'No action taken, so there is no after HTML',
+      code: fn.toString(),
+      command: goal,
+    };
+
+    console.log(context);
+
+    const { prompt } = await prompts.evaluateFn
+      .renderCapped(context, ['before', 'after'], this.ai.advanced);
+    const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+    console.log('answer', answer.partial);
+
+    throw 'STOP EVAL';
   }
 
   async current(fetcher, ctx) {
@@ -218,7 +259,4 @@ Note:
 - The next button may have the word next, or some sort of right-arrow like character.
 - If you're less confident you may scroll or click a button to Load More data or Show More data.
 
-Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets.
-
-Always send the first page of results before paginating to the 2nd, 3rd, etc. pages
-`;
+Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets.`;

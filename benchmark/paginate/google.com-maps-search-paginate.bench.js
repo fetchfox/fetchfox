@@ -4,16 +4,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkAtLeast } from '../lib/checks.js';
 
 describe('paginate google.com maps restaurants search', async function() {
-  const matrix = standardMatrix({
-    fetcher: [
-      [
-        'playwright',
-        {
-          headless: false,
-        }
-      ]
-    ]
-  });
+  const matrix = standardMatrix();
 
   const limit = 50;
 
