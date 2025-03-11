@@ -205,9 +205,9 @@ export const Instructions = class {
                 candidate = [
                   {
                     ...shared,
-                    type: 'click',
+                    type: 'focus',
                     arg: it.candidatePlaywrightSelector,
-                    mode: 'once',
+                    mode: 'first',
                   },
                   {
                     ...shared,
@@ -257,6 +257,7 @@ export const Instructions = class {
         let working;
 
         this.logger.info(candidates);
+
         for (const set of candidates) {
           this.logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
@@ -380,14 +381,6 @@ export const Instructions = class {
               outcome = await fetcher.act(ctx, action, {});
               usage.actions[i]++;
             }
-          }
-          break;
-
-        case 'once':
-          // `once` mode executes an action only once
-          if (state[i].repetition == 0) {
-            outcome = await fetcher.act(ctx, action, {});
-            usage.actions[i]++;
           }
           break;
 
