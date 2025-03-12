@@ -20,6 +20,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
     this.headless = options?.headless === undefined ? true : options?.headless;
+    if (process.env.HEADFUL) {
+      this.headless = false;
+    }
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;

@@ -73,6 +73,9 @@ IMPORTANT:
 - You MUST prefix css= or text= to your CSS selectors
 - ALWAYS USE VALID CSS SYNTAX
 
+Limit:
+- Do not give more than 3 candidates
+
 >>>> The user has passed in this hint, this is important for this specific action:
 {{hint}}
 

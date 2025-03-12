@@ -229,14 +229,6 @@ export const Instructions = class {
           }
         }
 
-        // Sort in confidence order, and for now just pick the first one
-        // Use confidence of the last action in the series
-        candidates.sort((a, b) => {
-          const aCon = (a[a.length - 1].confidence || 0);
-          const bCon = (b[b.length - 1].confidence || 0);
-          return bCon - aCon;
-        });
-
         let scroll;
         if (scrollPromise) {
           // If scrolling worked, add it with high confidence
@@ -251,13 +243,28 @@ export const Instructions = class {
           if (scroll) {
             const top = [...(candidates[0] || [])]
               .filter(it => it.prompt != nextPagePrompt);
+
+            // Sometimes scrolling loads new items, but they are not main
+            // items. This is stuff like "suggested products" widgets. So, Put
+            // confidence of scroll at 80. This will usually put it below
+            // obvious correct matches like next page buttons.
+            // TODO: More robust solution
             top.push({ ...scroll, prompt: nextPagePrompt, confidence: 80 });
+
             candidates.unshift(top);
           }
         }
 
-        let working;
+        // Sort in confidence order, and for now just pick the first one
+        // Use confidence of the last action in the series
+        candidates.sort((a, b) => {
+          const aCon = (a[a.length - 1].confidence || 0);
+          const bCon = (b[b.length - 1].confidence || 0);
+          return bCon - aCon;
+        });
 
+        let working;
+        this.logger.info(`${this} Candidates in sorted order:`);
         this.logger.info(candidates);
 
         for (const set of candidates) {

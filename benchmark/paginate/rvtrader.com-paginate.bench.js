@@ -5,16 +5,7 @@ import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('rvtrader.com', async function() {
-  const matrix = standardMatrix({
-    fetcher: [
-      [
-        'playwright',
-        {
-          headless: false,
-        }
-      ]
-    ]
-  });
+  const matrix = standardMatrix();
 
   const limit = 100;
 
