@@ -663,9 +663,9 @@ This includes any of the following
 - Age verification terms (agree that you are the required age)
 - Accepting terms of service in general (accept the terms)
 - Closing email subscription popup
-- Closing any modal overlay
 
-Click ALL matching selectors using action mode = all
+This excludes the following:
+- Sidebars and navigation tools relevant to the main site
 `;
 
 const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
