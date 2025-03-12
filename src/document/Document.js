@@ -1,4 +1,5 @@
 import { logger } from '../log/logger.js';
+import { parse } from 'node-html-parser';
 
 // TODO: refactor Document entirely
 export const Document = class {
@@ -129,9 +130,9 @@ export const Document = class {
     for (const key of Object.keys(template)) {
       format[key] = `css selector for ${key}`;
     }
-    format.combined = `css selector for combined data that encapsulates everything the user is asking for`;
+    format.combined = `css selector for combined data that encapsulates what the user is asking for`;
 
-    const prompt = `Give some HTML, give me the CSS selector to select all the elements related to what the user is scraping.
+    const prompt = `Given some HTML, give me the CSS selector to select all the elements related to what the user is scraping.
 
 >>> Page HTML is:
 ${this.html.substring(0, 100000)}
@@ -149,7 +150,212 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
 
     const answer = await ai.ask(prompt, { format: 'json' });
     console.log('answer', answer);
+
+    let parsed;
+    try {
+      parsed = answer.partial;
+    } catch (e) {
+      return false;
+    }
+
+    const slim = await this.slimmed(Object.values(parsed));
+    console.log('slim', slim);
+
+    function structureData(slim, parsed) {
+      const root = slim;
+
+      function matchesSelector(node, selector) {
+        if (!node.parentNode) {
+          // Never matches top-level node
+          return false;
+        }
+        const container = node.parentNode.clone();
+        for (const childNode of container.childNodes) {
+          container.removeChild(childNode);
+        }
+        container.appendChild(node);
+
+        return container.querySelector(selector) == node;
+      }
+
+      // Extract selectors and shared fields from template
+      const selectors = Object.fromEntries(
+        Object.entries(parsed).filter(([key]) => key != '_shared')
+          .map(([key, desc]) => [key, desc])
+      );
+      const sharedFields = parsed._shared || [];
+      const nonSharedFields = Object.keys(selectors).filter(f => !sharedFields.includes(f));
+
+      // Collect and process elements
+      const elements = [];
+      function collectElements(node, selectors) {
+        if (node?.nodeType != 1) return; // Skip non-element nodes
+
+        let matchedField = null;
+        for (const [field, selector] of Object.entries(selectors)) {
+          if (matchesSelector(node, selector)) {
+            matchedField = field;
+            break;
+          }
+        }
+
+        if (matchedField) {
+          // Check if this node encapsulates other fields
+          const childMatches = new Set();
+          node.querySelectorAll('*').forEach(child => {
+            for (const [f, s] of Object.entries(selectors)) {
+              if (matchesSelector(child, s)) childMatches.add(f);
+            }
+          });
+
+          if (childMatches.size > 0 && !sharedFields.includes(matchedField)) {
+            // Encapsulated object (e.g., .infocard)
+            const obj = processEncapsulated(node, selectors, sharedFields);
+            elements.push({ field: matchedField, value: obj, isEncapsulated: true });
+          } else {
+            // Leaf node (e.g., .name, h2)
+            const value = matchedField == 'url' ? node.getAttribute('href') : node.textContent.trim();
+            elements.push({ field: matchedField, value, isEncapsulated: false });
+          }
+        } else {
+          // Recurse into children
+          node.childNodes.forEach(child => collectElements(child, selectors));
+        }
+      }
+
+      // Process an encapsulated node recursively
+      function processEncapsulated(node, selectors, sharedFields) {
+        const obj = {};
+        for (const [field, selector] of Object.entries(selectors)) {
+          if (sharedFields.includes(field)) continue; // Skip shared fields here
+          const matches = node.querySelectorAll(selector);
+          console.log('selector', selector, matches);
+          if (!matches) {
+            console.log('node', node);
+          }
+          if (matches.length > 0) {
+            const values = Array.from(matches).map(m =>
+              field == 'url' ? m.getAttribute('href') : m.textContent.trim()
+            );
+            obj[field] = values.length > 1 ? values : values[0];
+          }
+        }
+        return obj;
+      }
+
+      console.log('parsed', parsed);
+      console.log('selectors', selectors);
+      // Collect all elements in document order
+      collectElements(root, selectors);
+      console.log('elements', elements);
+
+      // Group and unroll sequentially
+      const result = [];
+      let currentObject = {};
+      let sharedContext = {};
+
+      for (const { field, value, isEncapsulated } of elements) {
+        if (isEncapsulated) {
+          // Add encapsulated object(s) with shared context
+          const objects = Array.isArray(value) ? value : [value];
+          result.push(...objects.map(obj => ({ ...sharedContext, ...obj })));
+          currentObject = {}; // Reset after encapsulated block
+          continue;
+        }
+
+        // Handle shared fields
+        if (sharedFields.includes(field)) {
+          if (Object.keys(currentObject).length > 0) {
+            result.push({ ...sharedContext, ...currentObject });
+            currentObject = {};
+          }
+          sharedContext[field] = value;
+          continue;
+        }
+
+        // Check if this field starts a new object
+        if (nonSharedFields.includes(field) && field in currentObject) {
+          result.push({ ...sharedContext, ...currentObject });
+          currentObject = {};
+        }
+
+        // Add value to current object
+        if (field in currentObject) {
+          if (!Array.isArray(currentObject[field])) {
+            currentObject[field] = [currentObject[field]];
+          }
+          currentObject[field].push(value);
+        } else {
+          currentObject[field] = value;
+        }
+      }
+
+      // Add final object if present
+      if (Object.keys(currentObject).length > 0) {
+        result.push({ ...sharedContext, ...currentObject });
+      }
+
+      return result;
+    }
+
+    const structured = structureData(slim, parsed);
+
+    console.log("structured", JSON.stringify(structured));
+    return structured;
   }
+
+  async slimmed(selectors) {
+    function matchesSelector(node, selector) {
+      if (!node.parentNode) {
+        // Never matches top-level node
+        return false;
+      }
+      const container = node.parentNode.clone();
+      for (const childNode of container.childNodes) {
+        container.removeChild(childNode);
+      }
+      container.appendChild(node);
+
+      return container.querySelector(selector) == node;
+    }
+
+    function filterNode(node, selectors) {
+
+      let isMatch = selectors.some(
+        selector => matchesSelector(node, selector)
+      );
+
+      // Create a shallow clone of the current node.
+      let newNode = node.clone();
+      newNode.childNodes = []; // Remove children to create a shallow copy
+
+      // Recursively process each child.
+      let hasMatchingChild = false;
+      for (const child of node.childNodes) {
+        // Process element nodes (for node-html-parser, check for tagName).
+        if (child.tagName) {
+          const filteredChild = filterNode(child, selectors);
+          if (filteredChild) {
+            newNode.appendChild(filteredChild);
+            hasMatchingChild = true;
+          }
+        } else if (child.nodeType == 3) {  // For text nodes
+          // Optionally include text nodes if the current node is a match.
+          if (isMatch || hasMatchingChild) {
+            newNode.appendChild(child.clone());
+          }
+        }
+      }
+
+      // Return the new node only if the current node or any of its descendants match.
+      return isMatch || hasMatchingChild ? newNode : null;
+    }
+
+    // Assuming that `this.html` is an HTMLElement instance from node-html-parser.
+    const root = parse(this.html)
+    return filterNode(root, selectors);
+  }
+
 }
 
 async function fetchRetry(url, options={}, retries=3, delay=4000) {
