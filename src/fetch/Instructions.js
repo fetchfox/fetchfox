@@ -223,7 +223,9 @@ export const Instructions = class {
               continue;
             }
             seen[ser] = true;
-            candidates.push(candidate);
+            if (candidate) {
+              candidates.push(candidate);
+            }
           }
         }
 
