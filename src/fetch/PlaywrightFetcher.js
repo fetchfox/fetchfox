@@ -211,7 +211,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         }
 
         this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
-        await fn(el, timeout);
+        await fn(ctx, el, timeout);
 
       } catch (e) {
         this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
@@ -225,7 +225,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   async click(ctx, selector, seen, options) {
     this.logger.debug(`${this} Click selector=${selector}`);
 
-    const fn = async (el, timeout) => {
+    const fn = async (ctx, el, timeout) => {
       this.logger.debug(`${this} Found ${el}, clicking`);
       await el.scrollIntoViewIfNeeded({ timeout });
       await el.click({ timeout });
@@ -237,11 +237,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   async focus(ctx, selector, seen, options) {
     this.logger.debug(`${this} Focus selector=${selector}`);
 
-    const fn = async (el, timeout) => {
+    const fn = async (ctx, el, timeout) => {
       let skip = false;
-      if (this.focused) {
+      if (ctx.focused) {
         const elHtml = await el.evaluate(el => el.outerHTML);
-        const focusHtml = await this.focused.evaluate(el => el.outerHTML);
+        const focusHtml = await ctx.focused.evaluate(el => el.outerHTML);
 
         console.log('elHtml', elHtml);
         console.log('focusHtml', focusHtml);
@@ -256,8 +256,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
       this.logger.debug(`${this} Focusing on ${el} by clicking`);
       await el.click({ timeout });
-      this.focused = el;
-      this.logger.debug(`${this} Focus is now on ${this.focused}`);
+      ctx.focused = el;
+      this.logger.debug(`${this} Focus is now on ${ctx.focused}`);
     };
 
     return this._actOnEl(ctx, selector, seen, options, fn);
