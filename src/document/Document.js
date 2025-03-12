@@ -1,3 +1,4 @@
+import { NotFoundError } from 'openai';
 import { logger } from '../log/logger.js';
 import { parse } from 'node-html-parser';
 
@@ -131,8 +132,11 @@ export const Document = class {
       format[key] = `css selector for ${key}`;
     }
     format.combined = `css selector for combined data that encapsulates what the user is asking for`;
+    format._shared = `list of fields where a single value corresponds to multiple entries`;
 
-    const prompt = `Given some HTML, give me the CSS selector to select all the elements related to what the user is scraping.
+    const prompt = `Given some HTML, give me the CSS selector to select all the elements related to what the user is scraping.  For now do not use descendant selectors.
+
+If there is a field where a single parsed value is shared by multiple entries, add it to a list of field name under the "_shared" key.
 
 >>> Page HTML is:
 ${this.html.substring(0, 100000)}
@@ -157,8 +161,11 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
     } catch (e) {
       return false;
     }
-
-    const slim = await this.slimmed(Object.values(parsed));
+    const selectors = Object.fromEntries(
+      Object.entries(parsed).filter(([key]) => key != '_shared')
+        .map(([key, desc]) => [key, desc])
+    );
+    const slim = await this.slimmed(Object.values(selectors));
     console.log('slim', slim);
 
     function structureData(slim, parsed) {
@@ -226,14 +233,20 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
       // Process an encapsulated node recursively
       function processEncapsulated(node, selectors, sharedFields) {
         const obj = {};
-        for (const [field, selector] of Object.entries(selectors)) {
+
+        const container = node.parentNode.clone();
+        for (const childNode of container.childNodes) {
+          container.removeChild(childNode);
+        }
+        container.appendChild(node);
+
+        for (let [field, selector] of Object.entries(selectors)) {
           if (sharedFields.includes(field)) continue; // Skip shared fields here
-          const matches = node.querySelectorAll(selector);
-          console.log('selector', selector, matches);
-          if (!matches) {
-            console.log('node', node);
-          }
-          if (matches.length > 0) {
+          if (!node.parentNode) continue;
+
+          let matches = container.querySelectorAll(selector);
+          console.log('encapsulated selector', selector, matches);
+          if (matches?.length > 0) {
             const values = Array.from(matches).map(m =>
               field == 'url' ? m.getAttribute('href') : m.textContent.trim()
             );
