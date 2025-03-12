@@ -55,6 +55,7 @@ export const Instructions = class {
   }
 
   async *learn(fetcher, options) {
+
     const cacheKey = options?.cacheKey;
     const learned = [];
 
@@ -141,7 +142,9 @@ export const Instructions = class {
         const context = {
           html: doc.html,
           command: command.prompt,
-          hint: this.hint,
+          hint: this.hint ? `>>>> The user has passed in this hint, which may be useful. Follow it if it is relevant, ignore it if it is not:
+
+${this.hint}` : '',
         };
 
         const actionPrompts = await prompts.pageAction
@@ -246,10 +249,10 @@ export const Instructions = class {
 
             // Sometimes scrolling loads new items, but they are not main
             // items. This is stuff like "suggested products" widgets. So, Put
-            // confidence of scroll at 80. This will usually put it below
+            // confidence of scroll at 74. This will usually put it below
             // obvious correct matches like next page buttons.
             // TODO: More robust solution
-            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 80 });
+            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 74 });
 
             candidates.unshift(top);
           }

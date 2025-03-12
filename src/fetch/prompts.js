@@ -74,9 +74,9 @@ IMPORTANT:
 - ALWAYS USE VALID CSS SYNTAX
 
 Limit:
+- Do not give candidates if the action is unecessary or cannot be done
 - Do not give more than 3 candidates
 
->>>> The user has passed in this hint, this is important for this specific action:
 {{hint}}
 
 Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
@@ -118,13 +118,13 @@ Pagination worked if new, different results loaded on the page. Focus on the mai
 
 Return with JSON that has the following fields:
 
-- "analysis": A ~20-40 word analysis of the situation as it relates to whether pagination worked
-- "didPaginate": Either "yes" or "no". "yes" means new different results loaded, and pagination was successful. "no" means it was not
+- "analysis": A ~20-60 word analysis of the situation as it relates to whether pagination worked. In your analysis, say if new content was loaded, and if so, the location of the new content (main content or side widgets)
+- "didPaginate": Either "yes" or "no". "yes" means new different results loaded in the main content, and pagination was successful. "no" means no new results in main content. If only side widgets loaded content, make sure to say "no"
 
 Example valid responses:
 
 {
-  "analysis": "the page has shopping results, and the after HTML has new results that are different",
+  "analysis": "the page has shopping results, and the after HTML has new results that are different, and it was in the main content area",
   "didPaginate": "yes"
 }
 
