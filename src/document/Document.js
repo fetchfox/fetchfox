@@ -165,129 +165,52 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
       Object.entries(parsed).filter(([key]) => key != '_shared')
         .map(([key, desc]) => [key, desc])
     );
-    const slim = await this.slimmed(Object.values(selectors));
-    console.log('slim', slim);
+    const root = parse(this.html);
 
-    function structureData(slim, parsed) {
-      const root = slim;
-
-      function matchesSelector(node, selector) {
-        if (!node.parentNode) {
-          // Never matches top-level node
-          return false;
-        }
-        const container = node.parentNode.clone();
-        for (const childNode of container.childNodes) {
-          container.removeChild(childNode);
-        }
-        container.appendChild(node);
-
-        return container.querySelector(selector) == node;
-      }
-
-      // Extract selectors and shared fields from template
+    // Main function to extract structured data from HTML
+    function extractFields(root, parsed) {
+      // Template with optional 'shared' field
       const selectors = Object.fromEntries(
-        Object.entries(parsed).filter(([key]) => key != '_shared')
-          .map(([key, desc]) => [key, desc])
+        Object.entries(parsed).filter(([key]) => key !== '_shared')
       );
       const sharedFields = parsed._shared || [];
       const nonSharedFields = Object.keys(selectors).filter(f => !sharedFields.includes(f));
 
-      // Collect and process elements
+      // Step 1: Slim the DOM and collect matching elements in order
       const elements = [];
-      function collectElements(node, selectors) {
-        if (node?.nodeType != 1) return; // Skip non-element nodes
-
-        let matchedField = null;
-        for (const [field, selector] of Object.entries(selectors)) {
-          if (matchesSelector(node, selector)) {
-            matchedField = field;
-            break;
-          }
-        }
-
-        if (matchedField) {
-          // Check if this node encapsulates other fields
-          const childMatches = new Set();
-          node.querySelectorAll('*').forEach(child => {
-            for (const [f, s] of Object.entries(selectors)) {
-              if (matchesSelector(child, s)) childMatches.add(f);
+      function collectMatching(node) {
+        if (node.nodeType === 1) { // Element node
+          for (const [field, selector] of Object.entries(selectors)) {
+            if (!node.parentNode) continue;
+            if (node.parentNode.querySelectorAll(selector).some(m => m == node)) {
+              elements.push({ field, node });
+              break;
             }
-          });
-
-          if (childMatches.size > 0 && !sharedFields.includes(matchedField)) {
-            // Encapsulated object (e.g., .infocard)
-            const obj = processEncapsulated(node, selectors, sharedFields);
-            elements.push({ field: matchedField, value: obj, isEncapsulated: true });
-          } else {
-            // Leaf node (e.g., .name, h2)
-            const value = matchedField == 'url' ? node.getAttribute('href') : node.textContent.trim();
-            elements.push({ field: matchedField, value, isEncapsulated: false });
           }
-        } else {
-          // Recurse into children
-          node.childNodes.forEach(child => collectElements(child, selectors));
+          node.childNodes.forEach(collectMatching);
         }
       }
+      collectMatching(root);
 
-      // Process an encapsulated node recursively
-      function processEncapsulated(node, selectors, sharedFields) {
-        const obj = {};
-
-        const container = node.parentNode.clone();
-        for (const childNode of container.childNodes) {
-          container.removeChild(childNode);
-        }
-        container.appendChild(node);
-
-        for (let [field, selector] of Object.entries(selectors)) {
-          if (sharedFields.includes(field)) continue; // Skip shared fields here
-          if (!node.parentNode) continue;
-
-          let matches = container.querySelectorAll(selector);
-          console.log('encapsulated selector', selector, matches);
-          if (matches?.length > 0) {
-            const values = Array.from(matches).map(m =>
-              field == 'url' ? m.getAttribute('href') : m.textContent.trim()
-            );
-            obj[field] = values.length > 1 ? values : values[0];
-          }
-        }
-        return obj;
-      }
-
-      console.log('parsed', parsed);
-      console.log('selectors', selectors);
-      // Collect all elements in document order
-      collectElements(root, selectors);
-      console.log('elements', elements);
-
-      // Group and unroll sequentially
+      // Step 2: Group and unroll in one pass
       const result = [];
       let currentObject = {};
       let sharedContext = {};
+      let prevField = null;
 
-      for (const { field, value, isEncapsulated } of elements) {
-        if (isEncapsulated) {
-          // Add encapsulated object(s) with shared context
-          const objects = Array.isArray(value) ? value : [value];
-          result.push(...objects.map(obj => ({ ...sharedContext, ...obj })));
-          currentObject = {}; // Reset after encapsulated block
-          continue;
-        }
+      for (const { field, node } of elements) {
+        const value = field == 'url' ? node.getAttribute('href') : node.textContent.trim();
 
-        // Handle shared fields
+        // Handle shared fields (e.g., generation as a header)
         if (sharedFields.includes(field)) {
-          if (Object.keys(currentObject).length > 0) {
-            result.push({ ...sharedContext, ...currentObject });
-            currentObject = {};
-          }
           sharedContext[field] = value;
-          continue;
+          prevField = null;
+          prevValue = [];
+          continue; // Don’t start a new object yet
         }
 
         // Check if this field starts a new object
-        if (nonSharedFields.includes(field) && field in currentObject) {
+        if (nonSharedFields.includes(field) && field in currentObject && prevField != field) {
           result.push({ ...sharedContext, ...currentObject });
           currentObject = {};
         }
@@ -301,9 +224,10 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
         } else {
           currentObject[field] = value;
         }
+        prevField = field;
       }
 
-      // Add final object if present
+      // Add last object if incomplete but has data
       if (Object.keys(currentObject).length > 0) {
         result.push({ ...sharedContext, ...currentObject });
       }
@@ -311,62 +235,8 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
       return result;
     }
 
-    const structured = structureData(slim, parsed);
-
-    console.log("structured", JSON.stringify(structured));
-    return structured;
-  }
-
-  async slimmed(selectors) {
-    function matchesSelector(node, selector) {
-      if (!node.parentNode) {
-        // Never matches top-level node
-        return false;
-      }
-      const container = node.parentNode.clone();
-      for (const childNode of container.childNodes) {
-        container.removeChild(childNode);
-      }
-      container.appendChild(node);
-
-      return container.querySelector(selector) == node;
-    }
-
-    function filterNode(node, selectors) {
-
-      let isMatch = selectors.some(
-        selector => matchesSelector(node, selector)
-      );
-
-      // Create a shallow clone of the current node.
-      let newNode = node.clone();
-      newNode.childNodes = []; // Remove children to create a shallow copy
-
-      // Recursively process each child.
-      let hasMatchingChild = false;
-      for (const child of node.childNodes) {
-        // Process element nodes (for node-html-parser, check for tagName).
-        if (child.tagName) {
-          const filteredChild = filterNode(child, selectors);
-          if (filteredChild) {
-            newNode.appendChild(filteredChild);
-            hasMatchingChild = true;
-          }
-        } else if (child.nodeType == 3) {  // For text nodes
-          // Optionally include text nodes if the current node is a match.
-          if (isMatch || hasMatchingChild) {
-            newNode.appendChild(child.clone());
-          }
-        }
-      }
-
-      // Return the new node only if the current node or any of its descendants match.
-      return isMatch || hasMatchingChild ? newNode : null;
-    }
-
-    // Assuming that `this.html` is an HTMLElement instance from node-html-parser.
-    const root = parse(this.html)
-    return filterNode(root, selectors);
+    const res = extractFields(root, parsed);
+    console.log(res);
   }
 
 }
