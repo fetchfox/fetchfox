@@ -4,9 +4,8 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory', async function() {
-  const matrix = standardMatrix({
-  });
+describe('extract pokemondb.net', async function() {
+  const matrix = standardMatrix();
 
   const expected = [
     {
@@ -48,7 +47,7 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
 
   return itRunMatrix(
     it,
-    'extract pokemon from pokemondb.net/pokedex/national',
+    'extract pokemondb.net',
     wf.dump(),
     matrix,
     [

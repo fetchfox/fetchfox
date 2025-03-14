@@ -1,4 +1,7 @@
 import { logger } from '../log/logger.js';
+import * as prompts from './prompts.js';
+import { parse } from 'node-html-parser';
+import pretty from 'pretty';
 
 // TODO: refactor Document entirely
 export const Document = class {
@@ -121,6 +124,94 @@ export const Document = class {
 
     const took = (new Date()).getTime() - start;
     logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
+  }
+
+  async learn(ai, template) {
+    const format = {};
+    for (const key of Object.keys(template)) {
+      format[key] = `CSS selector for ${key}`;
+    }
+
+    console.log('format', format);
+
+    const context = {
+      html: this.html,
+      template: JSON.stringify(template, null, 2),
+      format: JSON.stringify(format, null, 2),
+    }
+
+    const { prompt } = await prompts.learnCSS.renderCapped(
+      context, 'html', ai.advanced);
+
+    console.log(prompt);
+    const answer = await ai.advanced.ask(prompt, { format: 'json' });
+    console.log('answer', answer.partial);
+    const selectors = Object.values(answer.partial);
+    console.log('selectors', selectors);
+
+    // TODO: figure out where to put this
+    const root = parse(this.html);
+    const matches = [];
+    for (const s of selectors) {
+      matches.push(...root.querySelectorAll(s));
+    }
+    console.log('matches', matches);
+
+    const matchingNodes = (node, selectors) => {
+      const nodes = [];
+      for (const m of matches) {
+        const same = m == node;
+        if (same && !nodes.includes(node)) {
+          nodes.push(node);
+          break;
+        }
+      }
+
+      for (const child of node.childNodes) {
+        nodes.push(...matchingNodes(child, selectors));
+      }
+
+      return nodes;
+    }
+    const include = matchingNodes(root, selectors);
+
+    const toHtml = (node, include) => {
+      let html = '';
+
+      let kept = false;
+
+      for (const child of node.childNodes) {
+        let keep = '';
+
+        const text = child.innerText;
+        const ok = include.includes(child);
+        if (ok) {
+          kept = true;
+          keep += '<div>' + text;
+        }
+
+        keep += toHtml(child, include);
+
+        if (ok) {
+          keep += '</div>';
+        }
+
+        html += keep;
+        if (keep) {
+          html += '\n';
+        }
+      }
+
+      if (kept) {
+        html = '<div>\n' + html.replaceAll('\n', '\n\t') + '</div>';
+      }
+
+      return html;
+    }
+
+    const html = toHtml(root, [root, ...include]);
+    console.log('html', pretty(html, { ocd: true }));
+
   }
 }
 
