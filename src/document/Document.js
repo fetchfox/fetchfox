@@ -1,6 +1,6 @@
 import { NotFoundError } from 'openai';
 import { logger } from '../log/logger.js';
-import { parse } from 'node-html-parser';
+import * as cheerio from 'cheerio';
 
 // TODO: refactor Document entirely
 export const Document = class {
@@ -134,7 +134,7 @@ export const Document = class {
     format.combined = `css selector for combined data that encapsulates what the user is asking for`;
     format._shared = `list of fields where a single value corresponds to multiple entries`;
 
-    const prompt = `Given some HTML, give me the CSS selector to select all the elements related to what the user is scraping.  For now do not use descendant selectors.
+    const prompt = `Given some HTML, give me the CSS selector to select all the elements related to what the user is scraping.  Do not select attributes, just nodes.  Do not use pseudo-elements, selectors should be compatible with css-select.
 
 If there is a field where a single parsed value is shared by multiple entries, add it to a list of field name under the "_shared" key.
 
@@ -165,7 +165,9 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
       Object.entries(parsed).filter(([key]) => key != '_shared')
         .map(([key, desc]) => [key, desc])
     );
-    const root = parse(this.html);
+    // Load HTML with Cheerio instead of parse
+    const $ = cheerio.load(this.html);
+    const root = $.root()[0]; // Get the root node for traversal
 
     // Main function to extract structured data from HTML
     function extractFields(root, parsed) {
@@ -176,19 +178,27 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
       const sharedFields = parsed._shared || [];
       const nonSharedFields = Object.keys(selectors).filter(f => !sharedFields.includes(f));
 
-      // Step 1: Slim the DOM and collect matching elements in order
+      // Step 1: Collect matching elements in order
+      // Precompute matches for all selectors from the root
+      const selectorCache = new Map();
+      for (const [field, selector] of Object.entries(selectors)) {
+        const matches = $(selector, root).toArray().map(node => ({ field, node }));
+        selectorCache.set(selector, matches);
+      }
+
+      // Collect elements in order by traversing the DOM once
       const elements = [];
       function collectMatching(node) {
-        if (node.nodeType === 1) { // Element node
-          for (const [field, selector] of Object.entries(selectors)) {
-            if (!node.parentNode) continue;
-            if (node.parentNode.querySelectorAll(selector).some(m => m == node)) {
-              elements.push({ field, node });
-              break;
-            }
+        // Check if this node matches any precomputed selector
+        for (const [selector, matches] of selectorCache) {
+          if (matches.some(m => m.node == node)) {
+            const { field } = matches.find(m => m.node === node);
+            elements.push({ field, node });
           }
-          node.childNodes.forEach(collectMatching);
         }
+
+        // Recursively process child nodes
+        (node.childNodes || []).forEach(collectMatching);
       }
       collectMatching(root);
 
@@ -199,18 +209,18 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
       let prevField = null;
 
       for (const { field, node } of elements) {
-        const value = field == 'url' ? node.getAttribute('href') : node.textContent.trim();
+        const $node = $(node);
+        const value = field == 'url' ? $node.attr('href') : $node.text().trim();
 
         // Handle shared fields (e.g., generation as a header)
         if (sharedFields.includes(field)) {
           sharedContext[field] = value;
           prevField = null;
-          prevValue = [];
           continue; // Don’t start a new object yet
         }
 
         // Check if this field starts a new object
-        if (nonSharedFields.includes(field) && field in currentObject && prevField != field) {
+        if (nonSharedFields.includes(field) && field in currentObject && prevField !== field) {
           result.push({ ...sharedContext, ...currentObject });
           currentObject = {};
         }
@@ -238,7 +248,6 @@ Respond ONLY in JSON, your response will be machine parsed using JSON.parse()
     const res = extractFields(root, parsed);
     console.log(res);
   }
-
 }
 
 async function fetchRetry(url, options={}, retries=3, delay=4000) {

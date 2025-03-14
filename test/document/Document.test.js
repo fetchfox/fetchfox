@@ -20,6 +20,7 @@ describe('Document', function() {
     const template = {
       "generation": "Generation number of this pokemon",
       "name": "Name of the pokemon",
+      "number": "Number of the pokemon",
       "type": "Type of the pokemon",
       "url": "URL of the pokemon"
     }
