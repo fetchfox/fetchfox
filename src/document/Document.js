@@ -177,14 +177,13 @@ export const Document = class {
 
     const toHtml = (node, include) => {
       let html = '';
-
       let kept = false;
 
       for (const child of node.childNodes) {
         let keep = '';
-
         const text = child.innerText;
         const ok = include.includes(child);
+
         if (ok) {
           kept = true;
           keep += '<div>' + text;
@@ -212,6 +211,7 @@ export const Document = class {
     const html = toHtml(root, [root, ...include]);
     console.log('html', pretty(html, { ocd: true }));
 
+    // TODO: finish here
   }
 }
 
