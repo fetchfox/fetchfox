@@ -70,12 +70,13 @@ REMEMBER:
 IMPORTANT:
 - Do NOT use ":contains(...)" pseudo selector for any css= selectors
 - Do NOT invent CSS selectors to match text. NEVER MATCH TEXT WITH css=...
+- Use valid CSS syntax
 - You MUST prefix css= or text= to your CSS selectors
-- ALWAYS USE VALID CSS SYNTAX
+- Do not combine css= and text=, use only one of them
+- Prefer CSS selectors when possible
 
 Limit:
 - Do not give candidates if the action is unecessary or cannot be done
-- Do not give more than 3 candidates
 
 {{hint}}
 
