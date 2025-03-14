@@ -59,10 +59,6 @@ export const Instructions = class {
     const cacheKey = options?.cacheKey;
     const learned = [];
 
-    if (this.commands.length == 0 && this.hint) {
-      this.commands.push({ prompt: this.hint });
-    }
-
     const key = this.cacheKey(cacheKey);
     if (this.cache) {
       const cached = await this.cache.get(key);
