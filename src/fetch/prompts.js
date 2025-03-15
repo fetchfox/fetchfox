@@ -70,10 +70,14 @@ REMEMBER:
 IMPORTANT:
 - Do NOT use ":contains(...)" pseudo selector for any css= selectors
 - Do NOT invent CSS selectors to match text. NEVER MATCH TEXT WITH css=...
+- Use valid CSS syntax
 - You MUST prefix css= or text= to your CSS selectors
-- ALWAYS USE VALID CSS SYNTAX
+- Do not combine css= and text=, use only one of them
+- Prefer CSS selectors when possible
 
->>>> The user has passed in this hint, this is important for this specific action:
+Limit:
+- Do not give candidates if the action is unecessary or cannot be done
+
 {{hint}}
 
 Respond ONLY in JSON, with no explanation. Your response will be machine consumed by JSON.parse() splitting in \\n
@@ -115,13 +119,13 @@ Pagination worked if new, different results loaded on the page. Focus on the mai
 
 Return with JSON that has the following fields:
 
-- "analysis": A ~20-40 word analysis of the situation as it relates to whether pagination worked
-- "didPaginate": Either "yes" or "no". "yes" means new different results loaded, and pagination was successful. "no" means it was not
+- "analysis": A ~20-60 word analysis of the situation as it relates to whether pagination worked. In your analysis, say if new content was loaded, and if so, the location of the new content (main content or side widgets)
+- "didPaginate": Either "yes" or "no". "yes" means new different results loaded in the main content, and pagination was successful. "no" means no new results in main content. If only side widgets loaded content, make sure to say "no"
 
 Example valid responses:
 
 {
-  "analysis": "the page has shopping results, and the after HTML has new results that are different",
+  "analysis": "the page has shopping results, and the after HTML has new results that are different, and it was in the main content area",
   "didPaginate": "yes"
 }
 
@@ -153,31 +157,8 @@ The Javascript code will have the parameters available:
 {{command}}
 
 {{hint}}
-
 >>> Your must perform the action up to {{limit}} times
 
->>>> Use a timeout of {{timeout}} milliseconds when waiting for locators
-
-Recall some useful Playwright functions:
-
-Navigation & Waiting:
-
-- page.goto(url, options) – Navigates to a specified URL.
-- page.waitForSelector(selector, options) – Waits for a specific element to appear, ensuring the page is ready before further actions.
-- page.waitForNavigation(options) – Useful for waiting after actions that trigger page loads (like clicking a pagination button).
-
-Element Interaction & Data Extraction:
-
-- page.click(selector, options) – Simulates a mouse click on an element.
-- page.fill(selector, value, options) – Enters text into an input field.
-- page.locator(selector) – Provides a robust way to locate elements for interactions or data extraction. Its API supports chaining and waiting for conditions.
-- page.evaluate(pageFunction, ...args) – Executes JavaScript in the page context, ideal for custom scraping logic or extracting specific data.
-- page.content() – Retrieves the full HTML of the page, which is useful for scraping raw content.
-
-Pagination Handling:
-
-- page.click(selector) on pagination buttons or links to navigate between pages.
-Combination with waiting methods (like page.waitForNavigation or page.waitForSelector) to ensure that each page is fully loaded before scraping data.
 
 BEFORE writing code:
 * Write comments about your approach
@@ -212,6 +193,21 @@ Important guidelines:
 * Do NOT guess at selectors you don't see on the page
 * If the action seems impossible, or not relevant, just write a noop function that calls done() right away
 * Do not waste time trying to click selectors that don't exist
+* Write robust code. If selectors timeout or fail, catch the error and try to continue
+
+>>>> Use a timeout of {{timeout}} milliseconds when waiting for locators
+
+Iterating over matched elements:
+- Do NOT nth(i) for iterating
+- Instead, if you need to iterate and do something for a number of elmeents, se locator.evaluateAll(), like this:
+
+    await locator.evaluateAll((elements) => {
+      elements.forEach(element => {
+        // Do something with each element.
+        element.click();
+        console.log(element.textContent);
+      });
+    });
 
 Again, the goal is:
 {{command}}

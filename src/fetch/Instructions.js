@@ -63,12 +63,17 @@ export const Instructions = class {
   }
 
   useCode() {
-    return this.url.includes('google.com/maps');
+    return (
+      this.url.includes('google.com/maps') ||
+      this.url.includes('domain.com.au')
+    );
   }
 
   async *learn(...args) {
     const [fetcher, options] = args;
     if (this.useCode()) {
+      this.logger.trace('use code');
+
       const gen = this.codeInstructions.learn(...args);
       for await (const r of gen) {
         yield r;
@@ -78,10 +83,6 @@ export const Instructions = class {
 
     const cacheKey = options?.cacheKey;
     const learned = [];
-
-    if (this.commands.length == 0 && this.hint) {
-      this.commands.push({ prompt: this.hint });
-    }
 
     const key = this.cacheKey(cacheKey);
     if (this.cache) {
@@ -162,7 +163,9 @@ export const Instructions = class {
         const context = {
           html: doc.html,
           command: command.prompt,
-          hint: this.hint,
+          hint: this.hint ? `>>>> The user has passed in this hint, which may be useful. Follow it if it is relevant, ignore it if it is not:
+
+${this.hint}` : '',
         };
 
         const actionPrompts = await prompts.pageAction
@@ -226,9 +229,9 @@ export const Instructions = class {
                 candidate = [
                   {
                     ...shared,
-                    type: 'click',
+                    type: 'focus',
                     arg: it.candidatePlaywrightSelector,
-                    mode: 'once',
+                    mode: 'first',
                   },
                   {
                     ...shared,
@@ -244,17 +247,11 @@ export const Instructions = class {
               continue;
             }
             seen[ser] = true;
-            candidates.push(candidate);
+            if (candidate) {
+              candidates.push(candidate);
+            }
           }
         }
-
-        // Sort in confidence order, and for now just pick the first one
-        // Use confidence of the last action in the series
-        candidates.sort((a, b) => {
-          const aCon = (a[a.length - 1].confidence || 0);
-          const bCon = (b[b.length - 1].confidence || 0);
-          return bCon - aCon;
-        });
 
         let scroll;
         if (scrollPromise) {
@@ -270,14 +267,30 @@ export const Instructions = class {
           if (scroll) {
             const top = [...(candidates[0] || [])]
               .filter(it => it.prompt != nextPagePrompt);
-            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 80 });
+
+            // Sometimes scrolling loads new items, but they are not main
+            // items. This is stuff like "suggested products" widgets. So, Put
+            // confidence of scroll at 74. This will usually put it below
+            // obvious correct matches like next page buttons.
+            // TODO: More robust solution
+            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 74 });
+
             candidates.unshift(top);
           }
         }
 
-        let working;
+        // Sort in confidence order, and for now just pick the first one
+        // Use confidence of the last action in the series
+        candidates.sort((a, b) => {
+          const aCon = (a[a.length - 1].confidence || 0);
+          const bCon = (b[b.length - 1].confidence || 0);
+          return bCon - aCon;
+        });
 
+        let working;
+        this.logger.info(`${this} Candidates in sorted order:`);
         this.logger.info(candidates);
+
         for (const set of candidates) {
           this.logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
@@ -349,6 +362,10 @@ export const Instructions = class {
         // this.logger.trace(`yield r ${r}`);
         yield Promise.resolve(r);
       }
+
+      // console.log('wait before done');
+      // await new Promise(ok => setTimeout(ok, 60 * 1000));
+
       return;
     }
 
@@ -412,14 +429,6 @@ export const Instructions = class {
               outcome = await fetcher.act(ctx, action, {});
               usage.actions[i]++;
             }
-          }
-          break;
-
-        case 'once':
-          // `once` mode executes an action only once
-          if (state[i].repetition == 0) {
-            outcome = await fetcher.act(ctx, action, {});
-            usage.actions[i]++;
           }
           break;
 
@@ -700,9 +709,9 @@ This includes any of the following
 - Age verification terms (agree that you are the required age)
 - Accepting terms of service in general (accept the terms)
 - Closing email subscription popup
-- Closing any modal overlay
 
-Click ALL matching selectors using action mode = all
+This excludes the following:
+- Sidebars and navigation tools relevant to the main site
 `;
 
 const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.

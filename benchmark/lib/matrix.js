@@ -7,7 +7,13 @@ const s3 = {
 export const standardMatrix = (extra, options) => {
   let ai;
 
-  let fetcher;
+  const fetcher = [
+    ['playwright', { s3 }],
+  ];
+  if (process.env.HEADFUL) {
+    fetcher[0][1].headless = false;
+  }
+
   if (process.env.BENCH_MATRIX_AI) {
     ai = process.env.BENCH_MATRIX_AI.split(',');
   } else {
@@ -19,13 +25,6 @@ export const standardMatrix = (extra, options) => {
     ];
   }
 
-  if (process.env.BENCH_MATRIX_FETCHER) {
-    fetcher = process.env.BENCH_MATRIX_FETCHER.split(',');
-  } else {
-    fetcher = [
-      ['playwright', { s3 }],
-    ];
-  }
 
   return createMatrix({
     ai,
@@ -57,6 +56,7 @@ export const createMatrix = (configs, options) => {
         if (key == 'fetcher') {
           if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
             val[1].cdp = cdp;
+            val[1].timeout = 120 * 1000; // long timeouts for proxy providers
           }
         }
         newMatrix.push(updated);

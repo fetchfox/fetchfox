@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import pTimeout from 'p-timeout';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
 import { logger as defaultLogger } from '../log/logger.js';
@@ -76,7 +77,7 @@ export const BaseFetcher = class {
         } else if (typeof target._url == 'string') {
           url = target._url;
         }
-
+n
         instr = new Instructions(
           url,
           [],
@@ -100,6 +101,9 @@ export const BaseFetcher = class {
     }
 
     const instr = toInstructions(target);
+
+    this.logger.trace(instr);
+
     try {
       const url = new URL(instr.url);
       if (!['http:', 'https:'].includes(url.protocol)) {
@@ -117,6 +121,7 @@ export const BaseFetcher = class {
 
     let cached;
     try {
+      console.log('get cached');
       cached = await this.getCache(instr.serialize(), cacheOptions);
     } catch (e) {
       this.logger.error(`${this} Error getting cache ${target}: ${e}`);
@@ -131,6 +136,8 @@ export const BaseFetcher = class {
       }
       return;
     }
+
+    console.log('ok cached');
 
     this.usage.requests++;
     const start = (new Date()).getTime();
@@ -155,6 +162,7 @@ export const BaseFetcher = class {
     }
 
     try {
+      console.log('is pdf?');
       if (await isPdf(instr.url, this.logger)) {
         const host = process.env.API_HOST || 'https://fetchfox.ai';
         const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
@@ -162,7 +170,7 @@ export const BaseFetcher = class {
         this.logger.debug(`${this} Decoding PDF via ${apiUrl}`);
         instr.url = apiUrl;
       }
-
+      console.log('is pdf done');
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
       this.logger.debug(`${this} Adding to fetch queue: ${instr.url} ${debugStr()}`);
@@ -365,7 +373,8 @@ export const BaseFetcher = class {
 
 const isPdf = async (url, logger) => {
   try {
-    const resp = await fetch(url, { method: 'HEAD' });
+    logger.debug(`Check if ${url} is PDF using HEAD`);
+    const resp = await pTimeout(fetch(url, { method: 'HEAD' }), { milliseconds: 2000 });
     const contentType = resp.headers.get('Content-Type');
 
     return contentType && contentType.startsWith('application/pdf');

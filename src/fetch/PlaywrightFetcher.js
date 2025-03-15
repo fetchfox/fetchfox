@@ -20,6 +20,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
     this.headless = options?.headless === undefined ? true : options?.headless;
+    if (process.env.HEADFUL) {
+      this.headless = false;
+    }
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
@@ -147,6 +150,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             { timeout: action.timeout || this.actionTimeout });
           break;
 
+        case 'focus':
+          r = await this.focus(
+            ctx,
+            action.arg,
+            seen,
+            { timeout: action.timeout || this.actionTimeout });
+          break;
+
         case 'scroll':
           r = await this.scroll(
             ctx,
@@ -168,9 +179,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async click(ctx, selector, seen, options) {
-    this.logger.debug(`${this} Click selector=${selector}`);
-
+  async _actOnEl(ctx, selector, seen, options, fn) {
     // TODO: for text= matchers, add a heuristic to prefer tighter  matches
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       this.logger.warn(`{this} Invalid selector: ${selector}`);
@@ -205,8 +214,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         }
 
         this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
-        await el.scrollIntoViewIfNeeded({ timeout });
-        await el.click({ timeout });
+        await fn(ctx, el, timeout);
 
       } catch (e) {
         this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
@@ -217,8 +225,41 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return { ok: true, text, html };
   }
 
-  async evaluate() {
-    throw new Error('TODO');
+  async click(ctx, selector, seen, options) {
+    this.logger.debug(`${this} Click selector=${selector}`);
+
+    const fn = async (ctx, el, timeout) => {
+      this.logger.debug(`${this} Found ${el}, clicking, timeout=${timeout}`);
+      await el.scrollIntoViewIfNeeded({ timeout });
+      await el.click({ timeout });
+    }
+
+    return this._actOnEl(ctx, selector, seen, options, fn);
+  }
+
+  async focus(ctx, selector, seen, options) {
+    this.logger.debug(`${this} Focus selector=${selector}`);
+
+    const fn = async (ctx, el, timeout) => {
+      let skip = false;
+      if (ctx.focused) {
+        const elHtml = await el.evaluate(el => el.outerHTML);
+        const focusHtml = await ctx.focused.evaluate(el => el.outerHTML);
+        skip = elHtml == focusHtml;
+      }
+
+      if (skip) {
+        this.logger.debug(`${this} Already focused on ${el}, skipping`);
+        return;
+      }
+
+      this.logger.debug(`${this} Focusing on ${el} by clicking, timeout=${timeout}`);
+      await el.click({ timeout });
+      ctx.focused = el;
+      this.logger.debug(`${this} Focus is now on ${ctx.focused}`);
+    };
+
+    return this._actOnEl(ctx, selector, seen, options, fn);
   }
 
   async scroll(ctx, type) {

@@ -60,6 +60,7 @@ export const CodeInstructions = class {
   }
 
   async *execute(fetcher) {
+    this.logger.info(`${this} Execute instructions`);
     if (this.commands.length == 0 && this.hint) {
       this.commands.push({ prompt: this.hint });
     }
@@ -104,7 +105,8 @@ export const CodeInstructions = class {
           html: doc.html,
           command: command.prompt,
           limit: command.limit,
-          timeout: fetcher.actionTimeout,
+          // timeout: fetcher.actionTimeout,
+          timeout: 4000,
           hint: this.hint,
         };
 
@@ -121,6 +123,8 @@ export const CodeInstructions = class {
         const answer = answers[0];
         this.logger.debug(`${this} Got code for command ${command.prompt}: ${answer.value.partial}`);
 
+        // console.log('wait 120sec');
+        // await new Promise(ok => setTimeout(ok, 120 * 1000));
 
         const code = answer.value.partial
           .replaceAll('```javascript', '')
@@ -128,9 +132,7 @@ export const CodeInstructions = class {
         const chan = createChannel();
         const fn = new Function('page', 'fnSendHtml', 'fnDebugLog', 'done', code);
 
-        const evaluation = await this.evaluateFn(fetcher, ctx, command.prompt, fn);
-
-        throw 'STOP';
+        // const evaluation = await this.evaluateFn(fetcher, ctx, command.prompt, fn);
 
         const cb = async () => {
           const doc = await this.current(fetcher, ctx);
@@ -139,14 +141,29 @@ export const CodeInstructions = class {
         }
 
         const fnp = new Promise(ok => {
-          fn(ctx.page, cb, (msg) => aiLog(this.logger, msg),
-             () => {
-               chan.end();
-               ok();
-             })
+          fn(
+            // page
+            ctx.page,
+
+            // fnSendHtml
+            cb,
+
+            // fnDebugLog
+            (msg) => aiLog(this.logger, msg),
+
+            // done
+            () => {
+              this.logger.debug(`${this} Generated code is done`);
+              console.log('chan.end');
+              chan.end();
+              console.log('call ok');
+              ok();
+            })
         });
 
         for await (const val of chan.receive()) {
+          console.log('val got:', val);
+
           if (val.end) {
             break;
           }
@@ -156,7 +173,9 @@ export const CodeInstructions = class {
           }
         }
 
+        console.log('await fnp');
         await fnp;
+        console.log('await fnp done');
       }
     } catch (e) {
       this.logger.error(`${this} Got error: ${e}`);
@@ -185,9 +204,9 @@ export const CodeInstructions = class {
         });
     });
 
-    console.log('before: ' + before);
-    console.log('after:  ' + after);
-    console.log('fn.toString()', fn.toString());
+    // console.log('before: ' + before);
+    // console.log('after:  ' + after);
+    // console.log('fn.toString()', fn.toString());
 
     const context = {
       before: before.html,
@@ -203,7 +222,7 @@ export const CodeInstructions = class {
     const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
     console.log('answer', answer.partial);
 
-    throw 'STOP EVAL';
+    // throw 'STOP EVAL';
   }
 
   async current(fetcher, ctx) {
