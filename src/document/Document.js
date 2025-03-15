@@ -176,10 +176,54 @@ export const Document = class {
     }
     const include = matchingNodes(root);
 
-    const toJson = (include) => {
-      for (element of include) {
+    const sharedFields = fields.filter(f => f in (answer.partial._shared ?? []));
+    const normalFields = fields.filter(f => !(f in sharedFields));
 
+    const toObj = (include) => {
+      const result = [];
+      let obj = {};
+      let context = {};
+      let prev = null;
+
+      for (const el of include) {
+        const field = el.field;
+        const value = field.includes('url') ? el.getAttribute('href') : el.text.trim();
+
+        // Handle shared fields (e.g., generation as a header)
+        if (sharedFields.includes(field)) {
+          if (Object.keys(obj).length != 0) {
+            result.push({ ...context, ...obj });
+          }
+          obj = {};
+          context[field] = value;
+          prev = null;
+          continue; // Wait for a normal field to add to the object
+        }
+
+        // Check if this field starts a new object
+        if (normalFields.includes(field) && field in obj && prev != field) {
+          result.push({ ...context, ...obj });
+          obj = {};
+        }
+
+        // Add value to current object
+        if (field in obj) {
+          if (!Array.isArray(obj[field])) {
+            obj[field] = [obj[field]];
+          }
+          obj[field].push(value);
+        } else {
+          obj[field] = value;
+        }
+        prev = field;
       }
+
+      // Add last object if incomplete but has data
+      if (Object.keys(obj).length > 0) {
+        result.push({ ...context, ...obj });
+      }
+
+      return result;
     }
 
     const toHtml = (node, include) => {
@@ -216,6 +260,8 @@ export const Document = class {
     }
 
     const html = toHtml(root, [root, ...include]);
+    const obj = toObj(include);
+    console.log(obj);
     console.log('html', pretty(html, { ocd: true }).slice(0, 10000));
 
     // TODO: finish here
