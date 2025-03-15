@@ -146,34 +146,41 @@ export const Document = class {
     console.log(prompt);
     const answer = await ai.advanced.ask(prompt, { format: 'json' });
     console.log('answer', answer.partial);
+    const fields = Object.keys(answer.partial);
     const selectors = Object.values(answer.partial);
     console.log('selectors', selectors);
 
     // TODO: figure out where to put this
     const root = parse(this.html);
     const matches = [];
-    for (const s of selectors) {
+    for (const f of fields) {
+      const s = answer.partial[f];
+      const matches = root.querySelectorAll(s);
+      for (const node of matches) {
+        node.field = f;
+      }
       matches.push(...root.querySelectorAll(s));
     }
-    console.log('matches', matches);
 
-    const matchingNodes = (node, selectors) => {
+    const matchingNodes = (node) => {
       const nodes = [];
-      for (const m of matches) {
-        const same = m == node;
-        if (same && !nodes.includes(node)) {
-          nodes.push(node);
-          break;
-        }
+      if (node.field) {
+        nodes.push(node);
       }
 
       for (const child of node.childNodes) {
-        nodes.push(...matchingNodes(child, selectors));
+        nodes.push(...matchingNodes(child));
       }
 
       return nodes;
     }
-    const include = matchingNodes(root, selectors);
+    const include = matchingNodes(root);
+
+    const toJson = (include) => {
+      for (element of include) {
+
+      }
+    }
 
     const toHtml = (node, include) => {
       let html = '';
@@ -209,7 +216,7 @@ export const Document = class {
     }
 
     const html = toHtml(root, [root, ...include]);
-    console.log('html', pretty(html, { ocd: true }));
+    console.log('html', pretty(html, { ocd: true }).slice(0, 10000));
 
     // TODO: finish here
   }
