@@ -138,7 +138,7 @@ Return ONLY JSON, your response will be machine parsed using JSON.parse()
 `);
 
 export const pageActionCode = new Template(
-  ['html', 'command', 'limit', 'timeout', 'hint'],
+  ['html', 'goal', 'timeout'],
   `You are part of an elite web scraping program. You are given some HTML and a goal.
 
 Response with Javascript code that accomplishes this goal.
@@ -146,18 +146,15 @@ Response with Javascript code that accomplishes this goal.
 The Javascript code will have the parameters available:
 
 * page: a Playwright page object
-* fnSendHtml: a function to send the current page's HTML for evaluation. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue.
-* fnDebugLog: a function to log helpful debug output, use this to explain what is going on
+* fnSendHtml(html): a function to send the current page's HTML for evaluation. Send page HTML as the only argument. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue.
+* fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on
 * done: call this when the function is done
 
->>> The page HTML is:
+>>> The current state is:
 {{html}}
 
 >>> Your goal is:
-{{command}}
-
-{{hint}}
->>> Your must perform the action up to {{limit}} times
+{{goal}}
 
 
 BEFORE writing code:
@@ -210,13 +207,13 @@ Iterating over matched elements:
     });
 
 Again, the goal is:
-{{command}}
+{{goal}}
 
 Remember, your robust javascript code will be directly passed into new Function(...);
 `);
 
-export const evaluateFn = new Template(
-  ['before', 'after', 'code', 'command'],
+export const rateAction = new Template(
+  ['before', 'after', 'code', 'goal'],
   `You have just executed some code in Playwright, with the purpose of achieving a goal. Evaluate whether the code executed achieved the goal, based on the before HTML, after HTML, and the code.
 
 >>> HTML before the code:
@@ -229,12 +226,14 @@ export const evaluateFn = new Template(
 {{code}}
 
 >>> The goal was:
-{{command}}
+{{goal}}
 
 Give your response in JSON format, with the following fields:
 
-- "analysis": analyze the situation, include how you will decide if the goal is achieved. Decide if the goal is even possible, and what differences you'll look for before/after. 10-100 words
-- "rating": on a scale of 0 to 100, was the goal achieved? 0 = completely failed, 100 = perfect success. If the goal was not possible or optional, that counts as a high scores
+- "analysis": analyze the situation, include how you will decide if the goal is achieved. Decide if the goal is even possible, and what differences you'll look for before/after. 20-200 words. Then look at the before and after HTML, and decide if the goal was correctly achieved.
+- "scoreAchievedGoal": on a scale of 0 to 100, was the goal achieved? 0 = completely failed, 100 = perfect success. If the goal was not possible or optional, that counts as a high scores
+- "scoreCodeQuality": on a scale of 0 to 100, rate the code quality? 0 = bad, 100 = perfect success. 
+- "score": on a scale of 0 to 100, rate the code. Focus mainly on if the goal was achieved, but also consider the code quality
 - "feedback": give some feedabck on how to improve the code. 10-100 words
 
 Your response will be machine parsed, so respond ONLY with valid JSON that can fed into JSON.parse()`);

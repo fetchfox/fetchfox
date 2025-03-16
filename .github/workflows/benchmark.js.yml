@@ -22,6 +22,7 @@ jobs:
           - google:gemini-1.5-pro
           - google:gemini-1.5-flash
           - google:gemini-2.0-flash
+          - google:gemini-2.0-pro
           - openrouter:meta-llama/llama-3.3-70b-instruct
           - openrouter:anthropic/claude-3.7-sonnet
 

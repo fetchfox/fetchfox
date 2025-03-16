@@ -38,9 +38,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _goto(url, ctx) {
+    // console.log('SETTING PAGE', ctx.page);
+
     if (!ctx.page) {
       ctx.page = await ctx.browser.newPage();
     }
+
+    // console.log('PAGE IS', ctx.page);
 
     try {
       const { aborted } = await abortable(

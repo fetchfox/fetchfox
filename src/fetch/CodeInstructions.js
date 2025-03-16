@@ -3,12 +3,8 @@ import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
 import { shortObjHash, createChannel } from '../util.js';
+import { Author } from './Author.js';
 import * as prompts from './prompts.js';
-
-const aiLog = (logger, msg) => {
-  logger.debug(`${this} ${chalk.bold('AI Log Message:')} ${msg}`);
-}
-
 
 export const nextPageCommand = '{{nextPage}}';
 
@@ -27,6 +23,7 @@ export const CodeInstructions = class {
     }
     this.cache = options?.cache;
     this.ai = options?.ai || getAI(null, { cache: this.cache });
+    this.kv = options.kv;
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
@@ -35,6 +32,10 @@ export const CodeInstructions = class {
 
   toString() {
     return `[${this.constructor.name}]`;
+  }
+
+  aiLog(msg) {
+    this.logger.debug(`${chalk.bold('[AIGEN]')} ${msg}`);
   }
 
   serialize() {
@@ -61,108 +62,69 @@ export const CodeInstructions = class {
 
   async *execute(fetcher) {
     this.logger.info(`${this} Execute instructions`);
-    if (this.commands.length == 0 && this.hint) {
-      this.commands.push({ prompt: this.hint });
-    }
-    const ctx = {};
 
     try {
-      await fetcher.start(ctx);
-      await fetcher.goto(this.url, ctx);
-
-      const onlyPagination = (
-        this.commands.length == 1 &&
-        this.commands[0].prompt == nextPageCommand
-      );
-
-      if (onlyPagination) {
-        const domainSpecific = domainSpecificInstructions(this.url);
-        const paginationLimit = this.commands[0].limit || 25;
-
-        this.commands = [
-          // {
-          //   prompt: acceptCookiesPrompt,
-          //   optional: true,
-          //   timeout: 5000,
-          // },
-          {
-            prompt: nextPagePrompt + domainSpecific,
-            pagination: true,
-            limit: paginationLimit,
-          },
-        ];
-      }
-
       for (const command of this.commands) {
-        const doc = await this.current(fetcher, ctx);
-
-        if (!doc) {
-          throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
-        }
         this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
-        const context = {
-          html: doc.html,
-          command: command.prompt,
-          limit: command.limit,
-          // timeout: fetcher.actionTimeout,
-          timeout: 4000,
-          hint: this.hint,
-        };
+        const author = new Author(
+          this.kv,
+          {
+            ai: this.ai,
+            logger: this.logger,
+          });
 
-        const actionPrompts = await prompts.pageActionCode
-          .renderMulti(context, 'html', this.ai.advanced);
-
-        const answers = (
-          await Promise.allSettled(actionPrompts.map(
-            (prompt) => this.ai.advanced.ask(prompt, { format: 'text' })
-          ))
-        )
-          .filter(result => result.status == 'fulfilled');
-
-        const answer = answers[0];
-        this.logger.debug(`${this} Got code for command ${command.prompt}: ${answer.value.partial}`);
-
-        // console.log('wait 120sec');
-        // await new Promise(ok => setTimeout(ok, 120 * 1000));
-
-        const code = answer.value.partial
-          .replaceAll('```javascript', '')
-          .replaceAll('```', '');
-        const chan = createChannel();
-        const fn = new Function('page', 'fnSendHtml', 'fnDebugLog', 'done', code);
-
-        // const evaluation = await this.evaluateFn(fetcher, ctx, command.prompt, fn);
-
-        const cb = async () => {
+        // Define parameters for Author
+        const namespace = new URL(this.url).hostname;
+        const goal = command.prompt;
+        const init = async () => {
+          const ctx = {};
+          await fetcher.start(ctx);
+          await fetcher.goto(this.url, ctx);
           const doc = await this.current(fetcher, ctx);
-          chan.send({ doc });
-          return true;
+          if (!doc) {
+            throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
+          }
+          return { html: doc.html, ctx };
+        }
+        const exec = async (fn, cb, { ctx }) => {
+          return fn(ctx.page, cb, (msg) => this.aiLog(msg), cb);
+        }
+        const finish = async ({ ctx }) => {
+          fetcher.finish(ctx);
         }
 
-        const fnp = new Promise(ok => {
+        this.logger.debug(`${this} Calling author to write code for ${goal}`);
+        const fn = await author.get(namespace, goal, init, exec, finish);
+        const chan = createChannel();
+
+        // Run the code
+        const state = await init();
+        const handleHtml = async (html) => {
+          const doc = await this.current(fetcher, state.ctx);
+          chan.send({ doc });
+          return true; // for now always continue
+        }
+        const run = new Promise((ok) => {
           fn(
-            // page
-            ctx.page,
-
-            // fnSendHtml
-            cb,
-
-            // fnDebugLog
-            (msg) => aiLog(this.logger, msg),
-
+            state.ctx.page,  // page
+            handleHtml,  // fnSendHtml
+            (msg) => this.aiLog(msg),  // fnDebugLog
             // done
-            () => {
+            async () => {
               this.logger.debug(`${this} Generated code is done`);
               console.log('chan.end');
               chan.end();
               console.log('call ok');
               ok();
-            })
+            }
+          )
         });
 
         for await (const val of chan.receive()) {
-          console.log('val got:', val);
+
+          console.log('GOT val',val);
+          console.log('^-- val');
 
           if (val.end) {
             break;
@@ -172,60 +134,27 @@ export const CodeInstructions = class {
             yield Promise.resolve({ doc: val.doc });
           }
         }
+        console.log('await run complete');
 
-        console.log('await fnp');
-        await fnp;
-        console.log('await fnp done');
+        // Wait for it to finish
+        await pTimeout(run, { milliseconds: 10 * 1000 });
+
+        console.log('cleanup');
+
+        // Cleanup
+        await finish(state);
       }
     } catch (e) {
       this.logger.error(`${this} Got error: ${e}`);
       throw e;
 
     } finally {
-      await fetcher.finish(ctx);
+      // await fetcher.finish(ctx);
     }
   }
 
-  async evaluateFn(fetcher, ctx, goal, fn) {
-    const before = await this.current(fetcher, ctx);
-    let i = 0;
-    const after = await new Promise((ok) => {
-      fn(
-        ctx.page,
-        async () => {
-          const doc = await this.current(fetcher, ctx);
-          ok(doc);
-          return false;
-        },
-        (msg) => aiLog(this.logger, msg),
-        () => {
-          console.log('done?');
-          ok();
-        });
-    });
-
-    // console.log('before: ' + before);
-    // console.log('after:  ' + after);
-    // console.log('fn.toString()', fn.toString());
-
-    const context = {
-      before: before.html,
-      after: after?.html || 'No action taken, so there is no after HTML',
-      code: fn.toString(),
-      command: goal,
-    };
-
-    console.log(context);
-
-    const { prompt } = await prompts.evaluateFn
-      .renderCapped(context, ['before', 'after'], this.ai.advanced);
-    const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
-    console.log('answer', answer.partial);
-
-    // throw 'STOP EVAL';
-  }
-
   async current(fetcher, ctx) {
+    // console.log('get current', fetcher, ctx);
     const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
     this.logger.debug(`${this} Got document: ${doc}`);
     return doc;

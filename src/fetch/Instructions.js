@@ -16,6 +16,8 @@ export const Instructions = class {
   constructor(...args) {
     const [url, commands, options] = args;
 
+    this.logger = options?.logger || defaultLogger
+
     // TODO: migrate everthing to CodeInstructions
     this.codeInstructions = new CodeInstructions(...args);
 
@@ -31,11 +33,13 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
+
+    this.logger.trace('cache:', this.cache);
+
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
-    this.logger = options?.logger || defaultLogger
   }
 
   toString() {

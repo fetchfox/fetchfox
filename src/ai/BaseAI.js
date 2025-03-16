@@ -94,6 +94,10 @@ export const BaseAI = class {
     return this._advanced || this;
   }
 
+  get id() {
+    return this.provider + ':' + this.model;
+  }
+
   async countTokens(str, options) {
     const timer = options?.timer || new Timer();
     timer.push(`${this}.countTokens`);

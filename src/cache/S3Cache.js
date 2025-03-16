@@ -1,12 +1,14 @@
 import { logger as defaultLogger } from '../log/logger.js';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { BaseCache } from './BaseCache.js';
 
-export const S3Cache = class {
+export const S3Cache = class extends BaseCache {
   constructor(options) {
+    super(options);
+
     this.logger = options.logger || defaultLogger;
     this.bucket = options.bucket;
-    this.prefix = options.prefix;
     this.prefix = options.prefix;
     this.acl = options.acl;
     this.ttls = options.ttls || { base: 2 * 3600 };
@@ -31,6 +33,8 @@ export const S3Cache = class {
       return;
     }
 
+    key = this.wrapKey(key);
+
     const ttl = this.ttls[label] || this.ttls.base || 2 * 3600;
     const data = { val, expiresAt: Date.now() + ttl * 1000 };
     const body = JSON.stringify(data);
@@ -54,6 +58,8 @@ export const S3Cache = class {
     if (this.writeOnly) {
       return;
     }
+
+    key = this.wrapKey(key);
 
     const objectKey = `${this.prefix}${key}`;
     let body;
@@ -91,6 +97,8 @@ export const S3Cache = class {
     if (this.readOnly) {
       return;
     }
+
+    key = this.wrapKey(key);
 
     const objectKey = `${this.prefix}${key}`;
     try {

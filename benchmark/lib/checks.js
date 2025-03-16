@@ -1,3 +1,4 @@
+import { logger } from '../../src/log/logger.js';
 import { getAI } from '../../src/ai/index.js';
 
 export const checkExcludeUrls = (items, str) => {
@@ -48,7 +49,7 @@ export const checkItemsAI = async (items, expected, fields) => {
 
 Format your response like this:
 
-- "analysis": 20-50 word analysis of the differences between the actual and expected results
+- "analysis": 30-200 word analysis of the differences between the actual and expected results. Note any missing results, mistakes specifically.
 - "score": Based on the analysis and data you see, giv ea score from 1 to 100 of how good the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER
 
 Example of valid response:
@@ -67,6 +68,8 @@ Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse(
 
   const ai = getAI('openai:gpt-4o');
   const answer = await ai.ask(prompt, { format: 'json' });
+
+  logger.debug(`AI rating: score=${answer.partial.score} analysis=${answer.partial.analysis}`);
 
   return [parseInt(answer.partial.score), 100];
 }
