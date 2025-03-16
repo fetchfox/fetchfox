@@ -25,7 +25,6 @@ export const Author = class {
     let code;
     if (records.length) {
       const record = records[0];
-      console.log('got saved code:', record);
       code = record.code;
     } else {
       const r = await this.write(namespace, goal, init, finish);
@@ -61,11 +60,11 @@ export const Author = class {
       .filter(result => result.status == 'fulfilled');
 
     const answer = answers[0];
-    this.logger.debug(`${this} Got code for goal {goal}: ${answer.value.partial}`);
-
     const code = answer.value.partial
       .replaceAll('```javascript', '')
       .replaceAll('```', '');
+
+    this.logger.debug(`${this} Got code for goal {goal}: ${code}`);
 
     await finish(state);
 
@@ -74,8 +73,6 @@ export const Author = class {
 
   async rate(namespace, goal, code, init, exec, finish) {
     const state = await init();
-    console.log('before html:', state.html.substring(0, 100));
-
     const fn = toFn(code);
 
     let html;
@@ -84,16 +81,14 @@ export const Author = class {
         exec(fn, ok, state);
       });
     } catch (e) {
-      logger.error(`${this} Error while executing code ${code}: ${e}`);
+      this.logger.error(`${this} Error while executing code ${code}: ${e}`);
       if (process.env.STRICT_ERRORS) {
         throw e;
       }
       html = `* unable to get HTML due to execution error: ${e}`;
     }
-
     html ||= '* unable to get after HTML, possibly due to execution error *';
 
-    console.log('after html:', html.substring(0, 100));
 
     const context = {
       before: state.html,
@@ -105,7 +100,8 @@ export const Author = class {
     const { prompt } = await prompts.rateAction
       .renderCapped(context, ['before', 'after'], this.ai.advanced);
     const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
-    console.log(answer.partial);
+
+    this.logger.debug(`${this} Got rating for before/after HTML: ${JSON.stringify(answer.partial)}`);
 
     await finish(state);
 

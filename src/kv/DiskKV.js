@@ -26,7 +26,6 @@ export const DiskKV = class extends BaseKV {
   }
 
   async get(key) {
-    console.log('disk kv get', key);
     const filepath = path.join(this.dirname, encodeURIComponent(key));
     try {
       const data = await fs.promises.readFile(filepath, 'utf8');

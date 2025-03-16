@@ -1,5 +1,5 @@
+import fetch from 'node-fetch';
 import chalk from 'chalk';
-import pTimeout from 'p-timeout';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
 import { logger as defaultLogger } from '../log/logger.js';
@@ -77,7 +77,7 @@ export const BaseFetcher = class {
         } else if (typeof target._url == 'string') {
           url = target._url;
         }
-n
+
         instr = new Instructions(
           url,
           [],
@@ -121,7 +121,6 @@ n
 
     let cached;
     try {
-      console.log('get cached');
       cached = await this.getCache(instr.serialize(), cacheOptions);
     } catch (e) {
       this.logger.error(`${this} Error getting cache ${target}: ${e}`);
@@ -136,8 +135,6 @@ n
       }
       return;
     }
-
-    console.log('ok cached');
 
     this.usage.requests++;
     const start = (new Date()).getTime();
@@ -162,15 +159,13 @@ n
     }
 
     try {
-      console.log('is pdf?');
-      if (false && await isPdf(instr.url, this.logger)) {
+      if (await isPdf(instr.url, this.logger)) {
         const host = process.env.API_HOST || 'https://fetchfox.ai';
         const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
 
         this.logger.debug(`${this} Decoding PDF via ${apiUrl}`);
         instr.url = apiUrl;
       }
-      console.log('is pdf done');
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
       this.logger.debug(`${this} Adding to fetch queue: ${instr.url} ${debugStr()}`);
@@ -372,7 +367,12 @@ n
 const isPdf = async (url, logger) => {
   try {
     logger.debug(`Check if ${url} is PDF using HEAD`);
-    const resp = await pTimeout(fetch(url, { method: 'HEAD' }), { milliseconds: 2000 });
+    const resp = await fetch(
+      url,
+      {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(2000),
+      });
     const contentType = resp.headers.get('Content-Type');
 
     return contentType && contentType.startsWith('application/pdf');

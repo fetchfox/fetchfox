@@ -137,46 +137,69 @@ describe('extract domain.com.au', async function() {
         {
           name: 'Michael Hendricks',
           phone: '02 9037 2221',
-        }
+        },
+        {
+          name: 'Kate Sommervelle',
+          phone: '02 9037 2221',
+        },
+        {
+          name: 'Chyeann Shannon',
+          phone: '02 9037 2221',
+        },
+        {
+          name: "Amy O'Donnell",
+          phone: '02 9037 2221',
+        },
+        {
+          name: 'Ying Ying Xu',
+          phone: '02 8319 4488',
+        },
       ],
     },
   ];
 
-  for (const { name, url, expected } of cases) {
-    const wf = await fox
-      .init(url)
-      .action({
-        commands: [
-          'Click the button that says "View more agents", if it exists. Then, click on each phone number for the agents in the "Our Team" section exactly once, and then send the HTML for the entire page'
-        ]
-      })
-      .extract({
-        questions: {
-          name: 'Name of the agent',
-          phone: 'Phone number of the agent',
-        },
-        mode: 'multiple',
-      })
-      .plan();
+  const prefixes = [
+    'benchkv/fixed/',
+    // `benchkv/random-${srid()}/`,
+  ];
 
-    await itRunMatrix(
-      it,
-      `extract domain.com.au (${name})`,
-      wf.dump(),
-      matrix,
-      [
-        (items) => {
-          console.log('items', items);
-          return checkItemsAI(items, expected, ['name', 'phone']);
-        }
-      ],
-      {
-        shouldSave: true,
-        kv: new S3KV({
-          bucket: 'ffcloud',
-          prefix: 'benchkv/fixed/',
-          acl: 'public-read',
-        }),
-      });
+  for (const prefix of prefixes) {
+    for (const { name, url, expected } of cases) {
+      const wf = await fox
+        .init(url)
+        .action({
+          commands: [
+            'Click the button that says "View more agents", if it exists. Then, click on each phone number for the agents in the "Our Team" section exactly once, and then send the HTML for the entire page'
+          ]
+        })
+        .extract({
+          questions: {
+            name: 'Name of the agent',
+            phone: 'Phone number of the agent',
+          },
+          mode: 'multiple',
+        })
+        .plan();
+
+      await itRunMatrix(
+        it,
+        `extract domain.com.au (name=${name}, prefix=${prefix})`,
+        wf.dump(),
+        matrix,
+        [
+          (items) => {
+            console.log('items', items);
+            return checkItemsAI(items, expected, ['name', 'phone']);
+          }
+        ],
+        {
+          shouldSave: true,
+          kv: new S3KV({
+            bucket: 'ffcloud',
+            prefix,
+            acl: 'public-read',
+          }),
+        });
+    }
   }
 });

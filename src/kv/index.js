@@ -1,8 +1,12 @@
 import { logger } from '../log/logger.js';
 import { BaseKV } from './BaseKV.js';
+import { MemKV } from './MemKV.js';
 import { DiskKV } from './DiskKV.js';
+import { S3KV } from './S3KV.js';
 
+export { MemKV } from './MemKV.js';
 export { DiskKV } from './DiskKV.js';
+export { S3KV } from './S3KV.js';
 export { BaseKV } from './BaseKV.js';
 
 export const getKV = (which, options) => {
@@ -10,12 +14,13 @@ export const getKV = (which, options) => {
     return which;
   }
   if (!which) {
-    which = 'disk';
+    which = 'mem';
   }
 
   const classes = {
-    d: DiskKV,
+    mem: MemKV,
     disk: DiskKV,
+    s3: S3KV,
   }
 
   let kvClass = classes[which];

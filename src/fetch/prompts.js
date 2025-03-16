@@ -197,9 +197,8 @@ Iterating over matched elements:
 
     await locator.evaluateAll((elements) => {
       elements.forEach(element => {
-        // Do something with each element.
+        // Do something with each element, like click it...
         element.click();
-        console.log(element.textContent);
       });
     });
 

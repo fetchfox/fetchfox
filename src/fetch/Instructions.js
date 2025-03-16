@@ -13,13 +13,8 @@ import * as prompts from './prompts.js';
 export const nextPageCommand = '{{nextPage}}';
 
 export const Instructions = class {
-  constructor(...args) {
-    const [url, commands, options] = args;
-
+  constructor(url, commands, options) {
     this.logger = options?.logger || defaultLogger
-
-    // TODO: migrate everthing to CodeInstructions
-    this.codeInstructions = new CodeInstructions(...args);
 
     this.url = url;
     this.commands = [];
@@ -34,12 +29,19 @@ export const Instructions = class {
     }
     this.cache = options?.cache;
 
-    this.logger.trace('cache:', this.cache);
-
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
+
+    // TODO: migrate everthing to CodeInstructions
+    if (this.useCode()) {
+      if (commands.length != 1) {
+        throw new Error('Code based instructiosn must have exactly 1 command');
+      }
+      this.codeInstructions = new CodeInstructions(url, this.commands[0], options);
+    }
+
   }
 
   toString() {
@@ -54,7 +56,7 @@ export const Instructions = class {
     this.learned = null;
     this.commands.unshift(command);
 
-    this.codeInstructions.unshiftCommand(command);
+    this.codeInstructions?.unshiftCommand(command);
   }
 
   cacheKey() {
@@ -67,18 +69,12 @@ export const Instructions = class {
   }
 
   useCode() {
-    return (
-      this.url.includes('google.com/maps') ||
-      this.url.includes('domain.com.au')
-    );
+    return this.url.includes('domain.com.au');
   }
 
-  async *learn(...args) {
-    const [fetcher, options] = args;
+  async *learn(fetcher, options) {
     if (this.useCode()) {
-      this.logger.trace('use code');
-
-      const gen = this.codeInstructions.learn(...args);
+      const gen = this.codeInstructions.learn(fetcher, options);
       for await (const r of gen) {
         yield r;
       }
@@ -357,13 +353,10 @@ ${this.hint}` : '',
     }
   }
 
-  async *execute(...args) {
-    const [fetcher, options] = args;
+  async *execute(fetcher, options) {
     if (this.useCode()) {
-      const gen = this.codeInstructions.execute(...args);
+      const gen = this.codeInstructions.execute(fetcher, options);
       for await (const r of gen) {
-        // console.log('r:', r);
-        // this.logger.trace(`yield r ${r}`);
         yield Promise.resolve(r);
       }
       return;
