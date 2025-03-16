@@ -96,6 +96,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
           promise = chromium.launch({ headless: this.headless });
         }
+
+        console.log('AAAA started browser');
         const browser = await promise;
         return browser;
       } catch (e) {
@@ -134,6 +136,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     this.logger.debug(`${this} Closing browser`);
+    console.log('AAAA closing browser');
     await ctx.browser.close();
     delete ctx.browser;
   }

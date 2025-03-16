@@ -11,6 +11,10 @@ export const DiskKV = class extends BaseKV {
     fs.promises.mkdir(dirname, { recursive: true });
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async set(key, val) {
     const filepath = path.join(this.dirname, encodeURIComponent(key));
     try {

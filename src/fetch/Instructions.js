@@ -366,10 +366,6 @@ ${this.hint}` : '',
         // this.logger.trace(`yield r ${r}`);
         yield Promise.resolve(r);
       }
-
-      // console.log('wait before done');
-      // await new Promise(ok => setTimeout(ok, 60 * 1000));
-
       return;
     }
 

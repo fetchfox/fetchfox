@@ -1,19 +1,15 @@
 import { logger as defaultLogger } from '../log/logger.js';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from "@smithy/node-http-handler";
-import { BaseCache } from './BaseCache.js';
+import { BaseKV } from './BaseKV.js';
 
-export const S3Cache = class extends BaseCache {
+export const S3KV = class extends BaseKV {
   constructor(options) {
-    super(options);
-
+    super();
     this.logger = options.logger || defaultLogger;
     this.bucket = options.bucket;
-    this.prefix = options.prefix;
+    this.prefix = options.prefix || '';
     this.acl = options.acl;
-    this.ttls = options.ttls || { base: 2 * 3600 };
-    this.readOnly = options?.readOnly;
-    this.writeOnly = options?.writeOnly;
 
     this.s3 = new S3Client({
       region: options.region,
@@ -28,17 +24,9 @@ export const S3Cache = class extends BaseCache {
     return `[${this.constructor.name}]`;
   }
 
-  async set(key, val, label) {
-    if (this.readOnly) {
-      return;
-    }
-
-    key = this.wrapKey(key);
-
-    const ttl = this.ttls[label] || this.ttls.base || 2 * 3600;
-    const data = { val, expiresAt: Date.now() + ttl * 1000 };
-    const body = JSON.stringify(data);
+  async set(key, val) {
     const objectKey = `${this.prefix}${key}`;
+    const body = JSON.stringify(val);
 
     try {
       await this.s3.send(new PutObjectCommand({
@@ -48,20 +36,16 @@ export const S3Cache = class extends BaseCache {
         ACL: this.acl,
         ContentType: 'application/json',
       }));
-      this.logger.info(`${this} Successfully set cache for key: ${this.url(objectKey)}`);
+      this.logger.info(`${this} Successfully set key: ${this.url(objectKey)}`);
     } catch (e) {
-      this.logger.error(`${this} Error while setting cache: ${e}`);
+      this.logger.error(`${this} Error while setting key ${this.url(objectKey)}: ${e}`);
+      throw e;
     }
   }
 
   async get(key) {
-    if (this.writeOnly) {
-      return;
-    }
-
-    key = this.wrapKey(key);
-
     const objectKey = `${this.prefix}${key}`;
+
     let body;
     try {
       const resp = await this.s3.send(new GetObjectCommand({
@@ -70,46 +54,32 @@ export const S3Cache = class extends BaseCache {
       }));
       body = await this.streamToString(resp.Body);
     } catch (e) {
-      if (e.name == 'NoSuchKey') return null;
-      this.logger.error(`${this} Failed get cache object ${this.url(objectKey)}: ${e}`);
+      if (e.name == 'NoSuchKey') return undefined;
+      this.logger.error(`${this} Error reading key ${this.url(objectKey)}: ${e}`);
       throw e;
     }
 
-    let data;
     try {
-      data = JSON.parse(body);
+      return JSON.parse(body);
     } catch (e) {
-      this.logger.warn(`${this} Failed to parse JSON for cache object ${this.url(objectKey)}: ${e}`);
-      this.del(key);
-      return null;
+      this.logger.warn(`${this} Failed to parse JSON for key ${this.url(objectKey)}: ${e}`);
+      await this.del(key);
+      return undefined;
     }
-
-    if (Date.now() > data.expiresAt || data.val === undefined) {
-      this.del(key);
-      return null;
-    }
-
-    this.logger.info(`${this} Successfully got cache for key: ${this.url(objectKey)}`);
-    return data.val;
   }
 
   async del(key) {
-    if (this.readOnly) {
-      return;
-    }
-
-    key = this.wrapKey(key);
-
     const objectKey = `${this.prefix}${key}`;
     try {
       await this.s3.send(new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,
       }));
-      this.logger.debug(`${this} Successfully deleted cache for key: ${this.url(objectKey)}`);
+      this.logger.info(`${this} Successfully deleted key: ${this.url(objectKey)}`);
     } catch (e) {
       if (e.name == 'NoSuchKey') return;
-      this.logger.error(`${this} Failed to delete cache for key: ${this.url(objectKey)}: ${e}`);
+      this.logger.error(`${this} Error deleting key ${this.url(objectKey)}: ${e}`);
+      throw e;
     }
   }
 
@@ -120,7 +90,7 @@ export const S3Cache = class extends BaseCache {
         chunks.push(chunk);
       }
     } catch (e) {
-      this.logger.error(`${this} Error while streaming strings: ${e}`);
+      this.logger.error(`${this} Error streaming data: ${e}`);
     }
     return Buffer.concat(chunks).toString('utf-8');
   }

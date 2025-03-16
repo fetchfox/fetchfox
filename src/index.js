@@ -27,6 +27,7 @@ export { S3Cache } from './cache/S3Cache.js';
 export { RedisCache } from './cache/RedisCache.js';
 
 export { DiskKV } from './kv/DiskKV.js';
+export { S3KV } from './kv/S3KV.js';
 
 export { Workflow } from './workflow/Workflow.js';
 

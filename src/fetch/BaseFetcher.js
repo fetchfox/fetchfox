@@ -163,7 +163,7 @@ n
 
     try {
       console.log('is pdf?');
-      if (await isPdf(instr.url, this.logger)) {
+      if (false && await isPdf(instr.url, this.logger)) {
         const host = process.env.API_HOST || 'https://fetchfox.ai';
         const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
 
@@ -212,7 +212,6 @@ n
               }
 
               const gen = await instr.execute(this);
-
               for await (const r of gen) {
                 const doc = r?.doc;
                 if (this.signal?.aborted) {
@@ -238,7 +237,6 @@ n
 
             this.logger.debug(`${this} Closing docs channel`);
             channel.end();
-
             ok();
           });
           /* eslint-enable no-async-promise-executor */

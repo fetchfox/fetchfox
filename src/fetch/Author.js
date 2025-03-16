@@ -88,8 +88,10 @@ export const Author = class {
       if (process.env.STRICT_ERRORS) {
         throw e;
       }
-      html = '';
+      html = `* unable to get HTML due to execution error: ${e}`;
     }
+
+    html ||= '* unable to get after HTML, possibly due to execution error *';
 
     console.log('after html:', html.substring(0, 100));
 

@@ -1,4 +1,4 @@
-import { fox, DiskCache, DiskKV } from '../../src/index.js';
+import { fox, DiskCache, DiskKV, S3KV } from '../../src/index.js';
 import { srid } from '../../src/util.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
@@ -172,7 +172,11 @@ describe('extract domain.com.au', async function() {
       ],
       {
         shouldSave: true,
-        kv: new DiskKV('/tmp/ffbenchkv-2'),
+        kv: new S3KV({
+          bucket: 'ffcloud',
+          prefix: 'benchkv/fixed/',
+          acl: 'public-read',
+        }),
       });
   }
 });

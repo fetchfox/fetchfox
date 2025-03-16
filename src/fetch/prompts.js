@@ -156,7 +156,6 @@ The Javascript code will have the parameters available:
 >>> Your goal is:
 {{goal}}
 
-
 BEFORE writing code:
 * Write comments about your approach
 * Use these sections:
@@ -192,8 +191,6 @@ Important guidelines:
 * Do not waste time trying to click selectors that don't exist
 * Write robust code. If selectors timeout or fail, catch the error and try to continue
 
->>>> Use a timeout of {{timeout}} milliseconds when waiting for locators
-
 Iterating over matched elements:
 - Do NOT nth(i) for iterating
 - Instead, if you need to iterate and do something for a number of elmeents, se locator.evaluateAll(), like this:
@@ -205,6 +202,10 @@ Iterating over matched elements:
         console.log(element.textContent);
       });
     });
+
+>>>> The user requested a timeout the following timeout for selectors and actions:
+{{timeout}} milliseconds
+Generally follow this timeout, but adjust a little if needed
 
 Again, the goal is:
 {{goal}}
