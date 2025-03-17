@@ -74,4 +74,9 @@ export const learnCSS = new Template(
 >>> Respond in JSON format:
 {{format}}
 
+Follow these guidelines
+* Do NOT encode specific information in the selectors
+* Do NOT use any pseudo selectors
+* It is ok to overmatch data as long as you include the requested data
+
 Respond ONLY in JSON, your response will be machine parsed using JSON.parse()`);

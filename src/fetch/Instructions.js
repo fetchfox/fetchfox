@@ -36,8 +36,8 @@ export const Instructions = class {
 
     // TODO: migrate everthing to CodeInstructions
     if (this.useCode()) {
-      if (commands.length != 1) {
-        throw new Error('Code based instructiosn must have exactly 1 command');
+      if (commands.length > 1) {
+        throw new Error('Code based instructions msut have <= 1 command');
       }
       this.codeInstructions = new CodeInstructions(url, this.commands[0], options);
     }

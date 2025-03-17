@@ -47,7 +47,18 @@ export const CodeInstructions = class {
   }
 
   async *execute(fetcher) {
-    this.logger.info(`${this} Execute instructions`);
+    this.logger.info(`${this} Execute code instructions`);
+
+    if (!this.command) {
+      this.logger.info(`${this} No command, just yield current page`);
+      const ctx = {};
+      await fetcher.start(ctx);
+      await fetcher.goto(this.url, ctx);
+      const doc = await this.current(fetcher, ctx);
+      yield Promise.resolve({ doc });
+      await fetcher.finish(ctx);
+      return;
+    }
 
     const command = this.command;
     this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
