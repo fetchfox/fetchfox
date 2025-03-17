@@ -241,21 +241,21 @@ export const Document = class {
       return result;
     }
 
-    const toHtml = (node, include) => {
+    const toHtml = (node) => {
       let html = '';
       let kept = false;
 
       for (const child of node.childNodes) {
         let keep = '';
         const text = child.innerText;
-        const ok = include.includes(child);
+        const ok = !!child.field;
 
         if (ok) {
           kept = true;
           keep += '<div>' + text;
         }
 
-        keep += toHtml(child, include);
+        keep += toHtml(child);
 
         if (ok) {
           keep += '</div>';
