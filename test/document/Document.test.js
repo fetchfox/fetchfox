@@ -5,7 +5,7 @@ import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('Document', function() {
 
-  setTestTimeout(this);
+  setTestTimeout(this, 30 * 1000);
 
   it('should learn', async () => {
     const f = getFetcher('playwright', { headless: true, cache: testCache() });

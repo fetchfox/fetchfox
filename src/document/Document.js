@@ -128,9 +128,14 @@ export const Document = class {
 
   async learn(ai, template) {
     const format = {};
+    format['_analysis'] = 'Analysis in 10-200 words of how to select the relevant data';
     for (const key of Object.keys(template)) {
       format[key] = `CSS selector for ${key}`;
     }
+    format['_paginate'] = 'CSS selector for element to click to get to the next page if possible';
+    format['_shared'] = 'List of keys where the value should be retained for later use';
+    format['_hint'] = 'Helpful information for answering the questions';
+    format['_confidence'] = 'Confidence in overall response effectiveness from 0-100';
 
     console.log('format', format);
 
@@ -146,8 +151,8 @@ export const Document = class {
     console.log(prompt);
     const answer = await ai.advanced.ask(prompt, { format: 'json' });
     console.log('answer', answer.partial);
-    const fields = Object.keys(answer.partial);
-    const selectors = Object.values(answer.partial);
+    const fields = Object.keys(answer.partial).filter(k => !k.startsWith('_'));
+    const selectors = fields.map(key => answer.partial[key]);
     console.log('selectors', selectors);
 
     // TODO: figure out where to put this
@@ -157,7 +162,12 @@ export const Document = class {
       const s = answer.partial[f];
       const matches = root.querySelectorAll(s);
       for (const node of matches) {
-        node.field = f;
+        if (!node.field) {
+          node.field = f;
+          node.extraFields = [];
+        } else {
+          node.extraFields.push(f);
+        }
       }
       matches.push(...root.querySelectorAll(s));
     }
@@ -176,8 +186,8 @@ export const Document = class {
     }
     const include = matchingNodes(root);
 
-    const sharedFields = fields.filter(f => f in (answer.partial._shared ?? []));
-    const normalFields = fields.filter(f => !(f in sharedFields));
+    const sharedFields = fields.filter(f => (answer.partial._shared ?? []).includes(f));
+    const normalFields = fields.filter(f => !sharedFields.includes(f));
 
     const toObj = (include) => {
       const result = [];
@@ -186,36 +196,41 @@ export const Document = class {
       let prev = null;
 
       for (const el of include) {
-        const field = el.field;
-        const value = field.includes('url') ? el.getAttribute('href') : el.text.trim();
+        for (const field of [el.field, ...el.extraFields]) {
+          let href = '';
+          if (answer.partial[field].endsWith('[href]') || field.toLowerCase().endsWith('url')) {
+            href = el.getAttribute('href');
+          }
+          const value = href || el.text.trim();
 
-        // Handle shared fields (e.g., generation as a header)
-        if (sharedFields.includes(field)) {
-          if (Object.keys(obj).length != 0) {
+          // Handle shared fields (e.g., generation as a header)
+          if (sharedFields.includes(field)) {
+            if (Object.keys(obj).length != 0) {
+              result.push({ ...context, ...obj });
+            }
+            obj = {};
+            context[field] = value;
+            prev = null;
+            continue; // Wait for a normal field to add to the object
+          }
+
+          // Check if this field starts a new object
+          if (normalFields.includes(field) && field in obj && prev != field) {
             result.push({ ...context, ...obj });
+            obj = {};
           }
-          obj = {};
-          context[field] = value;
-          prev = null;
-          continue; // Wait for a normal field to add to the object
-        }
 
-        // Check if this field starts a new object
-        if (normalFields.includes(field) && field in obj && prev != field) {
-          result.push({ ...context, ...obj });
-          obj = {};
-        }
-
-        // Add value to current object
-        if (field in obj) {
-          if (!Array.isArray(obj[field])) {
-            obj[field] = [obj[field]];
+          // Add value(s) to current object
+          if (field in obj) {
+            if (!Array.isArray(obj[field])) {
+              obj[field] = [obj[field]];
+            }
+            obj[field].push(value);
+          } else {
+            obj[field] = value;
           }
-          obj[field].push(value);
-        } else {
-          obj[field] = value;
+          prev = field;
         }
-        prev = field;
       }
 
       // Add last object if incomplete but has data
