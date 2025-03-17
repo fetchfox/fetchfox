@@ -71,6 +71,7 @@ export const Instructions = class {
   useCode() {
     return (
       this.url.includes('domain.com.au') ||
+      this.url.includes('onereal.com') ||
       this.url.includes('www.kw.com')
     );
   }

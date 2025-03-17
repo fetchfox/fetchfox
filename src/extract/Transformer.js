@@ -62,6 +62,10 @@ export const Transformer = class {
     }
     const include = matchingNodes(root, selectors);
 
+    const attrsToString = (attrs) => Object.entries(attrs)
+      .map(([key, value]) => `${key}="${value}"`)
+      .join(' ');
+
     const toHtml = (node, include) => {
       let html = '';
       let kept = false;
@@ -71,15 +75,21 @@ export const Transformer = class {
         const text = child.innerText;
         const ok = include.includes(child);
 
+        const tagName = child.tagName || 'div';
+
         if (ok) {
           kept = true;
-          keep += '<div>' + text;
+          const attrs = child.attributes && Object.keys(child.attributes).length
+                      ? ' ' + attrsToString(child.attributes)
+            : '';
+
+          keep += `<${tagName}${attrs}>` + text;
         }
 
         keep += toHtml(child, include);
 
         if (ok) {
-          keep += '</div>';
+          keep += `</${tagName}>`;
         }
 
         html += keep;
@@ -89,7 +99,12 @@ export const Transformer = class {
       }
 
       if (kept) {
-        html = '<div>\n' + html.replaceAll('\n', '\n\t') + '</div>';
+        const tagName = node.tagName || 'div';
+        const attrs = node.attributes && Object.keys(node.attributes).length
+                    ? ' ' + attrsToString(node.attributes)
+          : '';
+
+        html = `<${tagName}${attrs}>\n` + html.replaceAll('\n', '\n\t') + `</${tagName}>`;
       }
 
       return pretty(html, { ocd: true });

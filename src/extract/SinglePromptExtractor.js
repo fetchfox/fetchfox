@@ -11,6 +11,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   useTransformer(url) {
     return (
       url.includes('domain.com.au') ||
+      url.includes('onereal.com') ||
       url.includes('www.kw.com')
     );
   }
