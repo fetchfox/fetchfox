@@ -86,10 +86,10 @@ export const Author = class {
     this.logger.debug(`${this} Rate code for goal: ${goal}`);
 
     const state = await init();
-    const fn = toFn(code);
 
     let html;
     try {
+      const fn = toFn(code);
       html = await new Promise(ok => {
         exec(fn, ok, state);
       });
