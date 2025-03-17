@@ -69,7 +69,10 @@ export const Instructions = class {
   }
 
   useCode() {
-    return this.url.includes('domain.com.au');
+    return (
+      this.url.includes('domain.com.au') ||
+      this.url.includes('www.kw.com')
+    );
   }
 
   async *learn(fetcher, options) {

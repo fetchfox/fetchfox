@@ -11,7 +11,7 @@ export const Author = class {
     this.kv = options?.kv || getKV();
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.logger = options?.logger || defaultLogger
-    this.timeout = options?.timeout || 4000;
+    this.timeout = options?.timeout || 8000;
     this.threshold = options?.threshold || 85;
   }
 
@@ -52,7 +52,7 @@ export const Author = class {
       await this.kv.set(key, records);
     }
 
-    this.logger.debug(`${this} Returning code for goal`);
+    this.logger.debug(`${this} Returning code for goal: ${code}`);
     return toFn(code);
   }
 

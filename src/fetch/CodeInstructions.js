@@ -52,12 +52,11 @@ export const CodeInstructions = class {
     const command = this.command;
     this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
-    const author = new Author(
-      {
-        kv: this.kv,
-        ai: this.ai,
-        logger: this.logger,
-      });
+    const author = new Author({
+      kv: this.kv,
+      ai: this.ai,
+      logger: this.logger,
+    });
 
     // Define parameters for Author
     const namespace = new URL(this.url).hostname;

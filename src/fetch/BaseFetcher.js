@@ -102,8 +102,6 @@ export const BaseFetcher = class {
 
     const instr = toInstructions(target);
 
-    this.logger.trace(instr);
-
     try {
       const url = new URL(instr.url);
       if (!['http:', 'https:'].includes(url.protocol)) {
@@ -290,6 +288,9 @@ export const BaseFetcher = class {
 
   async putS3(doc) {
     if (!this.s3) {
+      return;
+    }
+    if (!doc) {
       return;
     }
 

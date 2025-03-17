@@ -9,7 +9,10 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   }
 
   useTransformer(url) {
-    return url.includes('domain.com.au');
+    return (
+      url.includes('domain.com.au') ||
+      url.includes('www.kw.com')
+    );
   }
 
   async *_run(doc, questions, options) {
