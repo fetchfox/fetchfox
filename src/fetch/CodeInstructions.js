@@ -97,6 +97,7 @@ export const CodeInstructions = class {
     const state = await init();
     try {
       const handleHtml = async () => {
+        await new Promise(ok => setTimeout(ok, 2000));
         const doc = await this.current(fetcher, state.ctx);
         chan.send({ doc });
         return true; // for now always continue
