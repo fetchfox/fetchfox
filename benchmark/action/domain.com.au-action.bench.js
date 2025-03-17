@@ -160,7 +160,7 @@ describe('extract domain.com.au', async function() {
 
   const prefixes = [
     'benchkv/fixed/',
-    // `benchkv/random-${srid()}/`,
+    `benchkv/random-${srid()}/`,
   ];
 
   for (const prefix of prefixes) {

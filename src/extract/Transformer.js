@@ -12,6 +12,10 @@ export const Transformer = class {
     this.logger = options?.logger || defaultLogger
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async reduce(html, template) {
     this.logger.debug(`${this} Transforming ${html.length} bytes of html based on ${JSON.stringify(template)}`);
 

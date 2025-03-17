@@ -1,22 +1,31 @@
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
 import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
 const toFn = (code) => new Function('page', 'fnSendHtml', 'fnDebugLog', 'done', code);
 
 export const Author = class {
-  constructor(kv, options) {
-    this.kv = kv;
+  constructor(options) {
+    this.kv = options?.kv || getKV();
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.logger = options?.logger || defaultLogger
     this.timeout = options?.timeout || 4000;
     this.threshold = options?.threshold || 85;
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async get(namespace, goal, init, exec, finish) {
+    this.logger.debug(`${this} Get code for goal: ${goal}`);
+
     const hash = shortObjHash({ goal });
     const key = `${namespace}-${hash}`;
+
+    this.logger.debug(`${this} Look up goal in kv: ${key}`);
 
     const records = (await this.kv.get(key) || [])
       .filter(it => (it.rating?.score || 0) > this.threshold)
@@ -24,9 +33,14 @@ export const Author = class {
 
     let code;
     if (records.length) {
+      this.logger.debug(`${this} Got suitable record in KV for ${goal}`);
+
       const record = records[0];
       code = record.code;
+
     } else {
+      this.logger.debug(`${this} No suitable record in KV for ${goal}`);
+
       const r = await this.write(namespace, goal, init, finish);
       code = r.code;
       const { rating } = await this.rate(namespace, goal, code, init, exec, finish);
@@ -38,10 +52,13 @@ export const Author = class {
       await this.kv.set(key, records);
     }
 
+    this.logger.debug(`${this} Returning code for goal`);
     return toFn(code);
   }
 
   async write(namespace, goal, init, finish) {
+    this.logger.debug(`${this} Write code for goal: ${goal}`);
+
     const state = await init();
 
     const context = {
@@ -50,21 +67,15 @@ export const Author = class {
       timeout: this.timeout,
     };
 
-    const actionPrompts = await prompts.pageActionCode
-      .renderMulti(context, 'html', this.ai.advanced);
-    const answers = (
-      await Promise.allSettled(actionPrompts.map(
-        (prompt) => this.ai.advanced.ask(prompt, { format: 'text' })
-      ))
-    )
-      .filter(result => result.status == 'fulfilled');
-
-    const answer = answers[0];
-    const code = answer.value.partial
+    this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
+    const { prompt } = await prompts.pageActionCode
+      .renderCapped(context, 'html', this.ai.advanced);
+    const answer = await this.ai.advanced.ask(prompt, { format: 'text' });
+    const code = answer.partial
       .replaceAll('```javascript', '')
       .replaceAll('```', '');
 
-    this.logger.debug(`${this} Got code for goal {goal}: ${code}`);
+    this.logger.debug(`${this} Got code for goal ${goal} =: ${code}`);
 
     await finish(state);
 
@@ -72,6 +83,8 @@ export const Author = class {
   }
 
   async rate(namespace, goal, code, init, exec, finish) {
+    this.logger.debug(`${this} Rate code for goal: ${goal}`);
+
     const state = await init();
     const fn = toFn(code);
 

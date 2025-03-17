@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
+import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
 import { shortObjHash, createChannel } from '../util.js';
 import { Author } from './Author.js';
@@ -13,7 +14,7 @@ export const CodeInstructions = class {
     this.command = command;
     this.cache = options?.cache;
     this.ai = options?.ai || getAI(null, { cache: this.cache });
-    this.kv = options.kv;
+    this.kv = options?.kv || getKV();
     this.loadTimeout = options?.loadTimeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
@@ -52,8 +53,8 @@ export const CodeInstructions = class {
     this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
     const author = new Author(
-      this.kv,
       {
+        kv: this.kv,
         ai: this.ai,
         logger: this.logger,
       });
