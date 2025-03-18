@@ -74,7 +74,6 @@ export const Instructions = class {
       this.url.includes('domain.com.au') ||
       this.url.includes('onereal.com') ||
       this.url.includes('www.kw.com') ||
-      // this.url.includes('ct.curaleaf.com') ||
       this.url.includes('bokadirekt.se')
     );
   }
@@ -88,20 +87,7 @@ export const Instructions = class {
       return;
     }
 
-    const cacheKey = options?.cacheKey;
     const learned = [];
-
-    const key = this.cacheKey(cacheKey);
-    if (false && this.cache) {
-      const cached = await this.cache.get(key);
-      if (cached) {
-        this.logger.debug(`${this} Cache hit for ${key}`);
-        this.learned = cached;
-        return;
-      } else {
-        this.logger.debug(`${this} Cache miss for ${key}`);
-      }
-    }
 
     const ctx = {};
 
@@ -113,7 +99,7 @@ export const Instructions = class {
       // learning how to do pagination
       const onlyPagination = (
         this.commands.length == 1 &&
-        this.commands[0].prompt == nextPageCommand 
+        this.commands[0].prompt == nextPageCommand
       );
 
       let scrollPromise;
@@ -145,15 +131,15 @@ export const Instructions = class {
 
         const doc = await this.current(fetcher, ctx);
 
-        // if (!domainSpecific) {
-        //   const p = this.tryScrolling(fetcher, doc, paginationLimit)
-        //     .catch((e) => {
-        //       this.logger.error(`Error while trying to scroll for pagination: ${e}`);
-        //     });
-        //   scrollPromise = pTimeout(p, { milliseconds: this.loadTimeout });
-        // }
+        if (!domainSpecific) {
+          const p = this.tryScrolling(fetcher, doc, paginationLimit)
+            .catch((e) => {
+              this.logger.error(`Error while trying to scroll for pagination: ${e}`);
+            });
+          scrollPromise = pTimeout(p, { milliseconds: this.loadTimeout });
+        }
 
-        // yield Promise.resolve({ doc });
+        yield Promise.resolve({ doc });
       }
 
       // TODO: It would be nice of learning supported caching. Right now,
@@ -178,9 +164,6 @@ ${this.hint}` : '',
 
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai.advanced);
-
-        console.log('actionPrompts', actionPrompts[0]);
-        console.log('actionPrompts', actionPrompts.length);
 
         const answers = (
           await Promise.allSettled(actionPrompts.map(
@@ -216,9 +199,6 @@ ${this.hint}` : '',
               confidence,
             };
 
-            console.log('!! it.candidatePlaywrightSelector    ', it.candidatePlaywrightSelector);
-            console.log('!! it.candidatePlaywrightSelectorType', it.candidatePlaywrightSelectorType);
-
             let selector;
             if (it.candidatePlaywrightSelector) {
               const c = it.candidatePlaywrightSelector;
@@ -229,10 +209,6 @@ ${this.hint}` : '',
                 selector = `${t}=${c}`;
               }
             }
-
-            console.log('!! selector                          ', selector);
-
-            // if (it.candidatePlaywrightSelector && !it.candidatePlaywrightSelector.
 
             let candidate;
             switch (type) {
@@ -368,15 +344,6 @@ ${this.hint}` : '',
 
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
-
-      console.log('learned:', this.learned);
-
-      // throw 'STOP';
-
-      if (this.cache) {
-        this.logger.debug(`${this} Setting cache for ${key}`);
-        await this.cache.set(key, this.learned);
-      }
 
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
@@ -729,9 +696,7 @@ const domainSpecificInstructions = (url) => {
   return result;
 }
 
-export const acceptCookiesPrompt = `Click the confirm you are over years old`;
-
-export const x_acceptCookiesPrompt = `Click through any prompts and modals to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
+export const acceptCookiesPrompt = `Click through any prompts and modals to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
 
 This includes any of the following
 - Cookie prompts (accept cookie, do not manage unless necessary)

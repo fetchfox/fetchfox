@@ -5,7 +5,7 @@ import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
 import { shortObjHash, createChannel } from '../util.js';
 import { Author } from './Author.js';
-import { nextPageCommand, acceptCookiesPrompt, nextPagePrompt } from './Instructions.js';
+import { nextPageCommand, nextPagePrompt } from './Instructions.js';
 
 export const CodeInstructions = class {
   constructor(url, command, options) {
