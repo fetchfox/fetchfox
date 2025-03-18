@@ -1,3 +1,4 @@
+import pretty from 'pretty';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
@@ -73,6 +74,7 @@ export const Instructions = class {
       this.url.includes('domain.com.au') ||
       this.url.includes('onereal.com') ||
       this.url.includes('www.kw.com') ||
+      // this.url.includes('ct.curaleaf.com') ||
       this.url.includes('bokadirekt.se')
     );
   }
@@ -90,7 +92,7 @@ export const Instructions = class {
     const learned = [];
 
     const key = this.cacheKey(cacheKey);
-    if (this.cache) {
+    if (false && this.cache) {
       const cached = await this.cache.get(key);
       if (cached) {
         this.logger.debug(`${this} Cache hit for ${key}`);
@@ -111,7 +113,7 @@ export const Instructions = class {
       // learning how to do pagination
       const onlyPagination = (
         this.commands.length == 1 &&
-        this.commands[0].prompt == nextPageCommand
+        this.commands[0].prompt == nextPageCommand 
       );
 
       let scrollPromise;
@@ -143,15 +145,15 @@ export const Instructions = class {
 
         const doc = await this.current(fetcher, ctx);
 
-        if (!domainSpecific) {
-          const p = this.tryScrolling(fetcher, doc, paginationLimit)
-            .catch((e) => {
-              this.logger.error(`Error while trying to scroll for pagination: ${e}`);
-            });
-          scrollPromise = pTimeout(p, { milliseconds: this.loadTimeout });
-        }
+        // if (!domainSpecific) {
+        //   const p = this.tryScrolling(fetcher, doc, paginationLimit)
+        //     .catch((e) => {
+        //       this.logger.error(`Error while trying to scroll for pagination: ${e}`);
+        //     });
+        //   scrollPromise = pTimeout(p, { milliseconds: this.loadTimeout });
+        // }
 
-        yield Promise.resolve({ doc });
+        // yield Promise.resolve({ doc });
       }
 
       // TODO: It would be nice of learning supported caching. Right now,
@@ -166,7 +168,8 @@ export const Instructions = class {
         this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         const context = {
-          html: doc.html,
+          // html: doc.html,
+          html: pretty(doc.html, { ocd: true }),
           command: command.prompt,
           hint: this.hint ? `>>>> The user has passed in this hint, which may be useful. Follow it if it is relevant, ignore it if it is not:
 
@@ -176,13 +179,19 @@ ${this.hint}` : '',
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai.advanced);
 
+        console.log('actionPrompts', actionPrompts[0]);
+        console.log('actionPrompts', actionPrompts.length);
+
         const answers = (
           await Promise.allSettled(actionPrompts.map(
             (prompt) => this.ai.advanced.ask(prompt, { format: 'json' })
           ))
         )
           .filter(result => result.status == 'fulfilled');
-        this.logger.info(JSON.stringify(answers));
+
+        this.logger.info(JSON.stringify(answers, null, 2));
+
+        // throw 'stop 123';
 
         const candidates = [];
         const seen = {};
@@ -207,13 +216,31 @@ ${this.hint}` : '',
               confidence,
             };
 
+            console.log('!! it.candidatePlaywrightSelector    ', it.candidatePlaywrightSelector);
+            console.log('!! it.candidatePlaywrightSelectorType', it.candidatePlaywrightSelectorType);
+
+            let selector;
+            if (it.candidatePlaywrightSelector) {
+              const c = it.candidatePlaywrightSelector;
+              if (c.startsWith('css=') || c.startsWith('text=')) {
+                selector = c;
+              } else {
+                const t = it.candidatePlaywrightSelectorType;
+                selector = `${t}=${c}`;
+              }
+            }
+
+            console.log('!! selector                          ', selector);
+
+            // if (it.candidatePlaywrightSelector && !it.candidatePlaywrightSelector.
+
             let candidate;
             switch (type) {
               case 'click':
                 candidate = [
                   {
                     ...shared,
-                    arg: it.candidatePlaywrightSelector,
+                    arg: selector,
                   }
                 ];
                 break;
@@ -235,7 +262,7 @@ ${this.hint}` : '',
                   {
                     ...shared,
                     type: 'focus',
-                    arg: it.candidatePlaywrightSelector,
+                    arg: selector,
                     mode: 'first',
                   },
                   {
@@ -294,7 +321,7 @@ ${this.hint}` : '',
 
         let working;
         this.logger.info(`${this} Candidates in sorted order:`);
-        this.logger.info(candidates);
+        this.logger.info(JSON.stringify(candidates, null, 2));
 
         for (const set of candidates) {
           this.logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
@@ -341,6 +368,10 @@ ${this.hint}` : '',
 
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
+
+      console.log('learned:', this.learned);
+
+      // throw 'STOP';
 
       if (this.cache) {
         this.logger.debug(`${this} Setting cache for ${key}`);
@@ -698,21 +729,22 @@ const domainSpecificInstructions = (url) => {
   return result;
 }
 
-const acceptCookiesPrompt = `Click through and prompts to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
+export const acceptCookiesPrompt = `Click the confirm you are over years old`;
 
-If there are multiple prompts to accept, return one action for each.
+export const x_acceptCookiesPrompt = `Click through any prompts and modals to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
 
 This includes any of the following
 - Cookie prompts (accept cookie, do not manage unless necessary)
-- Age verification terms (agree that you are the required age)
+- Age verification terms (agree that you are the required age, eg 21 or older)
 - Accepting terms of service in general (accept the terms)
 - Closing email subscription popup
 
 This excludes the following:
 - Sidebars and navigation tools relevant to the main site
-`;
 
-const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
+If there are multiple prompts to accept, return one action for each.`;
+
+export const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
 
 Note: 
 - If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.

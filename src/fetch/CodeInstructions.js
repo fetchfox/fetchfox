@@ -5,8 +5,7 @@ import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
 import { shortObjHash, createChannel } from '../util.js';
 import { Author } from './Author.js';
-
-export const nextPageCommand = '{{nextPage}}';
+import { nextPageCommand, acceptCookiesPrompt, nextPagePrompt } from './Instructions.js';
 
 export const CodeInstructions = class {
   constructor(url, command, options) {
@@ -42,6 +41,17 @@ export const CodeInstructions = class {
     return `instructions-${hash}`;
   }
 
+  unshiftCommand(command) {
+    this.logger.info(`${this} Unshift command: ${command.prompt}`);
+
+    this.learned = null;
+    if (!this.command) {
+      this.command = command;
+    } else {
+      this.command.prompt += '\n' + command.prompt;
+    }
+  }
+
   async *learn() {
     // no-op
   }
@@ -71,7 +81,7 @@ export const CodeInstructions = class {
 
     // Define parameters for Author
     const namespace = new URL(this.url).hostname;
-    const goal = command.prompt;
+    const goal = command.prompt.replace(nextPageCommand, nextPagePrompt);
     const init = async () => {
       const ctx = {};
       await fetcher.start(ctx);

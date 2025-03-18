@@ -16,14 +16,16 @@ Respond with JSON as follows:
       "candidateAnalysis": "Reason for why this one might work",
       "candidateAction": "The action to perform. Either 'click', 'scroll', or 'click-scroll'",
       "optionalAction": "Return 'yes' if this action should be considered optional",
-      "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector for this candidate function",
+      "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector or text for this candidate function, preceded by css= or text=",
+      "candidatePlaywrightSelectorType": "either 'text' or 'css' depending on the type of the selector. '' if no selector",
       "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
       "candidateConfidence": "number in range 1..100"
     },
     {
       "candidateAnalysis": "Reason for why this one might work",
       "candidateAction": "The action to perform. Either 'click', 'scroll', or 'click-scroll'",
-      "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector for this candidate function",
+      "candidatePlaywrightSelector": "If action is 'click' or 'click-scroll', give CSS selector or text for this candidate function, preceded by css= or text=",
+      "candidatePlaywrightSelectorType": "either 'text' or 'css' depending on the type of the selector. '' if no selector",
       "candidateScrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
       "candidateConfidence": "number in range 1..100"
     },
@@ -44,6 +46,7 @@ Information on these fields:
   - "click-scroll" if you need to focus on a specific element, and *then* scroll
 - "optionalAction": Some actions are optional. A typical example is accepting cookies or other terms of service: if these fail, it's not important and we should continue. If the user prompt indicates the action is optional, follow that guidance. Return "yes" for optional actions, and "no" for required ones.
 - "candidatePlaywrightSelector": If action is "click" or "click-scroll", give the selector for the item to click to achieve the goal. You can do either "css=..." for css selector, or "text=..." for text base selector. This will be used in Playwright.
+- "candidatePlaywrightSelectorType": "either 'text' or 'css' depending on the type of the selector. '' if no selector",
 - "candidateScrollType": If action is "scroll" or "click-scroll", return either "page-down" or "bottom"
   - "page-down" to scroll down a window height using the page down button
   - "bottom" to scroll all the way to the bottom using javascript
@@ -68,12 +71,13 @@ REMEMBER:
 - If you are matching text to select an element from the page, you must use "text=...". Do NOT try to use CSS to match text. Playwright can do both, but you must use text= for text matching.
 
 IMPORTANT:
-- Do NOT use ":contains(...)" pseudo selector for any css= selectors
 - Do NOT invent CSS selectors to match text. NEVER MATCH TEXT WITH css=...
 - Use valid CSS syntax
 - You MUST prefix css= or text= to your CSS selectors
 - Do not combine css= and text=, use only one of them
 - Prefer CSS selectors when possible
+
+Do NOT use :has-text(), :contains(), or ANY pseudo selectors. They do not work for selecting elements.
 
 Limit:
 - Do not give candidates if the action is unecessary or cannot be done
