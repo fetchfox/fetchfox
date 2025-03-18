@@ -132,9 +132,10 @@ export const Document = class {
     for (const key of Object.keys(template)) {
       format[key] = `CSS selector for ${key}`;
     }
+    format['_modals'] = 'List of CSS selectors for elements to click in order to clear any modals if present'
     format['_paginate'] = 'CSS selector for element to click to get to the next page if possible';
-    format['_shared'] = 'List of keys where the value should be retained for later use';
-    format['_hint'] = 'Helpful information for answering the questions';
+    format['_shared'] = 'List of keys where the value should be reused on subsequent entries';
+    format['_hint'] = 'Any helpful information for answering the questions';
     format['_confidence'] = 'Confidence in overall response effectiveness from 0-100';
 
     console.log('format', format);
@@ -249,16 +250,27 @@ export const Document = class {
         let keep = '';
         const text = child.innerText;
         const ok = !!child.field;
+        const fieldsStr = ok ? [child.field, ...child.extraFields].join(' ') : '';
+        const isLink = child.tagName && (child.tagName.toLowerCase() == 'a') && child.getAttribute('href');
 
         if (ok) {
           kept = true;
-          keep += '<div>' + text;
+          if (isLink) {
+            const href = child.getAttribute('href');
+            keep += `<a class=${fieldsStr} href=${href}>` + text;
+          } else {
+            keep += `<div class=${fieldsStr}>` + text;
+          }
         }
 
         keep += toHtml(child);
 
         if (ok) {
-          keep += '</div>';
+          if (isLink) {
+            keep += '</a>';
+          } else {
+            keep += '</div>';
+          }
         }
 
         html += keep;
@@ -279,7 +291,19 @@ export const Document = class {
     console.log(obj);
     console.log('html', pretty(html, { ocd: true }).slice(0, 10000));
 
-    // TODO: finish here
+    this.learned = {
+      format,
+      response: answer.partial,
+    }
+
+    this.obj = obj;
+    this.selectHTML = html;
+    return {
+      format,
+      response: answer.partial,
+      obj,
+      html,
+    }
   }
 }
 
