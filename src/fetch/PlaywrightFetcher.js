@@ -1,6 +1,6 @@
 import { chromium } from 'playwright-extra';
 import { Timer } from '../log/timer.js';
-import { logger } from '../log/logger.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { abortable } from '../util.js';
@@ -9,7 +9,7 @@ process.on('unhandledRejection', (e) => {
   if (e.name == 'TargetClosedError') {
     // These exceptions occur sometimes on browser launch, and we cannot
     // catch them in this as they happen.
-    logger.error(`Ignore unhandled rejection: ${e}`);
+    defaultLogger.error(`Ignore unhandled rejection: ${e}`);
   } else {
     throw e;
   }
@@ -20,9 +20,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
     this.headless = options?.headless === undefined ? true : options?.headless;
+    if (process.env.HEADFUL) {
+      this.headless = false;
+    }
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
+    this.logger = options?.logger || defaultLogger;
   }
 
   cacheOptions() {
@@ -33,7 +37,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
-  async goto(url, ctx) {
+  async _goto(url, ctx) {
     if (!ctx.page) {
       ctx.page = await ctx.browser.newPage();
     }
@@ -41,13 +45,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     try {
       const { aborted } = await abortable(
         this.signal,
-        ctx.page.goto(url, { waitUntil: 'domcontentloaded' }));
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
       if (aborted) {
-        logger.warn(`${this} Aborted on goto`);
+        this.logger.warn(`${this} Aborted on goto`);
         return;
       }
     } catch (e) {
-      logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
+      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
     }
   }
 
@@ -59,11 +63,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       aborted = result.aborted;
       doc = result.result;
     } catch (e) {
-      logger.error(`${this} Error while getting current doc: ${e}`);
+      this.logger.error(`${this} Error while getting current doc: ${e}`);
       return;
     }
     if (aborted) {
-      logger.warn(`${this} Aborted while getting current doc`);
+      this.logger.warn(`${this} Aborted while getting current doc`);
       return;
     }
 
@@ -74,7 +78,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
 
   async _launch() {
-    logger.debug(`Playwright launching...`);
+    this.logger.debug(`Playwright launching...`);
 
     let err;
     let i;
@@ -82,22 +86,22 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       try {
         let promise;
         if (this.cdp) {
-          logger.debug(`Playwright using CDP endpoint ${this.cdp}, attempt=${i}`);
+          this.logger.debug(`Playwright using CDP endpoint ${this.cdp}, attempt=${i}`);
           promise = chromium.connectOverCDP(this.cdp);
         } else {
-          logger.debug(`Playwright using local Chromium, attempt=${i}`);
+          this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
           promise = chromium.launch({ headless: this.headless });
         }
         const browser = await promise;
         return browser;
       } catch (e) {
-        logger.warn(`${this} Could not launch, retrying, attempt=${i}: ${e}`);
+        this.logger.warn(`${this} Could not launch, retrying, attempt=${i}: ${e}`);
         err = e;
         await new Promise(ok => setTimeout(ok, i * 4000));
       }
     }
 
-    logger.warn(`${this} Could not launch, throwing, attempt=${i}: ${err}`);
+    this.logger.warn(`${this} Could not launch, throwing, attempt=${i}: ${err}`);
     throw err;
   }
 
@@ -111,11 +115,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     try {
       ctx.browser = await this._launch({ timer });
     } catch (e) {
-      logger.error(`${this} Caught error while launching browser: ${e}`);
+      this.logger.error(`${this} Caught error while launching browser: ${e}`);
       throw e;
     }
 
-    logger.debug(`${this} Got browser`);
+    this.logger.debug(`${this} Got browser`);
 
     return ctx;
   }
@@ -125,43 +129,64 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return;
     }
 
-    logger.debug(`${this} Closing browser`);
+    this.logger.debug(`${this} Closing browser`);
     await ctx.browser.close();
     delete ctx.browser;
   }
 
   async act(ctx, action, seen) {
-    logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
+    const timer = ctx.timer || new Timer();
+    this.logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
-    let r;
+    timer.push(`PlaywrightFetcher act ${action.type} ${action.arg}`);
+    try {
+      let r;
+      switch (action.type) {
+        case 'click':
+          r = await this.click(
+            ctx,
+            action.arg,
+            seen,
+            { timeout: action.timeout || this.actionTimeout });
+          break;
 
-    switch (action.type) {
-      case 'click':
-        r = await this.click(ctx, action.arg, seen);
-        break;
+        case 'focus':
+          r = await this.focus(
+            ctx,
+            action.arg,
+            seen,
+            { timeout: action.timeout || this.actionTimeout });
+          break;
 
-      case 'scroll':
-        r = await this.scroll(ctx, action.arg, seen);
-        break;
+        case 'scroll':
+          r = await this.scroll(
+            ctx,
+            action.arg,
+            seen,
+            { timeout: action.timeout || this.actionTimeout });
+          break;
 
-      default:
-        throw new Error(`Unhandled action type: ${action.type}`);
+        default:
+          throw new Error(`Unhandled action type: ${action.type}`);
+      }
+
+      this.logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
+      r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
+
+      return r;
+    } finally {
+      timer.pop();
     }
-
-    logger.debug(`${this} Action wait ${(this.actionWait / 1000).toFixed(1)} sec`);
-    r.ok && await new Promise(ok_ => setTimeout(ok_, this.actionWait));
-
-    return r;
   }
 
-  async click(ctx, selector, seen) {
-    logger.debug(`${this} Click selector=${selector}`);
-
+  async _actOnEl(ctx, selector, seen, options, fn) {
+    // TODO: for text= matchers, add a heuristic to prefer tighter  matches
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
-      logger.warn(`{this} Invalid selector: ${selector}`);
+      this.logger.warn(`{this} Invalid selector: ${selector}`);
       return { ok: false };
     }
 
+    const timeout = options?.timeout || this.actionTimeout;
     const loc = ctx.page.locator(selector);
 
     let el;
@@ -171,41 +196,82 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     // Look for the first matching element not in seen
     for (let i = 0; el == null; i++) {
       try {
-        await loc.nth(i).waitFor({ state: 'attached', timeout: 1000 });
+        await loc.nth(i).waitFor({ state: 'attached', timeout });
+        el = await loc.nth(i);
+
+        if (!await el.isVisible()) {
+          this.logger.debug(`${this} Skipping non visible element: ${el} on iteation ${i}`);
+          el = null;
+          continue;
+        }
+
+        text = await el.textContent();
+        html = await el.evaluate(el => el.outerHTML);
+
+        if (seen && (seen[text] || seen[html])) {
+          el = null;
+          continue;
+        }
+
+        this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
+        await fn(ctx, el, timeout);
+
       } catch (e) {
-        logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
+        this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
         return { ok: false };
       }
-
-      el = await loc.nth(i);
-      text = await el.textContent();
-      html = await el.evaluate(el => el.outerHTML);
-
-      if (seen && (seen[text] || seen[html])) {
-        el = null;
-        continue;
-      }
-
-      logger.debug(`${this} Found new element ${el} after ${i} iterations`);
     }
-
-    await el.scrollIntoViewIfNeeded();
-    await el.click();
 
     return { ok: true, text, html };
   }
 
-  async evaluate() {
-    throw new Error('TODO');
+  async click(ctx, selector, seen, options) {
+    this.logger.debug(`${this} Click selector=${selector}`);
+
+    const fn = async (ctx, el, timeout) => {
+      this.logger.debug(`${this} Found ${el}, clicking, timeout=${timeout}`);
+      await el.scrollIntoViewIfNeeded({ timeout });
+      await el.click({ timeout });
+    }
+
+    return this._actOnEl(ctx, selector, seen, options, fn);
+  }
+
+  async focus(ctx, selector, seen, options) {
+    this.logger.debug(`${this} Focus selector=${selector}`);
+
+    const fn = async (ctx, el, timeout) => {
+      let skip = false;
+      if (ctx.focused) {
+        const elHtml = await el.evaluate(el => el.outerHTML);
+        const focusHtml = await ctx.focused.evaluate(el => el.outerHTML);
+        skip = elHtml == focusHtml;
+      }
+
+      if (skip) {
+        this.logger.debug(`${this} Already focused on ${el}, skipping`);
+        return;
+      }
+
+      this.logger.debug(`${this} Focusing on ${el} by clicking, timeout=${timeout}`);
+      await el.click({ timeout });
+      ctx.focused = el;
+      this.logger.debug(`${this} Focus is now on ${ctx.focused}`);
+    };
+
+    return this._actOnEl(ctx, selector, seen, options, fn);
   }
 
   async scroll(ctx, type) {
-    logger.debug(`${this} Scroll type=${type}`);
+    this.logger.debug(`${this} Scroll type=${type}`);
 
     // TODO: Check if scrolling worked
 
     switch (type) {
-      case 'window':
+      case 'page-down':
+        // Do it twice for cases like Google Maps
+        await ctx.page.keyboard.press('PageDown');
+        await new Promise(ok => setTimeout(ok, 2000));
         await ctx.page.keyboard.press('PageDown');
         break;
 
@@ -216,6 +282,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             const top = document.documentElement.scrollHeight;
             return new Promise((ok) => {
               document.addEventListener('scrollend', ok);
+              setTimeout(ok, 2000);
               window.scrollTo({ top, behavior: 'smooth' });
             });
           }
@@ -225,7 +292,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         /* eslint-enable no-undef */
         break;
       default:
-        logger.error(`${this} Unhandled scroll type: ${type}`);
+        this.logger.error(`${this} Unhandled scroll type: ${type}`);
     }
 
     return { ok: true };
@@ -248,6 +315,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           {
             loadWait: this.loadWait,
             pullIframes: this.pullIframes,
+            logger: this.logger,
           }));
 
       if (result.aborted) {
@@ -260,25 +328,27 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       selectHtml = result.result.selectHtml;
     } catch (e) {
 
-      logger.error(`Playwright could not get from ${page.url()}: ${e}`);
-      logger.debug(`Trying to salvage results`);
+      this.logger.error(`Playwright could not get from ${page.url()}: ${e}`);
+      this.logger.debug(`Trying to salvage results`);
 
       try {
-        const result = await abortable(this.signal, getHtmlFromError(page));
+        const result = await abortable(
+          this.signal,
+          getHtmlFromError(page, { logger: this.logger }));
         if (result.aborted) {
           return;
         }
         html = result.result.html;
 
       } catch (e) {
-        logger.warn(`Could not salvage results, give up: ${e}`);
+        this.logger.warn(`Could not salvage results, give up: ${e}`);
         return;
       }
       if (!html) {
-        logger.warn(`Could not salvage results, give up`);
+        this.logger.warn(`Could not salvage results, give up`);
         return;
       }
-      logger.warn(`Read ${html.length} bytes from failed Playwright request`);
+      this.logger.warn(`Read ${html.length} bytes from failed Playwright request`);
       status = 500;
     } finally {
       timer.pop();
@@ -302,7 +372,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 }
 
-const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
+const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
   logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 
@@ -313,7 +383,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     try {
       frames = await page.frames();
     } catch (e) {
-      logger.error(`${this} Error while getting frames: ${e}`);
+      this.logger.error(`${this} Error while getting frames: ${e}`);
       throw e;
     }
     const iframes = [];
@@ -492,7 +562,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
     });
     /* eslint-enable no-undef */
   } catch (e) {
-    logger.warn(`${this} Error while getting HTML: ${e}`);
+    logger.error(`Error while getting HTML: ${e}`);
   }
 
   return {
@@ -502,7 +572,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes }) => {
   };
 }
 
-const getHtmlFromError = async (page) => {
+const getHtmlFromError = async (page, { logger }) => {
   // Disable undefined variable linting for document variables
   // which is available in Playwright's browser context.
   /* eslint-disable no-undef */

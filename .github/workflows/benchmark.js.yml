@@ -16,26 +16,14 @@ jobs:
         node-version: [22.x]
         attempt: [1,2,3,4]
         ai:
-          - openai:gpt-4o-mini
           - openai:gpt-4o
+          - openai:gpt-4o-mini
           - openai:o3-mini
           - google:gemini-1.5-pro
           - google:gemini-1.5-flash
           - google:gemini-2.0-flash
-          - groq:llama-3.2-11b-vision-preview
-          - groq:llama-3.2-90b-vision-preview
-          - openrouter:openai/o3-mini
-          - openrouter:meta-llama/llama-3.2-1b-instruct
           - openrouter:meta-llama/llama-3.3-70b-instruct
-          - openrouter:google/gemini-flash-1.5-8b
-          - openrouter:google/gemini-flash-1.5
-          - openrouter:google/gemini-pro-1.5
-          - openrouter:google/gemini-2.0-flash-001
-          - openrouter:deepseek/deepseek-r1
-          - openrouter:deepseek/deepseek-chat
-          - openrouter:deepseek/deepseek-r1-distill-llama-70b
-          - openrouter:anthropic/claude-3.5-haiku
-          - openrouter:anthropic/claude-3.5-sonnet
+          - openrouter:anthropic/claude-3.7-sonnet
 
     steps:
     - uses: actions/checkout@v4
@@ -58,6 +46,7 @@ jobs:
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-west-2
         CDP_URL: ${{ secrets.CDP_URL }}
 
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -68,9 +57,9 @@ jobs:
 
         REDIS_URL: ${{ secrets.REDIS_URL }}
 
-        BENCH_REGION: us-west-2
-        BENCH_BUCKET: ffcloud
-        BENCH_KEY: benchmarks/latest.jsonl
+        BENCH_LOOKUP: default
+        BENCH_COMMITS_TABLE: benchmarks_commits
+        BENCH_SCORES_TABLE: benchmarks_scores
         BENCH_USE_CDP: true
         BENCH_MATRIX_AI: ${{ matrix.ai }}
 

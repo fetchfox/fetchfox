@@ -12,6 +12,7 @@
   "scripts": {
     "lint": "eslint src/",
     "test": "mocha test/**/*.test.js -g @fast",
+    "test-cache": "WRITE_TEST_CACHE=1 mocha test/**/*.test.js -g @fast",
     "bench": "mocha benchmark/**/*.bench.js -g @bench",
     "bench-4o": "BENCH_MATRIX_AI=openai:gpt-4o mocha benchmark/**/*.bench.js -g @bench",
     "bench-cdp-4o": "BENCH_USE_CDP=1 BENCH_MATRIX_AI=openai:gpt-4o mocha benchmark/**/*.bench.js -g @bench",
@@ -28,6 +29,8 @@
   },
   "homepage": "https://github.com/fetchfox/fetchfox",
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@aws-sdk/lib-dynamodb": "^3.751.0",
     "@eslint/js": "^9.17.0",
     "chai": "^5.1.1",
     "cheerio": "^1.0.0",

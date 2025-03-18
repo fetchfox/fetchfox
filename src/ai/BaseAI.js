@@ -1,4 +1,5 @@
-import { logger } from '../log/logger.js';
+import { getAI } from './index.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 import { parseAnswer, sleep, getModelData } from './util.js';
 import { shortObjHash } from '../util.js';
@@ -8,11 +9,13 @@ export const BaseAI = class {
     const apiKeyEnvVariable = this.constructor.apiKeyEnvVariable;
     let {
       cache,
+      logger,
       maxTokens,
       maxRetries,
       retryMsec,
       model,
       apiKey,
+      advanced,
     } =
     Object.assign(
       {
@@ -28,6 +31,7 @@ export const BaseAI = class {
     }
 
     if (cache) this.cache = cache;
+    this.logger = logger || defaultLogger;
 
     const providers = [
       'openai',
@@ -43,6 +47,8 @@ export const BaseAI = class {
         model = model.replace(p + ':', '');
       }
     }
+
+    this._advanced = advanced ? getAI(advanced) : null;
 
     this.provider = this.constructor.name.toLowerCase();
     this.model = model;
@@ -74,10 +80,18 @@ export const BaseAI = class {
       return;
     }
 
+    const p = this._advanced ? this._advanced.init() : Promise.resolve();
+
     const data = await getModelData(this.provider, this.model, this.cache);
     this.maxTokens = data.maxTokens;
     this.pricing = data.pricing;
     this.didInit = true;
+
+    await p;
+  }
+
+  get advanced() {
+    return this._advanced || this;
   }
 
   async countTokens(str, options) {
@@ -107,11 +121,11 @@ export const BaseAI = class {
     try {
       result = await this.cache.get(key);
     } catch (e) {
-      logger.error(`${this} Error while getting cache: ${e}`);
+      this.logger.error(`${this} Error while getting cache: ${e}`);
       return;
     }
     const outcome = result ? '(hit)' : '(miss)';
-    logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
+    this.logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
     return result;
   }
 
@@ -120,7 +134,7 @@ export const BaseAI = class {
 
     const { systemPrompt, format, cacheHint } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
-    logger.debug(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
+    this.logger.debug(`Set prompt cache for ${key} for prompt ${prompt.substr(0, 16)}... to ${(JSON.stringify(val) || '' + val).substr(0, 32)}..."`);
     return this.cache.set(key, val, 'prompt');
   }
 
@@ -131,17 +145,17 @@ export const BaseAI = class {
     try {
       tokens = await this.countTokens(prompt);
     } catch (e) {
-      logger.error(`${this} Error while counting tokens for stream: ${e}`);
+      this.logger.error(`${this} Error while counting tokens for stream: ${e}`);
       return;
     }
-    logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
+    this.logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
     let cached;
     try {
       cached = await this.getCache(prompt, options);
     } catch (e) {
-      logger.error(`${this} Error while getting cache: ${e}`);
+      this.logger.error(`${this} Error while getting cache: ${e}`);
     }
     if (cached) {
       if (format == 'jsonl') {
@@ -175,7 +189,7 @@ export const BaseAI = class {
         try {
           for await (const chunk of this.inner(prompt, options)) {
             if (this.signal?.aborted) {
-              logger.debug(`${this} Already aborted, break inner`);
+              this.logger.debug(`${this} Already aborted, break inner`);
               done = true;
               break;
             }
@@ -224,11 +238,11 @@ export const BaseAI = class {
           this.stats.requests.errors++;
 
           if (retries-- <= 0) {
-            logger.error(`${this} No retries left after: ${e}`);
+            this.logger.error(`${this} No retries left after: ${e}`);
             throw e;
           }
 
-          logger.warn(`${this} Retrying after error (${retries} left): ${e}`);
+          this.logger.warn(`${this} Retrying after error (${retries} left): ${e}`);
           await sleep(4000);
         }
       } // Retry loop
@@ -245,7 +259,7 @@ export const BaseAI = class {
       this.stats.runtime.sec += msec / 1000;
 
       if (err) {
-        logger.warn(`${this} Error during AI stream, not caching`);
+        this.logger.warn(`${this} Error during AI stream, not caching`);
       } else {
         this.setCache(prompt, options, result);
       }
@@ -257,10 +271,10 @@ export const BaseAI = class {
     try {
       tokens = await this.countTokens(prompt);
     } catch (e) {
-      logger.error(`${this} Error while counting tokens for ask: ${e}`);
+      this.logger.error(`${this} Error while counting tokens for ask: ${e}`);
       return;
     }
-    logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
+    this.logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     let result;
     let retries = Math.min(this.maxRetries, options?.retries ?? 2);
@@ -272,13 +286,13 @@ export const BaseAI = class {
         }
 
       } catch(e) {
-        logger.error(`Caught ${this} error: ${e}`);
+        this.logger.error(`Caught ${this} error: ${e}`);
 
         if (!e.status || --retries <= 0) {
           throw e;
         }
 
-        logger.debug(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
+        this.logger.debug(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
         await sleep(retryMsec);
       }
 
@@ -286,7 +300,7 @@ export const BaseAI = class {
     }
 
     if (!result) {
-      logger.warn(`Got no response for prompt ${prompt.substr(0, 100)}: ${result}`);
+      this.logger.warn(`Got no response for prompt ${prompt.substr(0, 100)}: ${result}`);
       result = {};  // Cache it as empty dict
     }
 

@@ -1,14 +1,14 @@
 import assert from 'assert';
 import http from 'http';
 import { logger } from '../../src/log/logger.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 import { getFetcher, getAI } from '../../src/index.js';
 import { Instructions } from '../../src/fetch/Instructions.js';
 
 describe('PlaywrightFetcher', function() {
 
   // Playwright tests take a little longer to execute
-  this.timeout(60 * 1000);
+  setTestTimeout(this, 15 * 1000);
 
   before(() => {
     logger.testMode();
@@ -42,7 +42,7 @@ describe('PlaywrightFetcher', function() {
     assert.ok(took < 500);
   });
 
-  it('should fetch live site @run @fast', async () => {
+  it('should fetch live site @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end('<html><body><h1>Hello, world!</h1></body></html>');
@@ -66,7 +66,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should fetch live site with dynamic content @run @fast', async () => {
+  it('should fetch live site with dynamic content @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -109,7 +109,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should fetch and paginate through 5 pages on a live site @run @fast', async () => {
+  it('should fetch and paginate through 5 pages on a live site @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -141,7 +141,7 @@ describe('PlaywrightFetcher', function() {
       const ai = getAI('openai:gpt-4o-mini', { cache });
       const fetcher = getFetcher(
         'playwright',
-        { ai, cache, loadWait: 10, actionWait: 10, headless: true });
+        { ai, cache, loadWait: 10, actionWait: 10 });
       const gen = fetcher.fetch(`http://localhost:${port}`, { maxPages: 5 });
 
       let i = 1;
@@ -157,7 +157,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should timeout properly @run @fast', async () => {
+  it('should timeout properly @fast', async () => {
     const server = http.createServer(async (req, res) => {
       await new Promise(ok => setTimeout(ok, 20));
       res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -200,7 +200,7 @@ describe('PlaywrightFetcher', function() {
     }
   });
 
-  it('should minimize HTML content @run @fast', async () => {
+  it('should minimize HTML content @fast', async () => {
     const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`
@@ -254,7 +254,7 @@ describe('PlaywrightFetcher', function() {
   });
 
 
-  it('should fetch pdf @run @fast', async () => {
+  it('should fetch pdf @fast', async () => {
     const cache = testCache();
     const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
 
@@ -265,7 +265,7 @@ describe('PlaywrightFetcher', function() {
     assert.ok(doc.text.indexOf('bitcoin') != -1);
   });
     
-  it('should handle protected pdf @run @fast', async () => {
+  it('should handle protected pdf @fast', async () => {
     const cache = testCache();
     const fetcher = getFetcher('playwright', { cache, loadWait: 1 });
 

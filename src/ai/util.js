@@ -34,9 +34,10 @@ export const parseAnswer = (text, format) => {
     const lines = clean.split('\n');
     const result = [];
     let leftover = '';
+
     for (const line of lines) {
-      if (leftover) {
-        leftover += line;
+      if (leftover.trim()) {
+        leftover += line.trim();
         continue;
       }
 
@@ -69,6 +70,7 @@ export const getModelData = async (provider, model, cache) => {
     .replace('gemini/', 'google/')
     .replace('-latest', '')
     .replace('claude-3-5', 'claude-3.5')
+    .replace(/(claude-3.5-[a-z]+).*/, '$1');
 
   let data
   const key = 'openrouter-model-data-' + id;
@@ -107,6 +109,7 @@ export const getModelData = async (provider, model, cache) => {
 
   if (!data) {
     logger.warn(`Could not find model data in OpenRouter API: ${id}`);
+
     return {
       maxTokens: 128000,
       pricing: {

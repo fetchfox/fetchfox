@@ -19,7 +19,7 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
       console.log(testName);
 
       try {
-        this.timeout(3 * 60 * 1000); // 3 minutes
+        this.timeout(10 * 60 * 1000); // 10 minutes per benchmark
         const scores = await runMatrix(
           name,
           json,
@@ -86,7 +86,14 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
 
     const before = JSON.parse(JSON.stringify(wf.ctx.ai.stats));
 
-    const out = await wf.run();
+    const start = new Date().getTime();
+    let firstMsec;
+    const out = await wf.run(null, () => {
+      if (!firstMsec) {
+        firstMsec = new Date().getTime() - start;
+      }
+    });
+    const totalMsec = new Date().getTime() - start;
 
     const after = JSON.parse(JSON.stringify(wf.ctx.ai.stats));
     const diff = diffStats(before, after);
@@ -109,6 +116,8 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     const s = {
       name,
       timestamp,
+      firstMsec,
+      totalMsec,
       date,
       branch,
       commit,

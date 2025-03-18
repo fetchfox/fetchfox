@@ -1,3 +1,4 @@
+import { logger as defaultLogger } from '../log/logger.js';
 import { getAI, BaseAI } from '../ai/index.js';
 import { getCrawler, BaseCrawler } from '../crawl/index.js';
 import { getExtractor, BaseExtractor } from '../extract/index.js';
@@ -15,21 +16,24 @@ export const decodeableKeys = [
 ];
 
 const decodeArgs = (args, cache) => {
+  const logger = args?.logger || defaultLogger;
 
   const decoded = {};
   decoded.publishAllSteps = args.publishAllSteps;
   decoded.signal = args.signal;
   decoded.cache = cache;
+  decoded.logger = logger;
 
   const diskCache = args.diskCache || process.env.DISK_CACHE;
   if (diskCache) {
-    args.cache = new DiskCache(diskCache);
+    args.cache = new DiskCache(diskCache, { logger });
   }
   const s3Cache = args.s3Cache;
   if (s3Cache) {
-    args.cache = new S3Cache(s3Cache);
+    args.cache = new S3Cache(s3Cache, { logger });
   }
   if (args.cache) {
+    args.cache.logger = logger;
     decoded.cache = args.cache;
   }
 
@@ -52,7 +56,7 @@ const decodeArgs = (args, cache) => {
     }
 
     if (!val) {
-      const useOptions = { ...decoded, cache: decoded.cache, ...options };
+      const useOptions = { ...decoded, logger, cache: decoded.cache, ...options };
       val = getter(which, useOptions);
     }
     decoded[key] = val;
@@ -76,6 +80,7 @@ export const Context = class {
     }
 
     this.args = args;
+    this.logger = args?.logger || defaultLogger;
   }
 
   dump() {
@@ -105,6 +110,9 @@ export const Context = class {
     }
 
     this.args = combined;
+    if (this.args.logger) {
+      this.logger = this.args.logger;
+    }
 
     return this;
   }

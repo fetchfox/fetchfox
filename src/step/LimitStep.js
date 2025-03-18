@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 
 export const LimitStep = class extends BaseStep {
@@ -9,8 +8,8 @@ export const LimitStep = class extends BaseStep {
     super(args);
   }
 
-  async process({ item }, cb) {
-    logger.debug(`Limit step on ${JSON.stringify(item).substr(0, 100)}`);
+  async process({ cursor, item }, cb) {
+    cursor.ctx.logger.debug(`Limit step on ${JSON.stringify(item).substr(0, 100)}`);
     cb(item);
   }
 }

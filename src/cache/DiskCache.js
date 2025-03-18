@@ -1,10 +1,11 @@
+import { logger as defaultLogger } from '../log/logger.js';
 import fs from 'fs';
 import path from 'path';
-import { logger } from '../log/logger.js';
 
 export const DiskCache = class {
   constructor(dirname, options) {
     const { ttls } = options || {};
+    this.logger = options.logger || defaultLogger;
     this.dirname = dirname;
     this.ttls = ttls || {};
     fs.promises.mkdir(dirname, { recursive: true });
@@ -53,7 +54,7 @@ export const DiskCache = class {
     try {
       data = JSON.parse(file);
     } catch(e) {
-      logger.warn(`Failed to parse JSON for cache file ${filepath}: ${e}`);
+      this.logger.warn(`Failed to parse JSON for cache file ${filepath}: ${e}`);
       this.del(key);
       return null;
     }

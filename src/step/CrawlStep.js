@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 
 export const CrawlStep = class extends BaseStep {
@@ -14,24 +13,25 @@ export const CrawlStep = class extends BaseStep {
     if (!query) throw new Error('no query');
 
     this.query = query;
-    this.css = args?.css;
   }
 
   async process({ cursor, item, index }, cb) {
     const crawler = cursor.ctx.crawler;
 
     const options = {
-      css: this.css,
       maxPages: this.maxPages,
-      fetchOptions: { priority: index },
+      fetchOptions: {
+        priority: index,
+        instructionsCacheKey: `index-${index}`,
+      },
     };
 
-    const url = item.getUrl();
+    const url = item.getUrl ? item.getUrl() : (item.url || item._url);
 
     try {
       for await (const output of crawler.run(url, this.query, options)) {
         if (!output._url) {
-          logger.error(`No URL found for item ${item}`);
+          cursor.ctx.logger.error(`No URL found for item ${item}`);
           continue;
         }
 
@@ -39,7 +39,7 @@ export const CrawlStep = class extends BaseStep {
         if (done) break;
       }
     } catch (e) {
-      logger.error(`${this} Got error: ${e}`);
+      cursor.ctx.logger.error(`${this} Got error: ${e}`);
       throw e;
     }
   }

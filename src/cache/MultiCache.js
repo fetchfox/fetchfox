@@ -1,7 +1,8 @@
-import { logger } from '../log/logger.js';
+import { logger as defaultLogger } from '../log/logger.js';
 
 export const MultiCache = class {
-  constructor(caches) {
+  constructor(caches, options) {
+    this.logger = options?.logger || defaultLogger;
     // Order matters: caches are checked in order, and results
     // from later caches are filled in to earlier ones.
     this.caches = caches;
@@ -12,18 +13,18 @@ export const MultiCache = class {
   }
 
   async set(key, val, label) {
-    logger.info(`${this} Set caches ${key}: ${this.caches.map(c => '' + c)}`);
+    this.logger.info(`${this} Set caches ${key}: ${this.caches.map(c => '' + c)}`);
 
     try {
       await Promise.allSettled(this.caches.map(c => c.set(key, val, label)));
     } catch (e) {
-      logger.error(`${this} Error while setting caches: ${e}`);
+      this.logger.error(`${this} Error while setting caches: ${e}`);
       throw e;
     }
   }
 
   async get(key) {
-    logger.info(`${this} Get from caches: ${this.caches.map(c => '' + c)}`);
+    this.logger.info(`${this} Get from caches: ${this.caches.map(c => '' + c)}`);
 
     let result;
     let i;
@@ -32,7 +33,7 @@ export const MultiCache = class {
       try {
         result = await cache.get(key);
       } catch (e) {
-        logger.error(`${this} Error while getting from cache ${cache}: ${e}`);
+        this.logger.error(`${this} Error while getting from cache ${cache}: ${e}`);
         throw e;
       }
 
@@ -50,7 +51,7 @@ export const MultiCache = class {
     try {
       await Promise.allSettled(this.caches.map(c => c.set(key, result)));
     } catch (e) {
-      logger.error(`${this} Error while setting caches in get: ${e}`);
+      this.logger.error(`${this} Error while setting caches in get: ${e}`);
       throw e;
     }
 
@@ -58,12 +59,12 @@ export const MultiCache = class {
   }
 
   async del(key) {
-    logger.info(`${this} Delete from caches ${key}: ${this.caches.map(c => '' + c)}`);
+    this.logger.info(`${this} Delete from caches ${key}: ${this.caches.map(c => '' + c)}`);
 
     try {
       await Promise.allSettled(this.caches.map(c => c.del(key)));
     } catch (e) {
-      logger.error(`${this} Error while deleting from caches: ${e}`);
+      this.logger.error(`${this} Error while deleting from caches: ${e}`);
       throw e;
     }
   }

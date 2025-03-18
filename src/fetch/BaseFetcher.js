@@ -1,6 +1,7 @@
+import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
-import { logger } from '../log/logger.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { createChannel, shortObjHash, srid } from '../util.js';
 import { presignS3 } from './util.js';
@@ -9,14 +10,10 @@ import { Instructions } from './Instructions.js';
 export const BaseFetcher = class {
   constructor(options) {
     this.cache = options?.cache;
+    this.logger = options?.logger || defaultLogger;
     this.ai = options?.ai || getAI();
     this.queue = [];
-    this.usage = {
-      requests: 0,
-      completed: 0,
-      cached: 0,
-      runtime: 0,
-    };
+    this.usage = { goto: 0 };
 
     this.q = new PQueue({
       concurrency: options?.concurrency || 4,
@@ -28,10 +25,14 @@ export const BaseFetcher = class {
     this.css = options?.css;
     this.signal = options?.signal;
 
-    this.loadWait = options?.loadWait || 4000;
-    this.actionWait = options?.actionWait || 4000;
-    this.paginationWait = options?.paginationWait || this.loadWait;
-    this.loadTimeout = options?.loadTimeout || 15000;
+    this.wait = options?.wait || 4000;
+    this.timeout = options?.timeout || 60000;
+
+    this.loadWait = options?.loadWait || this.wait;
+    this.actionWait = options?.actionWait || this.wait;
+
+    this.loadTimeout = options?.loadTimeout || this.timeout;
+    this.actionTimeout = options?.actionTimeout || this.timeout;
   }
 
   toString() {
@@ -44,13 +45,8 @@ export const BaseFetcher = class {
         return doc;
       }
     } catch (e) {
-      logger.error(`${this} Error getting cache ${target}: ${e}`);
+      this.logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
-  }
-
-  async clear() {
-    logger.info(`${this} clear fetch queue`);
-    this.q.clear();
   }
 
   async start() {
@@ -59,8 +55,13 @@ export const BaseFetcher = class {
   async finish() {
   }
 
+  async goto(url, ctx) {
+    this.usage.goto++;
+    return this._goto(url, ctx);
+  }
+
   async *fetch(target, options) {
-    logger.info(`${this} Fetch ${target} with ${this}`);
+    this.logger.info(`${this} Fetch ${target} with ${JSON.stringify(options)}`);
 
     const toInstructions = (target) => {
       let instr;
@@ -83,6 +84,7 @@ export const BaseFetcher = class {
             ai: this.ai,
             cache: this.cache,
             loadTimeout: this.loadTimeout,
+            hint: options?.hint,
           });
       }
 
@@ -101,7 +103,7 @@ export const BaseFetcher = class {
     try {
       const url = new URL(instr.url);
       if (!['http:', 'https:'].includes(url.protocol)) {
-        logger.debug(`${this} Skipping because of protocol: ${url}`);
+        this.logger.debug(`${this} Skipping because of protocol: ${url}`);
         return null;
       }
     } catch {
@@ -117,14 +119,14 @@ export const BaseFetcher = class {
     try {
       cached = await this.getCache(instr.serialize(), cacheOptions);
     } catch (e) {
-      logger.error(`${this} Error getting cache ${target}: ${e}`);
+      this.logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
 
     if (cached) {
-      logger.debug(`${this} Returning cached ${cached}`);
+      this.logger.debug(`${this} Returning cached ${cached}`);
       this.usage.cached++;
       for (const doc of cached) {
-        logger.info(`${this} Yielding cached document: ${doc}`);
+        this.logger.info(`${this} Yielding cached document: ${doc}`);
         yield Promise.resolve(doc);
       }
       return;
@@ -153,17 +155,17 @@ export const BaseFetcher = class {
     }
 
     try {
-      if (await isPdf(instr.url)) {
+      if (await isPdf(instr.url, this.logger)) {
         const host = process.env.API_HOST || 'https://fetchfox.ai';
         const apiUrl = `${host}/api/v2/pdf?url=${encodeURIComponent(instr.url)}`;
 
-        logger.debug(`${this} Decoding PDF via ${apiUrl}`);
+        this.logger.debug(`${this} Decoding PDF via ${apiUrl}`);
         instr.url = apiUrl;
       }
 
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
-      logger.debug(`${this} Adding to fetch queue: ${instr} ${debugStr()}`);
+      this.logger.debug(`${this} Adding to fetch queue: ${instr.url} ${debugStr()}`);
       const priority = options?.priority || 1;
 
       // Use channel + promise wrapper to convert async generator into a
@@ -177,23 +179,44 @@ export const BaseFetcher = class {
           // See https://github.com/fetchfox/fetchfox/issues/42
           /* eslint-disable no-async-promise-executor */
           return new Promise(async (ok) => {
-            logger.debug(`${this} Queue is starting fetch of: ${instr} ${debugStr()}`);
+            this.logger.debug(`${this} Queue is starting fetch of: ${instr.url} ${debugStr()}`);
 
             try {
-              logger.debug(`${this} Starting at ${instr.url}`);
+              this.logger.debug(`${this} Starting at ${instr.url}`);
 
-              await instr.learn(this);
+              const hash = (doc) => shortObjHash({ data: doc?.selectHtml || doc?.text || doc?.html });
+
+              let cacheKey;
+              if (options?.instructionsCacheKey) {
+                cacheKey = options.instructionsCacheKey;
+              }
+
+              const seen = {};
+              for await (const r of instr.learn(this, { cacheKey })) {
+                const doc = r?.doc;
+                if (this.signal?.aborted) {
+                  break;
+                }
+                if (doc) {
+                  channel.send({ doc });
+                  seen[hash(doc)] = true;
+                }
+              }
+
               const gen = await instr.execute(this);
 
               for await (const r of gen) {
                 const doc = r?.doc;
-
                 if (this.signal?.aborted) {
                   break;
                 }
-
+                if (seen[hash(doc)]) {
+                  this.logger.debug(`${this} Skip seen html ${doc}`);
+                  continue;
+                }
                 if (doc) {
                   channel.send({ doc });
+                  seen[hash(doc)] = true;
                 }
               }
 
@@ -201,11 +224,11 @@ export const BaseFetcher = class {
               if (process.env.STRICT_ERRORS) {
                 throw e;
               } else {
-                logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
+                this.logger.error(`${this} Caught error while getting documents, ignoring: ${e} ${e.stack}`);
               }
             }
 
-            logger.debug(`${this} Closing docs channel`);
+            this.logger.debug(`${this} Closing docs channel`);
             channel.end();
 
             ok();
@@ -215,11 +238,11 @@ export const BaseFetcher = class {
         { priority });
 
       p.catch((e) => {
-        logger.debug(`${this} Caught error on fetcher queue: ${e}`);
+        this.logger.debug(`${this} Caught error on fetcher queue: ${e}`);
         throw e;
       });
 
-      logger.debug(`${this} Fetch queue has ${this.q.size} requests ${debugStr()}`);
+      this.logger.debug(`${this} Fetch queue has ${this.q.size} requests ${debugStr()}`);
 
       this.usage.completed++;
 
@@ -231,18 +254,18 @@ export const BaseFetcher = class {
 
           const doc = val.doc;
 
-          logger.debug(`${this} Should we filter for CSS? ${options?.css}`);
+          this.logger.debug(`${this} Should we filter for CSS? ${options?.css}`);
           if (options?.css) {
             doc.parseHtml(options.css);
           }
 
           await this.putS3(doc);
 
-          logger.info(`${this} Yielding document: ${doc}`);
+          this.logger.info(`${chalk.yellow('\u{25CF}')} Yielding document: ${doc}`);
           yield Promise.resolve(pushAndReturn(doc));
         }
       } catch (e) {
-        logger.error(`${this} Error while reading from documents channel: ${e}`);
+        this.logger.error(`${this} Error while reading from documents channel: ${e}`);
         throw e;
       }
 
@@ -258,18 +281,18 @@ export const BaseFetcher = class {
           .all(docs.map(doc => doc.dump()))
           .then((all) => this.setCache(instr.serialize(), cacheOptions, all))
           .catch((e) => {
-            logger.error(`${this} Error while caching docs cache, ignoring: ${e}`);
+            this.logger.error(`${this} Error while caching docs cache, ignoring: ${e}`);
           });
       }
     }
   }
 
   async putS3(doc) {
-    logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     if (!this.s3) {
       return;
     }
 
+    this.logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     const bucket = this.s3.bucket;
     const region = this.s3.region;
     const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
@@ -285,7 +308,7 @@ export const BaseFetcher = class {
         bucket, key, contentType: 'text/html', acl, region });
       await doc.uploadHtml(presignedUrl);
     } catch (e) {
-      logger.error(`${this} Failed to upload ${key}: ${e}`);
+      this.logger.error(`${this} Failed to upload ${key}: ${e}`);
     }
   }
 
@@ -306,12 +329,12 @@ export const BaseFetcher = class {
     try {
       result = await this.cache.get(key);
     } catch (e) {
-      logger.error(`${this} Error getting cache ${key}: ${e}`);
+      this.logger.error(`${this} Error getting cache ${key}: ${e}`);
       return;
     }
     const hit = Array.isArray(result) && result.length > 0;
     const outcome = hit ? '(hit)' : '(miss)';
-    logger.debug(`${this} Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
+    this.logger.debug(`${this} Fetch cache ${outcome} for ${url} ${result} key=${key} options=${JSON.stringify(options)}`);
 
     if (hit) {
       const docs = [];
@@ -320,12 +343,12 @@ export const BaseFetcher = class {
         try {
           await doc.loadData(data);
         } catch (e) {
-          logger.error(`${this} Error loading data ${doc}: ${e}`);
+          this.logger.error(`${this} Error loading data ${doc}: ${e}`);
           return;
         }
         docs.push(doc);
       }
-      logger.debug(`${this} Fetch cache loaded ${docs.map(d => ''+d).join(', ')}`);
+      this.logger.debug(`${this} Fetch cache loaded ${docs.map(d => ''+d).join(', ')}`);
       return docs;
     } else {
       return null;
@@ -335,19 +358,19 @@ export const BaseFetcher = class {
   async setCache(url, options, val) {
     if (!this.cache) return;
     const key = this.cacheKey(url, options);
-    logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
+    this.logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');
   }
 }
 
-const isPdf = async (url) => {
+const isPdf = async (url, logger) => {
   try {
     const resp = await fetch(url, { method: 'HEAD' });
     const contentType = resp.headers.get('Content-Type');
 
     return contentType && contentType.startsWith('application/pdf');
   } catch (e) {
-    logger.error(`Error while fetching content type for ${url}: ${e.stack}`);
+    logger.warn(`Error while fetching content type for ${url}: ${e}`);
     return false;
   }
 }

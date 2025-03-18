@@ -4,21 +4,26 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkIncreasingSize } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate producthunt.com', async function() {
+describe('www.enforcetac.com', async function() {
   const matrix = standardMatrix();
 
   const wf = await fox
-    .init('https://www.producthunt.com/')
-    .fetch({ maxPages: 2 })
+    .init('https://www.enforcetac.com/de-de/aussteller-produkte/aussteller-finden')
+    .action({
+      commands: [
+        { prompt: 'accept cookies if necessary (optional)' },
+        { prompt: 'scroll down to the bottom of the page to paginate', limit: 5 },
+      ]
+    })
     .plan();
 
   return itRunMatrix(
     it,
-    'paginate producthunt.com',
+    'should accept cookies and paginate',
     wf.dump(),
     matrix,
     [
-      (items) => checkIncreasingSize(items, 2),
+      (items) => checkIncreasingSize(items, 5),
     ],
     { shouldSave: true });
 });

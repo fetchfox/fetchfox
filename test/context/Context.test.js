@@ -4,7 +4,7 @@ import { Context } from '../../src/context/Context.js';
 
 describe('Context', function() {
 
-  it('should update @run @fast', () => {
+  it('should update @fast', () => {
     const ctx = new Context({ publishAllSteps: true, limit: 5 });
 
     assert.equal(ctx.fetcher.constructor.name, 'PlaywrightFetcher');

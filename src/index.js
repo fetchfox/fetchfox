@@ -1,6 +1,8 @@
 import events from 'events';
 events.EventEmitter.defaultMaxListeners = 50;
 
+export { Logger } from './log/logger.js';
+
 export { getAI } from './ai/index.js';
 export { getCrawler } from './crawl/index.js';
 export { getExtractor } from './extract/index.js';

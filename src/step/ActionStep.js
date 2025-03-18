@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 import { Instructions } from '../fetch/index.js';
 
@@ -17,12 +16,10 @@ export const ActionStep = class extends BaseStep {
     const fetcherCtx = {};
     await cursor.ctx.fetcher.start(fetcherCtx);
     try {
-      await instr.learn(cursor.ctx.fetcher, fetcherCtx);
-      logger.debug(`${this} Proceeding with learned actions: ${JSON.stringify(instr.learned, null, 2)}`);
-      const gen = instr.execute(cursor.ctx.fetcher, fetcherCtx);
-      for await (const { doc } of gen) {
+      const gen = cursor.ctx.fetcher.fetch(instr);
+      for await (const doc of gen) {
         if (!doc) {
-          logger.warn(`${this} Got null doc for ${instr}`);
+          cursor.ctx.logger.warn(`${this} Got null doc for ${instr}`);
           continue;
         }
         const done = cb(doc);

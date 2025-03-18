@@ -1,9 +1,11 @@
 import assert from 'assert';
 import { logger } from '../../src/log/logger.js';
 import { getAI } from '../../src/index.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('OpenRouter', function() {
+
+  setTestTimeout(this);
 
   before(() => {
     logger.testMode();
@@ -24,7 +26,7 @@ describe('OpenRouter', function() {
     }
   });
 
-  it('should use gpt-4o-mini with default base URL (cached) @run @fast', async () => {
+  it('should use gpt-4o-mini with default base URL (cached) @fast', async () => {
     const cases = [
       'openrouter:openai/gpt-4o-mini',
       'openrouter:openai/gpt-4o',
@@ -41,7 +43,7 @@ describe('OpenRouter', function() {
   });
 
 
-  it('should use api key @run @fast', async () => {
+  it('should use api key @fast', async () => {
     const ai = getAI('openrouter:openai/gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 });
     let err;
     try {

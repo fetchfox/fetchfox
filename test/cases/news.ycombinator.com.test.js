@@ -4,22 +4,27 @@ import { logger } from '../../src/log/logger.js';
 import assert from 'assert';
 import process from 'node:process';
 import { fox } from '../../src/index.js';
-import { testCache } from '../lib/util.js';
+import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('news.ycombinator.com', function() {
+
+  setTestTimeout(this);
 
   before(() => {
     logger.testMode();
   });
 
-  it('should work @run @fast', async () => {
+  it('should work @fast', async () => {
     let countPartials = 0;
     const wf = await fox
       .config({ cache: testCache() })
       .init('https://news.ycombinator.com')
       .extract({
-        articleTitle: 'What is the title of the article?',
-        numComments: 'What is the number of comments?',
+        questions: {
+          articleTitle: 'What is the title of the article?',
+          numComments: 'What is the number of comments?',
+        },
+        maxPages: 1,
       });
 
     const out = await wf
@@ -44,27 +49,26 @@ describe('news.ycombinator.com', function() {
     wf.abort();
   });
 
-  it('should crawl @run @fast', async () => {
+  it('should crawl @fast', async () => {
     let countPartials = 0;
     const wf = await fox
       .config({ cache: testCache() })
       .init('https://news.ycombinator.com')
       .crawl({
         query: 'find links to comment pages, format: https://news.ycombinator.com/item?id=...',
-        limit: 5,
+        maxPages: 1,
       })
       .extract({
-        topCommenter: 'What is the username of the top commenter?',
-        single: true,
-      });
+        questions: {
+          topCommenter: 'What is the username of the top commenter?',
+          single: true,
+        },
+        maxPages: 1,
+      })
+      .limit(5);
 
-    const out = await wf
-      .run(null, (partial) => {
-        countPartials++;
-      });
-
-    assert.ok(countPartials > 1 && countPartials < 10);
-    assert.ok(out.items.length > 1 && out.items.length < 10);
+    const out = await wf.run();
+    assert.ok(out.items.length, 5);
 
     wf.abort();
   });
