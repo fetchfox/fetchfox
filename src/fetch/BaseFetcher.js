@@ -84,7 +84,7 @@ export const BaseFetcher = class {
           {
             ai: this.ai,
             cache: this.cache,
-            loadTimeout: this.loadTimeout,
+            timeout: this.timeout,
             hint: options?.hint,
           });
       }

@@ -31,7 +31,7 @@ export const Instructions = class {
     this.cache = options?.cache;
 
     this.ai = options?.ai || getAI(null, { cache: this.cache });
-    this.loadTimeout = options?.loadTimeout || 60000;
+    this.timeout = options?.timeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
 
@@ -138,7 +138,7 @@ export const Instructions = class {
             .catch((e) => {
               this.logger.error(`Error while trying to scroll for pagination: ${e}`);
             });
-          scrollPromise = pTimeout(p, { milliseconds: this.loadTimeout });
+          scrollPromise = pTimeout(p, { milliseconds: this.timeout });
         }
 
         yield Promise.resolve({ doc });
@@ -573,7 +573,7 @@ ${this.hint}` : '',
   }
 
   async current(fetcher, ctx) {
-    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.timeout });
     this.logger.debug(`${this} Got document: ${doc}`);
     return doc;
   }
