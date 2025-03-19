@@ -17,7 +17,11 @@ const normalizeText = (text) => {
 
 const trimJson = (data) => {
   for (const key in data) {
-    data[key] = normalizeText('' + data[key]);
+    if (typeof data[key] == 'string') {
+      data[key] = normalizeText('' + data[key]);
+    } else {
+      data[key] = trimJson(data[key]);
+    }
   }
   return data;
 }
@@ -42,6 +46,7 @@ export const parseAnswer = (text, format) => {
       }
 
       try {
+        // console.log('push line', line);
         result.push(trimJson(JSON.parse(line))) }
       catch {
         leftover = line;
