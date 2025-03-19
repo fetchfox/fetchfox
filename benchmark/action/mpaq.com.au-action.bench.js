@@ -5,7 +5,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsAI, checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('action onereal.com', async function() {
+describe('action mpaq.com.au', async function() {
   const matrix = standardMatrix();
 
   const prefixes = [
@@ -17,38 +17,29 @@ describe('action onereal.com', async function() {
 
   for (const prefix of prefixes) {
     const wf = await fox
-      .init('https://onereal.com/search-agent?search_by=LOCATION&state_code=US-FL')
+      .init('https://mpaq.com.au/find-a-plumber')
       .action({
         commands: [
-          `Click show more up to 2 times`
+          `Select each specialty, enter 4008 as the post code, select 30 kms, and click search.`
         ]
       })
       .extract({
         questions: {
-          url: 'URL of the agent profile',
+          url: 'URL of the plumber',
         },
         mode: 'multiple',
-      })
-      .extract({
-        questions: {
-          agent_name: 'What is the name of the agent?   ',
-          location: 'What is the location of the agent?',
-          url: 'What is the link to the agent profile?',
-          email_address: 'What is the email address of the agent?',
-          phone_number: 'What is the phone number of the agent?',
-        },
-        mode: 'single',
       })
       .limit(limit)
       .plan();
 
     await itRunMatrix(
       it,
-      `action onereal.com (prefix=${prefix})`,
+      `action mpaq.com.au (prefix=${prefix})`,
       wf.dump(),
       matrix,
       [
         (items) => {
+          console.log('items', items);
           // TODO: check it items via checkItemsAI
           // return checkItemsAI(items, expected, ['name', 'phone', 'email']);
           checkAtLeast(items, limit)
