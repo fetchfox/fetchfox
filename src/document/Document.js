@@ -129,6 +129,7 @@ export const Document = class {
   async learn(ai, template) {
     const format = {};
     format['_analysis'] = 'Analysis in 10-200 words of how to select the relevant data';
+    format['_container'] = 'CSS selector for elements enclosing answers to each question, if available';
     for (const key of Object.keys(template)) {
       format[key] = `CSS selector for ${key}`;
     }
@@ -138,7 +139,7 @@ export const Document = class {
     format['_hint'] = 'Any helpful information for answering the questions';
     format['_confidence'] = 'Confidence in overall response effectiveness from 0-100';
 
-    console.log('format', format);
+    logger.info('format', format);
 
     const context = {
       html: this.html,
@@ -149,12 +150,15 @@ export const Document = class {
     const { prompt } = await prompts.learnCSS.renderCapped(
       context, 'html', ai.advanced);
 
-    console.log(prompt);
+    logger.debug(prompt);
     const answer = await ai.advanced.ask(prompt, { format: 'json' });
-    console.log('answer', answer.partial);
+    logger.info('answer', answer.partial);
     const fields = Object.keys(answer.partial).filter(k => !k.startsWith('_'));
+    if (answer.partial._combined) {
+      fields.push(answer.partial._combined)
+    }
     const selectors = fields.map(key => answer.partial[key]);
-    console.log('selectors', selectors);
+    logger.info('selectors', selectors);
 
     // TODO: figure out where to put this
     const root = parse(this.html);
@@ -190,37 +194,57 @@ export const Document = class {
     const sharedFields = fields.filter(f => (answer.partial._shared ?? []).includes(f));
     const normalFields = fields.filter(f => !sharedFields.includes(f));
 
-    const toObj = (include) => {
-      const result = [];
-      let obj = {};
-      let context = {};
-      let prev = null;
+    const prune = (node) => {
+      let kept = !!node.field;
+      for (const child of node.childNodes) {
+        if (prune(child)) {
+          kept = true;
+        } else {
+          // if HTML element
+          if (child.tagName) {
+            child.remove();
+          }
+        }
+      }
+      if (kept) {
+        return node;
+      } else {
+        return null;
+      }
+    }
 
+    const collect = (node) => {
+      const kept = !!node.field;
+      const keep = [];
+      for (const child of node.childNodes) {
+        keep.push(...collect(child));
+      }
+
+      if (kept) {
+        return [node];
+      } else {
+        return keep;
+      }
+    }
+
+    const addAll = (node) => {
+      // collect descendants to include
+      const include = [];
+      let current = collect(node);
+      while (current.length > 0) {
+        include.push(...current);
+        let children = []
+        for (n of current) {
+          children.push(...n.childNodes.map(n => collect(n)));
+        }
+        current = children;
+      }
+
+      const obj = {};
       for (const el of include) {
-        for (const field of [el.field, ...el.extraFields]) {
-          let href = '';
-          if (answer.partial[field].endsWith('[href]') || field.toLowerCase().endsWith('url')) {
-            href = el.getAttribute('href');
-          }
-          const value = href || el.text.trim();
-
-          // Handle shared fields (e.g., generation as a header)
-          if (sharedFields.includes(field)) {
-            if (Object.keys(obj).length != 0) {
-              result.push({ ...context, ...obj });
-            }
-            obj = {};
-            context[field] = value;
-            prev = null;
-            continue; // Wait for a normal field to add to the object
-          }
-
-          // Check if this field starts a new object
-          if (normalFields.includes(field) && field in obj && prev != field) {
-            result.push({ ...context, ...obj });
-            obj = {};
-          }
-
+        const value = el.toString();
+        const fields = [el.field, ...el.extraFields];
+        for (const field of fields) {
           // Add value(s) to current object
           if (field in obj) {
             if (!Array.isArray(obj[field])) {
@@ -230,7 +254,55 @@ export const Document = class {
           } else {
             obj[field] = value;
           }
-          prev = field;
+        }
+      }
+      return obj;
+    }
+
+    const toObj = (include) => {
+      const result = [];
+      let obj = {};
+      let context = {};
+      let prev = null;
+
+      for (const el of include) {
+        const fields = [el.field, ...el.extraFields];
+        for (const field of fields) {
+          if (fields.includes('_container')) {
+            result.push(addAll(el));
+            continue;
+          } else {
+            // Otherwise, treat as sequential
+            const value = el.toString();
+
+            // Handle shared fields (e.g., generation as a header)
+            if (sharedFields.includes(field)) {
+              if (Object.keys(obj).length != 0) {
+                result.push({ ...context, ...obj });
+              }
+              obj = {};
+              context[field] = value;
+              prev = null;
+              continue; // Wait for a normal field to add to the object
+            }
+
+            // Check if this field starts a new object
+            if (normalFields.includes(field) && field in obj && prev != field) {
+              result.push({ ...context, ...obj });
+              obj = {};
+            }
+
+            // Add value(s) to current object
+            if (field in obj) {
+              if (!Array.isArray(obj[field])) {
+                obj[field] = [obj[field]];
+              }
+              obj[field].push(value);
+            } else {
+              obj[field] = value;
+            }
+            prev = field;
+          }
         }
       }
 
@@ -242,58 +314,17 @@ export const Document = class {
       return result;
     }
 
-    const toHtml = (node) => {
-      let html = '';
-      let kept = false;
-
-      for (const child of node.childNodes) {
-        let keep = '';
-        const text = child.innerText;
-        const ok = !!child.field;
-        const fieldsStr = ok ? [child.field, ...child.extraFields].join(' ') : '';
-        const isLink = child.tagName && (child.tagName.toLowerCase() == 'a') && child.getAttribute('href');
-
-        if (ok) {
-          kept = true;
-          if (isLink) {
-            const href = child.getAttribute('href');
-            keep += `<a class=${fieldsStr} href=${href}>` + text;
-          } else {
-            keep += `<div class=${fieldsStr}>` + text;
-          }
-        }
-
-        keep += toHtml(child);
-
-        if (ok) {
-          if (isLink) {
-            keep += '</a>';
-          } else {
-            keep += '</div>';
-          }
-        }
-
-        html += keep;
-        if (keep) {
-          html += '\n';
-        }
-      }
-
-      if (kept) {
-        html = '<div>\n' + html.replaceAll('\n', '\n\t') + '</div>';
-      }
-
-      return html;
-    }
-
-    const html = toHtml(root, [root, ...include]);
+    // This modifies the parsed root
+    const pruned = prune(root);
     const obj = toObj(include);
-    console.log(obj);
-    console.log('html', pretty(html, { ocd: true }).slice(0, 10000));
+
+    const html = pruned.toString();
 
     this.learned = {
       format,
       response: answer.partial,
+      analysis: answer.partial.analysis,
+      hint: answer.partial.hint,
     }
 
     this.obj = obj;
