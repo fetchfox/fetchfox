@@ -28,29 +28,15 @@ export const CodeInstructions = class {
     this.logger.debug(`${chalk.bold('[AIGEN]')} ${msg}`);
   }
 
-  serialize() {
-    return JSON.stringify({ url: this.url, command: this.command });
-  }
-
-  cacheKey() {
-    let hash;
-    hash = shortObjHash({
-      url: this.url,
-      command: this.command.prompt,
-    });
-    return `instructions-${hash}`;
-  }
-
-  unshiftCommand(command) {
-    this.logger.info(`${this} Unshift command: ${command.prompt}`);
-
-    this.learned = null;
-    if (!this.command) {
-      this.command = command;
-    } else {
-      this.command.prompt += '\n' + command.prompt;
-    }
-  }
+  // unshiftCommand(command) {
+  //   this.logger.info(`${this} Unshift command: ${command.prompt}`);
+  //   this.learned = null;
+  //   if (!this.command) {
+  //     this.command = command;
+  //   } else {
+  //     this.command.prompt += '\n' + command.prompt;
+  //   }
+  // }
 
   async *learn() {
     // no-op
@@ -72,7 +58,6 @@ export const CodeInstructions = class {
 
     const command = this.command;
     this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
-
     const author = new Author({
       kv: this.kv,
       ai: this.ai,

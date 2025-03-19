@@ -9,8 +9,8 @@ describe('action mpaq.com.au', async function() {
   const matrix = standardMatrix();
 
   const prefixes = [
-    'benchkv/fixed/',
-    // `benchkv/random-${srid()}/`,
+    // 'benchkv/fixed/',
+    `benchkv/random-${srid()}/`,
   ];
 
   const limit = 50;

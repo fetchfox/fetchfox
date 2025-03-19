@@ -31,7 +31,8 @@ export const Instructions = class {
     this.cache = options?.cache;
 
     this.ai = options?.ai || getAI(null, { cache: this.cache });
-    this.timeout = options?.timeout || 60000;
+    this.timeout = options?.timeout || options?.fetcher?.timeout || 60000;
+
     this.limit = options?.limit;
     this.hint = options?.hint;
 

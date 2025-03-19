@@ -209,6 +209,12 @@ Iterating over matched elements:
       });
     });
 
+Selector guidance:
+- Prefer CSS selectors, but use text= when necessary
+- Do NOT mix text= and css= selectors. Choose one or the other
+- Do NOT use has-text() selectors for css=
+- Do NOT use any pseudo selectors for css=
+
 >>>> The user requested a timeout the following timeout for selectors and actions:
 {{timeout}} milliseconds
 Generally follow this timeout, but adjust a little if needed

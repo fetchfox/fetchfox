@@ -19,15 +19,9 @@ describe('extract bokadirekt.se', async function() {
     const wf = await fox
       .init('https://www.bokadirekt.se/places/rehabkliniken-33257')
       .action({
-        commands: [
-          'Accept cookies if you need to. Then, click the button to show all reviews. It will say "Visa fler recensioner". If there is a button that says "Visa mer" click it to load even more reviews. Click "Visa mer" up to 50 times. Send all HTML once, when you have finished pressing "Visa mer". "Visa mer" must be in the .ReactModalPortal component',
-        ]
-      })
-      .extract({
-        questions: {
-          url: 'URL of the agent profile',
-        },
-        mode: 'multiple',
+        commands: [`Accept cookies if you need to. The cookie modal is separate from the rest of the instruction. Retry a 3 times if needed.
+
+After the cookie modal, separately, click the button to show all reviews. It will say "Visa fler recensioner". If there is a button that says "Visa mer" click it to load even more reviews. Click "Visa mer" up to 50 times. Send all HTML once, when you have finished pressing "Visa mer". "Visa mer" must be in the .ReactModalPortal component`],
       })
       .extract({
         questions: {
@@ -37,7 +31,7 @@ describe('extract bokadirekt.se', async function() {
           review_score: 'What is the score given in the review?'
         },
         mode: 'auto',
-        view: 'html',
+        view: 'text',
         maxPages: 1
       })
       .limit(limit)
