@@ -75,6 +75,7 @@ export const Instructions = class {
       this.url.includes('onereal.com') ||
       this.url.includes('www.kw.com') ||
       this.url.includes('mpaq.com.au') ||
+      this.url.includes('portal.mara.gov.au') ||
       this.url.includes('bokadirekt.se')
     );
   }

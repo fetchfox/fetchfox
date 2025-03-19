@@ -77,7 +77,10 @@ IMPORTANT:
 - Do not combine css= and text=, use only one of them
 - Prefer CSS selectors when possible
 
-Do NOT use :has-text(), :contains(), or ANY pseudo selectors. They do not work for selecting elements.
+Notes about CSS selectors:
+- Do NOT use :has-text(), :contains(), or ANY pseudo selectors. They do not work for selecting elements.
+- Surprisingly, ID selectors cannot be a number. For example, css=input#0 is an invalid way to select an element with id="0"
+
 
 Limit:
 - Do not give candidates if the action is unecessary or cannot be done
