@@ -1,6 +1,7 @@
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { scrapeOnce } from './prompts.js';
+import { scrapeOnce, scrapeSelect, scrapeJson } from './prompts.js';
+import { getAI} from '../index.js';
 
 export const SinglePromptExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -51,21 +52,38 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
         throw new Error(`Unexpected mode: ${mode}`);
     }
 
-    let view = options?.view || 'html';
-    if (!['html', 'text', 'selectHtml'].includes(view)) {
+    // let view = options?.view || 'html';
+    let view = 'selectHtml';
+    if (!['html', 'text', 'selectHtml', 'json'].includes(view)) {
       this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
       view = 'html';
+    }
+
+    if (['selectHtml', 'json'].includes(view)) {
+      const ai = getAI('openai:gpt-4o');
+      if (!doc.learned) {
+        await doc.learn(ai, questions);
+      }
     }
     const body = doc[view];
 
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      html: body,
+      body,
       extraRules,
     };
 
-    let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
+    let prompts;
+    if (view == 'selectHtml') {
+      context.hint = doc.learned?.hint;
+      prompts = await scrapeSelect.renderMulti(context, 'html', this.ai);
+    } else if (view == 'json') {
+      context.hint = doc.learned?.hint;
+      prompts = await scrapeJson.renderMulti(context, 'html', this.ai);
+    } else {
+      prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
+    }
 
     const max = 32
     if (prompts.length > max) {
