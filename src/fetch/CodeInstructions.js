@@ -77,6 +77,7 @@ export const CodeInstructions = class {
       kv: this.kv,
       ai: this.ai,
       logger: this.logger,
+      timeout: this.loadTimeout,
     });
 
     // Define parameters for Author

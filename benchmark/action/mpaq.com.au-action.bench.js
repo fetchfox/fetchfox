@@ -42,7 +42,7 @@ describe('action mpaq.com.au', async function() {
           console.log('items', items);
           // TODO: check it items via checkItemsAI
           // return checkItemsAI(items, expected, ['name', 'phone', 'email']);
-          checkAtLeast(items, limit)
+          return checkAtLeast(items, limit)
         }
       ],
       {

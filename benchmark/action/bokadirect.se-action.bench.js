@@ -52,7 +52,7 @@ describe('extract bokadirekt.se', async function() {
         (items) => {
           // TODO: check it items via checkItemsAI
           // return checkItemsAI(items, expected, ['name', 'phone', 'email']);
-          checkAtLeast(items, limit)
+          return checkAtLeast(items, limit)
         }
       ],
       {
