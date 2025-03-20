@@ -328,7 +328,8 @@ export const Document = class {
     }
 
     this.obj = obj;
-    this.selectHTML = html;
+    console.log(pretty(html, {ocd: true}));
+    this.selectHTML = pretty(html, {ocd: true});
     return {
       format,
       response: answer.partial,
