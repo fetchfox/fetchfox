@@ -1,6 +1,5 @@
 import { logger } from '../../src/log/logger.js';
 import { getAI } from '../../src/ai/index.js';
-import { logger } from '../../src/log/logger.js';
 
 export const checkExcludeUrls = (items, str) => {
   const score = [0, 0];

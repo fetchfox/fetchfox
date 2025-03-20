@@ -23,20 +23,18 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let { mode } = options || {};
     const extraRules = modeRules(mode);
 
-    let body;
-
-    if (false && this.useTransformer(doc.url)) {
-      const trans = new Transformer();
-      body = await trans.reduce(doc.html, questions);
-
-    } else {
-      let view = options?.view || 'html';
-      if (!['html', 'text', 'selectHtml'].includes(view)) {
-        this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
-        view = 'html';
-      }
-      body = doc[view];
-    }
+    // let body;
+    // if (false && this.useTransformer(doc.url)) {
+    //   const trans = new Transformer();
+    //   body = await trans.reduce(doc.html, questions);
+    // } else {
+    //   let view = options?.view || 'html';
+    //   if (!['html', 'text', 'selectHtml'].includes(view)) {
+    //     this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
+    //     view = 'html';
+    //   }
+    //   body = doc[view];
+    // }
 
     let view = options?.view || 'html';
     // let view = 'selectHtml';
