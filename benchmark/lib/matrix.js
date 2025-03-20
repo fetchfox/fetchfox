@@ -1,3 +1,5 @@
+import { DiskCache } from '../../src/cache/DiskCache.js';
+
 const s3 = {
   bucket: process.env.BENCH_BUCKET || 'ffcloud',
   region: process.env.BENCH_REGION || 'us-west-2',
@@ -60,6 +62,7 @@ export const createMatrix = (configs, options) => {
           } else {
             val[1].timeout = 10 * 1000;
           }
+          val[1].cache = new DiskCache('/tmp/ffbenchcache');
         }
         newMatrix.push(updated);
       }

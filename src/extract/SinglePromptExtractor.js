@@ -2,11 +2,14 @@ import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 // import { Transformer } from './Transformer.js';
 import { scrapeOnce, scrapeSelect, scrapeJson } from './prompts.js';
-import { getAI} from '../index.js';
+import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
+import { Author } from '../fetch/Author.js';
 
 export const SinglePromptExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
+    this.kv = options?.kv || getKV();
   }
 
   useTransformer(url) {
@@ -15,6 +18,10 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       url.includes('onereal.com/search-agent') ||
       url.includes('www.kw.com')
     );
+  }
+
+  aiLog(msg) {
+    console.log('AI says:', msg);
   }
 
   async *_run(doc, questions, options) {
@@ -36,8 +43,9 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     //   body = doc[view];
     // }
 
-    let view = options?.view || 'html';
-    // let view = 'selectHtml';
+    // TODO: Cleanup
+    // let view = options?.view || 'html';
+    let view = 'selectHtml';
 
     if (!['html', 'text', 'selectHtml', 'json'].includes(view)) {
       this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
@@ -51,6 +59,45 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       }
     }
     const body = doc[view];
+    console.log('body', doc.selectHtml);
+
+    const author = new Author({
+      kv: this.kv,
+      ai: this.ai,
+      logger: this.logger,
+      timeout: 10 * 1000,
+    });
+
+    const namespace = 'namespace';
+    const goal = `Send JSON objects that match this template:
+
+${JSON.stringify(questions, null, 2)}
+`;
+
+    const url = doc.url;
+    const init = async () => {
+      const ctx = {};
+      await this.fetcher.start(ctx);
+      await this.fetcher.goto(url, ctx);
+      const doc = await this.fetcher.current(ctx);
+      // const doc = await this.current(this.fetcher, ctx);
+      if (!doc) {
+        throw new Error(`${this} Couldn't get document to learn commands ${url}`);
+      }
+      return { html: doc.html, ctx };
+    }
+    const exec = async (fn, cb, { ctx }) => {
+      return fn(ctx.page, cb, (msg) => this.aiLog(msg), cb);
+    }
+    const finish = async ({ ctx }) => {
+      this.fetcher.finish(ctx);
+    }
+
+    console.log('made author:', author);
+    const fn = await author.get(namespace, goal, init, exec, finish);
+    console.log('got fn:', fn);
+
+    throw 'STOP';
 
     const context = {
       url: doc.url,

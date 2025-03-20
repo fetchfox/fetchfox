@@ -153,7 +153,7 @@ Response with Javascript code that accomplishes this goal.
 The Javascript code will have the parameters available:
 
 * page: a Playwright page object
-* fnSendHtml(html): a function to send the current page's HTML for evaluation. Send page HTML as the only argument. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue.
+* fnSendResults(results): a function to send the results for evaluation. The results may be page HTML, JSON extracton, etc.. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue.
 * fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on
 * done: call this when the function is done
 
@@ -181,7 +181,7 @@ IMPORTANT RESPONSE FORMATING DIRECTIONS:
 
 Your response will be exactly copied into "new Function(...)" like this:
 
-    const func = new Function("page", "fnSendHtml", "fnDebugLog", "done" "... your response here ");
+    const func = new Function("page", "fnSendResults", "fnDebugLog", "done" "... your response here ");
 
 Therefore:
 

@@ -4,7 +4,7 @@ import { getKV } from '../kv/index.js';
 import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
-const toFn = (code) => new Function('page', 'fnSendHtml', 'fnDebugLog', 'done', code);
+const toFn = (code) => new Function('page', 'fnSendResults', 'fnDebugLog', 'done', code);
 
 export const Author = class {
   constructor(options) {
@@ -55,8 +55,8 @@ export const Author = class {
 
         // TODO: for now just hard code rating since we don't do anything with it
         // TODO: retry here if below threshold
-        // const { rating } = await this.rate(namespace, goal, code, init, exec, finish);
-        const rating = 75;
+        const { rating } = await this.rate(namespace, goal, code, init, exec, finish);
+        // const rating = 75;
 
         const record = { code, rating, ai: this.ai.id };
         records.push(record);
@@ -105,6 +105,7 @@ export const Author = class {
       html = await new Promise(ok => {
         exec(fn, ok, state);
       });
+      console.log('got results:', html);
     } catch (e) {
       this.logger.error(`${this} Error while executing code ${code}: ${e}`);
       if (process.env.STRICT_ERRORS) {
@@ -113,7 +114,6 @@ export const Author = class {
       html = `* unable to get HTML due to execution error: ${e}`;
     }
     html ||= '* unable to get after HTML, possibly due to execution error *';
-
 
     const context = {
       before: state.html,

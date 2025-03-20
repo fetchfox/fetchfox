@@ -126,6 +126,7 @@ export const Document = class {
     logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
   }
 
+  // TODO: Move this to Transformer.js
   async learn(ai, template) {
     const format = {};
     format['_analysis'] = 'Analysis in 10-200 words of how to select the relevant data';
@@ -160,7 +161,6 @@ export const Document = class {
     const selectors = fields.map(key => answer.partial[key]);
     logger.info('selectors', selectors);
 
-    // TODO: figure out where to put this
     const root = parse(this.html);
     const matches = [];
     for (const f of fields) {
@@ -324,7 +324,7 @@ export const Document = class {
       format,
       response: answer.partial,
       analysis: answer.partial.analysis,
-      hint: answer.partial.hint,
+      hint: pretty(answer.partial.hint, { ocd: true }),
     }
 
     this.obj = obj;

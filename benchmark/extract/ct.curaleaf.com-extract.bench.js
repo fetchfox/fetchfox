@@ -235,11 +235,11 @@ describe('extract ct.curaleaf.com', async function() {
   ];
 
   const cases = [
-    {
-      name: 'live',
-      url: 'https://ct.curaleaf.com/shop/connecticut/curaleaf-ct-stamford/categories/flower',
-      expected,
-    },
+    // {
+    //   name: 'live',
+    //   url: 'https://ct.curaleaf.com/shop/connecticut/curaleaf-ct-stamford/categories/flower',
+    //   expected,
+    // },
     {
       name: 'saved',
       url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/93ue3wfv78/https-ct-curaleaf-com-shop-connecticut-curaleaf-ct-stamford-categories-flower.html',
