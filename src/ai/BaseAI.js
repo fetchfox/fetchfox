@@ -111,7 +111,7 @@ export const BaseAI = class {
     while (true) {
       const r = this.limiter.getTokensRemaining();
       this.logger.info(`${this} Check rate limit: tpm=${this.tpm}, tokens available=${r}`);
-      if (r == this.tpm || this.limiter.tryRemoveTokens(tokens)) {
+      if (this.limiter.tryRemoveTokens(tokens) || r == this.tpm) {
         return;
       }
 
