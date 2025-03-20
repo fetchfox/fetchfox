@@ -54,9 +54,10 @@ export const createMatrix = (configs, options) => {
         const updated = { ...existing };
         updated[key] = val;
         if (key == 'fetcher') {
+          // val[1].wait = 10 * 1000;
           if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
             val[1].cdp = cdp;
-            val[1].timeout = 120 * 1000; // long timeouts for proxy providers
+            val[1].timeout = 120 * 1000;
           }
         }
         newMatrix.push(updated);
