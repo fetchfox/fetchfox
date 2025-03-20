@@ -1,5 +1,6 @@
 import { Learner } from '../../src/learn/Learner.js';
 import { KnowledgeBase } from '../../src/learn/KnowledgeBase.js';
+import { MemKV } from '../../src/kv/MemKV.js';
 import { testCache, setTestTimeout } from '../lib/util.js';
 
 describe('Learner', function() {
@@ -11,7 +12,8 @@ describe('Learner', function() {
     const prompt = 'scrape pokemon details/stats';
 
     const cache = testCache();
-    const kb = new KnowledgeBase();
+    const kv = new MemKV();
+    const kb = new KnowledgeBase(kv);
     const l = new Learner(kb, { cache });
 
     await l.learn(

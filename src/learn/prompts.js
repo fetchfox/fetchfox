@@ -40,7 +40,7 @@ Follow these important rules:
 
 
 export const availableLinks = new Template(
-  ['htmls', 'urls', 'prompt'],
+  ['links', 'urls', 'prompt'],
   `You are given a simplified HTML that inludes text and <a> tags. Your goal is to create rules for categorizing them links. You will return a list of URL patterns in JSONL format. URLs patterns precede parameters in the URLs with ":", and they can be used to match URLs and categorize them. The parameters describe what they typically contain: an ID, a name, a date, a username, etc.
 
 Additionally, try to focus on URLs relevant to the user prompt. Relevant URLs are ones that directly relate to the user prompt, or they can contain indirectly link to the user prompt.
@@ -65,8 +65,8 @@ Example of valid output:
 {"description": "an author's profile page", "relevancy": "low relevance, but authors may be experts in gold market", "category": "author-profile", "pattern": "https://example.com/author/:name", "regex": "...",, "examples": ["https://example.com/author/john-smith", "https://example.com/author/sally-green"] }
 
 
-The simplified HTML containing only text and <a> tags is:
-{{htmls}}
+Below are all the links for this page:
+{{links}}
 
 The base URL from which you start is:
 {{urls}}

@@ -45,6 +45,7 @@
     "@aws-sdk/client-s3": "^3.669.0",
     "@aws-sdk/s3-request-presigner": "^3.686.0",
     "@google/generative-ai": "^0.19.0",
+    "async-lock": "^1.4.1",
     "chalk": "^5.3.0",
     "fetchfox": "github:fetchfox/fetchfox#93d136d00bd286258c4803864b52b2b83608f396",
     "groq-sdk": "^0.7.0",

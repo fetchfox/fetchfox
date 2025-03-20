@@ -1,4 +1,5 @@
 import pretty from 'pretty';
+import { parse } from 'node-html-parser';
 import { logger as defaultLogger } from '../log/logger.js';
 import { getFetcher, getAI } from '../index.js';
 import * as prompts from './prompts.js';
@@ -28,7 +29,7 @@ export const Learner = class {
       cb && cb();
     }
 
-    await Promise.allSettled([
+    await Promise.all([
       this.analyzeLinks(
         { docs, prompt, ...rest },
         (fact) => update(url, 'links', fact)
@@ -43,7 +44,7 @@ export const Learner = class {
 
   async analyzeItems({ docs, prompt }, cb) {
     const urls = joinDocsUrl(docs);
-    const htmls = joinDocsHtml(docs, 'html');
+    const htmls = joinDocsHtml(docs, 'selectHtml');
     const context = { urls, prompt, htmls };
     const { prompt: itemsPrompt } = await prompts
       .availableItems
@@ -66,16 +67,45 @@ export const Learner = class {
     // Test/compare it.
     // https://github.com/fetchfox/fetchfox/blob/d/x-learn/src/x/learn.js#L144
 
-    const htmls = joinDocsHtml(docs, 'selectHtml');
+    const htmls = joinDocsHtml(docs, 'html');
+    const links = [];
+    for (let i = 0; i < docs.length; i++) {
+      const doc = docs[i];
+      const html = doc.html;
+      const baseUrl = doc.url;
+      const root = parse(html);
+      console.log('html', html);
+      console.log(`root.querySelectorAll('a')`, root.querySelectorAll('a'));
+      root.querySelectorAll('a').forEach(a => {
+        const href = a.getAttribute('href');
+        console.log('a', a, href);
+        if (!href) return;
+
+        let url;
+        try {
+          url = new URL(href, baseUrl).href;
+        } catch (e) {
+          return;
+        }
+
+        links.push({
+          url,
+          text: a.text.trim(),
+          html: a.toString(),
+        });
+      });
+    }
+    
     const urls = joinDocsUrl(docs);
     const context = {
-      htmls,
+      // htmls,
+      links: JSON.stringify(links, null, 2),
       urls,
       prompt,
     };
     const { prompt: linkPrompt } = await prompts
       .availableLinks
-      .renderCapped(context, 'htmls', this.ai);
+      .renderCapped(context, 'links', this.ai);
 
     const results = [];
     this.logger.debug(`${this} Analyzing links`);
