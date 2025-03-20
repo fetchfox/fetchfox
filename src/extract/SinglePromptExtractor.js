@@ -1,7 +1,8 @@
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { scrapeOnce } from './prompts.js';
-import { Transformer } from './Transformer.js';
+// import { Transformer } from './Transformer.js';
+import { scrapeOnce, scrapeSelect, scrapeJson } from './prompts.js';
+import { getAI} from '../index.js';
 
 export const SinglePromptExtractor = class extends BaseExtractor {
   constructor(options) {
@@ -24,7 +25,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     let body;
 
-    if (this.useTransformer(doc.url)) {
+    if (false && this.useTransformer(doc.url)) {
       const trans = new Transformer();
       body = await trans.reduce(doc.html, questions);
 
@@ -37,14 +38,39 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       body = doc[view];
     }
 
+    let view = options?.view || 'html';
+    // let view = 'selectHtml';
+
+    if (!['html', 'text', 'selectHtml', 'json'].includes(view)) {
+      this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
+      view = 'html';
+    }
+
+    if (['selectHtml', 'json'].includes(view)) {
+      const ai = getAI('openai:gpt-4o');
+      if (!doc.learned) {
+        await doc.learn(ai, questions);
+      }
+    }
+    const body = doc[view];
+
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      html: body,
+      body,
       extraRules,
     };
 
-    let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
+    let prompts;
+    if (view == 'selectHtml') {
+      context.hint = doc.learned?.hint;
+      prompts = await scrapeSelect.renderMulti(context, 'html', this.ai);
+    } else if (view == 'json') {
+      context.hint = doc.learned?.hint;
+      prompts = await scrapeJson.renderMulti(context, 'html', this.ai);
+    } else {
+      prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
+    }
 
     const max = 32
     if (prompts.length > max) {

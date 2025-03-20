@@ -1,8 +1,7 @@
 import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkItemsExact } from '../lib/checks.js';
-import { storeScores } from '../lib/store.js';
+import { checkItemsAI } from '../lib/checks.js';
 
 describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory', async function() {
   const matrix = standardMatrix({
@@ -36,23 +35,40 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
     },
   ];
 
-  const wf = await fox
-    .init('https://pokemondb.net/pokedex/national')
-    .extract({
-      name:	'What is the name of this pokemon?',
-      number: 'What is the pokemon number',
-      url: `What is the URL of the pokemon`,
-    })
-    .limit(5)
-    .plan();
+  const cases = [
+    {
+      name: 'live',
+      url: 'https://pokemondb.net/pokedex/national',
+      expected,
+    },
+    {
+      name: 'saved',
+      url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/djh6e69cux/https-pokemondb-net-pokedex-national.html',
+      expected,
+    },
+  ];
 
-  return itRunMatrix(
-    it,
-    'extract pokemon from pokemondb.net/pokedex/national',
-    wf.dump(),
-    matrix,
-    [
-      (items) => checkItemsExact(items, expected),
-    ],
-    { shouldSave: true });
+  const questions = {
+    name:	'What is the name of this pokemon?',
+    number: 'What is the pokemon number',
+    url: `What is the URL of the pokemon`,
+  }
+
+  for (const { name, url, expected } of cases) {
+    const wf = await fox
+      .init(url)
+      .extract({ questions })
+      .limit(5)
+      .plan();
+
+    return itRunMatrix(
+      it,
+      `extract pokemon from pokemondb.net/pokedex/national (${name})`,
+      wf.dump(),
+      matrix,
+      [
+        (items) => checkItemsAI(items, expected, questions),
+      ],
+      { shouldSave: true });
+  }
 });
