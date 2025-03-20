@@ -1,4 +1,5 @@
 import pretty from 'pretty';
+import { logger as defaultLogger } from '../log/logger.js';
 import { getFetcher, getAI } from '../index.js';
 import * as prompts from './prompts.js';
 
@@ -6,12 +7,15 @@ export const Learner = class {
   constructor(kb, options) {
     this.kb = kb;
 
+    this.logger = options?.logger || defaultLogger;
     this.cache = options?.cache;
     this.fetcher = options?.fetcher || getFetcher(null, { cache: this.cache });
     this.ai = options?.ai || getAI(null, { cache: this.cache });
   }
 
   async learn({ url, prompt, ...rest }, cb) {
+    this.logger.info(`${this} Learn about url=${url} prompt=${prompt}`);
+
     url = new URL(url).toString();
 
     console.log('url, prompt', url, prompt);
@@ -46,6 +50,7 @@ export const Learner = class {
       .renderCapped(context, 'htmls', this.ai);
 
     const results = [];
+    this.logger.debug(`${this} Analyzing items`);
     const gen = this.ai.stream(itemsPrompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
       console.log('ITEM delta', delta);
@@ -70,9 +75,10 @@ export const Learner = class {
     };
     const { prompt: linkPrompt } = await prompts
       .availableLinks
-      .renderCapped(context, 'html', this.ai);
+      .renderCapped(context, 'htmls', this.ai);
 
     const results = [];
+    this.logger.debug(`${this} Analyzing links`);
     const gen = this.ai.stream(linkPrompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
       delta.pattern = cleanPattern(delta.pattern);

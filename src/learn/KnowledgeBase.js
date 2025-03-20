@@ -1,5 +1,6 @@
 export const KnowledgeBase = class {
-  constructor() {
+  constructor(kv) {
+    this.kv = kv;
     this.byUrl = {};
   }
 

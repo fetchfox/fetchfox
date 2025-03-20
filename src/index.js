@@ -32,6 +32,9 @@ export { MemKV } from './kv/MemKV.js';
 
 export { Workflow } from './workflow/Workflow.js';
 
+export { Learner } from './learn/Learner.js';
+export { KnowledgeBase } from './learn/KnowledgeBase.js';
+
 export { Planner } from './plan/Planner.js';
 
 export { ConstStep } from './step/ConstStep.js';

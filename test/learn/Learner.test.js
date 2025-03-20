@@ -10,10 +10,9 @@ describe('Learner', function() {
     const url = 'https://pokemondb.net';
     const prompt = 'scrape pokemon details/stats';
 
+    const cache = testCache();
     const kb = new KnowledgeBase();
-    const l = new Learner(
-      kb,
-      { cache: testCache() });
+    const l = new Learner(kb, { cache });
 
     await l.learn(
       { url, prompt },
