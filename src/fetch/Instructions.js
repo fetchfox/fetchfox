@@ -72,7 +72,7 @@ export const Instructions = class {
 
   useCode() {
     return (
-      this.url.includes('domain.com.au') ||
+      (this.url.includes('domain.com.au') && !this.url.match(/domain.com.au.*-[0-9]{4}(\/|$)/)) ||
       this.url.includes('onereal.com') ||
       this.url.includes('www.kw.com') ||
       this.url.includes('mpaq.com.au') ||

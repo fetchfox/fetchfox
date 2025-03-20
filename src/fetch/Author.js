@@ -41,17 +41,27 @@ export const Author = class {
     } else {
       this.logger.debug(`${this} No suitable record in KV for ${goal}`);
 
-      const r = await this.write(namespace, goal, init, finish);
-      code = r.code;
-      // const { rating } = await this.rate(namespace, goal, code, init, exec, finish);
-      // TODO: retry here if below threshold
+      let attempts = 2;
+      while (attempts-- > 0) {
+        this.logger.debug(`${this} Write code, attempts left=${attempts}`);
+        const r = await this.write(namespace, goal, init, finish);
+        code = r.code;
+        try {
+          toFn(code);
+        } catch (e) {
+          this.logger.warn(`${this} The AI wrote code that did could not be turned into a function: ${e} for ${code}`);
+          continue;
+        }
 
-      // TODO: for now just hard code rating since we don't do anything with it
-      const rating = 75;
+        // TODO: for now just hard code rating since we don't do anything with it
+        // TODO: retry here if below threshold
+        // const { rating } = await this.rate(namespace, goal, code, init, exec, finish);
+        const rating = 75;
 
-      const record = { code, rating, ai: this.ai.id };
-      records.push(record);
-      await this.kv.set(key, records);
+        const record = { code, rating, ai: this.ai.id };
+        records.push(record);
+        await this.kv.set(key, records);
+      }
     }
 
     this.logger.debug(`${this} Returning code for goal: ${code}`);

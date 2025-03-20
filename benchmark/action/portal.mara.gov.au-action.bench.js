@@ -21,7 +21,11 @@ describe('action portal.mara.gov.au', async function() {
       .init('https://portal.mara.gov.au/search-the-register-of-migration-agents/')
       .action({
         commands: [
-          `Type "a" into the field for "Agent's given name" and press enter`
+          `Type "a" into the field for "Agent's given name" and press enter.
+
+Go through all the pages you see using the next page button which will have this HTML: <a href="#" data-page="2" role="button" data-toggle="tooltip" aria-label="Next page" title="" class="entity-pager-next-link" data-original-title="Next page">&gt;</a>.
+
+Send the HTML for each page of results until there are no more pages.`
         ]
       })
       .extract({
@@ -39,12 +43,7 @@ describe('action portal.mara.gov.au', async function() {
       wf.dump(),
       matrix,
       [
-        (items) => {
-          console.log('items', items);
-          // TODO: check it items via checkItemsAI
-          // return checkItemsAI(items, expected, ['name', 'phone', 'email']);
-          checkAtLeast(items, limit)
-        }
+        (items) => checkAtLeast(items, limit),
       ],
       {
         shouldSave: true,

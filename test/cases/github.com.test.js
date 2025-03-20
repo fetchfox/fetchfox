@@ -47,6 +47,8 @@ describe('github.com', function() {
 
     let locTotal = 0;
     for (const item of out.items) {
+      console.log('item', item);
+
       assert.ok(item.hash.match(/[0-9a-f]{7}/), 'hash hex');
       let loc = parseInt(item.loc);
       if (!isNaN(loc)) {
