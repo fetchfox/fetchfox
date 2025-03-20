@@ -69,16 +69,7 @@ export const BaseAI = class {
 
     this.baseURL = options?.baseURL;
 
-    this.tpm = options?.tpm;
-    if (!this.tpm) {
-      // TODO: get the actual TPM's, this is quick fix to unbreak prod
-      if (this.model == 'gpt-4o') {
-        this.tpm = 30000;
-      } else {
-        this.tpm = 1e7;
-      }
-    }
-
+    this.tpm = options?.tpm || 150000000;
     this.limiter = new RateLimiter({
       tokensPerInterval: this.tpm,
       interval: 'minute',
