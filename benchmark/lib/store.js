@@ -2,6 +2,7 @@ import { logger } from '../../src/log/logger.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { srid } from '../../src/util.js'
+import { score } from '../../src/crawl/prompts.js';
 
 const allScores = [];
 let id = 0; // per parallel execution sequential id, combined with uuid
@@ -65,8 +66,56 @@ const persistAllScores = async () => {
   const commit = process.env.COMMIT || 'local';
 
   if (commit == 'local') {
-    logger.debug(`Skipping putting aggregate scores in DynamoDB, logging to debug ${allScores.length} rows instead`);
-    logger.debug(JSON.stringify(allScores));
+    logger.info(`Skipping putting aggregate scores in DynamoDB, displaying summary of ${allScores.length} rows instead`);
+    logger.debug(JSON.stringify(allScores, null, 2));
+    const summary = (scores) => {
+      const results = [];
+      const byName = {};
+
+      let sum = 0;
+      let count = 0;
+      for (const score of scores) {
+        const score_pct = score.score0 / score.score1;
+        byName[score.name] ||= [];
+        byName[score.name].push({
+          name: score.name,
+          score0: score.score0,
+          score1: score.score1,
+          score_pct,
+        });
+        if (!Number.isNaN(score_pct)) {
+          sum += score_pct;
+          count += 1;
+        }
+      }
+
+      for (const name of Object.keys(byName)) {
+        let sum = 0;
+        let count = 0;
+        for (const score of byName[name]) {
+          const score_pct = score.score_pct;
+          if (!Number.isNaN(score_pct)) {
+            sum += score_pct;
+            count += 1;
+          }
+        }
+        const agg = {
+          name: name + ' Mean',
+          score_pct: sum / count,
+        }
+        results.push(agg);
+      }
+
+      const agg = {
+        name: "All Benchmarks Mean",
+        score_pct: sum / count,
+      };
+      results.push(agg);
+
+      return results;
+    }
+
+    console.log(summary(allScores));
     return;
   }
 

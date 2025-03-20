@@ -1,4 +1,5 @@
 import { getAI } from '../../src/ai/index.js';
+import { logger } from '../../src/log/logger.js';
 
 export const checkExcludeUrls = (items, str) => {
   const score = [0, 0];
@@ -36,7 +37,11 @@ const removePrivate = (item, fields) => {
 }
 
 
-export const checkItemsAI = async (items, expected, fields) => {
+export const checkItemsAI = async (items, expected, questions, fields) => {
+  if (!fields) {
+    fields = Object.keys(removePrivate(expected[0]));
+  }
+
   // Un-ordered check, so sort them as JSON
   const expectedJson = expected.map(x => JSON.stringify(removePrivate(x, fields))).sort();
   const itemsJson = items.map(x => JSON.stringify(removePrivate(x, fields))).sort();
@@ -44,29 +49,36 @@ export const checkItemsAI = async (items, expected, fields) => {
   const expectedStr = expectedJson.length ? expectedJson.join('\n') : '[]';
   const itemsStr = itemsJson.length ? itemsJson.join('\n') : '[]';
 
-  const prompt = `Give a score from 1 to 100 of how closely the actual results match the expected results.
+  const prompt = `Give a score from 0 to 100 of how closely the actual results match the expected results.
+
+You may based your score on the approximate percentage of expected fields that are exactly matched in the actual results.
+However, you may give partial credit for responses that answer a question in a slightly different format if the corresponding question's wording allows it.
 
 Format your response like this:
 
-- "analysis": 20-50 word analysis of the differences between the actual and expected results
-- "score": Based on the analysis and data you see, giv ea score from 1 to 100 of how good the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER
+- "analysis": 20-200 word analysis of the differences between the actual and expected results
+- "score": Based on the analysis and data you see, give a score from 0 to 100 of how good the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER
 
 Example of valid response:
 {
-  "analysis": "The actual results show username and comments, and those match the expected results, except the fromat of the username is wrong. Also, one result is missing.",
-  "score": 65
+  "analysis": "The actual results show username and comments, and those match the expected results, except the format of the username is wrong. Also, one result is missing.",
+  "score": 70
 }
+
+>>>> Questions:
+${questions}
 
 >>>> Expected results:
 ${expectedStr}
 
 >>>> Actual results:
- ${itemsStr}
+${itemsStr}
 
 Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse().`;
 
   const ai = getAI('openai:gpt-4o');
   const answer = await ai.ask(prompt, { format: 'json' });
+  logger.info(answer.partial.analysis);
 
   return [parseInt(answer.partial.score), 100];
 }
