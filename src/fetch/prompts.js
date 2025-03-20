@@ -214,6 +214,7 @@ Selector guidance:
 - Do NOT mix text= and css= selectors. Choose one or the other
 - Do NOT use has-text() selectors for css=
 - Do NOT use any pseudo selectors for css=
+- Surprisingly, you cannot use numbers IDs as selectors. For example, css=input#0 is an invalid selector, because of the number ID. If you see this, use a different selector instead.
 
 >>>> The user requested a timeout the following timeout for selectors and actions:
 {{timeout}} milliseconds

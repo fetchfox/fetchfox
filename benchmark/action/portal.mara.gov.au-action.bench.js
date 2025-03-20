@@ -10,8 +10,8 @@ describe('action portal.mara.gov.au', async function() {
   const matrix = standardMatrix();
 
   const prefixes = [
-    'benchkv/fixed/',
-    // `benchkv/random-${srid()}/`,
+    // 'benchkv/fixed/',
+    `benchkv/random-${srid()}/`,
   ];
 
   const limit = 50;
