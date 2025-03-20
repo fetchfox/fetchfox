@@ -15,5 +15,4 @@ export const KnowledgeBase = class {
     };
     this.byUrl[url][type].push(fact);
   }
-  
 }
