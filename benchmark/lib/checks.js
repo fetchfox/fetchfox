@@ -82,7 +82,10 @@ Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse(
 
   logger.debug(`AI rating: score=${answer.partial.score} analysis=${answer.partial.analysis}`);
 
-  return [parseInt(answer.partial.score), 100];
+  return {
+    score: [parseInt(answer.partial.score), 100],
+    analysis: answer.partial.analysis,
+  }
 }
 
 export const checkItemsExact = (items, expected, fields) => {

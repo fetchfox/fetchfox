@@ -109,11 +109,23 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     logger.info(``);
 
     const score = [0, 0];
+    const analysis = [];
     for (const check of checks) {
       const s = await check(out.items);
       if (!s) continue;
-      score[0] += s[0];
-      score[1] += s[1];
+      if (Array.isArray(s)) {
+        score[0] += s[0];
+        score[1] += s[1];
+      }
+      if (typeof s == 'object') {
+        if (Array.isArray(s.score)) {
+          score[0] += s.score[0];
+          score[1] += s.score[1];
+        }
+        if (s.analysis) {
+          analysis.push(s.analysis)
+        }
+      }
     }
 
     const s = {
@@ -127,6 +139,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       config: { ...config },
       stats: diff,
       score,
+      analysis,
       items: out.items,
     };
 

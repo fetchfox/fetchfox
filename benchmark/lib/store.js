@@ -1,7 +1,8 @@
 import { logger } from '../../src/log/logger.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { srid } from '../../src/util.js'
+import { srid } from '../../src/util.js';
+import { summarize } from './summary.js';
 import { score } from '../../src/crawl/prompts.js';
 
 const allScores = [];
@@ -56,6 +57,47 @@ const registerCommit = async () => {
   }
 }
 
+const aggregateAnalysis = async (scoers) => {
+
+}
+
+const persistAnalysis = async (scores) => {
+  // aggregate analysis by name / config_ai
+  const grouped = {};
+  const rows = {};
+  for (const score of scores) {
+    const { name, config_ai, analysis } = score;
+    const analyses = Array.isArray(analysis) ? analysis : [analysis];
+
+    if (!grouped[name]) {
+      grouped[name] = {};
+    }
+    if (!grouped[name][config_ai]) {
+      grouped[name][config_ai] = [];
+    }
+
+    // Push the analysis data into the array
+    grouped[name][config_ai].push(...analyses);
+  }
+
+  for (const name of Object.keys(grouped)) {
+    for (const config_ai of Object.keys(grouped[name])) {
+      const row = {
+        name,
+        config_ai,
+        analysis: grouped[name][config_ai],
+      }
+    }
+  }
+
+  for (const row of rows) {
+    row[analysis] = await summarize(row[analysis]);
+  }
+
+  console.log(rows);
+  // TODO: persist to analysisTable
+}
+
 const persistAllScores = async () => {
   const scoresTable = process.env.BENCH_SCORES_TABLE;
 
@@ -67,8 +109,7 @@ const persistAllScores = async () => {
 
   if (commit == 'local') {
     logger.info(`Skipping putting aggregate scores in DynamoDB, displaying summary of ${allScores.length} rows instead`);
-    logger.debug(JSON.stringify(allScores, null, 2));
-    const summary = (scores) => {
+    const summary = async (scores) => {
       const results = [];
       const byName = {};
 
@@ -82,6 +123,7 @@ const persistAllScores = async () => {
           score0: score.score0,
           score1: score.score1,
           score_pct,
+          analysis: score.analysis,
         });
         if (!Number.isNaN(score_pct)) {
           sum += score_pct;
@@ -92,16 +134,27 @@ const persistAllScores = async () => {
       for (const name of Object.keys(byName)) {
         let sum = 0;
         let count = 0;
+        let analyses = [];
         for (const score of byName[name]) {
           const score_pct = score.score_pct;
           if (!Number.isNaN(score_pct)) {
             sum += score_pct;
             count += 1;
           }
+          const analysis = Array.isArray(score.analysis) ? score.analysis : [score.analysis];
+          analyses.push(...analysis);
+        }
+        if (analyses.legnth == 0) {
+          analyses = '';
+        } else if (analyses.length == 1) {
+          analyses = analyses[0];
+        } else {
+          analyses = await summarize(analyses);
         }
         const agg = {
           name: name + ' Mean',
           score_pct: sum / count,
+          analyses,
         }
         results.push(agg);
       }
@@ -115,6 +168,7 @@ const persistAllScores = async () => {
       return results;
     }
 
+    logger.debug(JSON.stringify(allScores, null, 2));
     console.log(summary(allScores));
     return;
   }
@@ -122,6 +176,12 @@ const persistAllScores = async () => {
   await registerCommit();
 
   logger.debug(`Putting aggregate scores in DynamoDB with ${allScores.length} rows`);
+  // persistAnalysis(allScores);
+
+  // Exclude analysis from scoresTable
+  for (const score of allScores) {
+    delete score[analysis];
+  }
 
   // batch update scores using AWS DynamoDB DocumentClient
   const batchSize = 25; // DynamoDB batchWrite has a max of 25 items per batch
@@ -163,6 +223,14 @@ const persistAllScores = async () => {
   }
 }
 
+export const storeAnalysis = async (scores) => {
+  const rows = [];
+  // TODO: implement
+  for (const score of scores) {
+    score;
+  }
+}
+
 export const storeScores = async (scores) => {
   const rows = [];
   for (const score of scores) {
@@ -174,6 +242,7 @@ export const storeScores = async (scores) => {
       name: score.name || 'unknown',
       date: score.date || new Date().toISOString().split('T')[0],
       branch: score.branch || 'unknown',
+      analysis: score.analysis || '',
 
       score0: score.score[0] || 0,
       score1: score.score[1] || 0,
