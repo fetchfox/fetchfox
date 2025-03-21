@@ -1,4 +1,6 @@
+import pretty from 'pretty';
 import { logger as defaultLogger } from "../log/logger.js";
+import { getFetcher } from '../fetch/index.js';
 import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
 import { shortObjHash } from '../util.js';
@@ -8,6 +10,7 @@ const toFn = (code) => new Function('page', 'fnSendResults', 'fnDebugLog', 'done
 
 export const Author = class {
   constructor(options) {
+    this.fetcher = options?.fetcher || getFetcher();
     this.kv = options?.kv || getKV();
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.logger = options?.logger || defaultLogger
@@ -19,11 +22,11 @@ export const Author = class {
     return `[${this.constructor.name}]`;
   }
 
-  async get(namespace, goal, init, exec, finish) {
+  async get(url, goal) {
     this.logger.debug(`${this} Get code for goal: ${goal}`);
 
     const hash = shortObjHash({ goal });
-    const key = `${namespace}-${hash}`;
+    const key = `author-${hash}`;
 
     this.logger.debug(`${this} Look up goal in kv: ${key}`);
 
@@ -44,8 +47,7 @@ export const Author = class {
       let attempts = 2;
       while (attempts-- > 0) {
         this.logger.debug(`${this} Write code, attempts left=${attempts}`);
-        const r = await this.write(namespace, goal, init, finish);
-        code = r.code;
+        const code = await this.write(url, goal);
         try {
           toFn(code);
         } catch (e) {
@@ -55,7 +57,7 @@ export const Author = class {
 
         // TODO: for now just hard code rating since we don't do anything with it
         // TODO: retry here if below threshold
-        const { rating } = await this.rate(namespace, goal, code, init, exec, finish);
+        const rating = await this.rate(url, goal, code);
         // const rating = 75;
 
         const record = { code, rating, ai: this.ai.id };
@@ -68,14 +70,20 @@ export const Author = class {
     return toFn(code);
   }
 
-  async write(namespace, goal, init, finish) {
+  async write(url, goal) {
     this.logger.debug(`${this} Write code for goal: ${goal}`);
 
-    const state = await init();
+    const ctx = {};
+    await this.fetcher.start(ctx);
+    await this.fetcher.goto(url, ctx);
+    const doc = await this.fetcher.current(ctx);
+    this.fetcher.finish(ctx).catch((e) => {
+      this.logger.error(`${this} Ignoring error on finish: ${e}`);
+    });
 
     const context = {
       goal,
-      html: state.html,
+      html: pretty(doc.html, { ocd: true }),
       timeout: this.timeout,
     };
 
@@ -89,23 +97,46 @@ export const Author = class {
 
     this.logger.debug(`${this} Got code for goal ${goal} =: ${code}`);
 
-    await finish(state);
-
-    return { code, state };
+    return code;
   }
 
-  async rate(namespace, goal, code, init, exec, finish) {
+  async rate(url, goal, code) {
     this.logger.debug(`${this} Rate code for goal: ${goal}`);
 
-    const state = await init();
+    const ctx = {};
+    await this.fetcher.start(ctx);
+    await this.fetcher.goto(url, ctx);
+    const doc = await this.fetcher.current(ctx);
 
     let html;
     try {
+      console.log('==== EXEC CODE ====');
+
       const fn = toFn(code);
-      html = await new Promise(ok => {
-        exec(fn, ok, state);
-      });
-      console.log('got results:', html);
+
+      let result;
+      await new Promise(ok => fn(
+        ctx.page,
+        (r) => {
+          result = r;
+          return false;
+        },
+        (msg) => {
+          console.log('AI says:', msg);
+        },
+        ok));
+
+      console.log('RESULT--->', result);
+
+      throw 'STOP1111';
+
+      // html = await new Promise(ok => {
+      //   exec(fn, (results) => {
+      //     console.log('GOT RESULTS', results);
+      //     ok(results);
+      //   }, state);
+      // });
+      // console.log('got results:', html);
     } catch (e) {
       this.logger.error(`${this} Error while executing code ${code}: ${e}`);
       if (process.env.STRICT_ERRORS) {
@@ -115,9 +146,15 @@ export const Author = class {
     }
     html ||= '* unable to get after HTML, possibly due to execution error *';
 
+    this.fetcher.finish(ctx).catch((e) => {
+      this.logger.error(`${this} Ignoring error on finish: ${e}`);
+    });
+
+    const ser = s => typeof s == 'string' ? s : JSON.stringify(s, null, 2);
+
     const context = {
-      before: state.html,
-      after: html,
+      before: ser(state.html),
+      after: ser(html),
       goal,
       code,
     }

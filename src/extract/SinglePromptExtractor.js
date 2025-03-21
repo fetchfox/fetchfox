@@ -62,6 +62,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     console.log('body', doc.selectHtml);
 
     const author = new Author({
+      fetcher: this.fetcher,
       kv: this.kv,
       ai: this.ai,
       logger: this.logger,
@@ -75,26 +76,26 @@ ${JSON.stringify(questions, null, 2)}
 `;
 
     const url = doc.url;
-    const init = async () => {
-      const ctx = {};
-      await this.fetcher.start(ctx);
-      await this.fetcher.goto(url, ctx);
-      const doc = await this.fetcher.current(ctx);
-      // const doc = await this.current(this.fetcher, ctx);
-      if (!doc) {
-        throw new Error(`${this} Couldn't get document to learn commands ${url}`);
-      }
-      return { html: doc.html, ctx };
-    }
-    const exec = async (fn, cb, { ctx }) => {
-      return fn(ctx.page, cb, (msg) => this.aiLog(msg), cb);
-    }
-    const finish = async ({ ctx }) => {
-      this.fetcher.finish(ctx);
-    }
+    // const init = async () => {
+    //   const ctx = {};
+    //   await this.fetcher.start(ctx);
+    //   await this.fetcher.goto(url, ctx);
+    //   const doc = await this.fetcher.current(ctx);
+    //   // const doc = await this.current(this.fetcher, ctx);
+    //   if (!doc) {
+    //     throw new Error(`${this} Couldn't get document to learn commands ${url}`);
+    //   }
+    //   return { html: doc.html, ctx };
+    // }
+    // const exec = async (fn, cb, { ctx }) => {
+    //   return fn(ctx.page, cb, (msg) => this.aiLog(msg), cb);
+    // }
+    // const finish = async ({ ctx }) => {
+    //   this.fetcher.finish(ctx);
+    // }
 
     console.log('made author:', author);
-    const fn = await author.get(namespace, goal, init, exec, finish);
+    const fn = await author.get(url, goal);
     console.log('got fn:', fn);
 
     throw 'STOP';

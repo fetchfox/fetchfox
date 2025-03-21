@@ -209,6 +209,9 @@ Iterating over matched elements:
       });
     });
 
+Variable context:
+- Recall that Playwright like evaluateAll() and evaluate() have their own execution context, sine they execute inside the Chrome instance. Therefore, fnSendResults and fnDebugLog are not available inside the functions passed to evaluateAll(), evaluate(), etc.
+
 Selector guidance:
 - Prefer CSS selectors, but use text= when necessary
 - Do NOT mix text= and css= selectors. Choose one or the other

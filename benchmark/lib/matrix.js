@@ -10,7 +10,8 @@ export const standardMatrix = (extra, options) => {
   let ai;
 
   const fetcher = [
-    ['playwright', { s3 }],
+    // ['playwright', { s3 }],
+    ['playwright', { }],
   ];
   if (process.env.HEADFUL) {
     fetcher[0][1].headless = false;

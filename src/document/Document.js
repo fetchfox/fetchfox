@@ -143,7 +143,7 @@ export const Document = class {
     logger.info('format', format);
 
     const context = {
-      html: this.html,
+      html: pretty(this.html, { ocd: true }),
       template: JSON.stringify(template, null, 2),
       format: JSON.stringify(format, null, 2),
     }
