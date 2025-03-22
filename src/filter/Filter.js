@@ -6,17 +6,13 @@ import { filter } from './prompts.js';
 
 export const Filter = class {
   constructor(options) {
-    const { ai, cache } = options || {};
-    this.ai = getAI(ai, { cache });
+    this.ai = options?.ai || getAI();
   }
 
   async *run(items, query) {
     let id = 1;
-    const copy = [...items]
-      .map(item => { return { ...item, _ffid: id++ } });
-
     const maxBytes = this.ai.maxTokens / 2;
-    const chunked = chunkList(copy, maxBytes);
+    const chunked = chunkList(items, maxBytes);
 
     let count = 0;
 
@@ -29,13 +25,11 @@ export const Filter = class {
 
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
-        for (let i = 0; i < copy.length; i++) {
-          const data = copy[i];
-          if (data._ffid == delta._ffid) {
-            count++;
-            delete data._ffid;
-            yield Promise.resolve(new Item(data));
-          }
+        const copy = JSON.parse(JSON.stringify(delta));
+        const p = copy._percentMatch || 0;;
+        delete copy._percentMatch;
+        if (p >= 80) {
+          yield Promise.resolve(new Item(copy));
         }
       }
     }
