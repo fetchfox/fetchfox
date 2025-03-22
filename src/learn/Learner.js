@@ -11,7 +11,8 @@ export const Learner = class {
     this.logger = options?.logger || defaultLogger;
     this.cache = options?.cache;
     this.fetcher = options?.fetcher || getFetcher(null, { cache: this.cache });
-    this.ai = options?.ai || getAI(null, { cache: this.cache });
+    // this.ai = options?.ai || getAI(null, { cache: this.cache });
+    this.ai = getAI('openai:gpt-4o');
   }
 
   async learn({ url, prompt, ...rest }, cb) {

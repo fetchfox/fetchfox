@@ -6,7 +6,7 @@ export const availableItems = new Template(
 
 You should return a list of JSON objects in JSONL format, where each object has the following fields
 
-Additionally, focus on items relevant to the user prompt. You may IGNORE item types that aren't helpful for the search prompt (below).
+Additionally, focus on items relevant to the user prompt.
 
 - "item": 1-5 word description of the item that is available to scrape
 - "example": A JSON example of this item FROM THIS PAGE, do NOT include any data that is not available on this page
@@ -15,8 +15,8 @@ Additionally, focus on items relevant to the user prompt. You may IGNORE item ty
 
 Examples of valid output:
 
-{"item": "book", "template": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ] } }
-{"item": "comment", "template": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review" } }
+{"item": "book", "template": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ], "url" : "URL of the book details. Full absolute URL" } }
+{"item": "comment", "template": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review", "url": "URL of the comment permalink. Full absolute URL" } }
 
 URLs of the pages:
 {{urls}}
@@ -24,13 +24,24 @@ URLs of the pages:
 HTML samples of the page:
 {{htmls}}
 
-Focus on URLs relevant the user prompt below, and ignore ones that are unlikely to be relevent
+Focus on item relevant the user prompt below. However, do not be overly restricted. If there are items somewhat related, feel free to suggest those also. Give the most relevant suggestions first.
+
+>>> User prompt:
 {{prompt}}
 
 Guidlines:
 - Ignore general categories like "site navigation" or "site links", focus on content and data unique to this page and domain
-- Include 1 to 3 types of items
 - Return data that is on *this page*, not data that is linked from it
+
+Include 2-4 items typically:
+- Identify the 2-4 different kinds of items being scraped
+- Suggest items based on the user prompt, and the main point of the page
+- If there are URLs in the items, they must link to different types of pages
+
+"url" field:
+- If possible and appropriate, include a field named "url" that links to more details about this item. Include this if there is a URL you can follow
+- This field MUST be named "url". Do not name it something like "comment_url" or "profile_url", just "url"
+- All URLs should be full, absolute URLs
 
 Follow these important rules:
 - Provide a SINGLE result for the multiple page samples you give. Look for COMMONALITIES between the pages.
@@ -73,4 +84,9 @@ The base URL from which you start is:
 
 Focus on URLs relevant the user prompt below:
 {{prompt}}
+
+* Give the most salient and most relevant results FIRST
+* Focus on content, not navigation or interaction links
+* Avoid duplicates
+* Typically you should generate 2-4 results
 `);
