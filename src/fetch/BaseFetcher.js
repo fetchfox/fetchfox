@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
@@ -83,7 +84,7 @@ export const BaseFetcher = class {
           {
             ai: this.ai,
             cache: this.cache,
-            loadTimeout: this.loadTimeout,
+            timeout: this.timeout,
             hint: options?.hint,
           });
       }
@@ -100,6 +101,7 @@ export const BaseFetcher = class {
     }
 
     const instr = toInstructions(target);
+
     try {
       const url = new URL(instr.url);
       if (!['http:', 'https:'].includes(url.protocol)) {
@@ -163,7 +165,6 @@ export const BaseFetcher = class {
         instr.url = apiUrl;
       }
 
-
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
       this.logger.debug(`${this} Adding to fetch queue: ${instr.url} ${debugStr()}`);
       const priority = options?.priority || 1;
@@ -204,7 +205,6 @@ export const BaseFetcher = class {
               }
 
               const gen = await instr.execute(this);
-
               for await (const r of gen) {
                 const doc = r?.doc;
                 if (this.signal?.aborted) {
@@ -230,7 +230,6 @@ export const BaseFetcher = class {
 
             this.logger.debug(`${this} Closing docs channel`);
             channel.end();
-
             ok();
           });
           /* eslint-enable no-async-promise-executor */
@@ -289,6 +288,9 @@ export const BaseFetcher = class {
 
   async putS3(doc) {
     if (!this.s3) {
+      return;
+    }
+    if (!doc) {
       return;
     }
 
@@ -365,7 +367,13 @@ export const BaseFetcher = class {
 
 const isPdf = async (url, logger) => {
   try {
-    const resp = await fetch(url, { method: 'HEAD' });
+    logger.debug(`Check if ${url} is PDF using HEAD`);
+    const resp = await fetch(
+      url,
+      {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(2000),
+      });
     const contentType = resp.headers.get('Content-Type');
 
     return contentType && contentType.startsWith('application/pdf');

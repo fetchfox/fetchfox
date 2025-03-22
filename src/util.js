@@ -129,7 +129,7 @@ export const abortable = async (signal, promise) => {
       if (signal?.aborted) {
         return { aborted: true };
       }
-      logger.error(`Abortable got error: ${e}`);
+      logger.error(`Abortable got error: ${e.stack}`);
       throw e;
     });
 

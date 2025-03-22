@@ -1,11 +1,13 @@
 import { logger as defaultLogger } from '../log/logger.js';
 import fs from 'fs';
 import path from 'path';
+import { BaseCache } from './BaseCache.js';
 
-export const DiskCache = class {
+export const DiskCache = class extends BaseCache {
   constructor(dirname, options) {
+    super(options);
     const { ttls } = options || {};
-    this.logger = options.logger || defaultLogger;
+    this.logger = options?.logger || defaultLogger;
     this.dirname = dirname;
     this.ttls = ttls || {};
     fs.promises.mkdir(dirname, { recursive: true });
@@ -18,7 +20,7 @@ export const DiskCache = class {
   }
 
   _cleanKey(key) {
-    return key.replaceAll('/', '-');
+    return this.wrapKey(key.replaceAll('/', '-'));
   }
 
   async set(key, val, label) {
@@ -68,6 +70,10 @@ export const DiskCache = class {
   }
 
   async del(key) {
+    if (this.readOnly) {
+      return;
+    }
+
     key = this._cleanKey(key);
 
     const filepath = path.join(this.dirname, key);

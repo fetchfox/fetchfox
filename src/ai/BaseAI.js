@@ -1,8 +1,10 @@
+import { RateLimiter } from 'limiter';
 import { getAI } from './index.js';
 import { logger as defaultLogger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 import { parseAnswer, sleep, getModelData } from './util.js';
 import { shortObjHash } from '../util.js';
+
 
 export const BaseAI = class {
   constructor(options) {
@@ -67,6 +69,12 @@ export const BaseAI = class {
 
     this.baseURL = options?.baseURL;
 
+    this.tpm = options?.tpm || 150000000;
+    this.limiter = new RateLimiter({
+      tokensPerInterval: this.tpm,
+      interval: 'minute',
+    });
+
     if (maxTokens) this.maxTokens = maxTokens;
     this.signal = options?.signal;
   }
@@ -92,6 +100,25 @@ export const BaseAI = class {
 
   get advanced() {
     return this._advanced || this;
+  }
+
+  get id() {
+    return this.provider + ':' + this.model;
+  }
+
+  async limitReady(str, options) {
+    const tokens = await this.countTokens(str, options);
+    while (true) {
+      const r = this.limiter.getTokensRemaining();
+      this.logger.info(`${this} Check rate limit: tpm=${this.tpm}, tokens available=${r}`);
+      if (this.limiter.tryRemoveTokens(tokens) || r == this.tpm) {
+        return;
+      }
+
+      this.logger.warn(`${this} Waiting for rate limit, tpm=${this.tpm}`);
+      await new Promise(ok => setTimeout(ok, 5000));
+    }
+    return tokens;
   }
 
   async countTokens(str, options) {
@@ -141,13 +168,7 @@ export const BaseAI = class {
   async *stream(prompt, options) {
     await this.init();
 
-    let tokens;
-    try {
-      tokens = await this.countTokens(prompt);
-    } catch (e) {
-      this.logger.error(`${this} Error while counting tokens for stream: ${e}`);
-      return;
-    }
+    const tokens = await this.limitReady(prompt);
     this.logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
@@ -267,13 +288,7 @@ export const BaseAI = class {
   }
 
   async ask(prompt, options) {
-    let tokens;
-    try {
-      tokens = await this.countTokens(prompt);
-    } catch (e) {
-      this.logger.error(`${this} Error while counting tokens for ask: ${e}`);
-      return;
-    }
+    const tokens = await this.limitReady(prompt);
     this.logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     let result;

@@ -10,7 +10,7 @@ export const standardMatrix = (extra, options) => {
   const fetcher = [
     ['playwright', { s3 }],
   ];
-  if (process.env.BENCH_HEADFUL) {
+  if (process.env.HEADFUL) {
     fetcher[0][1].headless = false;
   }
 
@@ -57,6 +57,8 @@ export const createMatrix = (configs, options) => {
           if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
             val[1].cdp = cdp;
             val[1].timeout = 120 * 1000; // long timeouts for proxy providers
+          } else {
+            val[1].timeout = 10 * 1000;
           }
         }
         newMatrix.push(updated);

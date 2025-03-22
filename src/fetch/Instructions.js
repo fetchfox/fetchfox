@@ -1,7 +1,9 @@
+import pretty from 'pretty';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
 import { shortObjHash } from '../util.js';
+import { CodeInstructions } from './CodeInstructions.js';
 import * as prompts from './prompts.js';
 
 // TODO:
@@ -13,6 +15,8 @@ export const nextPageCommand = '{{nextPage}}';
 
 export const Instructions = class {
   constructor(url, commands, options) {
+    this.logger = options?.logger || defaultLogger
+
     this.url = url;
     this.commands = [];
     for (const command of commands) {
@@ -25,11 +29,21 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
+
     this.ai = options?.ai || getAI(null, { cache: this.cache });
-    this.loadTimeout = options?.loadTimeout || 60000;
+    this.timeout = options?.timeout || options?.fetcher?.timeout || 60000;
+
     this.limit = options?.limit;
     this.hint = options?.hint;
-    this.logger = options?.logger || defaultLogger
+
+    // TODO: migrate everthing to CodeInstructions
+    if (this.useCode()) {
+      if (commands.length > 1) {
+        throw new Error('Code based instructions msut have <= 1 command');
+      }
+      this.codeInstructions = new CodeInstructions(url, this.commands[0], options);
+    }
+
   }
 
   toString() {
@@ -43,6 +57,8 @@ export const Instructions = class {
   unshiftCommand(command) {
     this.learned = null;
     this.commands.unshift(command);
+
+    this.codeInstructions?.unshiftCommand(command);
   }
 
   cacheKey() {
@@ -54,22 +70,27 @@ export const Instructions = class {
     return `instructions-${hash}`;
   }
 
+  useCode() {
+    return (
+      (this.url.includes('domain.com.au') && !this.url.match(/domain.com.au.*-[0-9]{4}(\/|$)/)) ||
+      this.url.includes('onereal.com') ||
+      this.url.includes('www.kw.com') ||
+      this.url.includes('mpaq.com.au') ||
+      this.url.includes('portal.mara.gov.au') ||
+      this.url.includes('bokadirekt.se')
+    );
+  }
+
   async *learn(fetcher, options) {
-
-    const cacheKey = options?.cacheKey;
-    const learned = [];
-
-    const key = this.cacheKey(cacheKey);
-    if (this.cache) {
-      const cached = await this.cache.get(key);
-      if (cached) {
-        this.logger.debug(`${this} Cache hit for ${key}`);
-        this.learned = cached;
-        return;
-      } else {
-        this.logger.debug(`${this} Cache miss for ${key}`);
+    if (this.useCode()) {
+      const gen = this.codeInstructions.learn(fetcher, options);
+      for await (const r of gen) {
+        yield r;
       }
+      return;
     }
+
+    const learned = [];
 
     const ctx = {};
 
@@ -118,7 +139,7 @@ export const Instructions = class {
             .catch((e) => {
               this.logger.error(`Error while trying to scroll for pagination: ${e}`);
             });
-          scrollPromise = pTimeout(p, { milliseconds: this.loadTimeout });
+          scrollPromise = pTimeout(p, { milliseconds: this.timeout });
         }
 
         yield Promise.resolve({ doc });
@@ -136,7 +157,8 @@ export const Instructions = class {
         this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         const context = {
-          html: doc.html,
+          // html: doc.html,
+          html: pretty(doc.html, { ocd: true }),
           command: command.prompt,
           hint: this.hint ? `>>>> The user has passed in this hint, which may be useful. Follow it if it is relevant, ignore it if it is not:
 
@@ -152,7 +174,10 @@ ${this.hint}` : '',
           ))
         )
           .filter(result => result.status == 'fulfilled');
-        this.logger.info(JSON.stringify(answers));
+
+        this.logger.info(JSON.stringify(answers, null, 2));
+
+        // throw 'stop 123';
 
         const candidates = [];
         const seen = {};
@@ -177,13 +202,24 @@ ${this.hint}` : '',
               confidence,
             };
 
+            let selector;
+            if (it.candidatePlaywrightSelector) {
+              const c = it.candidatePlaywrightSelector;
+              if (c.startsWith('css=') || c.startsWith('text=')) {
+                selector = c;
+              } else {
+                const t = it.candidatePlaywrightSelectorType;
+                selector = `${t}=${c}`;
+              }
+            }
+
             let candidate;
             switch (type) {
               case 'click':
                 candidate = [
                   {
                     ...shared,
-                    arg: it.candidatePlaywrightSelector,
+                    arg: selector,
                   }
                 ];
                 break;
@@ -205,7 +241,7 @@ ${this.hint}` : '',
                   {
                     ...shared,
                     type: 'focus',
-                    arg: it.candidatePlaywrightSelector,
+                    arg: selector,
                     mode: 'first',
                   },
                   {
@@ -264,7 +300,7 @@ ${this.hint}` : '',
 
         let working;
         this.logger.info(`${this} Candidates in sorted order:`);
-        this.logger.info(candidates);
+        this.logger.info(JSON.stringify(candidates, null, 2));
 
         for (const set of candidates) {
           this.logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
@@ -312,11 +348,6 @@ ${this.hint}` : '',
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
 
-      if (this.cache) {
-        this.logger.debug(`${this} Setting cache for ${key}`);
-        await this.cache.set(key, this.learned);
-      }
-
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
     } catch (e) {
@@ -329,6 +360,14 @@ ${this.hint}` : '',
   }
 
   async *execute(fetcher, options) {
+    if (this.useCode()) {
+      const gen = this.codeInstructions.execute(fetcher, options);
+      for await (const r of gen) {
+        yield Promise.resolve(r);
+      }
+      return;
+    }
+
     const learned = options?.learned || this.learned || []
 
     if (this.commands?.length && !learned.length) {
@@ -535,7 +574,7 @@ ${this.hint}` : '',
   }
 
   async current(fetcher, ctx) {
-    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.loadTimeout });
+    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.timeout });
     this.logger.debug(`${this} Got document: ${doc}`);
     return doc;
   }
@@ -660,21 +699,20 @@ const domainSpecificInstructions = (url) => {
   return result;
 }
 
-const acceptCookiesPrompt = `Click through and prompts to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
-
-If there are multiple prompts to accept, return one action for each.
+export const acceptCookiesPrompt = `Click through any prompts and modals to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
 
 This includes any of the following
 - Cookie prompts (accept cookie, do not manage unless necessary)
-- Age verification terms (agree that you are the required age)
+- Age verification terms (agree that you are the required age, eg 21 or older)
 - Accepting terms of service in general (accept the terms)
 - Closing email subscription popup
 
 This excludes the following:
 - Sidebars and navigation tools relevant to the main site
-`;
 
-const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
+If there are multiple prompts to accept, return one action for each.`;
+
+export const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
 
 Note: 
 - If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.

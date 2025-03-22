@@ -1,8 +1,10 @@
 import Redis from 'ioredis';
 import { logger } from '../log/logger.js';
+import { BaseCache } from './BaseCache.js';
 
-export const RedisCache = class {
+export const RedisCache = class extends BaseCache {
   constructor(url, options) {
+    super(options);
     const { ttls } = options || {};
     this.redis = new Redis(url);
     this.ttls = ttls || {};
@@ -13,10 +15,14 @@ export const RedisCache = class {
   }
 
   _cleanKey(key) {
-    return key.replaceAll('/', '-');
+    return this.wrapKey(key.replaceAll('/', '-'));
   }
 
   async set(key, val, label) {
+    if (this.readOnly) {
+      return;
+    }
+
     key = this._cleanKey(key);
 
     const ttl = this.ttls[label] || this.ttls.base || 2 * 3600; // Default TTL: 2 hours
@@ -29,6 +35,10 @@ export const RedisCache = class {
   }
 
   async get(key) {
+    if (this.writeOnly) {
+      return;
+    }
+
     key = this._cleanKey(key);
 
     let data;
@@ -47,6 +57,10 @@ export const RedisCache = class {
   }
 
   async del(key) {
+    if (this.readOnly) {
+      return;
+    }
+
     key = this._cleanKey(key);
 
     try {

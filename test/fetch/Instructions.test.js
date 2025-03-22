@@ -264,8 +264,6 @@ describe('Instructions', function() {
     </style>
   </head>
   <body>
-yyyy
-
     <div id="profile-container"></div>
 
     <script>

@@ -92,6 +92,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
           promise = chromium.launch({ headless: this.headless });
         }
+
         const browser = await promise;
         return browser;
       } catch (e) {
@@ -455,7 +456,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
   try {
     /* eslint-disable no-undef */
     outs = await page.evaluate(async () => {
-      // Attach the function to document to avoid errors in certain situatios,
+      // Attach the function to document to avoid errors in certain situations,
       // eg. https://github.com/privatenumber/tsx/issues/113
       document.toText = (min, node) => {
         if (node.nodeType === Node.TEXT_NODE) {

@@ -1,8 +1,7 @@
 import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkItemsExact } from '../lib/checks.js';
-import { storeScores } from '../lib/store.js';
+import { checkItemsAI } from '../lib/checks.js';
 
 describe('extract from youtube.com', async function() {
   const matrix = standardMatrix({});
@@ -31,24 +30,26 @@ describe('extract from youtube.com', async function() {
     },
   ];
 
+  const questions = {
+    title: 'What is the title of this video?',
+    creator: 'Who is the creator of this video?',
+  }
+
   for (const { id, expected } of cases) {
     const wf = await fox
       .init(`https://www.youtube.com/watch?v=${id}`)
       .extract({
-        questions: {
-          title: 'What is the title of this video?',
-          creator: 'Who is the creator of this video?',
-        },
+        questions,
         single: true
       })
       .plan();
     await itRunMatrix(
       it,
-      `extract title and creator from youtube.com video id=${id}`,
+      `extract title and creator from youtube.com video`,
       wf.dump(),
       matrix,
       [
-        (items) => checkItemsExact(items, [expected]),
+        (items) => checkItemsAI(items, [expected], questions),
       ],
       { shouldSave: true });
   }

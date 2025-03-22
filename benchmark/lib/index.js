@@ -15,6 +15,7 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
   for (const config of matrix) {
     const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
 
+
     it(testName, async function () {
       console.log(testName);
 
@@ -75,10 +76,12 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       }
     }
 
-    if (options.noCache && fullConfig.cache) {
-      delete fullConfig.cache;
+    if (options.cache) {
+      fullConfig.cache = options.cache;
     }
-
+    if (options.kv) {
+      fullConfig.kv = options.kv;
+    }
 
     const wf = await fox
       .load(populate(json, config))
