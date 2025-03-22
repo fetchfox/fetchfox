@@ -160,10 +160,11 @@ const persistAllScores = async () => {
         });
       }
 
+      const analysis = allAnalyses.length > 1 ? await summarize(allAnalyses) : '';
       const agg = {
         name: "All Benchmarks Mean",
         score_pct: sum / count,
-        analysis: await summarize(allAnalyses),
+        analysis,
       };
       results.push(agg);
 
