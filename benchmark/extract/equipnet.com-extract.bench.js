@@ -3,7 +3,7 @@ import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsAI } from '../lib/checks.js';
 
-describe('extract ct.curaleaf.com', async function() {
+describe('extract equipnet.com', async function() {
   const matrix = standardMatrix();
 
   const cases = [
@@ -14,10 +14,12 @@ describe('extract ct.curaleaf.com', async function() {
     },
     // {
     //   name: 'saved',
-    //   url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/93ue3wfv78/https-ct-curaleaf-com-shop-connecticut-curaleaf-ct-stamford-categories-flower.html',
+    //   url: '',
     //   expected,
     // },
   ];
+
+  const expected = [];
 
   const questions = {
     auctionName: 'What the name of the auction',
@@ -43,7 +45,7 @@ describe('extract ct.curaleaf.com', async function() {
       wf.dump(),
       matrix,
       [
-        (items) => console.log(items),
+        (items) => checkItemsAI(items, expected, questions),
       ],
       { shouldSave: true });
   }

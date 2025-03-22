@@ -54,29 +54,46 @@ export const checkItemsAI = async (items, expected, questions, fields) => {
 You may based your score on the approximate percentage of expected fields that are exactly matched in the actual results.
 However, you may give partial credit for responses that answer a question in a slightly different format if the corresponding question's wording allows it.
 
+If there is a format discrepancy, try to determine if the answer is generally too short or too long, or still properly answers the question although it differs from the expected response.
+In the analysis, ensure that the most important information is mentioned first: Start with an overall evaluation, noting any missing results or fields, any extra results or fields or other major mistakes, then less important issues and optionally correct fields. Also note any out of order results, and any format differences that still answer the question properly.
+Try to provide a clear, concise and efficient overview that mentions all important differences. Avoid mentioning specific entries except as an example or unless results are otherwise nearly perfect.
+You may assume that the reader expects information to refer to the actual results and differences to be from the expected results to the actual results unless otherwise mentioned. Results may say (not found) rather than be blank or null.
+
 Format your response like this:
 
-- "analysis": 50-200 word analysis of the differences between the actual and expected results. Note any missing results, mistakes specifically.
-- "score": Based on the analysis and data you see, give a score from 0 to 100 of how good the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER
+- "analysis": 20-200 word analysis of the differences between the actual and expected results. Note any missing rows or fields first, then other major mistakes.
+- "score": Based on the analysis and data you see, give a score from 0 to 100 of how accurate the actual results are. 0 = terrible, completely different, 100 = perfect, exactly the same. MUST BE AN INTEGER
 
 Example of valid response:
 {
-  "analysis": "The actual results show username and comments, and those match the expected results, except the format of the username is wrong. Also, one result is missing.",
-  "score": 70
+  "analysis": "Mostly accurate but username format differs. Results match in username and comments fields, but 1 result (of 10) is missing. Username format differs but still is valid.",
+  "score": 80
 }
+
+-----
 
 >>>> Questions:
 ${questions}
 
+-----
+
 >>>> Expected results:
 ${expectedStr}
+
+-----
 
 >>>> Actual results:
 ${itemsStr}
 
-Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse().`;
+-----
 
-  const ai = getAI('openai:gpt-4o');
+Reminder:
+In the analysis, ensure that the most important information is mentioned first:  Start with an overall evaluation, noting any missing results or fields, any extra results or fields or other major mistakes, then less important issues.  Also note any out of order results, and any format differences that still answer the question properly.
+Try to provide a clear, concise and efficient overview.  Maintain a most to least important pattern.
+
+Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse().`;
+  const ai = getAI('google:gemini-2.0-flash');
+  // const ai = getAI('openai:gpt-4o');
   const answer = await ai.ask(prompt, { format: 'json' });
   logger.info(answer.partial.analysis);
 

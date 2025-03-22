@@ -57,10 +57,6 @@ const registerCommit = async () => {
   }
 }
 
-const aggregateAnalysis = async (scoers) => {
-
-}
-
 const persistAnalysis = async (scores) => {
   // aggregate analysis by name / config_ai
   const grouped = {};
@@ -131,6 +127,7 @@ const persistAllScores = async () => {
         }
       }
 
+      const allAnalyses = [];
       for (const name of Object.keys(byName)) {
         let sum = 0;
         let count = 0;
@@ -154,14 +151,19 @@ const persistAllScores = async () => {
         const agg = {
           name: name + ' Mean',
           score_pct: sum / count,
-          analyses,
+          analysis: analyses,
         }
         results.push(agg);
+        allAnalyses.push({
+          benchmarkName: name,
+          analyses,
+        });
       }
 
       const agg = {
         name: "All Benchmarks Mean",
         score_pct: sum / count,
+        analysis: await summarize(allAnalyses),
       };
       results.push(agg);
 
@@ -169,7 +171,7 @@ const persistAllScores = async () => {
     }
 
     logger.debug(JSON.stringify(allScores, null, 2));
-    console.log(summary(allScores));
+    console.log(await summary(allScores));
     return;
   }
 
