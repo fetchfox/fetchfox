@@ -6,7 +6,7 @@ export const filter = new Template(
 
 Aside from adding a field for percent match, everything else in the item must stay exactly the same. The percent match field will look like this
 
-- "_percentMatch": a number from 0 to 100 indicating how close of a match this item is to the filter. 0 = complete mismatch, 50 = somewhat matches, 100 = perfect match. Scores at or above 80 are considered a good match that will be returned to the user.
+- "_percentMatch": A number from 0 to 100 indicating how close of a match this item is to the filter. 0 = complete mismatch, 50 = somewhat matches, 100 = perfect match. Scores at or above 80 are considered a good match that will be returned to the user. Format: Number
 
 The _percentMatch field should be the last item in the JSON object.
 
