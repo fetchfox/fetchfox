@@ -1,5 +1,3 @@
-import chalk from 'chalk';
-import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
 import { getKV } from '../kv/index.js';
@@ -26,18 +24,12 @@ export const CodeInstructions = class {
     return `[${this.constructor.name}]`;
   }
 
-  aiLog(msg) {
-    this.logger.debug(`${chalk.bold('[AIGEN]')} ${msg}`);
-  }
-
   async *learn() {
     // no-op
   }
 
   async *execute(fetcher) {
     this.logger.info(`${this} Execute code instructions`);
-
-    console.log('this.commands', this.commands);
 
     const goals = [];
     for (const command of this.commands) {
@@ -48,9 +40,6 @@ export const CodeInstructions = class {
         goals.push(command.prompt);
       }
     }
-
-    console.log('goals', goals);
-
     if (!goals) {
       this.logger.info(`${this} No command, just yield current page`);
       const ctx = {};
@@ -62,17 +51,16 @@ export const CodeInstructions = class {
       return;
     }
 
-    // const command = this.commands[0];
-
-    this.logger.debug(`${this} Learn how to do: ${goals.join('\n')}`);
+    this.logger.info(`${this} Use author for ${goals.length }goals`);
+    this.logger.debug(`${this} Goals are: ${goals.join('\n\n')}`);
     const author = new Author({
+      fetcher: this.fetcher,
       kv: this.kv,
       ai: this.ai,
+      cache: this.cache,
       logger: this.logger,
       timeout: this.timeout,
     });
-
-    this.logger.debug(`${this} Calling author to write code for ${goals.join('\n')}`);
     for await (const doc of  author.run(this.url, goals)) {
       yield Promise.resolve(doc);
     }

@@ -1,55 +1,12 @@
+import chalk from 'chalk';
 import pretty from 'pretty';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
 import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
-import { shortObjHash, createChannel } from '../util.js';
+import { shortObjHash, createChannel, clip } from '../util.js';
 import * as prompts from './prompts.js';
-
-const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-const toFn = (code) => new AsyncFunction('page', 'fnSendResults', 'fnDebugLog', 'done', code);
-const exec = async (fn, fetcher, ctx, cb) =>  {
-  console.log('EXEC FN');
-  const run = new Promise((ok) => {
-    fn(
-      ctx.page,
-
-      // fnSendResults
-      async () => {
-        console.log('TODO: fnSendResults');
-        await new Promise(ok => setTimeout(ok, 2000));
-        if (cb) {
-          const doc = await fetcher.current(ctx);
-          const r = await cb({ doc });
-          if (!r) {
-            ok();
-          }
-          return r;
-        } else {
-          return true;
-        }
-      },
-
-      // fnDebugLog
-      (msg) => {
-        // TODO: use logger
-        console.log('AI MESSAGE:', msg);
-      },
-
-      // done
-      async () => {
-        // TODO: use logger
-        // this.logger.debug(`${this} Generated code is done`);
-        console.log(`Generated code is done`);
-        // chan.end();
-        ok();
-      }
-    )
-  });
-
-  await run;
-}
 
 export const Author = class {
   constructor(options) {
@@ -77,10 +34,20 @@ export const Author = class {
 
         for (const [i, fn] of fns.entries()) {
           // Only send results for last step
-          const cb = (i == fns.length - 1)
-            ? (r) => { chan.send(r); return true }
-            : null;
-          const p = exec(fn, this.fetcher, ctx, cb);
+          let cb;
+          if (i == fns.length - 1) {
+            cb = (r) => {
+              chan.send(r);
+              return true;
+            }
+          }
+          const p = exec(
+            fn,
+            this.logger,
+            this.fetcher,
+            ctx,
+            cb);
+
           await pTimeout(p, { milliseconds: 300 * 1000 });
         }
       } finally {
@@ -117,7 +84,7 @@ export const Author = class {
       .filter(it => (it.rating?.score || 0) >= this.threshold)
       .sort((a, b) => (a.rating?.score || 0) - (b.rating?.score || 0));
 
-    console.log('records', records);
+    this.logger.debug(`${this} Found ${records.length} records for ${key}`);
 
     let codes;
 
@@ -182,7 +149,6 @@ export const Author = class {
         };
 
         this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
-        this.logger.trace('write code');
         const { prompt } = await prompts.pageActionCode
           .renderCapped(context, 'html', this.ai.advanced);
         const answer = await this.ai.advanced.ask(prompt, { format: 'text' });
@@ -190,94 +156,75 @@ export const Author = class {
           .replaceAll('```javascript', '')
           .replaceAll('```', '');
 
-        console.log('got code for goal:');
-        console.log('\tgoal:', goal);
-        console.log('\tcode:', code);
+        this.logger.debug(`${this} Got code from ${this.ai.advanced}: ${code}`);
 
         // Only do each action once in write mode
-        const cb = () => { console.log('write code cb'); return false };
-        await exec(toFn(code), this.fetcher, ctx, cb);
+        const cb = () => { return false };
+        await exec(
+          toFn(code),
+          this.logger,
+          this.fetcher,
+          ctx,
+          cb);
+
         codes.push(code);
       }
-      this.logger.debug(`${this} Got code: ${codes.join('\n\n')}`);
+
     } finally {
       this.fetcher.finish(ctx).catch((e) => {
         this.logger.error(`${this} Ignoring error on finish: ${e}`);
       });
     }
 
-    console.log('!! Done writing code');
+    this.logger.info(`${this} Done writing code`);
 
     return codes;
   }
 
-  async rate(url, goal, code) {
-    this.logger.debug(`${this} Rate code for goal: ${goal}`);
-
-    const ctx = {};
-    await this.fetcher.start(ctx);
-    await this.fetcher.goto(url, ctx);
-    const doc = await this.fetcher.current(ctx);
-
-    let html;
-    try {
-      console.log('==== EXEC CODE ====');
-
-      const fn = toFn(code);
-
-      let result;
-      await new Promise(ok => fn(
-        ctx.page,
-        (r) => {
-          result = r;
-          return false;
-        },
-        (msg) => {
-          console.log('AI says:', msg);
-        },
-        ok));
-
-      console.log('RESULT--->', result);
-
-      throw 'STOP1111';
-
-      // html = await new Promise(ok => {
-      //   exec(fn, (results) => {
-      //     console.log('GOT RESULTS', results);
-      //     ok(results);
-      //   }, state);
-      // });
-      // console.log('got results:', html);
-    } catch (e) {
-      this.logger.error(`${this} Error while executing code ${code}: ${e}`);
-      if (process.env.STRICT_ERRORS) {
-        throw e;
-      }
-      html = `* unable to get HTML due to execution error: ${e}`;
-    }
-    html ||= '* unable to get after HTML, possibly due to execution error *';
-
-    this.fetcher.finish(ctx).catch((e) => {
-      this.logger.error(`${this} Ignoring error on finish: ${e}`);
-    });
-
-    const ser = s => typeof s == 'string' ? s : JSON.stringify(s, null, 2);
-
-    const context = {
-      before: ser(state.html),
-      after: ser(html),
-      goal,
-      code,
-    }
-
-    const { prompt } = await prompts.rateAction
-      .renderCapped(context, ['before', 'after'], this.ai.advanced);
-    const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
-
-    this.logger.debug(`${this} Got rating for before/after HTML: ${JSON.stringify(answer.partial)}`);
-
-    await finish(state);
-
-    return { state, rating: answer.partial, html };
+  async rate(url, goals, codes) {
+    this.logger.info(`${this} Rate code for goal: ${goal}`);
+    throw new Error('TODO');
   }
+}
+
+const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+const toFn = (code) => new AsyncFunction('page', 'fnSendResults', 'fnDebugLog', 'done', code);
+const exec = async (fn, logger, fetcher, ctx, cb) =>  {
+  const run = new Promise((ok) => {
+    fn(
+      ctx.page,
+
+      // fnSendResults
+      async (result) => {
+        logger.debug(`AI generated code sent results: ${clip(result, 100)}`);
+        await new Promise(ok => setTimeout(ok, 2000));
+        if (!cb) {
+          logger.debug(`No callback, always continue`);
+          return true;
+        }
+
+        const doc = await fetcher.current(ctx);
+        const more = await cb({ doc, result });
+        if (!more) {
+          logger.debug(`Callback says to stop`);
+          ok();
+        }
+        logger.debug(`Callback says to continue`);
+        return more;
+      },
+
+      // fnDebugLog
+      (msg) => {
+        logger.debug(`${chalk.bold('[AIGEN]')} ${msg}`);
+      },
+
+      // done
+      async () => {
+        logger.debug(`Generated code is done`);
+        ok();
+      }
+    )
+  });
+
+  await run;
 }

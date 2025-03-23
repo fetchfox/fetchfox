@@ -162,3 +162,12 @@ export const abortable = async (signal, promise) => {
     signal.removeEventListener('abort', abortListener);
   }
 }
+
+export const clip = (s, num) => {
+  const str = typeof s == 'string' ? s : s.toString();
+  if (str.length <= num) {
+    return str;
+  } else {
+    return `"${str.substring(0, num)}..." (str.length - num more bytes)`;
+  }
+}
