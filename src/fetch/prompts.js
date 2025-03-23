@@ -154,7 +154,7 @@ The Javascript code will have the parameters available:
 
 * page: a Playwright page object
 * fnSendResults(results): a function to send the results for evaluation. The results may be page HTML, JSON extracton, etc.. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue.
-* fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on
+* fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on. Send frequent updates, especially before/after interacting with the page.
 * done: call this when the function is done
 
 >>> The current state is:

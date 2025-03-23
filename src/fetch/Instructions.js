@@ -39,7 +39,7 @@ export const Instructions = class {
     this.limit = options?.limit;
     this.hint = options?.hint;
 
-    this.codeInstructions = new CodeInstructions(url, this.commands[0], options);
+    this.codeInstructions = new CodeInstructions(url, this.commands, options);
   }
 
   toString() {
@@ -74,7 +74,7 @@ export const Instructions = class {
   }
 
   get useCode() {
-    // Don't migrate pagination to code instructions yet
+    // Use CodeInstructions for everything except pagination
     return !this.onlyPagination;
   }
 
