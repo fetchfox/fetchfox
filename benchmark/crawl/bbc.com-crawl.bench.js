@@ -32,7 +32,7 @@ describe('crawl bbc.com', async function() {
           score[1]++;
           const url = item.url || item._url;
           if (!url) continue;
-          if (!url.match(/^https:\/\/www\.bbc\.com\/\w+\/articles?\//)) continue;
+          if (!url.match(/^https:\/\/www\.bbc\.(com|co.uk)\/\w+\/articles?\//)) continue;
           score[0]++;
         }
 

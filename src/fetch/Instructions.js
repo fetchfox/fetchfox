@@ -680,6 +680,7 @@ Note:
 - If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.
 - The next button may have the word next, or some sort of right-arrow like character.
 - If you're less confident you may scroll or click a button to Load More data or Show More data.
+- The page may be in a foreign language, handle that also
 
 You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
 

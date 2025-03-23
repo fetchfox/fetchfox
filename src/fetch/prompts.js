@@ -37,7 +37,7 @@ Information on these fields:
   - "first": If we always execute this action exactly once on an element. This is for situations like accepting a cookie waiver, where you always click it once.
   - "repeat": If we execute on the *same* element, but more and more times. For example, pagination repeats: to get to page 2, you repeat 2 times, to get to page 3 you repeat 3 times, and so on.
 - "candidates": A list of 0 or more possible ways to do this action
-- "candidateAnalysis": A 10-20 word analysis of this approach
+- "candidateAnalysis": A 30-150 word analysis of the approach. Brainstorm and evaluate relevant selectors and discuss which parts of the page may be relevant.
 - "candidateAction": One of "click", "scroll" or "click-scroll"
   - "click" if you need to click an element
   - "scroll" if you need to scroll on the page
@@ -73,7 +73,7 @@ IMPORTANT:
 - Use valid CSS syntax
 - You MUST prefix css= or text= to your CSS selectors
 - Do not combine css= and text=, use only one of them
-- Prefer CSS selectors when possible
+- Use CSS selectors instead of text selectors whenever possible
 
 Limit:
 - Do not give candidates if the action is unecessary or cannot be done

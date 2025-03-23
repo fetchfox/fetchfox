@@ -298,7 +298,7 @@ export const BaseFetcher = class {
     const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
     const acl = this.s3.acl || '';
     const id = srid(10);
-    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]+/g, '-');
+    const cleanUrl = (doc.url || '').replace(/[^A-Za-z0-9]+/g, '-');
     const key = keyTemplate
       .replaceAll('{id}', id)
       .replaceAll('{url}', cleanUrl);

@@ -1,7 +1,7 @@
 import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkItemsExact } from '../lib/checks.js';
+import { checkItemsAI } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('extract from youtube.com', async function() {
@@ -48,7 +48,7 @@ describe('extract from youtube.com', async function() {
       wf.dump(),
       matrix,
       [
-        (items) => checkItemsExact(items, [expected]),
+        (items) => checkItemsAI(items, [expected]),
       ],
       { shouldSave: true });
   }

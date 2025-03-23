@@ -4,7 +4,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('scotchwhiskyauctions.com', async function() {
+describe('extract scotchwhiskyauctions.com', async function() {
   const matrix = standardMatrix();
 
   const expected = {
@@ -28,7 +28,7 @@ describe('scotchwhiskyauctions.com', async function() {
 
   await itRunMatrix(
     it,
-    'extract from scotchwhiskyauctions.com',
+    'extract scotchwhiskyauctions.com',
     wf.dump(),
     matrix,
     [
