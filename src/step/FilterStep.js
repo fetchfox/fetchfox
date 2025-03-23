@@ -4,7 +4,6 @@ import { Filter } from '../filter/Filter.js';
 export const FilterStep = class extends BaseStep {
   constructor(args) {
     super(args);
-
     let query;
     if (typeof args == 'string') {
       query = args;
@@ -22,10 +21,10 @@ export const FilterStep = class extends BaseStep {
 
     const filter = new Filter(cursor.ctx);
     const stream = filter.run([item], this.query);
-    cursor.ctx.logger.debug(`Filter on ${item} on ${this.query}`);
+    cursor.ctx.logger.debug(`${this} Filter on ${item} on ${this.query}`);
 
     for await (const output of stream) {
-      cursor.ctx.logger.debug(`Filter matched ${item} on ${this.query}`);
+      cursor.ctx.logger.debug(`${this} Filter matched ${JSON.stringify(output)} on ${this.query}`);
       const done = cb(output);
       if (done) break;
     }

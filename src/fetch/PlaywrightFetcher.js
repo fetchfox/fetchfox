@@ -187,6 +187,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return { ok: false };
     }
 
+    if (selector.startsWith('text=')) {
+      selector = selector.replaceAll('>', '&gt;');
+    }
+
     const timeout = options?.timeout || this.actionTimeout;
     const loc = ctx.page.locator(selector);
 
