@@ -59,7 +59,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       }
     }
     const body = doc[view];
-    console.log('body', doc.selectHtml);
+    // console.log('body', doc.selectHtml);
 
     const author = new Author({
       fetcher: this.fetcher,
@@ -95,10 +95,8 @@ ${JSON.stringify(questions, null, 2)}
     // }
 
     console.log('made author:', author);
-    const fn = await author.get(url, goal);
-    console.log('got fn:', fn);
-
-    throw 'STOP';
+    const fns = await author.get(url, [goal]);
+    console.log('got fns:', fns);
 
     const context = {
       url: doc.url,

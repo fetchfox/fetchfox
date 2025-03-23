@@ -169,6 +169,7 @@ BEFORE writing code:
   * Goal (10-20 words): Summarize the goal in your own words
   * Relevance (20-30 words): Is this goal feasible and relvent given the HTML?
   * Selector analysis (10-100 words): Which relevant selectors exist on the page, and how do they relate to the task at hand? If none exist, say so. Do not suggest selectors that don't exist on the page.
+  * Variable context handling (10-100 words): How will you account for the distinct variable contexts in Playwright, specifically noting which variables are available in evaluate and evaluateAll blocks that execute in the browser context
 
 AFTER writing code:
 * Give a comment line in exactly this format:

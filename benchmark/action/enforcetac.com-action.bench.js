@@ -1,4 +1,5 @@
 import { fox, S3KV } from '../../src/index.js';
+import { srid } from '../../src/util.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
 import { checkIncreasingSize } from '../lib/checks.js';

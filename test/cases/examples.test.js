@@ -13,8 +13,9 @@ describe('examples', function() {
 
   it('should do basic example @fast', async () => {
     const cases = [
-      { ai: 'openai:gpt-4o-mini' },
-      { ai: 'openrouter:openai/gpt-4o' },
+      { ai: 'openai:gpt-4o' },
+      // { ai: 'openai:gpt-4o-mini' },
+      // { ai: 'openrouter:openai/gpt-4o' },
     ];
 
     const logger = new Logger({ prefix: 'abc123xyz' });

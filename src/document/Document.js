@@ -151,7 +151,8 @@ export const Document = class {
     const { prompt } = await prompts.learnCSS.renderCapped(
       context, 'html', ai.advanced);
 
-    logger.debug(prompt);
+    // logger.debug(prompt);
+
     const answer = await ai.advanced.ask(prompt, { format: 'json' });
     logger.info('answer', answer.partial);
     const fields = Object.keys(answer.partial).filter(k => !k.startsWith('_'));
@@ -328,7 +329,7 @@ export const Document = class {
     }
 
     this.obj = obj;
-    console.log(pretty(html, {ocd: true}));
+    // console.log(pretty(html, {ocd: true}));
     this.selectHTML = pretty(html, {ocd: true});
     return {
       format,

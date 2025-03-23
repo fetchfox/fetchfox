@@ -1,26 +1,34 @@
 import pretty from 'pretty';
+import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
 import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
-import { shortObjHash } from '../util.js';
+import { shortObjHash, createChannel } from '../util.js';
 import * as prompts from './prompts.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
 const toFn = (code) => new AsyncFunction('page', 'fnSendResults', 'fnDebugLog', 'done', code);
-const exec = async (code, fetcher, ctx) =>  {
+const exec = async (fn, fetcher, ctx, cb) =>  {
   console.log('EXEC FN');
-
-  const fn = toFn(code);
   const run = new Promise((ok) => {
-    console.log('inside promise');
     fn(
       ctx.page,
 
       // fnSendResults
-      () => {
+      async () => {
         console.log('TODO: fnSendResults');
-        return true;
+        await new Promise(ok => setTimeout(ok, 2000));
+        if (cb) {
+          const doc = await fetcher.current(ctx);
+          const r = await cb({ doc });
+          if (!r) {
+            ok();
+          }
+          return r;
+        } else {
+          return true;
+        }
       },
 
       // fnDebugLog
@@ -57,6 +65,46 @@ export const Author = class {
     return `[${this.constructor.name}]`;
   }
 
+  async *run(url, goals, cb) {
+    const fns = await this.get(url, goals);
+    const chan = createChannel();
+
+    const promise = new Promise(async (ok) => {
+      const ctx = {};
+      await this.fetcher.start(ctx);
+      try {
+        await this.fetcher.goto(url, ctx);
+
+        for (const [i, fn] of fns.entries()) {
+          // Only send results for last step
+          const cb = (i == fns.length - 1)
+            ? (r) => { chan.send(r); return true }
+            : null;
+          const p = exec(fn, this.fetcher, ctx, cb);
+          await pTimeout(p, { milliseconds: 300 * 1000 });
+        }
+      } finally {
+        this.fetcher.finish(ctx).catch((e) => {
+          this.logger.error(`${this} Ignoring error on finish: ${e}`);
+        });
+        chan.end();
+        ok();
+      }
+    });
+
+    for await (const val of chan.receive()) {
+      if (val.end) {
+        break;
+      }
+      if (val.doc) {
+        this.logger.info(`${this} Yielding a document ${val.doc}`);
+        yield Promise.resolve({ doc: val.doc });
+      }
+    }
+
+    await promise;
+  }
+
   async get(url, goals) {
     this.logger.debug(`${this} Get code for goal: ${goals.join('\n')}`);
 
@@ -81,7 +129,8 @@ export const Author = class {
     } else {
       this.logger.debug(`${this} No suitable record in KV for goals ${key}`);
       let attempts = 2;
-      while (attempts-- > 0) {
+      let success = false;
+      while (!success && attempts-- > 0) {
         this.logger.debug(`${this} Write code, attempts left=${attempts}`);
         codes = await this.write(url, goals);
 
@@ -97,8 +146,8 @@ export const Author = class {
         // TODO: for now just hard code rating since we don't do anything with it
         // TODO: retry here if below threshold
         // const rating = await this.rate(url, goal, code);
-
         const rating = { score: 75, analyis: 'hardcoded' };
+        success = true;
         const record = { codes, rating, ai: this.ai.id };
         records.push(record);
 
@@ -114,45 +163,50 @@ export const Author = class {
   async write(url, goals) {
     this.logger.debug(`${this} Write code for url=${url} goals=${goals.join('\n\n')}`);
 
+    const codes = [];
+
     // Set up fetcher
     const ctx = {};
     await this.fetcher.start(ctx);
-    await this.fetcher.goto(url, ctx);
+    try {
+      await this.fetcher.goto(url, ctx);
+      for (const goal of goals) {
+        const doc = await this.fetcher.current(ctx);
 
-    const codes = [];
+        console.log('doc:' + doc);
 
-    for (const goal of goals) {
-      const doc = await this.fetcher.current(ctx);
+        const context = {
+          goal,
+          html: pretty(doc.html, { ocd: true }),
+          timeout: this.timeout,
+        };
 
-      console.log('doc:' + doc);
+        this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
+        this.logger.trace('write code');
+        const { prompt } = await prompts.pageActionCode
+          .renderCapped(context, 'html', this.ai.advanced);
+        const answer = await this.ai.advanced.ask(prompt, { format: 'text' });
+        const code = answer.partial
+          .replaceAll('```javascript', '')
+          .replaceAll('```', '');
 
-      const context = {
-        goal,
-        html: pretty(doc.html, { ocd: true }),
-        timeout: this.timeout,
-      };
+        console.log('got code for goal:');
+        console.log('\tgoal:', goal);
+        console.log('\tcode:', code);
 
-      this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
-      this.logger.trace('write code');
-      const { prompt } = await prompts.pageActionCode
-        .renderCapped(context, 'html', this.ai.advanced);
-      const answer = await this.ai.advanced.ask(prompt, { format: 'text' });
-      const code = answer.partial
-        .replaceAll('```javascript', '')
-        .replaceAll('```', '');
-
-      console.log('got code for goal:');
-      console.log('\tgoal:', goal);
-      console.log('\tcode:', code);
-
-      await exec(code, this.fetcher, ctx);
-      codes.push(code);
+        // Only do each action once in write mode
+        const cb = () => { console.log('write code cb'); return false };
+        await exec(toFn(code), this.fetcher, ctx, cb);
+        codes.push(code);
+      }
+      this.logger.debug(`${this} Got code: ${codes.join('\n\n')}`);
+    } finally {
+      this.fetcher.finish(ctx).catch((e) => {
+        this.logger.error(`${this} Ignoring error on finish: ${e}`);
+      });
     }
 
-    this.fetcher.finish(ctx).catch((e) => {
-      this.logger.error(`${this} Ignoring error on finish: ${e}`);
-    });
-    this.logger.debug(`${this} Got code: ${codes.join('\n\n')}`);
+    console.log('!! Done writing code');
 
     return codes;
   }

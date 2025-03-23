@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
+import { getFetcher } from '../fetch/index.js';
 import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
 import { shortObjHash, createChannel } from '../util.js';
@@ -71,151 +72,9 @@ export const CodeInstructions = class {
       timeout: this.timeout,
     });
 
-      // Define parameters for Author
-      // const goal = command.prompt.replace(nextPageCommand, nextPagePrompt);
-      // const init = async () => {
-      //   const ctx = {};
-      //   await fetcher.start(ctx);
-      //   await fetcher.goto(this.url, ctx);
-      //   const doc = await this.current(fetcher, ctx);
-      //   if (!doc) {
-      //     throw new Error(`${this} Couldn't get document to learn commands ${this.url}`);
-      //   }
-      //   return { html: doc.html, ctx };
-      // }
-      // const exec = async (fn, cb, { ctx }) => {
-      //   return fn(ctx.page, cb, (msg) => this.aiLog(msg), cb);
-      // }
-      // const finish = async ({ ctx }) => {
-      //   fetcher.finish(ctx);
-      // }
-
     this.logger.debug(`${this} Calling author to write code for ${goals.join('\n')}`);
-    const fns = await author.get(this.url, goals);
-
-    console.log('fns', fns);
-
-    const chan = createChannel();
-
-    // Set up fetcher
-    const execPromise = new Promise(async (ok) => {
-      const ctx = {};
-      await this.fetcher.start(ctx);
-      try {
-        console.log('!!! EXEC PROMISE !!!');
-
-        await this.fetcher.goto(this.url, ctx);
-        for (const [i, fn] of fns.entries()) {
-          const run = new Promise((ok) => {
-            console.log('inside promise');
-            fn(
-              ctx.page,
-
-              // fnSendResults
-              async () => {
-                console.log('===> fnSendResults');
-                await new Promise(ok => setTimeout(ok, 2000));
-                // Only send documents from last step
-                if (i == fns.length - 1) {
-                  const doc = await this.fetcher.current(ctx);
-                  console.log('===> CHAN SEND DOC:' + doc);
-                  chan.send({ doc });
-                }
-                return true;
-              },
-
-              // fnDebugLog
-              (msg) => {
-                // TODO: use logger
-                console.log('AI MESSAGE:', msg);
-              },
-
-              // done
-              async () => {
-                // TODO: use logger
-                // this.logger.debug(`${this} Generated code is done`);
-                console.log(`Generated code is done`);
-                ok();
-              }
-            )
-          });
-          // await run;
-
-          // Wait for it to finish
-          await pTimeout(run, { milliseconds: 120 * 1000 });
-        }
-      } finally {
-        this.fetcher.finish(ctx).catch((e) => {
-          this.logger.error(`${this} Ignoring error on finish: ${e}`);
-        });
-
-        chan.end();
-        ok();
-      }
-    });
-
-    for await (const val of chan.receive()) {
-      if (val.end) {
-        break;
-      }
-      if (val.doc) {
-        this.logger.info(`${this} Yielding a document ${val.doc}`);
-        yield Promise.resolve({ doc: val.doc });
-      }
+    for await (const doc of  author.run(this.url, goals)) {
+      yield Promise.resolve(doc);
     }
-
-    await execPromise;
-
-      // Run the code
-      // const state = await init();
-      // try {
-      //   const handleHtml = async () => {
-      //     await new Promise(ok => setTimeout(ok, 2000));
-      //     const doc = await this.current(fetcher, state.ctx);
-      //     chan.send({ doc });
-      //     return true; // for now always continue
-      //   }
-      //   const run = new Promise((ok) => {
-      //     fn(
-      //       state.ctx.page,
-      //       // fnSendHtml
-      //       handleHtml,
-      //       // fnDebugLog
-      //       (msg) => this.aiLog(msg),
-      //       // done
-      //       async () => {
-      //         this.logger.debug(`${this} Generated code is done`);
-      //         chan.end();
-      //         ok();
-      //       }
-      //     )
-      //   });
-
-      //   for await (const val of chan.receive()) {
-      //     if (val.end) {
-      //       break;
-      //     }
-      //     if (val.doc) {
-      //       this.logger.info(`${this} Yielding a document ${val.doc}`);
-      //       yield Promise.resolve({ doc: val.doc });
-      //     }
-      //   }
-
-      //   // Wait for it to finish
-      //   await pTimeout(run, { milliseconds: 10 * 1000 });
-  // } catch (e) {
-  //   this.logger.error(`${this} Got error: ${e}`);
-  //   throw e;
-
-  // } finally {
-  //   // Cleanup
-  //   await finish(state);
-  // }
-  }
-
-  async current(fetcher, ctx) {
-    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.timeout });
-    this.logger.debug(`${this} Got document: ${doc}`);
-    return doc;
   }
 }
