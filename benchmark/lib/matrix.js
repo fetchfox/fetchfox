@@ -63,7 +63,7 @@ export const createMatrix = (configs, options) => {
           } else {
             val[1].timeout = 20 * 1000;
           }
-          val[1].cache = new DiskCache('/tmp/ffbenchcache');
+          // val[1].cache = new DiskCache('/tmp/ffbenchcache');
         }
         newMatrix.push(updated);
       }
