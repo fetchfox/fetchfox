@@ -65,6 +65,17 @@ export const OpenAI = class extends BaseAI {
       stream: true,
       stream_options: { include_usage: true },
     };
+    if (options?.temperature) {
+      args.temperature = options.temperature;
+    }
+    if (options?.topP) {
+      args.top_p = options.topP;
+    }
+
+    // Add OpenRouter fallback models if provided
+    if (this.provider == 'openrouter' && this.fallbacks) {
+      args.extra_body = { models: this.fallbacks };
+    }
 
     if (options?.imageUrl) {
       this.logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);
