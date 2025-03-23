@@ -91,10 +91,7 @@ export const BaseFetcher = class {
 
       const maxPages = options?.maxPages || 0;
       if (maxPages > 1) {
-        instr.unshiftCommand({
-          prompt: '{{nextPage}}',
-          limit: maxPages,
-        });
+        instr.addPaginationCommand(maxPages);
       }
 
       return instr;

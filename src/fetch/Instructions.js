@@ -18,6 +18,9 @@ export const Instructions = class {
     this.logger = options?.logger || defaultLogger
 
     this.url = url;
+
+    console.log('url:', url);
+
     this.commands = [];
     for (const command of commands) {
       let c;
@@ -36,14 +39,7 @@ export const Instructions = class {
     this.limit = options?.limit;
     this.hint = options?.hint;
 
-    // TODO: migrate everthing to CodeInstructions
-    if (this.useCode()) {
-      if (commands.length > 1) {
-        throw new Error('Code based instructions msut have <= 1 command');
-      }
-      this.codeInstructions = new CodeInstructions(url, this.commands[0], options);
-    }
-
+    this.codeInstructions = new CodeInstructions(url, this.commands[0], options);
   }
 
   toString() {
@@ -54,11 +50,18 @@ export const Instructions = class {
     return JSON.stringify({ url: this.url, commands: this.commands });
   }
 
-  unshiftCommand(command) {
-    this.learned = null;
-    this.commands.unshift(command);
+  addPaginationCommand(maxPages) {
+    if (this.learned) {
+      throw new Error(`${this} cannod add pagination learning`);
+    }
+    if (this.codeInstructions.learned) {
+      throw new Error(`${this} cannod add pagination after code instructions learning`);
+    }
 
-    this.codeInstructions?.unshiftCommand(command);
+    this.commands.unshift({
+      prompt: nextPageCommand,
+      limit: maxPages,
+    })
   }
 
   cacheKey() {
@@ -70,26 +73,28 @@ export const Instructions = class {
     return `instructions-${hash}`;
   }
 
-  useCode() {
+  get useCode() {
+    // Don't migrate pagination to code instructions yet
+    return !this.onlyPagination;
+  }
+
+  get onlyPagination() {
     return (
-      (this.url.includes('domain.com.au') && !this.url.match(/domain.com.au.*-[0-9]{4}(\/|$)/)) ||
-      this.url.includes('onereal.com') ||
-      this.url.includes('www.kw.com') ||
-      this.url.includes('mpaq.com.au') ||
-      this.url.includes('portal.mara.gov.au') ||
-      this.url.includes('bokadirekt.se')
+      this.commands.length == 1 &&
+      this.commands[0].prompt == nextPageCommand
     );
   }
 
   async *learn(fetcher, options) {
-    if (this.useCode()) {
+    if (this.useCode) {
+      console.log('!!!! use code learn');
+
       const gen = this.codeInstructions.learn(fetcher, options);
       for await (const r of gen) {
         yield r;
       }
       return;
     }
-
     const learned = [];
 
     const ctx = {};
@@ -97,58 +102,50 @@ export const Instructions = class {
     try {
       await fetcher.start(ctx);
       await fetcher.goto(this.url, ctx);
+      const doc = await this.current(fetcher, ctx);
 
-      // If pagination is the only action, yield the first page before
-      // learning how to do pagination
-      const onlyPagination = (
-        this.commands.length == 1 &&
-        this.commands[0].prompt == nextPageCommand
-      );
+      // If we got here, pagination is the only action. Yield the first page
+      // before learning.
+      this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
+      yield Promise.resolve({ doc });
+
+      const domainSpecific = domainSpecificInstructions(this.url);
+      const paginationLimit = this.commands[0].limit || 25;
+
+      const commands = [
+        {
+          prompt: acceptCookiesPrompt,
+          optional: true,
+          // In case there are multiple, click up to three times
+          // TODO: more robust solution here
+          mode: 'all',
+          limit: 3,
+          timeout: 5000,
+        },
+        {
+          prompt: nextPagePrompt + domainSpecific,
+          mode: 'repeat',
+          pagination: true,
+          limit: paginationLimit,
+        },
+      ];
+
+      this.logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(commands, null, 2)}`);
 
       let scrollPromise;
-
-      if (onlyPagination) {
-        const domainSpecific = domainSpecificInstructions(this.url);
-        const paginationLimit = this.commands[0].limit || 25;
-
-        this.commands = [
-          {
-            prompt: acceptCookiesPrompt,
-            optional: true,
-            // In case there are multiple, click up to three times
-            // TODO: more robust solution here
-            mode: 'all',
-            limit: 3,
-            timeout: 5000,
-          },
-          {
-            prompt: nextPagePrompt + domainSpecific,
-            mode: 'repeat',
-            pagination: true,
-            limit: paginationLimit,
-          },
-        ];
-
-        this.logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(this.commands, null, 2)}`);
-        this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
-
-        const doc = await this.current(fetcher, ctx);
-
-        if (!domainSpecific) {
-          const p = this.tryScrolling(fetcher, doc, paginationLimit)
-            .catch((e) => {
-              this.logger.error(`Error while trying to scroll for pagination: ${e}`);
-            });
-          scrollPromise = pTimeout(p, { milliseconds: this.timeout });
-        }
-
-        yield Promise.resolve({ doc });
+      if (!domainSpecific) {
+        const p = this.tryScrolling(fetcher, doc, paginationLimit)
+          .catch((e) => {
+            this.logger.error(`Error while trying to scroll for pagination: ${e}`);
+          });
+        scrollPromise = pTimeout(p, { milliseconds: this.timeout });
       }
+
 
       // TODO: It would be nice of learning supported caching. Right now,
       // we use the live page for interactions, but it should be possible to
       // cache a chain of url + commands
-      for (const command of this.commands) {
+      for (const command of commands) {
         const doc = await this.current(fetcher, ctx);
 
         if (!doc) {
@@ -176,8 +173,6 @@ ${this.hint}` : '',
           .filter(result => result.status == 'fulfilled');
 
         this.logger.info(JSON.stringify(answers, null, 2));
-
-        // throw 'stop 123';
 
         const candidates = [];
         const seen = {};
@@ -218,7 +213,7 @@ ${this.hint}` : '',
               case 'click':
                 candidate = [
                   {
-                    ...shared,
+                        ...shared,
                     arg: selector,
                   }
                 ];
@@ -227,7 +222,7 @@ ${this.hint}` : '',
               case 'scroll':
                 candidate = [
                   {
-                    ...shared,
+                        ...shared,
                     arg: it.candidateScrollType,
 
                     // Infinite scroll should only yield one document
@@ -239,13 +234,13 @@ ${this.hint}` : '',
               case 'click-scroll':
                 candidate = [
                   {
-                    ...shared,
+                        ...shared,
                     type: 'focus',
                     arg: selector,
                     mode: 'first',
                   },
                   {
-                    ...shared,
+                        ...shared,
                     type: 'scroll',
                     arg: it.candidateScrollType,
                   },
@@ -270,10 +265,10 @@ ${this.hint}` : '',
           try {
             scroll = await scrollPromise;
           } catch (e) {
-            this.logger.error(`${this} Error while waiting for try scrolling, ignoring: ${e}`);
-            if (process.env.STRICT_ERRORS) {
-              throw e;
-            }
+            this.logger.warn(`${this} Error while waiting for try scrolling, ignoring: ${e}`);
+            // if (process.env.STRICT_ERRORS) {
+            //   throw e;
+            // }
           }
           if (scroll) {
             const top = [...(candidates[0] || [])]
@@ -307,14 +302,6 @@ ${this.hint}` : '',
 
           let ok = true;
           try {
-
-            // TODO: Re-enable action checks. Skip for now to run faster.
-            // ok = await this.checkAction(
-            //   fetcher,
-            //   doc,
-            //   command.prompt,
-            //   [...learned, ...set]);
-
             for (const action of set) {
               const outcome = await fetcher.act(ctx, action, {});
               ok &&= outcome.ok
@@ -348,6 +335,8 @@ ${this.hint}` : '',
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
 
+      console.log('LEARNED:', this.learned);
+
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
     } catch (e) {
@@ -360,7 +349,8 @@ ${this.hint}` : '',
   }
 
   async *execute(fetcher, options) {
-    if (this.useCode()) {
+    if (this.useCode) {
+      console.log('!!!! use code exec');
       const gen = this.codeInstructions.execute(fetcher, options);
       for await (const r of gen) {
         yield Promise.resolve(r);
@@ -368,7 +358,7 @@ ${this.hint}` : '',
       return;
     }
 
-    const learned = options?.learned || this.learned || []
+    const learned = options?.learned || this.learned || [];
 
     if (this.commands?.length && !learned.length) {
       throw new Error('must learn before execute');

@@ -28,16 +28,6 @@ export const CodeInstructions = class {
     this.logger.debug(`${chalk.bold('[AIGEN]')} ${msg}`);
   }
 
-  // unshiftCommand(command) {
-  //   this.logger.info(`${this} Unshift command: ${command.prompt}`);
-  //   this.learned = null;
-  //   if (!this.command) {
-  //     this.command = command;
-  //   } else {
-  //     this.command.prompt += '\n' + command.prompt;
-  //   }
-  // }
-
   async *learn() {
     // no-op
   }
@@ -86,7 +76,8 @@ export const CodeInstructions = class {
     }
 
     this.logger.debug(`${this} Calling author to write code for ${goal}`);
-    const fn = await author.get(namespace, goal, init, exec, finish);
+    const fn = await author.get(this.url, goal);
+
     const chan = createChannel();
 
     // Run the code

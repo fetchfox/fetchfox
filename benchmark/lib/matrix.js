@@ -61,7 +61,7 @@ export const createMatrix = (configs, options) => {
             val[1].cdp = cdp;
             val[1].timeout = 120 * 1000; // long timeouts for proxy providers
           } else {
-            val[1].timeout = 10 * 1000;
+            val[1].timeout = 20 * 1000;
           }
           val[1].cache = new DiskCache('/tmp/ffbenchcache');
         }

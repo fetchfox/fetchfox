@@ -47,7 +47,7 @@ export const Author = class {
       let attempts = 2;
       while (attempts-- > 0) {
         this.logger.debug(`${this} Write code, attempts left=${attempts}`);
-        const code = await this.write(url, goal);
+        code = await this.write(url, goal);
         try {
           toFn(code);
         } catch (e) {
@@ -57,8 +57,9 @@ export const Author = class {
 
         // TODO: for now just hard code rating since we don't do anything with it
         // TODO: retry here if below threshold
-        const rating = await this.rate(url, goal, code);
-        // const rating = 75;
+        // const rating = await this.rate(url, goal, code);
+
+        const rating = 75;
 
         const record = { code, rating, ai: this.ai.id };
         records.push(record);
@@ -71,10 +72,11 @@ export const Author = class {
   }
 
   async write(url, goal) {
-    this.logger.debug(`${this} Write code for goal: ${goal}`);
+    this.logger.debug(`${this} Write code for url=${url} goal=${goal}`);
 
     const ctx = {};
     await this.fetcher.start(ctx);
+    console.log('goto url', url);
     await this.fetcher.goto(url, ctx);
     const doc = await this.fetcher.current(ctx);
     this.fetcher.finish(ctx).catch((e) => {
