@@ -60,34 +60,41 @@ const registerCommit = async () => {
 const persistAnalysis = async (scores) => {
   // aggregate analysis by name / config_ai
   const grouped = {};
-  const rows = {};
+  const rows = [];
   for (const score of scores) {
-    const { name, config_ai, analysis } = score;
+    const { name, config_ai: configAI, analysis } = score;
     const analyses = Array.isArray(analysis) ? analysis : [analysis];
 
     if (!grouped[name]) {
       grouped[name] = {};
     }
-    if (!grouped[name][config_ai]) {
-      grouped[name][config_ai] = [];
+    if (!grouped[name][configAI]) {
+      grouped[name][configAI] = [];
     }
 
     // Push the analysis data into the array
-    grouped[name][config_ai].push(...analyses);
+    grouped[name][configAI].push(...analyses);
   }
 
   for (const name of Object.keys(grouped)) {
-    for (const config_ai of Object.keys(grouped[name])) {
+    for (const configAI of Object.keys(grouped[name])) {
       const row = {
         name,
-        config_ai,
-        analysis: grouped[name][config_ai],
+        config_ai: configAI,
+        analysis: grouped[name][configAI],
       }
+      rows.push(row);
     }
   }
 
   for (const row of rows) {
-    row[analysis] = await summarize(row[analysis]);
+    if (!row.analysis.length) {
+      row.analysis = '';
+    } else if (row.analysis.length == 1) {
+      row.analysis = row.analysis[0];
+    } else {
+      row.analysis = await summarize(row.analysis);
+    }
   }
 
   console.log(rows);
@@ -173,6 +180,7 @@ const persistAllScores = async () => {
 
     logger.debug(JSON.stringify(allScores, null, 2));
     console.log(await summary(allScores));
+    persistAnalysis(allScores);
     return;
   }
 

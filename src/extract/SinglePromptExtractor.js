@@ -109,12 +109,12 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     let prompts;
     if (view == 'selectHtml') {
       context.hint = doc.learned?.hint;
-      prompts = await scrapeSelect.renderMulti(context, 'html', this.ai);
+      prompts = await scrapeSelect.renderMulti(context, 'body', this.ai);
     } else if (view == 'json') {
       context.hint = doc.learned?.hint;
-      prompts = await scrapeJson.renderMulti(context, 'html', this.ai);
+      prompts = await scrapeJson.renderMulti(context, 'body', this.ai);
     } else {
-      prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
+      prompts = await scrapeOnce.renderMulti(context, 'body', this.ai);
     }
 
     const max = 32

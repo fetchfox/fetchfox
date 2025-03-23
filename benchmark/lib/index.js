@@ -116,8 +116,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       if (Array.isArray(s)) {
         score[0] += s[0];
         score[1] += s[1];
-      }
-      if (typeof s == 'object') {
+      } else if (typeof s == 'object') {
         if (Array.isArray(s.score)) {
           score[0] += s.score[0];
           score[1] += s.score[1];
