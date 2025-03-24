@@ -17,7 +17,7 @@ describe('network bench', async () => {
     matrix,
     [
       (items) => {
-        console.log('items');
+        console.log('items', items);
       },
     ],
     { shouldSave: true });
