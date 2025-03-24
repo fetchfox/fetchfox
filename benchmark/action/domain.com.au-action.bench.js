@@ -159,7 +159,7 @@ describe('extract domain.com.au', async function() {
   ];
 
   const prefixes = [
-    'benchkv/fixed/',
+    // 'benchkv/fixed/',
     `benchkv/random-${srid()}/`,
   ];
 
@@ -187,7 +187,7 @@ describe('extract domain.com.au', async function() {
         wf.dump(),
         matrix,
         [
-          (items) => checkItemsAI(items, expected, ['name', 'phone']);
+          (items) => checkItemsAI(items, expected, ['name', 'phone']),
         ],
         {
           shouldSave: true,
