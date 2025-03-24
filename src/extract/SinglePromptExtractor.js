@@ -61,7 +61,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     try {
       for (const prompt of prompts) {
-        // console.log('prompt', prompt);
         const gen = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of gen) {
           if (delta._meta) {
@@ -108,10 +107,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       transformers.push(new PrettyTransformer(this));
       transformers.push(new SelectorTransformer(questions, this));
     }
-
-    // console.log('SPE running on:', html);
-    // const m = html.match(/<ARTICLE/g);
-    // console.log('SPE running on:', m.length);
 
     const url = doc.url;
     const author = new Author({
@@ -161,37 +156,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     await author.iterate(doc.url, doc.html, [goal], expected, actual);
 
-    // const { codes } = await author.get(url, [goal]);
-    // const code = codes.join('\n\n');
-
-    // TODO: Use expected & actual to iterate on code in Author
-    // console.log('code:', code);
-    // console.log('expected:', expected);
-    // console.log('actual:', actual);
-
-    throw 'STOP 333';
-
-    // this.logger.debug(`${this} Getting feedack on expected vs. actual`);
-    // const context = {
-    //   expected: JSON.stringify(expected, null, 2),
-    //   actual: JSON.stringify(actual, null, 2),
-    //   code,
-    //   html: doc.html,
-    // };
-    // const { prompt } = await rateItems.renderCapped(context, 'html', this.ai.advanced);
-    // const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
-
-//     const feedback = `The original code was:
-// // -- Start Code --//
-// ${code}
-// // -- End Code --//
-
-// And the feedback on the results from this code is:
-// ${JSON.stringify(answer.partial, null, 2)}
-// `;
-//     console.log('=====> feedback:', feedback);
-
-    throw 'STOP feedback';
+    throw 'STOP';
 
     for await (const val of author.run(url, [goal])) {
       // Sometimes AI serializes the results in JSON

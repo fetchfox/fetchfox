@@ -96,7 +96,7 @@ describe('PlaywrightFetcher', function() {
     try {
       const cache = testCache();
       const ai = getAI('openai:gpt-4o-mini', { cache });
-      const fetcher = getFetcher('playwright', { ai, loadWait: 10 });
+      const fetcher = getFetcher('playwright', { ai, loadWait: 100 });
       const gen = await fetcher.fetch(`http://localhost:${port}`);
       const doc = (await gen.next()).value;
       gen.return();
