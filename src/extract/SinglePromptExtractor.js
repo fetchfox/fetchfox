@@ -21,10 +21,10 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     this.logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     let gen;
-    if (false) {
-      gen = this._runRegular(doc, questions, options);
-    } else {
+    if (process.env.USE_AUTHOR) {
       gen = this._runAuthor(doc, questions, options);
+    } else {
+      gen = this._runRegular(doc, questions, options);
     }
 
     for await (const r of gen) {
@@ -33,17 +33,15 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   }
 
   async *_runRegular(doc, questions, options) {
-    const transformers = [
-      // new SelectorTransformer(questions, this),
-    ];
+    const transformers = [];
+    if (process.env.USE_TRANSFORMER) {
+      transformers.push(new SelectorTransformer(questions, this));
+    }
 
     let html = doc.html;
     for (const t of transformers) {
       html = await t.transform(html);
     }
-
-    // console.log('html after transform:', html);
-    // console.log('html after transform len:', html.length);
 
     const extraRules = modeRules(options?.mode || 'auto');
     const context = {
@@ -156,11 +154,10 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       actualPromise,
     ]);
 
+    // TODO: Use sample & actual to iterate on code in Author
     console.log('sample:', sample);
     console.log('actual:', actual);
 
-    throw 'STOP COMPARE';
-    
     for await (const val of author.run(url, [goal])) {
       // Sometimes AI serializes the results in JSON
       if (typeof val.result == 'string') {

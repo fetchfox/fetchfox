@@ -75,7 +75,9 @@ export const Instructions = class {
 
   get useCode() {
     // Use CodeInstructions for everything except pagination
-    return !this.onlyPagination;
+    return (
+      !this.onlyPagination &&
+      this.commands.filter(it => it.legacy).length == 0);
   }
 
   get onlyPagination() {
@@ -87,8 +89,6 @@ export const Instructions = class {
 
   async *learn(fetcher, options) {
     if (this.useCode) {
-      console.log('!!!! use code learn');
-
       const gen = this.codeInstructions.learn(fetcher, options);
       for await (const r of gen) {
         yield r;
@@ -104,15 +104,19 @@ export const Instructions = class {
       await fetcher.goto(this.url, ctx);
       const doc = await this.current(fetcher, ctx);
 
-      // If we got here, pagination is the only action. Yield the first page
-      // before learning.
-      this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
-      yield Promise.resolve({ doc });
-
       const domainSpecific = domainSpecificInstructions(this.url);
       const paginationLimit = this.commands[0].limit || 25;
 
-      const commands = [
+      const legacy = this.commands.filter(it => it.legacy);
+
+      if (!legacy.length) {
+        // If we got here, pagination is the only action. Yield the first page
+        // before learning.
+        this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
+        yield Promise.resolve({ doc });
+      }
+
+      const commands = legacy.length ? legacy : [
         {
           prompt: acceptCookiesPrompt,
           optional: true,
