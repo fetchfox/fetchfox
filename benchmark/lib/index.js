@@ -2,6 +2,7 @@ import { logger } from '../../src/log/logger.js';
 import { fox } from '../../src/index.js';
 import { S3Cache } from '../../src/cache/S3Cache.js';
 import { storeScores } from './store.js';
+import fetch from 'node-fetch';
 
 const populate = (json, config) => {
   let str = JSON.stringify(json);
@@ -14,10 +15,15 @@ const populate = (json, config) => {
 export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
   for (const config of matrix) {
     const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
-
-
     it(testName, async function () {
-      console.log(testName);
+      if (typeof json == 'string') {
+        // It's a job id
+        const jobId = json;
+        await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
+        const resp = await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
+        const data = await resp.json();
+        json = data.workflow;
+      }
 
       try {
         this.timeout(10 * 60 * 1000); // 10 minutes per benchmark
