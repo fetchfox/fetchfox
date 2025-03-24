@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import pTimeout from 'p-timeout';
+import AsyncLock from 'async-lock';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
 import { getAI } from '../ai/index.js';
@@ -16,6 +17,7 @@ export const Author = class {
     this.logger = options?.logger || defaultLogger
     this.timeout = options?.timeout || 8000;
     this.threshold = options?.threshold || 65;
+    this.lock = new AsyncLock();
   }
 
   toString() {
@@ -96,56 +98,62 @@ export const Author = class {
   async get(url, goals, expected) {
     this.logger.debug(`${this} Get code for goal: ${goals.join('\n')}`);
     const key = this.key(url, goals);
+    const result = new Promise((ok) => {
+      this.lock.acquire(key, async (done) => {
+        this.logger.debug(`${this} Look up goal in kv: ${key}`);
 
-    this.logger.debug(`${this} Look up goal in kv: ${key}`);
+        const records = (await this.kv.get(key) || [])
+          .filter(it => (it.rating?.score || 0) >= this.threshold)
+          .sort((a, b) => (a.rating?.score || 0) - (b.rating?.score || 0));
 
-    const records = (await this.kv.get(key) || [])
-      .filter(it => (it.rating?.score || 0) >= this.threshold)
-      .sort((a, b) => (a.rating?.score || 0) - (b.rating?.score || 0));
+        this.logger.debug(`${this} Found ${records.length} records for ${key}`);
 
-    this.logger.debug(`${this} Found ${records.length} records for ${key}`);
+        let codes;
+        let output;
 
-    let codes;
-    let output;
+        // TODO: check threshold on saved record, re-rate it as needed
+        if (records.length && records[0].codes) {
+          this.logger.debug(`${this} Got suitable record in KV for goals ${key}`);
+          codes = records[0].codes;
 
-    // TODO: check threshold on saved record, re-rate it as needed
-    if (records.length && records[0].codes) {
-      this.logger.debug(`${this} Got suitable record in KV for goals ${key}`);
-      codes = records[0].codes;
+        } else {
+          this.logger.debug(`${this} No suitable record in KV for goals ${key}`);
+          let attempts = 2;
+          let success = false;
+          while (!success && attempts-- > 0) {
+            this.logger.debug(`${this} Write code, attempts left=${attempts}`);
+            const r = await this.write(url, goals, expected);
+            codes = r.codes;
+            output = r.output;
+            for (const code of codes) {
+              try {
+                toFn(code);
+              } catch (e) {
+                this.logger.warn(`${this} The AI wrote code that did could not be turned into a function: ${e} for code ${code}`);
+                continue;
+              }
+            }
 
-    } else {
-      this.logger.debug(`${this} No suitable record in KV for goals ${key}`);
-      let attempts = 2;
-      let success = false;
-      while (!success && attempts-- > 0) {
-        this.logger.debug(`${this} Write code, attempts left=${attempts}`);
-        const r = await this.write(url, goals, expected);
-        codes = r.codes;
-        output = r.output;
-        for (const code of codes) {
-          try {
-            toFn(code);
-          } catch (e) {
-            this.logger.warn(`${this} The AI wrote code that did could not be turned into a function: ${e} for code ${code}`);
-            continue;
+            // TODO: for now just hard code rating since we don't do anything with it
+            // TODO: retry here if below threshold
+            // const rating = await this.rate(url, goal, code);
+            const rating = { score: 75, analyis: 'hardcoded' };
+            success = true;
+            const record = { codes, rating, ai: this.ai.id };
+            records.push(record);
+
+            this.logger.debug(`${this} Save records in KV for goals ${key}`);
+            await this.kv.set(key, records);
           }
         }
 
-        // TODO: for now just hard code rating since we don't do anything with it
-        // TODO: retry here if below threshold
-        // const rating = await this.rate(url, goal, code);
-        const rating = { score: 75, analyis: 'hardcoded' };
-        success = true;
-        const record = { codes, rating, ai: this.ai.id };
-        records.push(record);
+        this.logger.debug(`${this} Returning code for goal: ${codes.join('\n\n')}`);
+        done();
+        ok({ output, fns: codes.map(toFn), codes });
+      });
+    });
 
-        this.logger.debug(`${this} Save records in KV for goals ${key}`);
-        await this.kv.set(key, records);
-      }
-    }
-
-    this.logger.debug(`${this} Returning code for goal: ${codes.join('\n\n')}`);
-    return { output, fns: codes.map(toFn), codes };
+    return result;
   }
 
   async iterate(url, html, goals, actual, expected) {
