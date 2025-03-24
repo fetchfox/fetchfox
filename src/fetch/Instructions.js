@@ -368,8 +368,7 @@ ${this.hint}` : '',
       return;
     }
 
-    const learned = options?.learned || this.learned || []
-
+    const learned = this.learned || [];
     if (this.commands?.length && !learned.length) {
       throw new Error('must learn before execute');
     }
