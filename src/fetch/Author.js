@@ -155,7 +155,7 @@ export const Author = class {
         const doc = await this.fetcher.current(ctx);
         const context = {
           goal,
-          html: pretty(doc.html, { ocd: true }),
+          html: await this.transform(doc.html, goal),
           timeout: this.timeout,
         };
 
@@ -195,6 +195,14 @@ export const Author = class {
   async rate(url, goals, codes) {
     this.logger.info(`${this} Rate code for goal: ${goal}`);
     throw new Error('TODO');
+  }
+
+  async transform(html, goal) {
+    const tHtml = pretty(html, { ocd: true });
+
+    // TODO
+
+    return tHtml;
   }
 }
 

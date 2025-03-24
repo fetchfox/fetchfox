@@ -37,46 +37,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
-  async _goto(url, ctx) {
-    if (!ctx.page) {
-      ctx.page = await ctx.browser.newPage();
-    }
-
-    try {
-      const { aborted } = await abortable(
-        this.signal,
-        ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
-      if (aborted) {
-        this.logger.warn(`${this} Aborted on goto`);
-        return;
-      }
-    } catch (e) {
-      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
-    }
-  }
-
-  async current(ctx) {
-    let doc;
-    let aborted;
-    try {
-      const result = await abortable(this.signal, this._docFromPage(ctx.page, ctx.timer));
-      aborted = result.aborted;
-      doc = result.result;
-    } catch (e) {
-      this.logger.error(`${this} Error while getting current doc: ${e}`);
-      return;
-    }
-    if (aborted) {
-      this.logger.warn(`${this} Aborted while getting current doc`);
-      return;
-    }
-
-    await this.putS3(doc);
-
-    return doc;
-  }
-
-
   async _launch() {
     this.logger.debug(`Playwright launching...`);
 
@@ -106,7 +66,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     throw err;
   }
 
+  _ctxLastTouch(ctx) {
+    ctx.lastTouch = new Date().getTime();
+  }
+
   async start(ctx) {
+    this._ctxLastTouch(ctx);
     const timer = ctx.timer || new Timer();
 
     if (ctx.browser) {
@@ -125,7 +90,52 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return ctx;
   }
 
+  async _goto(url, ctx) {
+    this._ctxLastTouch(ctx);
+
+    if (!ctx.page) {
+      ctx.page = await ctx.browser.newPage();
+    }
+
+    try {
+      const { aborted } = await abortable(
+        this.signal,
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
+      if (aborted) {
+        this.logger.warn(`${this} Aborted on goto`);
+        return;
+      }
+    } catch (e) {
+      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
+    }
+  }
+
+  async current(ctx) {
+    // No last touch, this is read-only
+
+    let doc;
+    let aborted;
+    try {
+      const result = await abortable(this.signal, this._docFromPage(ctx, ctx.timer));
+      aborted = result.aborted;
+      doc = result.result;
+    } catch (e) {
+      this.logger.error(`${this} Error while getting current doc: ${e}`);
+      return;
+    }
+    if (aborted) {
+      this.logger.warn(`${this} Aborted while getting current doc`);
+      return;
+    }
+
+    await this.putS3(doc);
+
+    return doc;
+  }
+
   async finish(ctx) {
+    this._ctxLastTouch(ctx);
+
     if (!ctx.browser) {
       return;
     }
@@ -136,6 +146,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, seen) {
+    this._ctxLastTouch(ctx);
+
     const timer = ctx.timer || new Timer();
     this.logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
@@ -181,6 +193,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _actOnEl(ctx, selector, seen, options, fn) {
+    this._ctxLastTouch(ctx);
+
     // TODO: for text= matchers, add a heuristic to prefer tighter  matches
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       this.logger.warn(`{this} Invalid selector: ${selector}`);
@@ -231,6 +245,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async click(ctx, selector, seen, options) {
+    this._ctxLastTouch(ctx);
+
     this.logger.debug(`${this} Click selector=${selector}`);
 
     const fn = async (ctx, el, timeout) => {
@@ -243,6 +259,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async focus(ctx, selector, seen, options) {
+    this._ctxLastTouch(ctx);
+
     this.logger.debug(`${this} Focus selector=${selector}`);
 
     const fn = async (ctx, el, timeout) => {
@@ -268,9 +286,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async scroll(ctx, type) {
-    this.logger.debug(`${this} Scroll type=${type}`);
+    this._ctxLastTouch(ctx);
 
-    // TODO: Check if scrolling worked
+    this.logger.debug(`${this} Scroll type=${type}`);
 
     switch (type) {
       case 'page-down':
@@ -303,7 +321,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return { ok: true };
   }
 
-  async _docFromPage(page, timer) {
+  async _docFromPage(ctx, timer) {
     timer ||= new Timer();
 
     let html;
@@ -316,7 +334,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       const result = await abortable(
         this.signal,
         getHtmlFromSuccess(
-          page,
+          ctx,
           {
             loadWait: this.loadWait,
             pullIframes: this.pullIframes,
@@ -333,13 +351,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       selectHtml = result.result.selectHtml;
     } catch (e) {
 
-      this.logger.error(`Playwright could not get from ${page.url()}: ${e}`);
+      this.logger.error(`Playwright could not get from ${ctx.page.url()}: ${e}`);
       this.logger.debug(`Trying to salvage results`);
 
       try {
         const result = await abortable(
           this.signal,
-          getHtmlFromError(page, { logger: this.logger }));
+          getHtmlFromError(ctx.page, { logger: this.logger }));
         if (result.aborted) {
           return;
         }
@@ -359,7 +377,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       timer.pop();
     }
 
-    const url = page.url();
+    const url = ctx.page.url();
     const data = {
       status,
       url,
@@ -377,10 +395,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 }
 
-const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
-  logger.trace('.');
-  logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
-  await new Promise(ok => setTimeout(ok, loadWait));
+const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, logger }) => {
+  const now = new Date().getTime();
+  lastTouch ||= now;
+  const diff = now - lastTouch;
+  logger.trace('.. lastTouch=' + lastTouch + ', diff=' + diff);
+  const wait = Math.min(500, loadWait = diff)
+  logger.debug(`Load waiting ${(wait).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
+  await new Promise(ok => setTimeout(ok, wait));
 
   if (pullIframes) {
     // Get all the iframes
