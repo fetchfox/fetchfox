@@ -170,7 +170,7 @@ BEFORE writing code:
   * Relevance (20-30 words): Is this goal feasible and relvent given the HTML?
   * Selector analysis (10-100 words): Which relevant selectors exist on the page, and how do they relate to the task at hand? If none exist, say so. Do not suggest selectors that don't exist on the page.
   * Variable context handling (10-100 words): How will you account for the distinct variable contexts in Playwright, specifically noting which variables are available in evaluate and evaluateAll blocks that execute in the browser context
-  * Iteration approach: (10-100 words): How will you iterate over elements robustly, avoiding the use of :nth(i) selectors?
+  * Iteration using evaluateAll approach: (10-100 words): Desceribe how you will always iterate using .evaluateAll(), and never using "nth" selectors or locators
 
 AFTER writing code:
 * Give a comment line in exactly this format:
