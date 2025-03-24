@@ -16,6 +16,9 @@ export const BaseTransformer = class {
     this.logger.debug(`${this} Transforming ${html.length} bytes of html`)
     const t = await this._transform(html, args);
     this.logger.debug(`${this} Transformed ${html.length} -> ${t.length} bytes`);
+
+    throw 'STOP';
+
     return t;
   }
 }

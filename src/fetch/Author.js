@@ -22,8 +22,8 @@ export const Author = class {
     return `[${this.constructor.name}]`;
   }
 
-  async *run(url, goals) {
-    const { output, fns } = await this.get(url, goals);
+  async *run(url, goals, expected) {
+    const { output, fns, codes } = await this.get(url, goals, expected);
 
     // Send the first result from write execution
     const seen = {};
@@ -43,17 +43,17 @@ export const Author = class {
       try {
         await this.fetcher.goto(url, ctx);
 
-        for (const [i, fn] of fns.entries()) {
+        for (const [i, code] of codes.entries()) {
           // Only send results for last step
           let cb;
-          if (i == fns.length - 1) {
+          if (i == codes.length - 1) {
             cb = (r) => {
               chan.send(r);
               return true;
             }
           }
           const p = exec(
-            fn,
+            code,
             this.logger,
             this.fetcher,
             ctx,
@@ -87,11 +87,15 @@ export const Author = class {
     await promise;
   }
 
-  async get(url, goals) {
-    this.logger.debug(`${this} Get code for goal: ${goals.join('\n')}`);
-
+  key(url, goals) {
+    const domain = new URL(url).host;
     const hash = shortObjHash({ goals });
-    const key = `author-${hash}`;
+    return `author-${domain}-${hash}`;
+  }
+
+  async get(url, goals, expected) {
+    this.logger.debug(`${this} Get code for goal: ${goals.join('\n')}`);
+    const key = this.key(url, goals);
 
     this.logger.debug(`${this} Look up goal in kv: ${key}`);
 
@@ -115,7 +119,7 @@ export const Author = class {
       let success = false;
       while (!success && attempts-- > 0) {
         this.logger.debug(`${this} Write code, attempts left=${attempts}`);
-        const r = await this.write(url, goals);
+        const r = await this.write(url, goals, expected);
         codes = r.codes;
         output = r.output;
         for (const code of codes) {
@@ -141,10 +145,28 @@ export const Author = class {
     }
 
     this.logger.debug(`${this} Returning code for goal: ${codes.join('\n\n')}`);
-    return { output, fns: codes.map(toFn) };
+    return { output, fns: codes.map(toFn), codes };
   }
 
-  async write(url, goals) {
+  async iterate(url, html, goals, actual, expected) {
+    const { codes } = await author.get(url, [goal]);
+    const code = codes.join('\n\n');
+
+    const context = {
+      expected: JSON.stringify(expected, null, 2),
+      actual: JSON.stringify(actual, null, 2),
+      code,
+      html: html,
+    };
+    // TODO/NOTE: This prompt is specific to items
+    const { prompt } = await prompts.rateItems.renderCapped(context, 'html', this.ai.advanced);
+    const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+    console.log(answer.partial);
+
+    throw 'STOP - author got feedback';
+  }
+
+  async write(url, goals, expected) {
     this.logger.debug(`${this} Write code for url=${url} goals=${goals.join('\n\n')}`);
 
     let output;
@@ -162,6 +184,7 @@ export const Author = class {
           goal,
           html: await this.transform(doc.html, goal),
           timeout: this.timeout,
+          expected: expected ? JSON.stringify(expected, null, 2) : '(Expected results not available)',
         };
 
         this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
@@ -180,7 +203,7 @@ export const Author = class {
         // Only do each action once in write mode
         const cb = (r) => { output = r; return false };
         await exec(
-          toFn(code),
+          code,
           this.logger,
           this.fetcher,
           ctx,
@@ -220,7 +243,9 @@ export const Author = class {
 
 const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
 const toFn = (code) => new AsyncFunction('page', 'fnSendResults', 'fnDebugLog', 'done', code);
-const exec = async (fn, logger, fetcher, ctx, cb) =>  {
+
+const exec = async (code, logger, fetcher, ctx, cb) =>  {
+  const fn = toFn(code);
   const run = new Promise((ok) => {
     fn(
       ctx.page,
@@ -235,6 +260,13 @@ const exec = async (fn, logger, fetcher, ctx, cb) =>  {
         }
 
         const doc = await fetcher.current(ctx);
+
+        try {
+          // In case the AI serialized it
+          result = JSON.parse(result);
+        } catch (e){
+        }
+
         const more = await cb({ doc, result });
         if (!more) {
           logger.debug(`Callback says to stop`);

@@ -1,7 +1,20 @@
 import pretty from 'pretty';
+import { shortObjHash } from '../util.js';
 import { BaseTransformer } from './BaseTransformer.js';
 import * as prompts from './prompts.js';
 import { parse } from 'node-html-parser';
+
+const unique = (l) => {
+  const u = [];
+  const seen = {};
+  for (const it of l) {
+    const ser = JSON.stringify(it);
+    if (seen[ser]) continue;
+    seen[ser] = true;
+    u.push(it);
+  }
+  return u;
+}
 
 export const SelectorTransformer = class extends BaseTransformer {
   constructor(template, options) {
@@ -10,39 +23,143 @@ export const SelectorTransformer = class extends BaseTransformer {
   }
 
   async _transform(html) {
-    this.logger.trace('!!');
-
-    const format = {};
-    format['_analysis'] = 'Analysis in 10-200 words of how to select the relevant data';
-    format['_container'] = 'CSS selector for elements enclosing answers to each question, if available';
-    for (const key of Object.keys(this.template)) {
-      format[key] = `CSS selector for all data needed to get ${key}=${this.template[key]}`;
-    }
-    format['_modals'] = 'List of CSS selectors for elements to click in order to clear any modals if present'
-    format['_paginate'] = 'CSS selector for element to click to get to the next page if possible';
-    format['_shared'] = 'List of keys where the value should be reused on subsequent entries';
-    format['_hint'] = 'Any helpful information for answering the questions';
-    format['_confidence'] = 'Confidence in overall response effectiveness from 0-100';
-
-    this.logger.info(`${this} Format is: ${JSON.stringify(format, null, 2)}`);
-
     const context = {
       html: pretty(html, { ocd: true }),
       template: JSON.stringify(this.template, null, 2),
-      format: JSON.stringify(format, null, 2),
     }
-
-    const { prompt } = await prompts.learnCSS.renderCapped(
+    const cssPrompts = await prompts.learnCSS.renderMulti(
       context, 'html', this.ai.advanced);
 
-    const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
-    const fields = Object.keys(answer.partial).filter(k => !k.startsWith('_'));
-    if (answer.partial._combined) {
-      fields.push(answer.partial._combined)
+    const candidates = [];
+    for (const [i, prompt] of cssPrompts.entries()) {
+      const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+      console.log(i, answer.partial);
+      const group = [];
+      for (const it of answer.partial) {
+        if (it._meta) {
+          continue;
+        }
+        console.log(it);
+        group.push(it);
+      }
+      candidates.push(group);
     }
-    this.logger.debug(`${this} Got answer: ${JSON.stringify(answer.partial, null, 2)}`);
-    const selectors = fields.map(key => answer.partial[key]);
-    this.logger.debug(`${this} Got selectors: ${JSON.stringify(selectors, null, 2)}`);
+
+    const root = parse(html);
+
+    const grouped = {};
+    for (const group of candidates) {
+      const hashes = [];
+      let count = 0;
+      for (const c of group) {
+        const matches = root.querySelectorAll(c.selector);
+        for (const node of matches) {
+          const h = shortObjHash({ html: node.innerHTML });
+          hashes.push(h);
+          count++;
+        }
+      }
+      hashes.sort();
+      const hash = shortObjHash({ hashes });
+      grouped[hash] ||= {
+        selectors: [],
+        rating: 0,
+        matches: 0,
+      };
+
+      grouped[hash].selectors.push([...group.map(it => it.selector)]);
+      grouped[hash].selectors = unique(grouped[hash].selectors);
+      grouped[hash].rating += group.reduce((acc, it) => acc + it.rating, 0) / group.length;
+      grouped[hash].matches += count;
+
+      grouped[hash].rank = grouped[hash].rating * grouped[hash].matches;
+    }
+
+    const sorted = Object.values(grouped).sort((a, b) => b.rank - a.rank);
+    console.log('candidates:');
+    console.log(JSON.stringify(sorted, null, 2));
+
+    const best = sorted[0];
+    console.log('best candidate:');
+    console.log(JSON.stringify(best, null, 2));
+
+    const selectors = best.selectors[0];
+
+    const matches = [];
+    for (const s of selectors) {
+      matches.push(...root.querySelectorAll(s));
+    }
+    const matchingNodes = (node, selectors) => {
+      const nodes = [];
+      for (const m of matches) {
+        const same = m == node;
+        if (same && !nodes.includes(node)) {
+          nodes.push(node);
+          break;
+        }
+      }
+      for (const child of node.childNodes) {
+        nodes.push(...matchingNodes(child, selectors));
+      }
+      return nodes;
+    }
+    const include = matchingNodes(root, selectors);
+
+    const toHtml = (node, include) => {
+      let html = '';
+      let kept = false;
+      for (const child of node.childNodes) {
+        let keep = '';
+        const text = child.innerText;
+        const ok = include.includes(child);
+        if (ok) {
+          kept = true;
+          keep += '<div>' + text;
+        }
+
+        keep += toHtml(child, include);
+        if (ok) {
+          keep += '</div>';
+        }
+        html += keep;
+        if (keep) {
+          html += '\n';
+        }
+      }
+
+      if (kept) {
+        html = '<div>\n' + html.replaceAll('\n', '\n\t') + '</div>';
+      }
+
+      return html.trim() ? '<div>' + html + '</div>' : '';
+    }
+    const t = pretty(
+      toHtml(root, [root, ...include]),
+      { ocd: true });
+
+    console.log('t', t);
+    throw 'STOP YY';
+  }
+
+  async old(html) {
+    let selectors = [];
+    let fields = [];
+    for (const prompt of cssPrompts) {
+      const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+      fields.push(...Object.keys(answer.partial).filter(k => !k.startsWith('_')));
+      if (answer.partial._combined) {
+        fields.push(answer.partial._combined)
+      }
+      this.logger.debug(`${this} Got answer: ${JSON.stringify(answer.partial, null, 2)}`);
+      // const selectors = fields.map(key => answer.partial[key]);
+      selectors.push(...fields.map(key => answer.partial[key]));
+      this.logger.debug(`${this} Got selectors: ${JSON.stringify(selectors, null, 2)}`);
+
+      fields = unique(fields);
+      selectors = unique(selectors);
+      console.log('got fields:   ', fields);
+      console.log('got selectors:', selectors);
+    }
 
     const root = parse(html);
     const matches = [];

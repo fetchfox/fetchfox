@@ -63,12 +63,12 @@ export const createMatrix = (configs, options) => {
           } else {
             val[1].timeout = 20 * 1000;
           }
-          val[1].wait = 10 * 1000;
+          val[1].wait = 6 * 1000;
         }
 
         if (process.env.BENCH_USE_CACHE) {
           console.log('use cache');
-          val[1].cache = new DiskCache('/tmp/ffbenchcache');
+          val[1].cache = new DiskCache('/tmp/ffbenchcache-3');
         }
 
         newMatrix.push(updated);

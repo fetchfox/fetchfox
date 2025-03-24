@@ -121,7 +121,6 @@ export const OpenAI = class extends BaseAI {
       }
 
       this.logger.error(`${this} Caught error while making completion: ${e}`);
-      this.logger.trace('!!');
       throw e;
     } finally {
       if (listener) {

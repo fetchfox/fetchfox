@@ -34,7 +34,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
   async *_runRegular(doc, questions, options) {
     const transformers = [];
-    if (process.env.USE_TRANSFORMER) {
+    if (process.env.USE_TRANSFORM) {
       transformers.push(new SelectorTransformer(questions, this));
     }
 
@@ -102,7 +102,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   async *_runAuthor(doc, questions, options) {
     const goal = goalPrompt(questions);
     const transformers = [
-      new PrettyTransformer(this),
+      // new PrettyTransformer(this),
     ];
     const url = doc.url;
     const author = new Author({
@@ -117,7 +117,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     const num = 5;
 
-    const samplePromise = new Promise(async (ok) => {
+    const expectedPromise = new Promise(async (ok) => {
       const gen = this._runRegular(doc, questions, options);
       const results = [];
       for await (const r of gen) {
@@ -129,8 +129,10 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       ok(results);
     });
 
+    const expected = await expectedPromise;
+
     const actualPromise = new Promise(async (ok) => {
-      const gen = author.run(url, [goal]);
+      const gen = author.run(url, [goal], expected);
       const results = [];
       for await (const v of gen) {
         for (const r of v.result) {
@@ -146,17 +148,41 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       ok(results);
     });
 
-    const [
-      sample,
-      actual,
-    ] = await Promise.all([
-      samplePromise,
-      actualPromise,
-    ]);
+    const actual = await actualPromise;
 
-    // TODO: Use sample & actual to iterate on code in Author
-    console.log('sample:', sample);
-    console.log('actual:', actual);
+    await author.iterate(doc.url, doc.html, [goal], expected, actual);
+
+    // const { codes } = await author.get(url, [goal]);
+    // const code = codes.join('\n\n');
+
+    // TODO: Use expected & actual to iterate on code in Author
+    // console.log('code:', code);
+    // console.log('expected:', expected);
+    // console.log('actual:', actual);
+
+    throw 'STOP 333';
+
+    // this.logger.debug(`${this} Getting feedack on expected vs. actual`);
+    // const context = {
+    //   expected: JSON.stringify(expected, null, 2),
+    //   actual: JSON.stringify(actual, null, 2),
+    //   code,
+    //   html: doc.html,
+    // };
+    // const { prompt } = await rateItems.renderCapped(context, 'html', this.ai.advanced);
+    // const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+
+//     const feedback = `The original code was:
+// // -- Start Code --//
+// ${code}
+// // -- End Code --//
+
+// And the feedback on the results from this code is:
+// ${JSON.stringify(answer.partial, null, 2)}
+// `;
+//     console.log('=====> feedback:', feedback);
+
+    throw 'STOP feedback';
 
     for await (const val of author.run(url, [goal])) {
       // Sometimes AI serializes the results in JSON

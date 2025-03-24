@@ -145,7 +145,7 @@ Return ONLY JSON, your response will be machine parsed using JSON.parse()
 `);
 
 export const pageActionCode = new Template(
-  ['html', 'goal', 'timeout'],
+  ['html', 'goal', 'timeout', 'expected'],
   `You are part of an elite web scraping program. You are given some HTML and a goal.
 
 Response with Javascript code that accomplishes this goal.
@@ -220,9 +220,12 @@ Selector guidance:
 - Do NOT use any pseudo selectors for css=
 - Surprisingly, you cannot use numbers IDs as selectors. For example, css=input#0 is an invalid selector, because of the number ID. If you see this, use a different selector instead.
 
->>>> The user requested a timeout the following timeout for selectors and actions:
+>>> The user requested a timeout the following timeout for selectors and actions:
 {{timeout}} milliseconds
 Generally follow this timeout, but adjust a little if needed
+
+>>> Below are the expected results:
+{{expected}}
 
 Again, the goal is:
 {{goal}}
@@ -255,3 +258,30 @@ Give your response in JSON format, with the following fields:
 - "feedback": give some feedabck on how to improve the code. 10-100 words
 
 Your response will be machine parsed, so respond ONLY with valid JSON that can fed into JSON.parse()`);
+
+export const rateItems = new Template(
+  ['expected', 'actual', 'code', 'html'],
+  `You are expected and actual results from a web extraction program. You also have the the source HTML, and the code used to generate the actual results.
+
+Provide an analyis, accuracy rating, and suggestions to improve the code (if any). You will provide these in JSON.
+
+You will return a JSON object with the following fields:
+
+- "accuracyAnalysis": "An analysis of how closely to expected results match the actual results. Describe any innacurate or missing fields. Note any patterns in the mistakes. Give 50-200 words."
+- "codeAnalysis": "An analysis of the code, and how it could be improved, in particular as it relates to improving accuracy. Give 20-80 words.",
+- "score": "A score from 1-100 of how well the the code generating the expected results functions. Focus primarly on accuracy, but also consider general code quality"
+- "feedback": "Give feedback on how to improve the code, if needed. Focus primarly on how to improve accuracy. Give 10-200 words."
+
+>>> The page HTML is:
+{{html}}
+
+>>> The code used to generate the results is:
+{{code}}
+
+>>> The expected results are:
+{{expected}}
+
+>>> The actual results are:
+{{actual}}
+
+Respond ONLY in JSON, your response will be machine parsed using JSON.parse()`);

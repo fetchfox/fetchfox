@@ -152,7 +152,12 @@ export const BaseAI = class {
       return;
     }
     const outcome = result ? '(hit)' : '(miss)';
+    if (!result) {
+      this.logger.trace('miss');
+    }
     this.logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
+
+
     return result;
   }
 

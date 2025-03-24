@@ -1,4 +1,5 @@
-import { fox } from '../../src/index.js';
+import { fox, S3KV } from '../../src/index.js';
+import { srid } from '../../src/util.js';
 import { Item } from '../../src/item/Item.js'
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
@@ -6,6 +7,11 @@ import { checkItemsAI } from '../lib/checks.js';
 
 describe('extract bidspotter.com', async function() {
   const matrix = standardMatrix();
+
+  const prefixes = [
+    // 'benchkv/fixed-2/',
+    `benchkv/random-${srid()}/`,
+  ];
 
   const expected = [
     {
@@ -696,21 +702,30 @@ describe('extract bidspotter.com', async function() {
     url: 'What is the URL of this lot? Format: Absolute URL',
   };
 
-  for (const { name, url, expected } of cases) {
-    const wf = await fox
-      .init(url)
-      .extract({ questions })
-      .limit(100)
-      .plan();
+  for (const prefix of prefixes) {
+    for (const { name, url, expected } of cases) {
+      const wf = await fox
+        .init(url)
+        .extract({ questions })
+        .limit(100)
+        .plan();
 
-    return itRunMatrix(
-      it,
-      `extract extract bidspotter.com (${name})`,
-      wf.dump(),
-      matrix,
-      [
-        (items) => checkItemsAI(items, expected, questions),
-      ],
-      { shouldSave: true });
+      return itRunMatrix(
+        it,
+        `extract extract bidspotter.com (${name})`,
+        wf.dump(),
+        matrix,
+        [
+          (items) => checkItemsAI(items, expected, questions),
+        ],
+        {
+          shouldSave: true,
+          kv: new S3KV({
+            bucket: 'ffcloud',
+            prefix,
+            acl: 'public-read',
+          }),
+        });
+    }
   }
 });
