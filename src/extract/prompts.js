@@ -170,3 +170,14 @@ Follow these guidelines
 * It is ok to overmatch data as long as you include the requested data
 
 Respond ONLY in JSON, your response will be machine parsed using JSON.parse()`);
+
+export const aiProcess = new Template(
+  ['item'],
+  `You are performing post processing on the output of a data extract process. This process needs an AI LLM like you to to determine the value of a field that is subjective or hard to generate using just code.
+
+You will be given a JSON object with keys and values. The values are instructions for how to generate the output for that key. Follow the instructions in the values, and output a JSON object in the same shape as the input.
+
+>>> The input item is:
+{{item}}
+
+Respond ONLY in JSON, your response will be machine parsed using JSON.parse()`);

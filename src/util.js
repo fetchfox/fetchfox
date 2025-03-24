@@ -164,7 +164,7 @@ export const abortable = async (signal, promise) => {
 }
 
 export const clip = (val, num) => {
-  const str = typeof val == 'string' ? s : JSON.stringify(val);
+  const str = (typeof val == 'string' ? val : JSON.stringify(val)) || '';
   if (str.length <= num) {
     return str;
   } else {

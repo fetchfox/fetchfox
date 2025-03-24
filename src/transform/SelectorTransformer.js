@@ -16,7 +16,7 @@ export const SelectorTransformer = class extends BaseTransformer {
     format['_analysis'] = 'Analysis in 10-200 words of how to select the relevant data';
     format['_container'] = 'CSS selector for elements enclosing answers to each question, if available';
     for (const key of Object.keys(this.template)) {
-      format[key] = `CSS selector for ${key}`;
+      format[key] = `CSS selector for all data needed to get ${key}=${this.template[key]}`;
     }
     format['_modals'] = 'List of CSS selectors for elements to click in order to clear any modals if present'
     format['_paginate'] = 'CSS selector for element to click to get to the next page if possible';
@@ -24,7 +24,7 @@ export const SelectorTransformer = class extends BaseTransformer {
     format['_hint'] = 'Any helpful information for answering the questions';
     format['_confidence'] = 'Confidence in overall response effectiveness from 0-100';
 
-    this.logger.info(`${this} Format is: ${JSON.stringify(format)}`);
+    this.logger.info(`${this} Format is: ${JSON.stringify(format, null, 2)}`);
 
     const context = {
       html: pretty(html, { ocd: true }),
@@ -40,8 +40,9 @@ export const SelectorTransformer = class extends BaseTransformer {
     if (answer.partial._combined) {
       fields.push(answer.partial._combined)
     }
+    this.logger.debug(`${this} Got answer: ${JSON.stringify(answer.partial, null, 2)}`);
     const selectors = fields.map(key => answer.partial[key]);
-    this.logger.debug(`${this} Got selectors: ${JSON.stringify(selectors)}`);
+    this.logger.debug(`${this} Got selectors: ${JSON.stringify(selectors, null, 2)}`);
 
     const root = parse(html);
     const matches = [];

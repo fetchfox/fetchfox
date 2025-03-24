@@ -1,8 +1,12 @@
-import { clip } from '../util.js';
+import PQueue from 'p-queue';
+import { clip, createChannel } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { SelectorTransformer } from '../transform/index.js';
-import { scrapeOnce, scrapeSelect, scrapeJson } from './prompts.js';
+import {
+  PrettyTransformer,
+  SelectorTransformer,
+} from '../transform/index.js';
+import { scrapeOnce, scrapeSelect, scrapeJson, aiProcess } from './prompts.js';
 import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
 import { Author } from '../fetch/Author.js';
@@ -16,12 +20,92 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   async *_run(doc, questions, options) {
     this.logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    const goal = `Send JSON objects that match this template:
+    let gen;
+    if (false) {
+      gen = this._runRegular(doc, questions, options);
+    } else {
+      gen = this._runAuthor(doc, questions, options);
+    }
 
-${JSON.stringify(questions, null, 2)}
+    for await (const r of gen) {
+      yield Promise.resolve(r);
+    }
+  }
 
-Send all items as an array of JSON objects`;
+  async *_runRegular(doc, questions, options) {
+    const transformers = [
+      // new SelectorTransformer(questions, this),
+    ];
 
+    let html = doc.html;
+    for (const t of transformers) {
+      html = await t.transform(html);
+    }
+
+    // console.log('html after transform:', html);
+    // console.log('html after transform len:', html.length);
+
+    const extraRules = modeRules(options?.mode || 'auto');
+    const context = {
+      url: doc.url,
+      questions: JSON.stringify(questions, null, 2),
+      body: html,
+      extraRules,
+    };
+
+    let prompts = await scrapeOnce.renderMulti(context, 'body', this.ai);
+    const max = 32
+    if (prompts.length > max) {
+      this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
+      prompts = prompts.slice(0, max);
+    }
+
+    try {
+      for (const prompt of prompts) {
+        const gen = this.ai.stream(prompt, { format: 'jsonl' });
+        for await (const { delta } of gen) {
+          if (delta._meta) {
+            this.logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
+            continue;
+          }
+
+          yield Promise.resolve(new Item(delta, doc));
+        }
+      }
+    } catch (e) {
+      this.logger.error(`${this} Got error while extracting: ${e}`);
+      throw e;
+    }
+  }
+
+  async aiProcess(item, questions) {
+    const aiItem = {};
+    for (const [key, val] of Object.entries(item)) {
+      if (val.ai) {
+        aiItem[key] = `Give a value for ${key}="${questions[key]}" using this data: ${val.ai}`;
+      }
+    }
+
+    if (!Object.keys(aiItem).length) {
+      return item;
+    }
+
+    const context = {
+      item: JSON.stringify(aiItem, null, 2),
+    };
+    const { prompt } = await aiProcess.renderCapped(context, 'item', this.ai);
+
+    const answer = await this.ai.ask(prompt, { format: 'json' });
+    this.logger.debug(`${this} AI processing gave: ${clip(JSON.stringify(answer.partial), 200)}`);
+
+    return { ...item, ...answer.partial };
+  }
+
+  async *_runAuthor(doc, questions, options) {
+    const goal = goalPrompt(questions);
+    const transformers = [
+      new PrettyTransformer(this),
+    ];
     const url = doc.url;
     const author = new Author({
       fetcher: this.fetcher,
@@ -29,15 +113,87 @@ Send all items as an array of JSON objects`;
       ai: this.ai,
       cache: this.cache,
       logger: this.logger,
-      transformers: [new SelectorTransformer(questions, this)],
+      transformers,
       timeout: 30 * 1000,  // TODO: figure out author timeout
     });
 
-    for await (const val of author.run(url, [goal])) {
-      this.logger.debug(`${this} Got result from author: ${clip(val, 100)}`);
-      for (const r of val.result) {
-        yield Promise.resolve(new Item(r));
+    const num = 5;
+
+    const samplePromise = new Promise(async (ok) => {
+      const gen = this._runRegular(doc, questions, options);
+      const results = [];
+      for await (const r of gen) {
+        results.push(r);
+        if (results.length > num) {
+          break;
+        }
       }
+      ok(results);
+    });
+
+    const actualPromise = new Promise(async (ok) => {
+      const gen = author.run(url, [goal]);
+      const results = [];
+      for await (const v of gen) {
+        for (const r of v.result) {
+          results.push(r);
+          if (results.length > num) {
+            break;
+          }
+        }
+        if (results.length > num) {
+          break;
+        }
+      }
+      ok(results);
+    });
+
+    const [
+      sample,
+      actual,
+    ] = await Promise.all([
+      samplePromise,
+      actualPromise,
+    ]);
+
+    console.log('sample:', sample);
+    console.log('actual:', actual);
+
+    throw 'STOP COMPARE';
+    
+    for await (const val of author.run(url, [goal])) {
+      // Sometimes AI serializes the results in JSON
+      if (typeof val.result == 'string') {
+        try {
+          val.result = JSON.parse(vale.result);
+        } catch (e) {
+        }
+      }
+
+      const list = Array.isArray(val.result) ? val.result : [val.result]
+      this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
+
+      const chan = createChannel();
+      const q = new PQueue({ concurrency: 32 });
+      const all = [];
+      for (const item of list) {
+        const task = q.add(async () => {
+          const r = await this.aiProcess(item, questions);
+          chan.send({ item: r });
+        });
+        all.push(task);
+      }
+      const p = Promise.allSettled(all)
+        .then(() => chan.end());
+
+      for await (const val of chan.receive()) {
+        if (val.end) {
+          break;
+        }
+        yield Promise.resolve(new Item(val.item));
+      }
+
+      await p;
     }
   }
 }
@@ -78,4 +234,33 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
     default:
       throw new Error(`Unexpected mode: ${mode}`);
   }
+}
+
+const goalPrompt = (questions) => {
+  return `Extract data from this page, and all extracted data as JSON objects in an array. The data you are extracting must match this template:
+
+${JSON.stringify(questions, null, 2)}
+
+Send all items as an array of JSON objects, like this:
+
+[
+  ${JSON.stringify(questions)},
+  ${JSON.stringify(questions)},
+  ${JSON.stringify(questions)},
+  // ... and so on
+]
+
+  Important: Sometimes, you will get subjective fields, asking to do summaries, make judgemnet calls, compare things, change formats, and so on. Anything that seem subjective or hard to do in code, you can us an AI LLM todo. To do this, wrap data in the ai(), and that field will be sent to an AI for post processing. For example, if you get this:
+
+  { "summary": "Summarize this article in 50 words" }
+
+Send items like this:
+
+  { "summary": { ai: "...inputData needed to generate summary..." } }
+
+For "inputData", you want to send ALL the data necessary for the subjective field. Feel free to include as little or as much data as necessary. Do NOT format the data in any way, simply include the data needed to generate that field. This data typically should NOT a simple recap of the other fields, but usually general relevant data from the page.
+
+Give only string values in the output.
+
+Your response will be machine parsed using JSON.stringify() and interpretted as an array, so you MUST use this return format`;
 }

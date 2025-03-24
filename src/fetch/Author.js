@@ -29,7 +29,7 @@ export const Author = class {
     const seen = {};
     const hash = it => shortObjHash({ r: it.result });
 
-    console.log('first output', output);
+    // console.log('first output', JSON.stringify(output.result));
 
     if (output) {
       seen[hash(output)] = true;
@@ -167,6 +167,9 @@ export const Author = class {
         this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
         const { prompt } = await prompts.pageActionCode
           .renderCapped(context, 'html', this.ai.advanced);
+
+        // console.log('prompt', prompt);
+
         const answer = await this.ai.advanced.ask(prompt, { format: 'text' });
         const code = answer.partial
           .replaceAll('```javascript', '')
@@ -205,12 +208,12 @@ export const Author = class {
   async transform(html, goal) {
     this.logger.debug(`${this} Running ${this.transformers.length} transformers on ${html.length} bytes`);
     let out = html;
+
     for (const t of this.transformers) {
       out = t.transform(out);
     }
 
     this.logger.debug(`${this} Final HTML is ${out.length} bytes`);
-
     return out;
   }
 }

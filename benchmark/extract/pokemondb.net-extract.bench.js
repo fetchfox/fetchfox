@@ -3,7 +3,7 @@ import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsAI } from '../lib/checks.js';
 
-describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory', async function() {
+describe('extract pokemondb.net', async function() {
   const matrix = standardMatrix({
   });
 
@@ -36,11 +36,11 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
   ];
 
   const cases = [
-    {
-      name: 'live',
-      url: 'https://pokemondb.net/pokedex/national',
-      expected,
-    },
+    // {
+    //   name: 'live',
+    //   url: 'https://pokemondb.net/pokedex/national',
+    //   expected,
+    // },
     {
       name: 'saved',
       url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/djh6e69cux/https-pokemondb-net-pokedex-national.html',
@@ -52,6 +52,7 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
     name:	'What is the name of this pokemon?',
     number: 'What is the pokemon number',
     url: `What is the URL of the pokemon`,
+    description: `Describe this pokemon in 50-100 words`,
   }
 
   for (const { name, url, expected } of cases) {
@@ -63,11 +64,14 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
 
     return itRunMatrix(
       it,
-      `extract pokemon from pokemondb.net/pokedex/national (${name})`,
+      `extract pokemondb.net (${name})`,
       wf.dump(),
       matrix,
       [
-        (items) => checkItemsAI(items, expected, questions),
+        (items) => {
+          console.log('ITEMS', items);
+          return checkItemsAI(items, expected, questions);
+        }
       ],
       { shouldSave: true });
   }

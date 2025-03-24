@@ -51,8 +51,10 @@ export const checkItemsAI = async (items, expected, questions, fields) => {
 
   const prompt = `Give a score from 0 to 100 of how closely the actual results match the expected results.
 
-You may based your score on the approximate percentage of expected fields that are exactly matched in the actual results.
-However, you may give partial credit for responses that answer a question in a slightly different format if the corresponding question's wording allows it.
+- You may based your score on the approximate percentage of expected fields that are exactly matched in the actual results.
+- However, you may give partial credit for responses that answer a question in a slightly different format if the corresponding question's wording allows it.
+- For fields that are subjective, like "tone" or "summary", you should not expect an exact match. Give full credit for differnces in subjective fields, as long as format is correct and the answers seem reasonable.
+- For objective fields, however, do expect an exact match
 
 Format your response like this:
 

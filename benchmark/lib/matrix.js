@@ -10,8 +10,8 @@ export const standardMatrix = (extra, options) => {
   let ai;
 
   const fetcher = [
-    // ['playwright', { s3 }],
-    ['playwright', { }],
+    ['playwright', { s3 }],
+    // ['playwright', { }],
   ];
   if (process.env.HEADFUL) {
     fetcher[0][1].headless = false;
@@ -63,6 +63,7 @@ export const createMatrix = (configs, options) => {
           } else {
             val[1].timeout = 20 * 1000;
           }
+          val[1].wait = 10 * 1000;
         }
 
         if (process.env.BENCH_USE_CACHE) {
