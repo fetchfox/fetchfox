@@ -168,7 +168,6 @@ ${this.hint}` : '',
 
         const actionPrompts = await prompts.pageAction
           .renderMulti(context, 'html', this.ai.advanced);
-
         const answers = (
           await Promise.allSettled(actionPrompts.map(
             (prompt) => this.ai.advanced.ask(prompt, { format: 'json' })

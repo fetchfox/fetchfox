@@ -149,7 +149,7 @@ export const Author = class {
   }
 
   async iterate(url, html, goals, actual, expected) {
-    const { codes } = await author.get(url, [goal]);
+    const { codes } = await this.get(url, goals);
     const code = codes.join('\n\n');
 
     const context = {
@@ -182,7 +182,7 @@ export const Author = class {
         const doc = await this.fetcher.current(ctx);
         const context = {
           goal,
-          html: await this.transform(doc.html, goal),
+          html: await this.transform(doc.html),
           timeout: this.timeout,
           expected: expected ? JSON.stringify(expected, null, 2) : '(Expected results not available)',
         };
@@ -228,12 +228,12 @@ export const Author = class {
     throw new Error('TODO');
   }
 
-  async transform(html, goal) {
+  async transform(html) {
     this.logger.debug(`${this} Running ${this.transformers.length} transformers on ${html.length} bytes`);
     let out = html;
 
     for (const t of this.transformers) {
-      out = t.transform(out);
+      out = await t.transform(out);
     }
 
     this.logger.debug(`${this} Final HTML is ${out.length} bytes`);

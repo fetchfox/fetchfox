@@ -35,6 +35,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   async *_runRegular(doc, questions, options) {
     const transformers = [];
     if (process.env.USE_TRANSFORM) {
+      transformers.push(new PrettyTransformer(this));
       transformers.push(new SelectorTransformer(questions, this));
     }
 
@@ -60,6 +61,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     try {
       for (const prompt of prompts) {
+        // console.log('prompt', prompt);
         const gen = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of gen) {
           if (delta._meta) {
@@ -101,9 +103,16 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
   async *_runAuthor(doc, questions, options) {
     const goal = goalPrompt(questions);
-    const transformers = [
-      // new PrettyTransformer(this),
-    ];
+    const transformers = [];
+    if (process.env.USE_TRANSFORM) {
+      transformers.push(new PrettyTransformer(this));
+      transformers.push(new SelectorTransformer(questions, this));
+    }
+
+    // console.log('SPE running on:', html);
+    // const m = html.match(/<ARTICLE/g);
+    // console.log('SPE running on:', m.length);
+
     const url = doc.url;
     const author = new Author({
       fetcher: this.fetcher,
