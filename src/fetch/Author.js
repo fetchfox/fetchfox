@@ -98,8 +98,10 @@ export const Author = class {
   async get(url, goals, expected) {
     this.logger.debug(`${this} Get code for goal: ${goals.join('\n')}`);
     const key = this.key(url, goals);
+    this.logger.debug(`${this} Wait for lock on ${key}`);
     const result = new Promise((ok) => {
       this.lock.acquire(key, async (done) => {
+        this.logger.debug(`${this} Got lock on ${key}`);
         this.logger.debug(`${this} Look up goal in kv: ${key}`);
 
         const records = (await this.kv.get(key) || [])
@@ -203,7 +205,8 @@ export const Author = class {
           .replaceAll('```javascript', '')
           .replaceAll('```', '');
 
-        this.logger.debug(`${this} Got code from ${this.ai.advanced}: ${code}`);
+        this.logger.debug(`${this} Wrote code from ${this.ai.advanced}: ${code}`);
+        this.logger.trace('.');
 
         // Only do each action once in write mode
         const cb = (r) => { output = r; return false };
