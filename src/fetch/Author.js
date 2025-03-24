@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import pretty from 'pretty';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
@@ -13,6 +12,7 @@ export const Author = class {
     this.fetcher = options?.fetcher || getFetcher();
     this.kv = options?.kv || getKV();
     this.ai = options?.ai || getAI(null, { cache: this.cache });
+    this.transformers = options?.transformers || [];
     this.logger = options?.logger || defaultLogger
     this.timeout = options?.timeout || 8000;
     this.threshold = options?.threshold || 65;
@@ -28,8 +28,13 @@ export const Author = class {
     // Send the first result from write execution
     const seen = {};
     const hash = it => shortObjHash({ r: it.result });
-    seen[hash(output)] = true;
-    yield Promise.resolve(output);
+
+    console.log('first output', output);
+
+    if (output) {
+      seen[hash(output)] = true;
+      yield Promise.resolve(output);
+    }
 
     const chan = createChannel();
     const promise = new Promise(async (ok) => {
@@ -198,11 +203,15 @@ export const Author = class {
   }
 
   async transform(html, goal) {
-    const tHtml = pretty(html, { ocd: true });
+    this.logger.debug(`${this} Running ${this.transformers.length} transformers on ${html.length} bytes`);
+    let out = html;
+    for (const t of this.transformers) {
+      out = t.transform(out);
+    }
 
-    // TODO
+    this.logger.debug(`${this} Final HTML is ${out.length} bytes`);
 
-    return tHtml;
+    return out;
   }
 }
 

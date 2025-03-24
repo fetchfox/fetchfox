@@ -40,18 +40,19 @@ export const CodeInstructions = class {
         goals.push(command.prompt);
       }
     }
-    if (!goals) {
+
+    if (!goals.length) {
       this.logger.info(`${this} No command, just yield current page`);
       const ctx = {};
       await fetcher.start(ctx);
       await fetcher.goto(this.url, ctx);
-      const doc = await this.current(fetcher, ctx);
+      const doc = await fetcher.current(ctx);
       yield Promise.resolve({ doc });
       await fetcher.finish(ctx);
       return;
     }
 
-    this.logger.info(`${this} Use author for ${goals.length }goals`);
+    this.logger.info(`${this} Use author for ${goals.length } goals`);
     this.logger.debug(`${this} Goals are: ${goals.join('\n\n')}`);
     const author = new Author({
       fetcher: this.fetcher,

@@ -163,7 +163,7 @@ export const BaseExtractor = class {
                   ok();
 
                 } catch(e) {
-                  this.logger.error(`${this} Error in extraction promise: ${e}`);
+                  this.logger.error(`${this} Error in extraction promise: ${e} ${e.stack}`);
                   bad(e);
                 }
               }));

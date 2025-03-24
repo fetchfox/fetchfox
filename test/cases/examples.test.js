@@ -19,7 +19,8 @@ describe('examples', function() {
     ];
 
     const logger = new Logger({ prefix: 'abc123xyz' });
-    const cache = testCache();
+    // const cache = testCache();
+    const cache = null;//testCache();
 
     for (const { ai } of cases) {
       const wf = await fox
