@@ -55,6 +55,9 @@ export const createMatrix = (configs, options) => {
         updated[key] = val;
         if (key == 'fetcher') {
           if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
+            if (!cdp) {
+              throw new Error('Need CDP Env var');
+            }
             val[1].cdp = cdp;
             val[1].timeout = 120 * 1000; // long timeouts for proxy providers
           } else {
