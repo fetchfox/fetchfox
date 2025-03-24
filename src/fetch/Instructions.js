@@ -18,9 +18,6 @@ export const Instructions = class {
     this.logger = options?.logger || defaultLogger
 
     this.url = url;
-
-    console.log('url:', url);
-
     this.commands = [];
     for (const command of commands) {
       let c;
@@ -338,8 +335,6 @@ ${this.hint}` : '',
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
 
-      console.log('LEARNED:', this.learned);
-
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
     } catch (e) {
@@ -353,7 +348,6 @@ ${this.hint}` : '',
 
   async *execute(fetcher, options) {
     if (this.useCode) {
-      console.log('!!!! use code exec');
       const gen = this.codeInstructions.execute(fetcher, options);
       for await (const r of gen) {
         yield Promise.resolve(r);

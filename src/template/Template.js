@@ -69,8 +69,6 @@ export const Template = class {
     let len = 0;
     const lens = {};
     for (const it of flexFields) {
-      // console.log('->', it, flexFields, Object.keys(context), context);
-      // logger.trace('??');
       const l = (context[it] || '').length;
       lens[it] = l;
       len += l;

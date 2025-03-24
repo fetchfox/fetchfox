@@ -96,9 +96,6 @@ export const getModelData = async (provider, model, cache) => {
 
     const resp = await fetch(url);
     const jsonData = await resp.json();
-
-    // console.log('jsonData.data', jsonData.data);
-
     for (let item of jsonData.data) {
       if (item.id == id) {
         data = {

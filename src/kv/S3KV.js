@@ -28,8 +28,6 @@ export const S3KV = class extends BaseKV {
     const objectKey = `${this.prefix}${key}`;
     const body = JSON.stringify(val);
 
-    console.log('s3kv set', objectKey);
-
     try {
       await this.s3.send(new PutObjectCommand({
         Bucket: this.bucket,
@@ -48,8 +46,6 @@ export const S3KV = class extends BaseKV {
   async get(key) {
     const objectKey = `${this.prefix}${key}`;
 
-    console.log('s3kv get', objectKey);
-
     let body;
     try {
       const resp = await this.s3.send(new GetObjectCommand({
@@ -57,8 +53,6 @@ export const S3KV = class extends BaseKV {
         Key: objectKey,
       }));
       body = await this.streamToString(resp.Body);
-      console.log('BODY', body);
-
     } catch (e) {
       if (e.name == 'NoSuchKey') {
         return undefined;
@@ -68,9 +62,7 @@ export const S3KV = class extends BaseKV {
     }
 
     try {
-      const p = JSON.parse(body);
-      console.log('p', p);
-      return p;
+      return JSON.parse(body);
     } catch (e) {
       this.logger.warn(`${this} Failed to parse JSON for key ${this.url(objectKey)}: ${e}`);
       await this.del(key);

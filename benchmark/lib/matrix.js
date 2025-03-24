@@ -67,7 +67,6 @@ export const createMatrix = (configs, options) => {
         }
 
         if (process.env.BENCH_USE_CACHE) {
-          console.log('use cache');
           val[1].cache = new DiskCache('/tmp/ffbenchcache-3');
         }
 

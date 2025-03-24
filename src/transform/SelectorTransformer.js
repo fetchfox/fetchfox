@@ -38,16 +38,12 @@ export const SelectorTransformer = class extends BaseTransformer {
       .map(it => it.value);
 
     const candidates = [];
-    // for (const [i, prompt] of cssPrompts.entries()) {
-      // const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
     for (const [i, answer] of answers.entries()) {
-      console.log(i, answer.partial);
       const group = [];
       for (const it of answer.partial) {
         if (it._meta) {
           continue;
         }
-        console.log(it);
         group.push(it);
       }
       candidates.push(group);

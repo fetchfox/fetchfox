@@ -29,8 +29,6 @@ export const Author = class {
     const seen = {};
     const hash = it => shortObjHash({ r: it.result });
 
-    // console.log('first output', JSON.stringify(output.result));
-
     if (output) {
       seen[hash(output)] = true;
       yield Promise.resolve(output);
@@ -161,8 +159,6 @@ export const Author = class {
     // TODO/NOTE: This prompt is specific to items
     const { prompt } = await prompts.rateItems.renderCapped(context, 'html', this.ai.advanced);
     const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
-    console.log(answer.partial);
-
     throw 'STOP - author got feedback';
   }
 
@@ -190,8 +186,6 @@ export const Author = class {
         this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
         const { prompt } = await prompts.pageActionCode
           .renderCapped(context, 'html', this.ai.advanced);
-
-        // console.log('prompt', prompt);
 
         const answer = await this.ai.advanced.ask(prompt, { format: 'text' });
         const code = answer.partial
