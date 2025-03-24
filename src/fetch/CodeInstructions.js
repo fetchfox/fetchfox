@@ -2,7 +2,6 @@ import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
 import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
-import { shortObjHash, createChannel } from '../util.js';
 import { Author } from './Author.js';
 import { nextPageCommand, nextPagePrompt, acceptCookiesPrompt } from './Instructions.js';
 
@@ -11,8 +10,13 @@ export const CodeInstructions = class {
     this.url = url;
     this.commands = commands;
     this.cache = options?.cache;
-    this.fetcher = options?.fetcher || getFetcher();
-    this.ai = options?.ai || getAI(null, { cache: this.cache });
+    this.signal = options?.signal;
+    this.fetcher = options?.fetcher || getFetcher(
+      null,
+      { cache: this.cache, signal: this.signal });
+    this.ai = options?.ai || getAI(
+      null,
+      { cache: this.cache, signal: this.signal });
     this.kv = options?.kv || getKV();
     this.timeout = options?.timeout || 60000;
     this.limit = options?.limit;

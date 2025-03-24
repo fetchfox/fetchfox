@@ -1,13 +1,12 @@
-import PQueue from 'p-queue';
-import { clip, createChannel } from '../util.js';
+// import PQueue from 'p-queue';
+import { clip } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import {
   PrettyTransformer,
   SelectorTransformer,
 } from '../transform/index.js';
-import { scrapeOnce, scrapeSelect, scrapeJson, aiProcess } from './prompts.js';
-import { getAI } from '../ai/index.js';
+import { scrapeOnce, aiProcess } from './prompts.js';
 import { getKV } from '../kv/index.js';
 import { Author } from '../fetch/Author.js';
 
@@ -121,6 +120,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     const num = 5;
 
+    /* eslint-disable no-async-promise-executor */
     const expectedPromise = new Promise(async (ok) => {
       const gen = this._runRegular(doc, questions, options);
       const results = [];
@@ -132,9 +132,11 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       }
       ok(results);
     });
+    /* eslint-enable no-async-promise-executor */
 
     const expected = await expectedPromise;
 
+    /* eslint-disable no-async-promise-executor */
     const actualPromise = new Promise(async (ok) => {
       const gen = author.run(url, [goal], expected);
       const results = [];
@@ -151,47 +153,49 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       }
       ok(results);
     });
+    /* eslint-enable no-async-promise-executor */
 
     const actual = await actualPromise;
 
     await author.iterate(doc.url, doc.html, [goal], expected, actual);
 
+    yield Promise.resolve(null);
     throw 'STOP';
 
-    for await (const val of author.run(url, [goal])) {
-      // Sometimes AI serializes the results in JSON
-      if (typeof val.result == 'string') {
-        try {
-          val.result = JSON.parse(vale.result);
-        } catch (e) {
-        }
-      }
+    // for await (const val of author.run(url, [goal])) {
+    //   // Sometimes AI serializes the results in JSON
+    //   if (typeof val.result == 'string') {
+    //     try {
+    //       val.result = JSON.parse(vale.result);
+    //     } catch (e) {
+    //     }
+    //   }
 
-      const list = Array.isArray(val.result) ? val.result : [val.result]
-      this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
+    //   const list = Array.isArray(val.result) ? val.result : [val.result]
+    //   this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
 
-      const chan = createChannel();
-      const q = new PQueue({ concurrency: 32 });
-      const all = [];
-      for (const item of list) {
-        const task = q.add(async () => {
-          const r = await this.aiProcess(item, questions);
-          chan.send({ item: r });
-        });
-        all.push(task);
-      }
-      const p = Promise.allSettled(all)
-        .then(() => chan.end());
+    //   const chan = createChannel();
+    //   const q = new PQueue({ concurrency: 32 });
+    //   const all = [];
+    //   for (const item of list) {
+    //     const task = q.add(async () => {
+    //       const r = await this.aiProcess(item, questions);
+    //       chan.send({ item: r });
+    //     });
+    //     all.push(task);
+    //   }
+    //   const p = Promise.allSettled(all)
+    //     .then(() => chan.end());
 
-      for await (const val of chan.receive()) {
-        if (val.end) {
-          break;
-        }
-        yield Promise.resolve(new Item(val.item));
-      }
+    //   for await (const val of chan.receive()) {
+    //     if (val.end) {
+    //       break;
+    //     }
+    //     yield Promise.resolve(new Item(val.item));
+    //   }
 
-      await p;
-    }
+    //   await p;
+    // }
   }
 }
 

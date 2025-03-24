@@ -36,7 +36,6 @@ describe('paginate ct.curaleaf.com', async function() {
     matrix,
     [
       (items) => {
-        console.log('items', items);
         // TODO: CHECK AND SCORE
         // checkAtLeast(limit);
         return [1, 1];

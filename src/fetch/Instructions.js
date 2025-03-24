@@ -29,8 +29,16 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
+    this.signal = options?.signal;
 
-    this.ai = options?.ai || getAI(null, { cache: this.cache });
+    // if (!this.signal) {
+    //   this.logger.trace('.');
+    //   throw 'NEED SIGNAL';
+    // }
+
+    this.ai = options?.ai || getAI(
+      null,
+      { cache: this.cache, signal: this.signal });
     this.timeout = options?.timeout || options?.fetcher?.timeout || 60000;
 
     this.limit = options?.limit;

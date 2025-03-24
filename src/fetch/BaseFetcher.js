@@ -84,6 +84,7 @@ export const BaseFetcher = class {
           {
             ai: this.ai,
             cache: this.cache,
+            signal: this.signal,
             timeout: this.timeout,
             hint: options?.hint,
           });
@@ -114,9 +115,11 @@ export const BaseFetcher = class {
       css: options?.css,
     };
 
+    const cacheKey = instr.serialize();
+
     let cached;
     try {
-      cached = await this.getCache(instr.serialize(), cacheOptions);
+      cached = await this.getCache(cacheKey, cacheOptions);
     } catch (e) {
       this.logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
@@ -160,6 +163,11 @@ export const BaseFetcher = class {
 
         this.logger.debug(`${this} Decoding PDF via ${apiUrl}`);
         instr.url = apiUrl;
+
+        // TODO: cleanup
+        if (instr.codeInstructions) {
+          instr.codeInstructions.url = instr.url;
+        }
       }
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;

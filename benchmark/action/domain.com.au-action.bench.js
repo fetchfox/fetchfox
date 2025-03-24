@@ -187,10 +187,7 @@ describe('extract domain.com.au', async function() {
         wf.dump(),
         matrix,
         [
-          (items) => {
-            console.log('items', items);
-            return checkItemsAI(items, expected, ['name', 'phone']);
-          }
+          (items) => checkItemsAI(items, expected, ['name', 'phone']);
         ],
         {
           shouldSave: true,

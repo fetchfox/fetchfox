@@ -20,10 +20,8 @@ describe('Document', function() {
     }
 
     for await (const doc of f.fetch(url)) {
-      console.log('got doc:' + doc);
       await doc.learn(ai, template);
     }
-
   });
 
 });

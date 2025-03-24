@@ -38,7 +38,7 @@ export const SelectorTransformer = class extends BaseTransformer {
       .map(it => it.value);
 
     const candidates = [];
-    for (const [i, answer] of answers.entries()) {
+    for (const answer of answers) {
       const group = [];
       for (const it of answer.partial) {
         if (it._meta) {

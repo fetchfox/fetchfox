@@ -1,5 +1,4 @@
 import { logger } from '../log/logger.js';
-import * as prompts from './prompts.js';
 
 export const Document = class {
   constructor() {}

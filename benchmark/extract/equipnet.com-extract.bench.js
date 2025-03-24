@@ -295,10 +295,7 @@ describe('extract equipnet.com', async function() {
       wf.dump(),
       matrix,
       [
-        (items) => {
-          console.log('ITEMS', items);
-          return checkItemsAI(items, expected);
-        },
+        (items) => checkItemsAI(items, expected),
       ],
       { shouldSave: true });
   }

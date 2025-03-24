@@ -22,11 +22,7 @@ describe('Template', function() {
 
     const context = { field };
     const { prompt } = await template.renderCapped(context, 'field', ai);
-
-    console.log('prompt', prompt);
-
     const tokens = await ai.countTokens(prompt);
-    console.log('tokens', tokens);
     assert.ok(tokens < ai.maxTokens);
     assert.ok(tokens > ai.maxTokens / 4);
   });

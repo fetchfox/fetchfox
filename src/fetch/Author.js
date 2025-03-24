@@ -23,7 +23,7 @@ export const Author = class {
   }
 
   async *run(url, goals, expected) {
-    const { output, fns, codes } = await this.get(url, goals, expected);
+    const { output, codes } = await this.get(url, goals, expected);
 
     // Send the first result from write execution
     const seen = {};
@@ -35,6 +35,7 @@ export const Author = class {
     }
 
     const chan = createChannel();
+    /* eslint-disable no-async-promise-executor */
     const promise = new Promise(async (ok) => {
       const ctx = {};
       await this.fetcher.start(ctx);
@@ -67,6 +68,7 @@ export const Author = class {
         ok();
       }
     });
+    /* eslint-enable no-async-promise-executor */
 
     for await (const val of chan.receive()) {
       if (val.end) {
@@ -159,6 +161,7 @@ export const Author = class {
     // TODO/NOTE: This prompt is specific to items
     const { prompt } = await prompts.rateItems.renderCapped(context, 'html', this.ai.advanced);
     const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+    console.log(answer);
     throw 'STOP - author got feedback';
   }
 
@@ -217,11 +220,6 @@ export const Author = class {
     return { output, codes };
   }
 
-  async rate(url, goals, codes) {
-    this.logger.info(`${this} Rate code for goal: ${goal}`);
-    throw new Error('TODO');
-  }
-
   async transform(html) {
     this.logger.debug(`${this} Running ${this.transformers.length} transformers on ${html.length} bytes`);
     let out = html;
@@ -258,7 +256,8 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
         try {
           // In case the AI serialized it
           result = JSON.parse(result);
-        } catch (e){
+        } catch {
+          // Ignore
         }
 
         const more = await cb({ doc, result });

@@ -68,10 +68,7 @@ describe('extract pokemondb.net', async function() {
       wf.dump(),
       matrix,
       [
-        (items) => {
-          console.log('ITEMS', items);
-          return checkItemsAI(items, expected, questions);
-        }
+        (items) => checkItemsAI(items, expected, questions),
       ],
       { shouldSave: true });
   }

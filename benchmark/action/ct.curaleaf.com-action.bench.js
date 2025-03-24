@@ -35,7 +35,6 @@ describe('action ct.curaleaf.com', async function() {
       matrix,
       [
         (items) => {
-          console.log('items', items);
           // TODO: check it items via checkItemsAI
           // return checkItemsAI(items, expected, ['name', 'phone', 'email']);
           return checkAtLeast(items, limit)

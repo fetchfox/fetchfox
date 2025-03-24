@@ -1,4 +1,3 @@
-import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 
 export const Template = class {
