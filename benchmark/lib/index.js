@@ -17,9 +17,8 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
     const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
     it(testName, async function () {
       if (typeof json == 'string') {
-        // It's a job id
+        // Guess it's a job id
         const jobId = json;
-        await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
         const resp = await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
         const data = await resp.json();
         json = data.workflow;
@@ -87,6 +86,9 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     }
     if (options.kv) {
       fullConfig.kv = options.kv;
+    }
+    if (options.limit) {
+      fullConfig.limit = options.limit;
     }
 
     const wf = await fox
