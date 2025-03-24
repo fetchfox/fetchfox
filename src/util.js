@@ -163,11 +163,11 @@ export const abortable = async (signal, promise) => {
   }
 }
 
-export const clip = (s, num) => {
-  const str = typeof s == 'string' ? s : s.toString();
+export const clip = (val, num) => {
+  const str = typeof val == 'string' ? s : JSON.stringify(val);
   if (str.length <= num) {
     return str;
   } else {
-    return `"${str.substring(0, num)}..." (str.length - num more bytes)`;
+    return `"${str.substring(0, num)}..." (${str.length - num} more bytes)`;
   }
 }

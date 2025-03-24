@@ -22,10 +22,16 @@ export const Author = class {
     return `[${this.constructor.name}]`;
   }
 
-  async *run(url, goals, cb) {
-    const fns = await this.get(url, goals);
-    const chan = createChannel();
+  async *run(url, goals) {
+    const { output, fns } = await this.get(url, goals);
 
+    // Send the first result from write execution
+    const seen = {};
+    const hash = it => shortObjHash({ r: it.result });
+    seen[hash(output)] = true;
+    yield Promise.resolve(output);
+
+    const chan = createChannel();
     const promise = new Promise(async (ok) => {
       const ctx = {};
       await this.fetcher.start(ctx);
@@ -63,10 +69,14 @@ export const Author = class {
       if (val.end) {
         break;
       }
-      if (val.doc) {
-        this.logger.info(`${this} Yielding a document ${val.doc}`);
-        yield Promise.resolve({ doc: val.doc });
+
+      const h = hash(val);
+      if (seen[h]) {
+        continue
       }
+      seen[h] = true;
+      this.logger.info(`${this} Yielding a result ${clip(val, 100)}`);
+      yield Promise.resolve(val);
     }
 
     await promise;
@@ -87,6 +97,7 @@ export const Author = class {
     this.logger.debug(`${this} Found ${records.length} records for ${key}`);
 
     let codes;
+    let output;
 
     // TODO: check threshold on saved record, re-rate it as needed
     if (records.length && records[0].codes) {
@@ -99,8 +110,9 @@ export const Author = class {
       let success = false;
       while (!success && attempts-- > 0) {
         this.logger.debug(`${this} Write code, attempts left=${attempts}`);
-        codes = await this.write(url, goals);
-
+        const r = await this.write(url, goals);
+        codes = r.codes;
+        output = r.output;
         for (const code of codes) {
           try {
             toFn(code);
@@ -124,11 +136,13 @@ export const Author = class {
     }
 
     this.logger.debug(`${this} Returning code for goal: ${codes.join('\n\n')}`);
-    return codes.map(toFn);
+    return { output, fns: codes.map(toFn) };
   }
 
   async write(url, goals) {
     this.logger.debug(`${this} Write code for url=${url} goals=${goals.join('\n\n')}`);
+
+    let output;
 
     const codes = [];
 
@@ -139,9 +153,6 @@ export const Author = class {
       await this.fetcher.goto(url, ctx);
       for (const goal of goals) {
         const doc = await this.fetcher.current(ctx);
-
-        console.log('doc:' + doc);
-
         const context = {
           goal,
           html: pretty(doc.html, { ocd: true }),
@@ -159,7 +170,7 @@ export const Author = class {
         this.logger.debug(`${this} Got code from ${this.ai.advanced}: ${code}`);
 
         // Only do each action once in write mode
-        const cb = () => { return false };
+        const cb = (r) => { output = r; return false };
         await exec(
           toFn(code),
           this.logger,
@@ -178,7 +189,7 @@ export const Author = class {
 
     this.logger.info(`${this} Done writing code`);
 
-    return codes;
+    return { output, codes };
   }
 
   async rate(url, goals, codes) {
@@ -196,7 +207,7 @@ const exec = async (fn, logger, fetcher, ctx, cb) =>  {
 
       // fnSendResults
       async (result) => {
-        logger.debug(`AI generated code sent results: ${clip(result, 100)}`);
+        logger.debug(`AI generated code sent results: ${clip(result, 200)}`);
         await new Promise(ok => setTimeout(ok, 2000));
         if (!cb) {
           logger.debug(`No callback, always continue`);

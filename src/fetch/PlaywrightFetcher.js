@@ -378,6 +378,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 }
 
 const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
+  logger.trace('.');
   logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
   await new Promise(ok => setTimeout(ok, loadWait));
 

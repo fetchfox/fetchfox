@@ -1,3 +1,4 @@
+import { clip } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 // import { Transformer } from './Transformer.js';
@@ -27,8 +28,30 @@ export const SinglePromptExtractor = class extends BaseExtractor {
   async *_run(doc, questions, options) {
     this.logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    let { mode } = options || {};
-    const extraRules = modeRules(mode);
+    const goal = `Send JSON objects that match this template:
+
+${JSON.stringify(questions, null, 2)}
+
+Send all items as an array of JSON objects`;
+
+    const url = doc.url;
+    const author = new Author({
+      fetcher: this.fetcher,
+      kv: this.kv,
+      ai: this.ai,
+      cache: this.cache,
+      logger: this.logger,
+      timeout: 30 * 1000,  // TODO: figure out author timeout
+    });
+    for await (const val of author.run(url, [goal])) {
+      this.logger.debug(`${this} Got result from author: ${clip(val, 100)}`);
+      for (const r of val.result) {
+        yield Promise.resolve(new Item(r));
+      }
+    }
+
+    // let { mode } = options || {};
+    // const extraRules = modeRules(mode);
 
     // let body;
     // if (false && this.useTransformer(doc.url)) {
@@ -42,102 +65,64 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     //   }
     //   body = doc[view];
     // }
-
     // TODO: Cleanup
     // let view = options?.view || 'html';
-    let view = 'selectHtml';
-
-    if (!['html', 'text', 'selectHtml', 'json'].includes(view)) {
-      this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
-      view = 'html';
-    }
-
-    if (['selectHtml', 'json'].includes(view)) {
-      const ai = getAI('openai:gpt-4o');
-      if (!doc.learned) {
-        await doc.learn(ai, questions);
-      }
-    }
-    const body = doc[view];
+    // let view = 'selectHtml';
+    // if (!['html', 'text', 'selectHtml', 'json'].includes(view)) {
+    //   this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
+    //   view = 'html';
+    // }
+    // if (['selectHtml', 'json'].includes(view)) {
+    //   const ai = getAI('openai:gpt-4o');
+    //   if (!doc.learned) {
+    //     await doc.learn(ai, questions);
+    //   }
+    // }
+    // const body = doc[view];
     // console.log('body', doc.selectHtml);
 
-    const author = new Author({
-      fetcher: this.fetcher,
-      kv: this.kv,
-      ai: this.ai,
-      logger: this.logger,
-      timeout: 10 * 1000,
-    });
+    // throw 'STOP fns';
 
-    const namespace = 'namespace';
-    const goal = `Send JSON objects that match this template:
+    // const context = {
+    //   url: doc.url,
+    //   questions: JSON.stringify(questions, null, 2),
+    //   body,
+    //   extraRules,
+    // };
 
-${JSON.stringify(questions, null, 2)}
-`;
+    // let prompts;
+    // if (view == 'selectHtml') {
+    //   context.hint = doc.learned?.hint;
+    //   prompts = await scrapeSelect.renderMulti(context, 'body', this.ai);
+    // } else if (view == 'json') {
+    //   context.hint = doc.learned?.hint;
+    //   prompts = await scrapeJson.renderMulti(context, 'body', this.ai);
+    // } else {
+    //   prompts = await scrapeOnce.renderMulti(context, 'body', this.ai);
+    // }
 
-    const url = doc.url;
-    // const init = async () => {
-    //   const ctx = {};
-    //   await this.fetcher.start(ctx);
-    //   await this.fetcher.goto(url, ctx);
-    //   const doc = await this.fetcher.current(ctx);
-    //   // const doc = await this.current(this.fetcher, ctx);
-    //   if (!doc) {
-    //     throw new Error(`${this} Couldn't get document to learn commands ${url}`);
+    // const max = 32
+    // if (prompts.length > max) {
+    //   this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
+    //   prompts = prompts.slice(0, max);
+    // }
+
+    // try {
+    //   for (const prompt of prompts) {
+    //     const gen = this.ai.stream(prompt, { format: 'jsonl' });
+    //     for await (const { delta } of gen) {
+    //       if (delta._meta) {
+    //         this.logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
+    //         continue;
+    //       }
+
+    //       yield Promise.resolve(new Item(delta, doc));
+    //     }
     //   }
-    //   return { html: doc.html, ctx };
+    // } catch (e) {
+    //   this.logger.error(`${this} Got error while extracting: ${e}`);
+    //   throw e;
     // }
-    // const exec = async (fn, cb, { ctx }) => {
-    //   return fn(ctx.page, cb, (msg) => this.aiLog(msg), cb);
-    // }
-    // const finish = async ({ ctx }) => {
-    //   this.fetcher.finish(ctx);
-    // }
-
-    console.log('made author:', author);
-    const fns = await author.get(url, [goal]);
-    console.log('got fns:', fns);
-
-    const context = {
-      url: doc.url,
-      questions: JSON.stringify(questions, null, 2),
-      body,
-      extraRules,
-    };
-
-    let prompts;
-    if (view == 'selectHtml') {
-      context.hint = doc.learned?.hint;
-      prompts = await scrapeSelect.renderMulti(context, 'html', this.ai);
-    } else if (view == 'json') {
-      context.hint = doc.learned?.hint;
-      prompts = await scrapeJson.renderMulti(context, 'html', this.ai);
-    } else {
-      prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
-    }
-
-    const max = 32
-    if (prompts.length > max) {
-      this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
-      prompts = prompts.slice(0, max);
-    }
-
-    try {
-      for (const prompt of prompts) {
-        const gen = this.ai.stream(prompt, { format: 'jsonl' });
-        for await (const { delta } of gen) {
-          if (delta._meta) {
-            this.logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
-            continue;
-          }
-
-          yield Promise.resolve(new Item(delta, doc));
-        }
-      }
-    } catch (e) {
-      this.logger.error(`${this} Got error while extracting: ${e}`);
-      throw e;
-    }
   }
 }
 

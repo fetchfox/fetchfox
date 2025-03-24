@@ -61,8 +61,8 @@ export const CodeInstructions = class {
       logger: this.logger,
       timeout: this.timeout,
     });
-    for await (const doc of  author.run(this.url, goals)) {
-      yield Promise.resolve(doc);
+    for await (const r of author.run(this.url, goals)) {
+      yield Promise.resolve(r);
     }
   }
 }
