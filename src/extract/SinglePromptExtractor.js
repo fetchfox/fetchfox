@@ -51,7 +51,18 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       extraRules,
     };
 
-    let prompts = await scrapeOnce.renderMulti(context, 'body', this.ai);
+    const view = options?.view || 'html'
+    let prompts;
+    if (view == 'selectHtml') {
+      context.hint = doc.learned?.hint;
+      prompts = await scrapeSelect.renderMulti(context, 'body', this.ai);
+    } else if (view == 'json') {
+      context.hint = doc.learned?.hint;
+      prompts = await scrapeJson.renderMulti(context, 'body', this.ai);
+    } else {
+      prompts = await scrapeOnce.renderMulti(context, 'body', this.ai);
+    }
+
     const max = 32
     if (prompts.length > max) {
       this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
