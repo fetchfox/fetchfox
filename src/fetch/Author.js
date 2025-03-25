@@ -127,7 +127,7 @@ export const Author = class {
             let attempts = 2;
             let success = false;
             while (!success && attempts-- > 0) {
-              this.logger.debug(`${this} Look will be held while writing code: ${key} ${ct}`);
+              this.logger.debug(`${this} Look will be held while writing code: ${key} ${lockers}`);
               this.logger.debug(`${this} Write code, attempts left=${attempts}`);
               const r = await this.write(url, goals, expected);
               codes = r.codes;
