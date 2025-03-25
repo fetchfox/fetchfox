@@ -26,10 +26,6 @@ export const BaseAI = class {
       },
       options);
 
-    if (!apiKey && !this.constructor.optionalApiKey) {
-      throw new Error(`FetchFox is missing API key for ${this.constructor.name}. Enter it using environment variable ${apiKeyEnvVariable} or pass it in to the constructor`);
-    }
-
     if (cache) this.cache = cache;
     this.logger = logger || defaultLogger;
 
