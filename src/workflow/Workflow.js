@@ -14,12 +14,6 @@ export const Workflow = class extends BaseWorkflow {
 
   config(args) {
     this.ctx.update(args);
-
-    if (!this.ctx.ai.apiKey) {
-      throw new Error(
-        `FetchFox is missing API key for ${this.ctx.ai.constructor.name}. Enter it using environment variable ${this.ctx.ai.constructor.apiKeyEnvVariable} or pass it in to the constructor`);
-    }
-
     return this;
   }
 
