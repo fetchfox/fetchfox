@@ -171,3 +171,11 @@ export const clip = (val, num) => {
     return `"${str.substring(0, num)}..." (${str.length - num} more bytes)`;
   }
 }
+
+export const promiseAllStrict = (all) => {
+  if (process.env.STRICT_ERRORS) {
+    return Promise.all(all);
+  } else {
+    return Promise.allSettled(all);
+  }
+}

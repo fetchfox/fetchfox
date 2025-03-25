@@ -1,5 +1,5 @@
 import PQueue from 'p-queue';
-import { createChannel, clip } from '../util.js';
+import { createChannel, clip, promiseAllStrict } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import {
@@ -24,14 +24,12 @@ export const AuthorExtractor = class extends BaseExtractor {
     const url = doc.url;
     const namespace = new URL(url).host;
     const task = new ExtractionTask(namespace, questions, { extractor: this.baseline });
-    const expected = await task.expected([url], 5);
 
-    // const goal = goalPrompt(questions);
     const transformers = [];
-    // if (process.env.USE_TRANSFORM) {
-    //   transformers.push(new PrettyTransformer(this));
-    //   transformers.push(new SelectorTransformer(questions, this));
-    // }
+    if (process.env.USE_TRANSFORM) {
+      transformers.push(new PrettyTransformer(this));
+      transformers.push(new SelectorTransformer(questions, this));
+    }
 
     const author = new Author({
       fetcher: this.fetcher,
@@ -43,18 +41,9 @@ export const AuthorExtractor = class extends BaseExtractor {
       timeout: 30 * 1000,  // TODO: figure out author timeout
     });
 
-    const { script } = await author.get(task, [url]);
-    const gen = await author.run(task, [url], script);
+    const gen = await author.run(task, [url]);
 
-    // for await (const r of gen) {
-    //   console.log('R:', r.result);
-    //   console.log('R len:', r.result?.length);
-    // }
-
-    // for await (const val of author.run(url, [goal])) {
     for await (const val of gen) {
-      console.log('val.result', val.result);
-
       // Sometimes AI serializes the results in JSON
       if (typeof val.result == 'string') {
         try {
@@ -66,11 +55,9 @@ export const AuthorExtractor = class extends BaseExtractor {
       const list = Array.isArray(val.result) ? val.result : [val.result]
       this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
 
-      // Handle any fields that need AI post-processing
       const chan = createChannel();
 
-      console.log('make channel');
-
+      // Handle any fields that need AI post-processing
       const q = new PQueue({ concurrency: 32 });
       const all = [];
       for (const item of list) {
@@ -81,13 +68,7 @@ export const AuthorExtractor = class extends BaseExtractor {
         all.push(task);
       }
 
-      let p;
-      if (process.env.STRICT_ERRORS) {
-        p = Promise.all(all);
-      } else {
-        p = Promise.allSettled(all);
-      }
-      p = p.then(() => chan.end());
+      const p = promiseAllStrict(all).then(() => chan.end());
 
       for await (const r of chan.receive()) {
         if (r.end) {

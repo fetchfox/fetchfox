@@ -28,19 +28,16 @@ export const Author = class {
     return `[${this.constructor.name}]`;
   }
 
-  // async *run(url, goals, expected) {
   async *run(task, urls) {
-    const { script } = await this.get(task, urls);
-    // const { output, codes } = await this.get(url, goals, expected);
-    // Send the first result from write execution
+    const { script, output } = await this.get(task, urls);
 
     const seen = {};
     const hash = it => shortObjHash({ r: it.result });
 
-    // if (output) {
-    //   seen[hash(output)] = true;
-    //   yield Promise.resolve(output);
-    // }
+    if (output) {
+      seen[hash(output)] = true;
+      yield Promise.resolve(output);
+    }
 
     const chan = createChannel();
 
@@ -62,13 +59,7 @@ export const Author = class {
                 return true;
               }
             }
-            const p = exec(
-              code,
-              this.logger,
-              this.fetcher,
-              ctx,
-              cb);
-
+            const p = exec(code, this.logger, this.fetcher, ctx, cb);
             try {
               await pTimeout(p, { milliseconds: 300 * 1000 });
             } catch (e) {
@@ -93,7 +84,7 @@ export const Author = class {
 
         const h = hash(val);
         if (seen[h]) {
-          continue
+          continue;
         }
         seen[h] = true;
         this.logger.info(`${this} Yielding a result ${clip(val, 100)}`);
@@ -102,12 +93,6 @@ export const Author = class {
 
       await promise;
     }
-  }
-
-  key(url, goals) {
-    const domain = new URL(url).host;
-    const hash = shortObjHash({ goals });
-    return `author-${domain}-${hash}`;
   }
 
   async lookup(task) {
@@ -141,11 +126,12 @@ export const Author = class {
     const key = task.key;
     this.logger.debug(`${this} Get code for task: ${task}`);
 
-    const result = new Promise((ok) => {
+    return new Promise((ok) => {
       lockers++
       this.logger.debug(`${this} Wait for lock on ${key} (count=${lockers})`);
       lock.acquire(key, async (done) => {
         try {
+          let output;
           this.logger.debug(`${this} Got lock on ${key} (count=${lockers})`);
 
           let { script } = await this.lookup(task);
@@ -154,45 +140,32 @@ export const Author = class {
             this.logger.debug(`${this} No suitable record in KV for goals ${key}, so call write`);
             const r = await this.write(task, urls);
             script = r.script;
+            output = r.output;
             await this.save(task, script);
           }
 
           this.logger.debug(`${this} Returning script: ${script}`);
           lockers--;
-          ok({ script });
+          ok({ script, output });
         } finally {
           this.logger.debug(`${this} Release lock on ${key} (count=${lockers})`);
           done();
         }
       });
     });
-
-    return result;
   }
 
-  async iterate(url, html, goals, actual, expected) {
-    const { codes } = await this.get(url, goals);
-    const code = codes.join('\n\n');
-
-    const context = {
-      expected: JSON.stringify(expected, null, 2),
-      actual: JSON.stringify(actual, null, 2),
-      code,
-      html: html,
-    };
-    // TODO/NOTE: This prompt is specific to items
-    const { prompt } = await prompts.rateItems.renderCapped(context, 'html', this.ai.advanced);
-    const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
-    console.log(answer);
-    throw 'STOP - author got feedback';
+  async iterate(task, urls) {
+    throw 'TODO';
   }
 
   async write(task, urls, options) {
     const maxAttempts = options?.maxAttempts || 3;
     const url = urls[0]; // TODO: use all urls
     const expected = await task.expected(urls, 3);
-    let output;
+
     const script = new Script();
+    let output;
     let ok = false;
 
     this.logger.debug(`${this} Write code for url=${url} task=${task}`);
@@ -202,7 +175,6 @@ export const Author = class {
     await this.fetcher.start(ctx);
 
     try {
-
       await this.fetcher.goto(url, ctx);
 
       for (const goal of task.goals) {
@@ -226,9 +198,8 @@ export const Author = class {
             .replaceAll('```', '');
 
           if (attempt == 0) {
-            // syntax error for testing
-            console.log('intro bug for code');
-            code = code.replaceAll('c', 'xyzzz');
+            // Add a syntax error for testing
+            code = code.replaceAll('t', 'xyz');
           }
 
           this.logger.debug(`${this} Wrote code from ${this.ai.advanced}: ${code}`);
@@ -237,13 +208,7 @@ export const Author = class {
           // Only do each action once in write mode
           const cb = (r) => { output = r; return false };
           try {
-            await exec(
-              code,
-              this.logger,
-              this.fetcher,
-              ctx,
-              cb);
-
+            await exec(code, this.logger, this.fetcher, ctx, cb);
             ok = true;
             script.push(code);
             break;
