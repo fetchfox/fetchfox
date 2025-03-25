@@ -5,7 +5,161 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact, checkItemsAI } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
+const limit = 5;
 
+describe('network bench (pokemon)', function () {
+  const matrix = standardMatrix();
+  const jobId = 'ukchh85q9c';
+
+  itRunMatrix(
+    it,
+    `network bench (pokemon)`,
+    jobId,
+    matrix,
+    [
+      async (items) => {
+        console.log(items);
+        const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+        const data = await resp.json();
+        const expected = (data.results.items || []).slice(0, limit);
+        return checkItemsAI(items, expected);
+      },
+    ],
+    { shouldSave: true, limit }
+  );
+});
+
+describe('network bench (gardening)', function () {
+  const matrix = standardMatrix();
+  const jobId = 'uhi52qfxns';
+
+  itRunMatrix(
+    it,
+    `network bench (gardening)`,
+    jobId,
+    matrix,
+    [
+      async (items) => {
+        console.log(items);
+        const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+        const data = await resp.json();
+        const expected = (data.results.items || []).slice(0, limit);
+        return checkItemsAI(items, expected);
+      },
+    ],
+    { shouldSave: true, limit }
+  );
+});
+
+describe('network bench (cafe_menu)', function () {
+  const matrix = standardMatrix();
+  const jobId = 'oedrwllyub';
+
+  itRunMatrix(
+    it,
+    `network bench (cafe_menu)`,
+    jobId,
+    matrix,
+    [
+      async (items) => {
+        console.log(items);
+        const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+        const data = await resp.json();
+        const expected = (data.results.items || []).slice(0, limit);
+        return checkItemsAI(items, expected);
+      },
+    ],
+    { shouldSave: true, limit }
+  );
+});
+
+describe('network bench (cafe_menu2)', function () {
+  const matrix = standardMatrix();
+  const jobId = 'ojv553a91e';
+
+  itRunMatrix(
+    it,
+    `network bench (cafe_menu2)`,
+    jobId,
+    matrix,
+    [
+      async (items) => {
+        console.log(items);
+        const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+        const data = await resp.json();
+        const expected = (data.results.items || []).slice(0, limit);
+        return checkItemsAI(items, expected);
+      },
+    ],
+    { shouldSave: true, limit }
+  );
+});
+
+describe('network bench (cme_providers)', function () {
+  const matrix = standardMatrix();
+  const jobId = 's3dlpovpru';
+
+  itRunMatrix(
+    it,
+    `network bench (cme_providers)`,
+    jobId,
+    matrix,
+    [
+      async (items) => {
+        console.log(items);
+        const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+        const data = await resp.json();
+        const expected = (data.results.items || []).slice(0, limit);
+        return checkItemsAI(items, expected);
+      },
+    ],
+    { shouldSave: true, limit }
+  );
+});
+
+describe('network bench (reddit)', function () {
+  const matrix = standardMatrix();
+  const jobId = '1zaptil44c';
+
+  itRunMatrix(
+    it,
+    `network bench (reddit)`,
+    jobId,
+    matrix,
+    [
+      async (items) => {
+        console.log(items);
+        const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+        const data = await resp.json();
+        const expected = (data.results.items || []).slice(0, limit);
+        return checkItemsAI(items, expected);
+      },
+    ],
+    { shouldSave: true, limit }
+  );
+});
+
+describe('network bench (marketermilk)', function () {
+  const matrix = standardMatrix();
+  const jobId = 'co5wlslyk7';
+
+  itRunMatrix(
+    it,
+    `network bench (marketermilk)`,
+    jobId,
+    matrix,
+    [
+      async (items) => {
+        console.log(items);
+        const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+        const data = await resp.json();
+        const expected = (data.results.items || []).slice(0, limit);
+        return checkItemsAI(items, expected);
+      },
+    ],
+    { shouldSave: true, limit }
+  );
+});
 
 // describe('network bench', async () => {
 //   const matrix = standardMatrix();
@@ -35,88 +189,63 @@ import { storeScores } from '../lib/store.js';
 
 // });
 
-// describe('extract ct.curaleaf.com', async function() {
+
+// describe('network bench multi', async () => {
 //   const matrix = standardMatrix();
+//   console.log(matrix[0]);
+//   console.log(matrix[1]);
 
 //   const cases = [
 //     {
-//       name: 'live',
-//       url: 'https://www.equipnet.com/auctions/catalog/march-lab/1476/',
-//       expected: [],
+//       name: 'pokemon',
+//       jobId: 'ukchh85q9c'
 //     },
-//     // {
-//     //   name: 'saved',
-//     //   url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/93ue3wfv78/https-ct-curaleaf-com-shop-connecticut-curaleaf-ct-stamford-categories-flower.html',
-//     //   expected,
-//     // },
-//   ];
+//     {
+//       name: 'gardening',
+//       jobId: 'uhi52qfxns'
+//     },
+//     {
+//       name: 'cafe_menu',
+//       jobId: 'oedrwllyub'
+//     },
+//     {
+//       name: 'cafe_menu2',
+//       jobId: 'ojv553a91e'
+//     },
+//     {
+//       name: 'cme_providers',
+//       jobId: 's3dlpovpru'
+//     },
+//     {
+//       name: 'reddit',
+//       jobId: '1zaptil44c'
+//     },
+//     {
+//       name: 'marketermilk',
+//       jobId: 'co5wlslyk7'
+//     },
+//   ]
 
-//   const questions = {
-//     auctionName: 'What the name of the auction',
-//     location: 'What is the location',
-//     category: 'what is the category',
-//     url: 'what is the auction url',
-//   }
+//   const expected = [];
 
-//   for (const { name, url, expected } of cases) {
-//     const wf = await fox
-//       .init(url)
-//       .extract({
-//         questions,
-//         mode: 'multiple',
-//         view: 'html',
-//       })
-//       .limit(50)
-//       .plan();
+//   const limit = 5;
 
+//   for (const {name, jobId} of cases) {
 //     await itRunMatrix(
-//       it,
-//       `extract ct.curaleaf.com (${name})`,
-//       wf.dump(),
-//       matrix,
-//       [
-//         (items) => console.log(items),
-//       ],
-//       { shouldSave: true });
+//     it,
+//     `network bench (${name})`,
+//     jobId,
+//     matrix,
+//     [
+//       async (items) => {
+//         console.log(items)
+//         const resp = await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
+//         const data = await resp.json();
+//         const expected = (data.results.items || []).slice(0, limit);
+//         return checkItemsAI(items, expected);
+//       },
+//     ],
+//     { shouldSave: true, limit });
+
 //   }
 // });
-
-
-
-
-describe('network bench multi', async () => {
-  const matrix = standardMatrix();
-  console.log(matrix[0]);
-  console.log(matrix[1]);
-
-  const cases = [
-    {
-      name: 'pokemon',
-      jobId: 'ukchh85q9c'
-    }
-
-  ]
-
-  const expected = [];
-
-  const limit = 5;
-
-  for (const {name, jobId} of cases) {
-    await itRunMatrix(
-    it,
-    `network bench (${name})`,
-    jobId,
-    matrix,
-    [
-      async (items) => {
-        console.log(items)
-        const resp = await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
-        const data = await resp.json();
-        const expected = (data.results.items || []).slice(0, limit);
-        return checkItemsAI(items, expected);
-      },
-    ],
-    { shouldSave: true, limit });
-
-  }
-});
