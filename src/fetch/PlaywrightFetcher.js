@@ -26,6 +26,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
+    //TODO_TAF: add option for media-blocking
     this.logger = options?.logger || defaultLogger;
   }
 
@@ -454,8 +455,11 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
   logger.debug(`Minimizing HTML on ${page.url()}`);
   let outs;
   try {
+    const html = await page.evaluate(() => document.documentElement.outerHTML);
+    //debugger;
+    return {html:html}
     /* eslint-disable no-undef */
-    outs = await page.evaluate(async () => {
+    /**outs = await page.evaluate(async () => {
       // Attach the function to document to avoid errors in certain situations,
       // eg. https://github.com/privatenumber/tsx/issues/113
       document.toText = (min, node) => {
@@ -560,6 +564,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
       }
 
       return outs;
+      *
     });
     /* eslint-enable no-undef */
   } catch (e) {
@@ -568,8 +573,8 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
 
   return {
     html: outs.html,
-    text: outs.text,
-    selectHtml: outs.selectHtml,
+    text: outs.html,
+    selectHtml: outs.html,
   };
 }
 
