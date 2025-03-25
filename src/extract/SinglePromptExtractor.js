@@ -5,8 +5,9 @@ import { BaseExtractor } from './BaseExtractor.js';
 import {
   PrettyTransformer,
   SelectorTransformer,
+  DropTransformer,
 } from '../transform/index.js';
-import { scrapeOnce, aiProcess } from './prompts.js';
+import { scrapeOnce, scrapeSelect, scrapeJson, aiProcess } from './prompts.js';
 import { getKV } from '../kv/index.js';
 import { Author } from '../fetch/Author.js';
 
@@ -35,7 +36,8 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const transformers = [];
     if (process.env.USE_TRANSFORM) {
       transformers.push(new PrettyTransformer(this));
-      transformers.push(new SelectorTransformer(questions, this));
+      transformers.push(new DropTransformer(this));
+      // transformers.push(new SelectorTransformer(questions, this));
     }
 
     let html = doc.html;
@@ -171,42 +173,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     await author.iterate(doc.url, doc.html, [goal], expected, actual);
 
     yield Promise.resolve(null);
-    throw 'STOP';
-
-    // for await (const val of author.run(url, [goal])) {
-    //   // Sometimes AI serializes the results in JSON
-    //   if (typeof val.result == 'string') {
-    //     try {
-    //       val.result = JSON.parse(vale.result);
-    //     } catch (e) {
-    //     }
-    //   }
-
-    //   const list = Array.isArray(val.result) ? val.result : [val.result]
-    //   this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
-
-    //   const chan = createChannel();
-    //   const q = new PQueue({ concurrency: 32 });
-    //   const all = [];
-    //   for (const item of list) {
-    //     const task = q.add(async () => {
-    //       const r = await this.aiProcess(item, questions);
-    //       chan.send({ item: r });
-    //     });
-    //     all.push(task);
-    //   }
-    //   const p = Promise.allSettled(all)
-    //     .then(() => chan.end());
-
-    //   for await (const val of chan.receive()) {
-    //     if (val.end) {
-    //       break;
-    //     }
-    //     yield Promise.resolve(new Item(val.item));
-    //   }
-
-    //   await p;
-    // }
   }
 }
 
@@ -249,7 +215,7 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
 }
 
 const goalPrompt = (questions) => {
-  return `Extract data from this page, and all extracted data as JSON objects in an array. The data you are extracting must match this template:
+  return `Extract data from this page, and all extracted data as JSON objects in an array. The data you are extracting must be an array of objects in this format:
 
 ${JSON.stringify(questions, null, 2)}
 
@@ -257,12 +223,10 @@ Send all items as an array of JSON objects, like this:
 
 [
   ${JSON.stringify(questions)},
-  ${JSON.stringify(questions)},
-  ${JSON.stringify(questions)},
-  // ... and so on
+  ...
 ]
 
-  Important: Sometimes, you will get subjective fields, asking to do summaries, make judgemnet calls, compare things, change formats, and so on. Anything that seem subjective or hard to do in code, you can us an AI LLM todo. To do this, wrap data in the ai(), and that field will be sent to an AI for post processing. For example, if you get this:
+  Important: You may be given subjective fields, asking to do summaries, make judgemnet calls, compare things, change formats, and so on. Anything that seem subjective or hard to do in code, you can us an AI LLM todo. To do this, wrap data in the ai(), and that field will be sent to an AI for post processing. For example, if you get this:
 
   { "summary": "Summarize this article in 50 words" }
 
@@ -270,9 +234,9 @@ Send items like this:
 
   { "summary": { ai: "...inputData needed to generate summary..." } }
 
-For "inputData", you want to send ALL the data necessary for the subjective field. Feel free to include as little or as much data as necessary. Do NOT format the data in any way, simply include the data needed to generate that field. This data typically should NOT a simple recap of the other fields, but usually general relevant data from the page.
+For "inputData", you want to send ALL the data necessary for the subjective field. Include as much data as necessary to generate that field. Do NOT format the data in any way. This data typically should NOT a simple recap of the other fields, but usually general relevant data from the page.
 
 Give only string values in the output.
 
-Your response will be machine parsed using JSON.stringify() and interpretted as an array, so you MUST use this return format`;
+Your response will be machine parsed using JSON.stringify() and read as an array, so you MUST use this return format`;
 }

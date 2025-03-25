@@ -187,7 +187,7 @@ export const Author = class {
     const { prompt } = await prompts.rateItems.renderCapped(context, 'html', this.ai.advanced);
     const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
     console.log(answer);
-    throw 'STOP - author got feedback';
+    // throw 'STOP - author got feedback';
   }
 
   async write(url, goals, expected) {

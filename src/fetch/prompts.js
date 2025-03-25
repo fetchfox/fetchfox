@@ -148,9 +148,9 @@ export const pageActionCode = new Template(
   ['html', 'goal', 'timeout', 'wait', 'expected'],
   `You are part of an elite web scraping program. You are given some HTML and a goal.
 
-Response with Javascript code that accomplishes this goal.
+Respond with Javascript code that accomplishes this goal.
 
-The Javascript code will have the parameters available:
+The Javascript code will have these parameters available:
 
 * page: a Playwright page object
 * fnSendResults(results): a function to send the results for evaluation. The results may be page HTML, JSON extracton, etc.. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue. Always call this at least once at the end, even if not requested.
@@ -167,7 +167,7 @@ BEFORE writing code:
 * Write comments about your approach
 * Use these sections:
   * Goal (10-20 words): Summarize the goal in your own words
-  * Relevance (20-30 words): Is this goal feasible and relvent given the HTML?
+  * Relevance (20-30 words): Is this goal feasible and relevant given the HTML?
   * Selector analysis (10-100 words): Which relevant selectors exist on the page, and how do they relate to the task at hand? If none exist, say so. Do not suggest selectors that don't exist on the page.
   * Variable context handling (10-100 words): How will you account for the distinct variable contexts in Playwright, specifically noting which variables are available in evaluate and evaluateAll blocks that execute in the browser context
   * Iteration using locator.evaluateAll() approach: (10-100 words): Desribe how you will always iterate using locator.evaluateAll(), and never using "nth" selectors/locators
