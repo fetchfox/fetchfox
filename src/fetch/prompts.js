@@ -145,7 +145,7 @@ Return ONLY JSON, your response will be machine parsed using JSON.parse()
 `);
 
 export const pageActionCode = new Template(
-  ['html', 'goal', 'timeout', 'expected'],
+  ['html', 'goal', 'timeout', 'wait', 'expected'],
   `You are part of an elite web scraping program. You are given some HTML and a goal.
 
 Response with Javascript code that accomplishes this goal.
@@ -224,6 +224,10 @@ Selector guidance:
 >>> The user requested a timeout the following timeout for selectors and actions:
 {{timeout}} milliseconds
 Generally follow this timeout, but adjust a little if needed
+
+>>> Wait the following amount of time for page load before starting:
+{{wait}} milliseconds
+and a reasonable amount of time after each action
 
 >>> Below are the expected results:
 {{expected}}

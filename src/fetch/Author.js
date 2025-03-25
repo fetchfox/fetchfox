@@ -18,6 +18,7 @@ export const Author = class {
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.transformers = options?.transformers || [];
     this.logger = options?.logger || defaultLogger
+    this.wait = options?.wait || 4000;
     this.timeout = options?.timeout || 8000;
     this.threshold = options?.threshold || 65;
   }
@@ -62,7 +63,12 @@ export const Author = class {
             ctx,
             cb);
 
-          await pTimeout(p, { milliseconds: 300 * 1000 });
+          try {
+            await pTimeout(p, { milliseconds: 300 * 1000 });
+          } catch (e) {
+            this.logger.error(`${this} Exec error: ${e}`);
+            throw e;
+          }
         }
       } finally {
         this.fetcher.finish(ctx).catch((e) => {
@@ -202,6 +208,7 @@ export const Author = class {
           goal,
           html: await this.transform(doc.html),
           timeout: this.timeout,
+          wait: this.wait,
           expected: expected ? JSON.stringify(expected, null, 2) : '(Expected results not available)',
         };
 
@@ -257,6 +264,9 @@ const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
 const toFn = (code) => new AsyncFunction('page', 'fnSendResults', 'fnDebugLog', 'done', code);
 
 const exec = async (code, logger, fetcher, ctx, cb) =>  {
+  let result = {
+    messages: '',
+  }
   const fn = toFn(code);
   const run = new Promise((ok) => {
     fn(
@@ -292,6 +302,7 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
       // fnDebugLog
       (msg) => {
         logger.debug(`${chalk.bold('[AIGEN]')} ${msg}`);
+        result.messages += `${msg}\n`;
       },
 
       // done
@@ -303,4 +314,5 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
   });
 
   await run;
+  return result;
 }

@@ -27,7 +27,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
     this.logger = options?.logger || defaultLogger;
-  }
+  }a
 
   cacheOptions() {
     return {
@@ -403,6 +403,9 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   logger.debug(`Load waiting ${(wait).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
   await new Promise(ok => setTimeout(ok, wait));
 
+  // console.log('pullIframes? ' + pullIframes);
+  // throw 'pullIframes';
+
   if (pullIframes) {
     // Get all the iframes
     logger.debug(`Get iframes on ${page.url()}`);
@@ -438,7 +441,7 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
       const iframe = iframes[i];
       let content;
       try {
-        content = await iframe.content();
+        content = await iframe.content({ timeout: 10 * 1000 });
       } catch {
         content = '[iframe unavailable]';
       }
@@ -474,6 +477,7 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
         logger.warn(`${this} Error while updating trusted policy, ignoring: ${e}`);
       }
     }
+    logger.debug(`Done getting iframes`);
   }
 
   // Minimize the HTML before returning it
