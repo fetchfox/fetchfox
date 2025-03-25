@@ -1,5 +1,5 @@
 export const Script = class {
-  constructor(code) {
+  constructor() {
     this.codes = [];
   }
 

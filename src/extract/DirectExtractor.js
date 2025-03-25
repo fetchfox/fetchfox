@@ -1,11 +1,10 @@
-import { clip } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import {
   PrettyTransformer,
   SelectorTransformer,
 } from '../transform/index.js';
-import { scrapeOnce, aiProcess } from './prompts.js';
+import * as prompts from './prompts.js';
 import { getKV } from '../kv/index.js';
 
 export const DirectExtractor = class extends BaseExtractor {
@@ -36,15 +35,15 @@ export const DirectExtractor = class extends BaseExtractor {
       extraRules,
     };
 
-    let prompts = await scrapeOnce.renderMulti(context, 'body', this.ai);
+    let scrapePrompts = await prompts.scrapeOnce.renderMulti(context, 'body', this.ai);
     const max = 32
-    if (prompts.length > max) {
-      this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
-      prompts = prompts.slice(0, max);
+    if (scrapePrompts.length > max) {
+      this.logger.warn(`${this} Got too many prompts (${scrapePrompts.length}), only processing ${max}`);
+      scrapePrompts = scrapePrompts.slice(0, max);
     }
 
     try {
-      for (const prompt of prompts) {
+      for (const prompt of scrapePrompts) {
         const gen = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of gen) {
           if (delta._meta) {
@@ -98,33 +97,4 @@ Important: consider BOTH the page content, and also the URL of the page. Sometim
     default:
       throw new Error(`Unexpected mode: ${mode}`);
   }
-}
-
-const goalPrompt = (questions) => {
-  return `Extract data from this page, and all extracted data as JSON objects in an array. The data you are extracting must match this template:
-
-${JSON.stringify(questions, null, 2)}
-
-Send all items as an array of JSON objects, like this:
-
-[
-  ${JSON.stringify(questions)},
-  ${JSON.stringify(questions)},
-  ${JSON.stringify(questions)},
-  // ... and so on
-]
-
-  Important: Sometimes, you will get subjective fields, asking to do summaries, make judgemnet calls, compare things, change formats, and so on. Anything that seem subjective or hard to do in code, you can us an AI LLM todo. To do this, wrap data in the ai(), and that field will be sent to an AI for post processing. For example, if you get this:
-
-  { "summary": "Summarize this article in 50 words" }
-
-Send items like this:
-
-  { "summary": { ai: "...inputData needed to generate summary..." } }
-
-For "inputData", you want to send ALL the data necessary for the subjective field. Feel free to include as little or as much data as necessary. Do NOT format the data in any way, simply include the data needed to generate that field. This data typically should NOT a simple recap of the other fields, but usually general relevant data from the page.
-
-Give only string values in the output.
-
-Your response will be machine parsed using JSON.stringify() and interpretted as an array, so you MUST use this return format`;
 }

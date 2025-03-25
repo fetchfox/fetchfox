@@ -155,7 +155,7 @@ export const Author = class {
     });
   }
 
-  async iterate(task, urls) {
+  async iterate() {
     throw 'TODO';
   }
 
