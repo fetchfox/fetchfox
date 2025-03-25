@@ -107,33 +107,36 @@ export const Author = class {
     this.logger.debug(`${this} Get code for goal: ${goals.join('\n')}`);
     const key = this.key(url, goals);
     const result = new Promise((ok) => {
-      lockers++
-      this.logger.debug(`${this} Wait for lock on ${key} (count=${lockers})`);
-      lock.acquire(key, async (done) => {
+      // lockers++
+      // this.logger.debug(`${this} Wait for lock on ${key} (count=${lockers})`);
+      // lock.acquire(key, async (done) => {
+      const unlocked = async (done) => {
         try {
-          this.logger.debug(`${this} Got lock on ${key} (count=${lockers})`);
-          this.logger.debug(`${this} Look up goal in kv: ${key}`);
+      //     this.logger.debug(`${this} Got lock on ${key} (count=${lockers})`);
+      //     this.logger.debug(`${this} Look up goal in kv: ${key}`);
 
-          const records = (await this.kv.get(key) || [])
-            .filter(it => (it.rating?.score || 0) >= this.threshold)
-            .sort((a, b) => (a.rating?.score || 0) - (b.rating?.score || 0));
+      //     const records = (await this.kv.get(key) || [])
+      //       .filter(it => (it.rating?.score || 0) >= this.threshold)
+      //       .sort((a, b) => (a.rating?.score || 0) - (b.rating?.score || 0));
 
-          this.logger.debug(`${this} Found ${records.length} records for ${key}`);
+      //     this.logger.debug(`${this} Found ${records.length} records for ${key}`);
 
-          let codes;
-          let output;
-
+      //     let codes;
+      //     let output;
+          const records = [];
+          let codes = [];
+          let output = '';
           // TODO: check threshold on saved record, re-rate it as needed
-          if (records.length && records[0].codes) {
+          if (false && records.length && records[0].codes) {
             this.logger.debug(`${this} Got suitable record in KV for goals ${key}`);
             codes = records[0].codes;
 
           } else {
             this.logger.debug(`${this} No suitable record in KV for goals ${key}`);
-            let attempts = 2;
+            let attempts = 1;
             let success = false;
             while (!success && attempts-- > 0) {
-              this.logger.debug(`${this} Look will be held while writing code: ${key} ${lockers}`);
+              this.logger.debug(`${this} Lock will be held while writing code: ${key} ${lockers}`);
               this.logger.debug(`${this} Write code, attempts left=${attempts}`);
               const r = await this.write(url, goals, expected);
               codes = r.codes;
@@ -155,19 +158,21 @@ export const Author = class {
               const record = { codes, rating, ai: this.ai.id };
               records.push(record);
 
-              this.logger.debug(`${this} Save records in KV for goals ${key}`);
-              await this.kv.set(key, records);
+              // this.logger.debug(`${this} Save records in KV for goals ${key}`);
+              // await this.kv.set(key, records);
             }
           }
 
           this.logger.debug(`${this} Returning code for goal: ${codes.join('\n\n')}`);
-          lockers--;
-          ok({ output, fns: codes.map(toFn), codes });
+          // lockers--;
+          // ok({ output, fns: codes.map(toFn), codes });
+          ok({ output, fns: toFn(codes[0]), codes });
         } finally {
           this.logger.debug(`${this} Release lock on ${key} (count=${lockers})`);
-          done();
+          // done();
         }
-      });
+      };
+      return unlocked();
     });
 
     return result;

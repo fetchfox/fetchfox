@@ -36,8 +36,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const transformers = [];
     if (process.env.USE_TRANSFORM) {
       transformers.push(new PrettyTransformer(this));
-      transformers.push(new DropTransformer(this));
-      // transformers.push(new SelectorTransformer(questions, this));
+      transformers.push(new SelectorTransformer(questions, this));
     }
 
     let html = doc.html;
@@ -117,7 +116,8 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const transformers = [];
     if (process.env.USE_TRANSFORM) {
       transformers.push(new PrettyTransformer(this));
-      transformers.push(new SelectorTransformer(questions, this));
+      transformers.push(new DropTransformer(this));
+      // transformers.push(new SelectorTransformer(questions, this));
     }
 
     const url = doc.url;
@@ -131,23 +131,24 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       timeout: 30 * 1000,  // TODO: figure out author timeout
     });
 
-    const num = 5;
+    const num = 25;
 
-    /* eslint-disable no-async-promise-executor */
-    const expectedPromise = new Promise(async (ok) => {
-      const gen = this._runRegular(doc, questions, options);
-      const results = [];
-      for await (const r of gen) {
-        results.push(r);
-        if (results.length > num) {
-          break;
-        }
-      }
-      ok(results);
-    });
-    /* eslint-enable no-async-promise-executor */
+    // /* eslint-disable no-async-promise-executor */
+    // const expectedPromise = new Promise(async (ok) => {
+    //   const gen = this._runRegular(doc, questions, options);
+    //   const results = [];
+    //   for await (const r of gen) {
+    //     results.push(r);
+    //     if (results.length > num) {
+    //       break;
+    //     }
+    //   }
+    //   ok(results);
+    // });
+    // /* eslint-enable no-async-promise-executor */
 
-    const expected = await expectedPromise;
+    // const expected = await expectedPromise;
+    const expected = [];
 
     /* eslint-disable no-async-promise-executor */
     const actualPromise = new Promise(async (ok) => {
@@ -170,9 +171,12 @@ export const SinglePromptExtractor = class extends BaseExtractor {
 
     const actual = await actualPromise;
 
-    await author.iterate(doc.url, doc.html, [goal], expected, actual);
+    // await author.iterate(doc.url, doc.html, [goal], expected, actual);
 
-    yield Promise.resolve(null);
+    for (const r of actual) {
+      const item = new Item(r);
+      yield Promise.resolve(item);
+    }
   }
 }
 
@@ -226,17 +230,7 @@ Send all items as an array of JSON objects, like this:
   ...
 ]
 
-  Important: You may be given subjective fields, asking to do summaries, make judgemnet calls, compare things, change formats, and so on. Anything that seem subjective or hard to do in code, you can us an AI LLM todo. To do this, wrap data in the ai(), and that field will be sent to an AI for post processing. For example, if you get this:
-
-  { "summary": "Summarize this article in 50 words" }
-
-Send items like this:
-
-  { "summary": { ai: "...inputData needed to generate summary..." } }
-
-For "inputData", you want to send ALL the data necessary for the subjective field. Include as much data as necessary to generate that field. Do NOT format the data in any way. This data typically should NOT a simple recap of the other fields, but usually general relevant data from the page.
-
-Give only string values in the output.
+For subjective fields, send all the data necessary to determine the result.
 
 Your response will be machine parsed using JSON.stringify() and read as an array, so you MUST use this return format`;
 }
