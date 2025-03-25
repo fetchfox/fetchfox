@@ -19,7 +19,7 @@ export const Workflow = class extends BaseWorkflow {
 
   toString() {
     const len = (this.steps || []).length;
-    return `[${this.constructor.name}: ${len} step${len == 1 ? '' : 's'}]`;
+    return `[${this.constructor.name}: ${len} step${len == 1 ? '' : 's'}]`
   }
 
   async describe() {
@@ -38,7 +38,7 @@ export const Workflow = class extends BaseWorkflow {
     }
 
     const planner = new Planner(this.ctx);
-    let planPromise;
+    let planPromise
 
     if (args.prompt != undefined) {
       this.ctx.logger.debug(`Plan workflow from prompt`);
@@ -107,7 +107,7 @@ export const Workflow = class extends BaseWorkflow {
       this.ctx.signal = null;
       abortListener = () => {
         this.controller.abort();
-      };
+      }
       ctxSignal.addEventListener('abort', abortListener);
     }
     this.ctx.update({ signal: this.controller.signal });
@@ -126,7 +126,7 @@ export const Workflow = class extends BaseWorkflow {
       }
     }
 
-    const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => ('' + s).replace('Step', '')).join(' -> ')} `;
+    const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
     this.ctx.logger.info('╔' + '═'.repeat(msg.length) + '╗');
     this.ctx.logger.info('║' + msg + '║');
     this.ctx.logger.info('╚' + '═'.repeat(msg.length) + '╝');
@@ -157,10 +157,10 @@ export const Workflow = class extends BaseWorkflow {
     }
     this.controller.abort();
   }
-};
+}
 
 for (const stepName of stepNames) {
-  Workflow.prototype[stepName] = function (prompt) {
+  Workflow.prototype[stepName] = function(prompt) {
     const name = stepName;
     const cls = classMap[name];
 
@@ -216,5 +216,5 @@ for (const stepName of stepNames) {
     }
 
     return this.step({ name, args: prompt });
-  };
+  }
 }
