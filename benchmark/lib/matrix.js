@@ -28,10 +28,14 @@ export const standardMatrix = (extra, options) => {
     ];
   }
 
+  const extractor = [
+    'author',
+  ];
 
   return createMatrix({
     ai,
     fetcher,
+    extractor,
     ...extra,
   }, options);
 }
@@ -44,7 +48,7 @@ export const createMatrix = (configs, options) => {
   for (const key of Object.keys(configs)) {
     const newMatrix = [];
     for (let val of configs[key]) {
-      if (['ai', 'fetcher'].includes(key)) {
+      if (['ai', 'fetcher', 'extractor'].includes(key)) {
         if (!Array.isArray(val)) {
           val = [val];
         }

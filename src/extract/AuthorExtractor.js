@@ -1,5 +1,5 @@
-// import PQueue from 'p-queue';
-import { clip } from '../util.js';
+import PQueue from 'p-queue';
+import { createChannel, clip } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import {
@@ -8,71 +8,95 @@ import {
 } from '../transform/index.js';
 import { scrapeOnce, aiProcess } from './prompts.js';
 import { getKV } from '../kv/index.js';
-import { Author } from '../fetch/Author.js';
+import { DirectExtractor } from './DirectExtractor.js';
+import { Author, ExtractionTask } from '../author/index.js';
 
-export const SinglePromptExtractor = class extends BaseExtractor {
+export const AuthorExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.kv = options?.kv || getKV();
+    this.baseline = new DirectExtractor(options);
   }
 
   async *_run(doc, questions, options) {
-    this.logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
+    this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    let gen;
-    if (process.env.USE_AUTHOR) {
-      gen = this._runAuthor(doc, questions, options);
-    } else {
-      gen = this._runRegular(doc, questions, options);
-    }
+    const url = doc.url;
+    const namespace = new URL(url).host;
+    const task = new ExtractionTask(namespace, questions, { extractor: this.baseline });
+    const expected = await task.expected([url], 5);
 
-    for await (const r of gen) {
-      yield Promise.resolve(r);
-    }
-  }
-
-  async *_runRegular(doc, questions, options) {
+    // const goal = goalPrompt(questions);
     const transformers = [];
-    if (process.env.USE_TRANSFORM) {
-      transformers.push(new PrettyTransformer(this));
-      transformers.push(new SelectorTransformer(questions, this));
-    }
+    // if (process.env.USE_TRANSFORM) {
+    //   transformers.push(new PrettyTransformer(this));
+    //   transformers.push(new SelectorTransformer(questions, this));
+    // }
 
-    let html = doc.html;
-    for (const t of transformers) {
-      html = await t.transform(html);
-    }
+    const author = new Author({
+      fetcher: this.fetcher,
+      kv: this.kv,
+      ai: this.ai,
+      cache: this.cache,
+      logger: this.logger,
+      transformers,
+      timeout: 30 * 1000,  // TODO: figure out author timeout
+    });
 
-    const extraRules = modeRules(options?.mode || 'auto');
-    const context = {
-      url: doc.url,
-      questions: JSON.stringify(questions, null, 2),
-      body: html,
-      extraRules,
-    };
+    const { script } = await author.get(task, [url]);
+    const gen = await author.run(task, [url], script);
 
-    let prompts = await scrapeOnce.renderMulti(context, 'body', this.ai);
-    const max = 32
-    if (prompts.length > max) {
-      this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
-      prompts = prompts.slice(0, max);
-    }
+    // for await (const r of gen) {
+    //   console.log('R:', r.result);
+    //   console.log('R len:', r.result?.length);
+    // }
 
-    try {
-      for (const prompt of prompts) {
-        const gen = this.ai.stream(prompt, { format: 'jsonl' });
-        for await (const { delta } of gen) {
-          if (delta._meta) {
-            this.logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
-            continue;
-          }
+    // for await (const val of author.run(url, [goal])) {
+    for await (const val of gen) {
+      console.log('val.result', val.result);
 
-          yield Promise.resolve(new Item(delta, doc));
+      // Sometimes AI serializes the results in JSON
+      if (typeof val.result == 'string') {
+        try {
+          val.result = JSON.parse(val.result);
+        } catch (e) {
         }
       }
-    } catch (e) {
-      this.logger.error(`${this} Got error while extracting: ${e}`);
-      throw e;
+
+      const list = Array.isArray(val.result) ? val.result : [val.result]
+      this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
+
+      // Handle any fields that need AI post-processing
+      const chan = createChannel();
+
+      console.log('make channel');
+
+      const q = new PQueue({ concurrency: 32 });
+      const all = [];
+      for (const item of list) {
+        const task = q.add(async () => {
+          const r = await this.aiProcess(item, questions);
+          chan.send({ item: r });
+        });
+        all.push(task);
+      }
+
+      let p;
+      if (process.env.STRICT_ERRORS) {
+        p = Promise.all(all);
+      } else {
+        p = Promise.allSettled(all);
+      }
+      p = p.then(() => chan.end());
+
+      for await (const r of chan.receive()) {
+        if (r.end) {
+          break;
+        }
+        yield Promise.resolve(new Item(r.item));
+      }
+
+      await p;
     }
   }
 
@@ -97,105 +121,6 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     this.logger.debug(`${this} AI processing gave: ${clip(JSON.stringify(answer.partial), 200)}`);
 
     return { ...item, ...answer.partial };
-  }
-
-  async *_runAuthor(doc, questions, options) {
-    const goal = goalPrompt(questions);
-    const transformers = [];
-    if (process.env.USE_TRANSFORM) {
-      transformers.push(new PrettyTransformer(this));
-      transformers.push(new SelectorTransformer(questions, this));
-    }
-
-    const url = doc.url;
-    const author = new Author({
-      fetcher: this.fetcher,
-      kv: this.kv,
-      ai: this.ai,
-      cache: this.cache,
-      logger: this.logger,
-      transformers,
-      timeout: 30 * 1000,  // TODO: figure out author timeout
-    });
-
-    const num = 5;
-
-    /* eslint-disable no-async-promise-executor */
-    const expectedPromise = new Promise(async (ok) => {
-      const gen = this._runRegular(doc, questions, options);
-      const results = [];
-      for await (const r of gen) {
-        results.push(r);
-        if (results.length > num) {
-          break;
-        }
-      }
-      ok(results);
-    });
-    /* eslint-enable no-async-promise-executor */
-
-    const expected = await expectedPromise;
-
-    /* eslint-disable no-async-promise-executor */
-    const actualPromise = new Promise(async (ok) => {
-      const gen = author.run(url, [goal], expected);
-      const results = [];
-      for await (const v of gen) {
-        for (const r of v.result) {
-          results.push(r);
-          if (results.length > num) {
-            break;
-          }
-        }
-        if (results.length > num) {
-          break;
-        }
-      }
-      ok(results);
-    });
-    /* eslint-enable no-async-promise-executor */
-
-    const actual = await actualPromise;
-
-    await author.iterate(doc.url, doc.html, [goal], expected, actual);
-
-    yield Promise.resolve(null);
-    throw 'STOP';
-
-    // for await (const val of author.run(url, [goal])) {
-    //   // Sometimes AI serializes the results in JSON
-    //   if (typeof val.result == 'string') {
-    //     try {
-    //       val.result = JSON.parse(vale.result);
-    //     } catch (e) {
-    //     }
-    //   }
-
-    //   const list = Array.isArray(val.result) ? val.result : [val.result]
-    //   this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
-
-    //   const chan = createChannel();
-    //   const q = new PQueue({ concurrency: 32 });
-    //   const all = [];
-    //   for (const item of list) {
-    //     const task = q.add(async () => {
-    //       const r = await this.aiProcess(item, questions);
-    //       chan.send({ item: r });
-    //     });
-    //     all.push(task);
-    //   }
-    //   const p = Promise.allSettled(all)
-    //     .then(() => chan.end());
-
-    //   for await (const val of chan.receive()) {
-    //     if (val.end) {
-    //       break;
-    //     }
-    //     yield Promise.resolve(new Item(val.item));
-    //   }
-
-    //   await p;
-    // }
   }
 }
 

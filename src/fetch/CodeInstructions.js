@@ -2,7 +2,7 @@ import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
 import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
-import { Author } from './Author.js';
+import { Author } from '../author/index.js';
 import { nextPageCommand, nextPagePrompt, acceptCookiesPrompt } from './Instructions.js';
 
 export const CodeInstructions = class {

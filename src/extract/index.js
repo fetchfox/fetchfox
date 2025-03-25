@@ -1,18 +1,22 @@
 import { logger } from '../log/logger.js';
-import { SinglePromptExtractor } from './SinglePromptExtractor.js';
+import { DirectExtractor } from './DirectExtractor.js';
+import { AuthorExtractor } from './AuthorExtractor.js';
 
 export { BaseExtractor } from './BaseExtractor.js';
-export const DefaultExtractor = SinglePromptExtractor;
+export { DirectExtractor } from './DirectExtractor.js';
+export { AuthorExtractor } from './AuthorExtractor.js';
+
+export const DefaultExtractor = DirectExtractor;
 
 export const getExtractor = (which, options) => {
   if (!which) {
-    return new SinglePromptExtractor(options);
+    return new DirectExtractor(options);
   }
   if (typeof which != 'string') return which;
 
   let extractorClass = {
-    sp: SinglePromptExtractor,
-    'single-prompt': SinglePromptExtractor,
+    'direct': DirectExtractor,
+    'author': AuthorExtractor,
   }[which];
 
   if (!extractorClass) {
