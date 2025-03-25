@@ -153,7 +153,7 @@ Response with Javascript code that accomplishes this goal.
 The Javascript code will have the parameters available:
 
 * page: a Playwright page object
-* fnSendResults(results): a function to send the results for evaluation. The results may be page HTML, JSON extracton, etc.. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue.
+* fnSendResults(results): a function to send the results for evaluation. The results may be page HTML, JSON extracton, etc.. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue. Always call this at least once at the end, even if not requested.
 * fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on. Send frequent updates, especially before/after interacting with the page. Include specifics whenever possible.
 * done: call this when the function is done
 
@@ -170,7 +170,7 @@ BEFORE writing code:
   * Relevance (20-30 words): Is this goal feasible and relvent given the HTML?
   * Selector analysis (10-100 words): Which relevant selectors exist on the page, and how do they relate to the task at hand? If none exist, say so. Do not suggest selectors that don't exist on the page.
   * Variable context handling (10-100 words): How will you account for the distinct variable contexts in Playwright, specifically noting which variables are available in evaluate and evaluateAll blocks that execute in the browser context
-  * Iteration using evaluateAll approach: (10-100 words): Desceribe how you will always iterate using .evaluateAll(), and never using "nth" selectors or locators
+  * Iteration using locator.evaluateAll() approach: (10-100 words): Desribe how you will always iterate using locator.evaluateAll(), and never using "nth" selectors/locators
 
 AFTER writing code:
 * Give a comment line in exactly this format:
@@ -230,6 +230,7 @@ Generally follow this timeout, but adjust a little if needed
 
 Again, the goal is:
 {{goal}}
+Remember to call fnSendResults at least once
 
 Remember, your robust javascript code will be directly passed into new Function(...);
 `);
