@@ -125,6 +125,7 @@ export const Author = class {
       //     let output;
           const records = [];
           let codes = [];
+          let confidence = 0;
           let output = '';
           // TODO: check threshold on saved record, re-rate it as needed
           if (false && records.length && records[0].codes) {
@@ -140,6 +141,14 @@ export const Author = class {
               this.logger.debug(`${this} Write code, attempts left=${attempts}`);
               const r = await this.write(url, goals, expected);
               codes = r.codes;
+              try {
+                confidence = int(codes.split("\n").slice(-1).split('Confidence: ')[1]);
+              } catch (e) {
+                confidence = 0;
+              }
+              if (confidence < 85) {
+                break;
+              }
               output = r.output;
               for (const code of codes) {
                 try {
