@@ -5,7 +5,9 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsAI } from '../lib/checks.js';
 
 describe('extract ct.curaleaf.com', async function() {
-  const matrix = standardMatrix();
+  const matrix = standardMatrix({
+    extractor: ['author'],
+  });
 
   const expected = [
     {

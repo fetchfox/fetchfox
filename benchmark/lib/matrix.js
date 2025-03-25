@@ -11,7 +11,6 @@ export const standardMatrix = (extra, options) => {
 
   const fetcher = [
     ['playwright', { s3 }],
-    // ['playwright', { }],
   ];
   if (process.env.HEADFUL) {
     fetcher[0][1].headless = false;
@@ -27,9 +26,8 @@ export const standardMatrix = (extra, options) => {
       'google:gemini-1.5-pro',
     ];
   }
-
   const extractor = [
-    'author',
+    'direct',
   ];
 
   return createMatrix({
