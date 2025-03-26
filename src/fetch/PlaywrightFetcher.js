@@ -26,8 +26,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
-    //TODO_TAF: add option for media-blocking
+    this.blockMediaRequests = options?.blockMediaRequests
     this.logger = options?.logger || defaultLogger;
+
   }
 
   cacheOptions() {
@@ -38,9 +39,42 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
+  async _setPageNetworkPolicy(ctx) {
+    const resourceTypesToBlock = [
+      "stylesheet", "image", "media", "font"
+    ]
+
+    await page.route("**/*", async route => {
+      resourceType = route.request().resourceType()
+      if (resourceTypesToBlock.includes(resourceType)){
+        await route.abort()
+      } else {
+        await route.continue()
+      }
+    })
+  }
+
+  async _setPageNetworkPolicy(ctx) {
+    if (!ctx.page || !this.blockMediaRequests) return;
+
+    // see https://playwright.dev/docs/api/class-request#request-resource-type
+    const resourceTypesToBlock = ["stylesheet", "image", "media", "font"];
+
+    await ctx.page.route("**/*", async route => {
+      const resourceType = route.request().resourceType();
+      if (resourceTypesToBlock.includes(resourceType)) {
+        await route.abort();
+      } else {
+        await route.continue();
+      }
+    });
+  }
+
+
   async _goto(url, ctx) {
     if (!ctx.page) {
       ctx.page = await ctx.browser.newPage();
+      await this._setPageNetworkPolicy(ctx)
     }
 
     try {
