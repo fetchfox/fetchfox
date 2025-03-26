@@ -197,8 +197,6 @@ ${this.hint}` : '',
         )
           .filter(result => result.status == 'fulfilled');
 
-        this.logger.info(JSON.stringify(answers, null, 2));
-
         const candidates = [];
         const seen = {};
         for (const { value: answer } of answers) {
@@ -319,8 +317,7 @@ ${this.hint}` : '',
         });
 
         let working;
-        this.logger.info(`${this} Candidates in sorted order:`);
-        this.logger.info(JSON.stringify(candidates, null, 2));
+        this.logger.debug(`${this} Candidates in sorted order: ${JSON.stringify(candidates, null, 2)}`);
 
         for (const set of candidates) {
           this.logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
@@ -359,6 +356,8 @@ ${this.hint}` : '',
 
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
+
+      console.log('learned:', JSON.stringify(this.learned, null, 2));
 
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
