@@ -315,7 +315,13 @@ export const BaseFetcher = class {
 
     try {
       const presignedUrl = await presignS3({
-        bucket, key, contentType: 'text/html', acl, region });
+        bucket,
+        key,
+        // TODO: get content type from the document
+        contentType: 'text/html; charset=utf-8',
+        acl,
+        region,
+      });
       await doc.uploadHtml(presignedUrl);
     } catch (e) {
       this.logger.error(`${this} Failed to upload ${key}: ${e}`);

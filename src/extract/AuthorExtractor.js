@@ -16,6 +16,8 @@ export const AuthorExtractor = class extends BaseExtractor {
     super(options);
     this.kv = options?.kv || getKV();
     this.baseline = options?.baseline || new DirectExtractor(options);
+
+    this._aiProcessCache = {};
   }
 
   async *_run(doc, questions) {
@@ -112,14 +114,18 @@ export const AuthorExtractor = class extends BaseExtractor {
       return item;
     }
 
-    const context = {
-      item: JSON.stringify(aiItem, null, 2),
-    };
+    const context = { item: JSON.stringify(aiItem, null, 2) };
     const { prompt } = await prompts.aiProcess.renderCapped(context, 'item', this.ai);
+
+    if (this._aiProcessCache[prompt]) {
+      return this._aiProcessCache[prompt];
+    }
 
     const answer = await this.ai.ask(prompt, { format: 'json' });
     this.logger.debug(`${this} AI processing gave: ${clip(JSON.stringify(answer.partial), 200)}`);
 
-    return { ...item, ...answer.partial };
+    const result = { ...item, ...answer.partial };
+    this._aiProcessCache[prompt] = result;
+    return result;
   }
 }
