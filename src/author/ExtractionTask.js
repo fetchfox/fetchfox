@@ -24,7 +24,7 @@ export const ExtractionTask = class extends BaseTask {
     let str = '';
     for (const url of urls) {
       let count = 0;
-      str += `Expected results for ${url}, limited to first ${limit}:\n\n[\n`;
+      str += `>>> Example results A sample of results for ${url}, limited to first ${limit}. These are *not* all the results, just the first ${limit} examples:\n\n[\n`;
       const gen = this._expected(url);
       for await (const r of gen) {
         str += '  ' + JSON.stringify(new Item(r).publicOnly()) + '\n'
@@ -32,7 +32,7 @@ export const ExtractionTask = class extends BaseTask {
           break;
         }
       }
-      str += ']\n\n';
+      str += '\n  //...more results here...\n]\n\n';
     }
     return str;
   }
@@ -59,7 +59,11 @@ Send all items as an array of JSON objects, like this:
   // ... and so on
 ]
 
-Important: Sometimes, you will get subjective fields, asking to do summaries, make judgemnet calls, compare things, change formats, and so on. Anything that seem subjective or hard to do in code, you can us an AI LLM todo. To do this, return an object with the shape { ai: '...string...' }, and that string in that object will be sent to an AI for post processing. For example, if you get this:
+# Retries
+If your extraction gave an array with length == 0, retry extraction twice after waiting 5 seconds each. This may have been due to a page load delay.
+
+# Subjective fields
+Sometimes, you will get subjective fields, asking to do summaries, make judgemnet calls, compare things, change formats, and so on. Anything that seem subjective or hard to do in code, you can us an AI LLM todo. To do this, return an object with the shape { ai: '...string...' }, and that string in that object will be sent to an AI for post processing. For example, if you get this:
 
   { "summary": "Summarize this article in 50 words" }
 

@@ -85,7 +85,6 @@ Generally follow this timeout, but adjust a little if needed
 {{wait}} milliseconds
 and a reasonable amount of time after each action
 
->>> Below are the expected results:
 {{expected}}
 
 Again, the goal is:

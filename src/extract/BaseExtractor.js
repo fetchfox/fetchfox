@@ -16,6 +16,7 @@ export const BaseExtractor = class {
     this.hardCapTokens = hardCapTokens || 1e7;
     this.hint = hint;
     this.timeout = options?.timeout || this.fetcher.timeout || 60 * 1000;
+    this.wait = options?.wait || this.fetcher.wait || 4 * 1000;
     this.usage = {
       requests: 0,
       runtime: 0,

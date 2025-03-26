@@ -19,8 +19,8 @@ export const Author = class {
     this.ai = options?.ai || getAI(null, { cache: this.cache });
     this.transformers = options?.transformers || [];
     this.logger = options?.logger || defaultLogger
-    this.wait = options?.wait || 4000;
-    this.timeout = options?.timeout || 8000;
+    this.timeout = options?.timeout || this.fetcher.timeout || 60 * 1000;
+    this.wait = options?.wait || this.fetcher.wait || 4 * 1000;
     this.threshold = options?.threshold || 65;
   }
 
@@ -144,7 +144,7 @@ export const Author = class {
             await this.save(task, script);
           }
 
-          this.logger.debug(`${this} Returning script: ${script}`);
+          this.logger.debug(`${this} Returning script: ${script} with code=${script.codes.join('\n\n')}`);
           lockers--;
           ok({ script, output });
         } finally {
@@ -282,7 +282,7 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
 
       // fnDebugLog
       (msg) => {
-        logger.debug(`${chalk.bold('[AIGEN]')} ${msg}`);
+        logger.debug(`${chalk.bold('[AIGEN]')} ${msg} url=${ctx.page.url()}`);
         result.messages += `${msg}\n`;
       },
 

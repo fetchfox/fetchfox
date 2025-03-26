@@ -149,6 +149,12 @@ export const Instructions = class {
       }
 
       this.logger.debug(`${this} Using learned state from for ${key}: ${JSON.stringify(parsed, null, 2)}`);
+
+      // Remove prompts to clean log output
+      for (let i = 0; i < parsed.length; i++) {
+        delete parsed[i].prompt;
+      }
+
       this.learned = parsed;
       return;
     }
