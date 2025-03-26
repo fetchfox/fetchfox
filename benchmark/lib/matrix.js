@@ -8,9 +8,21 @@ export const standardMatrix = (extra, options) => {
   let ai;
 
   const fetcher = [
-    ['playwright_brightdata', { s3, cdp: process.env.BRIGHTDATA_CDP }],
-    ['playwright_chromium_multiproxy', { s3, cdp: process.env.CHROMIUM_SCRAPOXY_MULTI_CDP }],
-    ['playwright_browserless_noproxy', { s3, cdp: process.env.BROWSERLESS_NO_PROXY_CDP }],
+    [
+      'playwright_brightdata_nomedia',
+      {
+        s3,
+        cdp: process.env.BRIGHTDATA_CDP,
+        blockMediaRequests: true
+      }
+    ],
+    [
+      'playwright_brightdata',
+      { s3, cdp: process.env.BRIGHTDATA_CDP }
+    ],
+
+    //['playwright_chromium_multiproxy', { s3, cdp: process.env.CHROMIUM_SCRAPOXY_MULTI_CDP }],
+    //['playwright_browserless_noproxy', { s3, cdp: process.env.BROWSERLESS_NO_PROXY_CDP }],
     //['playwright', { s3, cdp: 'cdp url 3' }],
     // nomedia
     //media
