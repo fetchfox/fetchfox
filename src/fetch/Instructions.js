@@ -356,9 +356,6 @@ ${this.hint}` : '',
 
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
-
-      console.log('learned:', JSON.stringify(this.learned, null, 2));
-
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
     } catch (e) {
