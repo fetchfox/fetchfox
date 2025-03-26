@@ -31,11 +31,6 @@ export const Instructions = class {
     this.cache = options?.cache;
     this.signal = options?.signal;
 
-    // if (!this.signal) {
-    //   this.logger.trace('.');
-    //   throw 'NEED SIGNAL';
-    // }
-
     this.ai = options?.ai || getAI(
       null,
       { cache: this.cache, signal: this.signal });
@@ -79,16 +74,34 @@ export const Instructions = class {
   }
 
   get useCode() {
-    // Use CodeInstructions for everything except pagination
-    return (
-      !this.onlyPagination &&
-      this.commands.filter(it => it.legacy).length == 0);
+    if (this.commands.length == 0) {
+      this.logger.debug(`${this} Use legacy for 0 commands`);
+      return false;
+    }
+    if (this.onlyPagination) {
+      this.logger.debug(`${this} Use legacy for only pagination`);
+      return false;
+    }
+    if (this.commands.filter(it => it.legacy).length > 0) {
+      this.logger.debug(`${this} Use legacy when requested`);
+      return false;
+    }
+
+    this.logger.debug(`${this} Use code instructions`);
+    return true;
   }
 
   get onlyPagination() {
     return (
-      this.commands.length == 1 &&
-      this.commands[0].prompt == nextPageCommand
+      (
+        this.commands.length == 1 &&
+        this.commands[0].prompt == nextPageCommand
+      ) ||
+      (
+        this.commands.length == 2 &&
+        this.commands[0].prompt == acceptCookiesPrompt &&
+        this.commands[1].prompt == nextPageCommand
+      )
     );
   }
 
@@ -100,8 +113,12 @@ export const Instructions = class {
       }
       return;
     }
-    const learned = [];
 
+    if (this.commands.length == 0) {
+      return;
+    }
+
+    const learned = [];
     const ctx = {};
 
     try {
@@ -369,6 +386,16 @@ ${this.hint}` : '',
       throw new Error('must learn before execute');
     }
 
+    if (this.commands.length == 0) {
+      this.logger.debug(`${this} No actions, just a simple URL goto`);
+      const ctx = {};
+      await fetcher.start(ctx);
+      await fetcher.goto(this.url, ctx);
+      const doc = await this.current(fetcher, ctx);
+      yield Promise.resolve({ doc });
+      return;
+    }
+
     this.logger.info(`${this} Execute instructions: url=${this.url} learned=${JSON.stringify(learned)}`);
 
     // Track gotos (page loads) and actions taken
@@ -482,7 +509,6 @@ ${this.hint}` : '',
       await fetcher.start(ctx);
       await goto();
 
-      const noActions = !learned || learned.length == 0;
 
       // This is an optimization for when the last action is a repeat. In
       // those cases, we don't need to goto the original URL on each iteration.
@@ -493,12 +519,6 @@ ${this.hint}` : '',
         learned.filter(it => !['repeat', 'first', 'all'].includes(it.mode)).length == 0 &&
         learned[learned.length - 1].mode == 'repeat');
 
-      if (noActions) {
-        this.logger.debug(`${this} No actions, just a simple URL goto`);
-        const doc = await this.current(fetcher, ctx);
-        yield Promise.resolve({ doc });
-        return;
-      }
 
       let state = zeroState();
 

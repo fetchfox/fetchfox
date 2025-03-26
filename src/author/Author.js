@@ -197,13 +197,7 @@ export const Author = class {
             .replaceAll('```javascript', '')
             .replaceAll('```', '');
 
-          if (attempt == 0) {
-            // Add a syntax error for testing
-            code = code.replaceAll('t', 'xyz');
-          }
-
-          this.logger.debug(`${this} Wrote code from ${this.ai.advanced}: ${code}`);
-          this.logger.trace('.');
+          this.logger.debug(`${this} Wrote code from ${this.ai.advanced} for ${task.key}: ${code}`);
 
           // Only do each action once in write mode
           const cb = (r) => { output = r; return false };

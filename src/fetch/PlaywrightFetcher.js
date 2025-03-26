@@ -86,7 +86,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     this.logger.debug(`${this} Got browser`);
-
     return ctx;
   }
 

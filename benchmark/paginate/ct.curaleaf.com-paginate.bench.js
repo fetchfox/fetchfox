@@ -6,7 +6,9 @@ import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('paginate ct.curaleaf.com', async function() {
-  const matrix = standardMatrix();
+  const matrix = standardMatrix({
+    extractor: ['author'],
+  });
 
   const limit = 100;
   const wf = await fox
@@ -27,7 +29,10 @@ describe('paginate ct.curaleaf.com', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => checkAtLeast(limit)
+      (items) => {
+        console.log('items', items);
+        return checkAtLeast(items, limit);
+      }
     ],
     { shouldSave: true });
 });
