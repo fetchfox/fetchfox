@@ -2,7 +2,7 @@ import { logger as defaultLogger } from "../log/logger.js";
 import { getFetcher } from '../fetch/index.js';
 import { getKV } from '../kv/index.js';
 import { getAI } from '../ai/index.js';
-import { Author, PaginationTask } from '../author/index.js';
+import { Author, ActionTask } from '../author/index.js';
 
 export const CodeInstructions = class {
   constructor(url, commands, options) {
@@ -45,10 +45,14 @@ export const CodeInstructions = class {
 
     const namespace = new URL(this.url).host;
 
-    // TODO: non-pagination tasks
-    const task = new PaginationTask(namespace);
-    throw 'TODO';
+    // TODO: special case pagination tasks?
 
+    const goals = [];
+    for (const command of this.commands) {
+      goals.push(command.prompt);
+    }
+
+    const task = new ActionTask(namespace, goals);
     const gen = author.run(task, [this.url]);
     for await (const r of gen) {
       yield Promise.resolve(r);

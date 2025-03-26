@@ -5,7 +5,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsAI } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('extract domain.com.au', async function() {
+describe('action domain.com.au', async function() {
   const matrix = standardMatrix();
 
   const cases = [
@@ -183,7 +183,7 @@ describe('extract domain.com.au', async function() {
 
       await itRunMatrix(
         it,
-        `extract domain.com.au (name=${name}, prefix=${prefix})`,
+        `action domain.com.au (name=${name}, prefix=${prefix})`,
         wf.dump(),
         matrix,
         [
