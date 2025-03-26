@@ -15,7 +15,7 @@ export const AuthorExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.kv = options?.kv || getKV();
-    this.baseline = new DirectExtractor(options);
+    this.baseline = options?.baseline || new DirectExtractor(options);
   }
 
   async *_run(doc, questions) {

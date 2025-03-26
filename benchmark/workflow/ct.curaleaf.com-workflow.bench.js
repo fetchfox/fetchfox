@@ -5,16 +5,12 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('paginate ct.curaleaf.com', async function() {
+describe('workflow ct.curaleaf.com', async function() {
   const matrix = standardMatrix();
 
-  const limit = 30;
+  const limit = 50;
   const wf = await fox
     .init('https://ct.curaleaf.com/shop/connecticut/curaleaf-ct-stamford/categories/flower')
-    .crawl({
-      query: 'Find product pages',
-      maxPages: 4
-    })
     .extract({
       questions: {
         product_name: "name of the product being sold",
@@ -24,14 +20,15 @@ describe('paginate ct.curaleaf.com', async function() {
         product_strain: "hybrid, indica, or sativa",
         product_price: "the cost of the flower product in dollars"
       },
-      mode: 'single',
+      maxPages: 3
+      mode: 'multiple',
     })
     .limit(limit)
     .plan();
 
   return itRunMatrix(
     it,
-    'paginate ct.curaleaf.com',
+    'workflow ct.curaleaf.com',
     wf.dump(),
     matrix,
     [

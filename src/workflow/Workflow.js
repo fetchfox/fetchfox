@@ -2,9 +2,15 @@ import { setMaxListeners } from 'events';
 import { Cursor } from '../cursor/Cursor.js';
 import { Context } from '../context/Context.js';
 import { Planner } from '../plan/Planner.js';
+import { AuthorExtractor } from '../extract/index.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
 import { isPlainObject } from '../util.js';
 import { classMap, stepNames, BaseStep } from '../step/index.js';
+
+
+const authorWhitelist = [
+  'curaleaf',
+];
 
 export const Workflow = class extends BaseWorkflow {
   constructor() {
@@ -62,7 +68,6 @@ export const Workflow = class extends BaseWorkflow {
         }
       });
       planPromise = planner.plan(stepsPlain);
-
     }
 
     const { steps } = await planPromise;
@@ -92,6 +97,17 @@ export const Workflow = class extends BaseWorkflow {
 
   out(markDone) {
     return this.cursor.out(markDone);
+  }
+
+  useAuthor() {
+    const json = JSON.stringify(this.steps);
+    console.log('json', json);
+    for (const wl of authorWhitelist) {
+      if (json.includes(wl)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   async run(args, cb) {
@@ -124,6 +140,15 @@ export const Workflow = class extends BaseWorkflow {
       for (const step of this.steps) {
         step.limit = step.limit ? Math.min(this.ctx.limit, step.limit) : this.ctx.limit;
       }
+    }
+
+    if (this.useAuthor()) {
+      this.ctx.logger.debug(`${this} Using AuthorExtractor`);
+      this.ctx.extractor = new AuthorExtractor({
+        ...this.ctx.extractor,
+        baseline: this.ctx.extractor,
+      });
+      this.cursor.ctx.extractor = this.ctx.extractor;
     }
 
     const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
