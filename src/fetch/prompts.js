@@ -33,7 +33,7 @@ Respond with JSON as follows:
 }
 
 Information on these fields:
-- "actionAnalysis": Describe the desired action and your approach in 10-20 words
+- "actionAnalysis": List which actions you will do on the page, list which elements are present on the page that are relevant to your actions, and list the css selectors relevant to those elements. 100-200 words. For example if both cookies and age verificaiton are present, list the elements and selectors and approach for doing both of those.
 - "actionMode": One of the following:
   - "distinct": If we should click each distinct element. This is for situations like clicking each link to a profile page or each link to a detail page.
   - "first": If we always execute this action exactly once on an element. This is for situations like accepting a cookie waiver, where you always click it once.
@@ -143,30 +143,3 @@ Example valid responses:
 
 Return ONLY JSON, your response will be machine parsed using JSON.parse()
 `);
-
-export const rateItems = new Template(
-  ['expected', 'actual', 'code', 'html'],
-  `You are expected and actual results from a web extraction program. You also have the the source HTML, and the code used to generate the actual results.
-
-Provide an analyis, accuracy rating, and suggestions to improve the code (if any). You will provide these in JSON.
-
-You will return a JSON object with the following fields:
-
-- "accuracyAnalysis": "An analysis of how closely to expected results match the actual results. Describe any innacurate or missing fields. Note any patterns in the mistakes. Give 50-200 words."
-- "codeAnalysis": "An analysis of the code, and how it could be improved, in particular as it relates to improving accuracy. Give 20-80 words.",
-- "score": "A score from 1-100 of how well the the code generating the expected results functions. Focus primarly on accuracy, but also consider general code quality"
-- "feedback": "Give feedback on how to improve the code, if needed. Focus primarly on how to improve accuracy. Give 10-200 words."
-
->>> The page HTML is:
-{{html}}
-
->>> The code used to generate the results is:
-{{code}}
-
->>> The expected results are:
-{{expected}}
-
->>> The actual results are:
-{{actual}}
-
-Respond ONLY in JSON, your response will be machine parsed using JSON.parse()`);
