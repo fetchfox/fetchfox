@@ -44,10 +44,22 @@ export const AuthorExtractor = class extends BaseExtractor {
 
     const urls = [url];
     if (doc.htmlUrl) {
-      // It's likely the same data, but it's fast and we arleady have it,
+      // It's likely the same data, but it's fast and we already have it,
       // and this helps with flakey fetches
       urls.push(doc.htmlUrl);
     }
+
+    // Sometimes the authored code references window.location.origin, so
+    // replace it with the real one here
+    const swapOrigin = (obj) => {
+      return JSON.parse(
+        JSON.stringify(obj)
+          .replaceAll(
+            new URL(doc.htmlUrl).origin,
+            new URL(url).origin)
+      );
+    }
+
     const gen = await author.run(task, urls);
     for await (const val of gen) {
       // Sometimes AI serializes the results in JSON
@@ -59,8 +71,8 @@ export const AuthorExtractor = class extends BaseExtractor {
         }
       }
 
-      const list = Array.isArray(val.result) ? val.result : [val.result]
-      this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 200)}`);
+      const list = swapOrigin(Array.isArray(val.result) ? val.result : [val.result]);
+      this.logger.debug(`${this} Got ${list.length} results from author: ${clip(list, 400)}`);
 
       const chan = createChannel();
 
