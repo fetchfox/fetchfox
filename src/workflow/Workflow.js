@@ -101,7 +101,6 @@ export const Workflow = class extends BaseWorkflow {
 
   useAuthor() {
     const json = JSON.stringify(this.steps);
-    console.log('json', json);
     for (const wl of authorWhitelist) {
       if (json.includes(wl)) {
         return true;

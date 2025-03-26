@@ -1,4 +1,3 @@
-import pretty from 'pretty';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
@@ -180,8 +179,7 @@ export const Instructions = class {
         this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         const context = {
-          // html: doc.html,
-          html: pretty(doc.html, { ocd: true }),
+          html: doc.html,
           command: command.prompt,
           hint: this.hint ? `>>>> The user has passed in this hint, which may be useful. Follow it if it is relevant, ignore it if it is not:
 
