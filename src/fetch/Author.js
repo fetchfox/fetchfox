@@ -142,10 +142,17 @@ export const Author = class {
               const r = await this.write(url, goals, expected);
               codes = r.codes;
               try {
-                confidence = int(codes.split("\n").slice(-1).split('Confidence: ')[1]);
+                for (line of codes.split("\n")) {
+                  if (line.includes('Confidence: ')) {
+                    confidence = int(line.split('Confidence: ')[1]);
+                    break;
+                  }
+                }
+                // confidence = int(codes.split("\n").slice(-1).split('Confidence: ')[1]);
               } catch (e) {
                 confidence = 0;
               }
+              this.logger.info(`Confidence: ${confidence}`);
               if (confidence < 85) {
                 break;
               }

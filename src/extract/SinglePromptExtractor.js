@@ -131,7 +131,7 @@ export const SinglePromptExtractor = class extends BaseExtractor {
       timeout: 30 * 1000,  // TODO: figure out author timeout
     });
 
-    const num = 25;
+    const num = 100;
 
     // /* eslint-disable no-async-promise-executor */
     // const expectedPromise = new Promise(async (ok) => {
