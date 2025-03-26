@@ -17,6 +17,17 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
 
 
     it(testName, async function () {
+      if (typeof json == 'string') {
+        // Guess it's a job id
+        const jobId = json;
+        const resp = await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
+        const data = await resp.json();
+        json = data.workflow;
+        for (const step of json.steps){
+          step.maxPages = 1
+        }
+      }
+
       try {
         this.timeout(10 * 60 * 1000); // 10 minutes per benchmark
         const scores = await runMatrix(
