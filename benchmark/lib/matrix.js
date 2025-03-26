@@ -1,3 +1,4 @@
+import { S3KV } from '../../src/kv/index.js';
 import { DiskCache } from '../../src/cache/DiskCache.js';
 
 const s3 = {
@@ -70,6 +71,14 @@ export const createMatrix = (configs, options) => {
 
         if (process.env.BENCH_USE_CACHE) {
           val[1].cache = new DiskCache('/tmp/ffbenchcache-3');
+        }
+
+        if (process.env.BENCH_USE_KV) {
+          val[1].kv = new S3KV({
+            bucket: 'ffcloud',
+            prefix: process.env.BENCH_KV_PREFIX || 'benchkv/fixed/',
+            acl: 'public-read',
+          });
         }
 
         newMatrix.push(updated);

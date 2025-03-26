@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
 import { logger as defaultLogger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { createChannel, shortObjHash, srid } from '../util.js';
@@ -13,6 +14,7 @@ export const BaseFetcher = class {
     this.cache = options?.cache;
     this.logger = options?.logger || defaultLogger;
     this.ai = options?.ai || getAI();
+    this.kv = options?.kv || getKV();
     this.queue = [];
     this.usage = { goto: 0 };
 
@@ -83,6 +85,7 @@ export const BaseFetcher = class {
           [],
           {
             ai: this.ai,
+            kv: this.kv,
             cache: this.cache,
             signal: this.signal,
             timeout: this.timeout,

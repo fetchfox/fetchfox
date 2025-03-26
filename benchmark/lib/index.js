@@ -13,7 +13,7 @@ const populate = (json, config) => {
 
 export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
   for (const config of matrix) {
-    const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
+    const testName = `${name} { ${Object.keys(config).map(k => k + '=' + config[k][0]).join('; ')} } @bench`;
 
 
     it(testName, async function () {

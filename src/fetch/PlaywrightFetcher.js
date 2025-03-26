@@ -1,6 +1,7 @@
 import { chromium } from 'playwright-extra';
 import { Timer } from '../log/timer.js';
 import { logger as defaultLogger } from '../log/logger.js';
+import { getKV } from '../kv/index.js';
 import { Document } from '../document/Document.js';
 import { BaseFetcher } from './BaseFetcher.js';
 import { abortable } from '../util.js';
@@ -27,7 +28,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
     this.logger = options?.logger || defaultLogger;
-  }a
+    this.kv = options?.kv || getKV();
+  }
 
   cacheOptions() {
     return {

@@ -21,16 +21,16 @@ export const checkAtLeast = (items, num) => {
 
 const removePrivate = (item, fields) => {
   const copy = {};
-  for (const key of Object.keys(item)) {
-    if (!fields) {
+  if (fields) {
+    for (const field of fields) {
+      copy[field] = item[field];
+    }
+    return copy;
+  } else {
+    for (const key of Object.keys(item)) {
       if (key.startsWith('_')) continue;
       copy[key] = item[key];
-
-      continue;
     }
-
-    if (!fields.includes(key)) continue;
-    copy[key] = item[key];
   }
 
   return copy;
@@ -92,7 +92,10 @@ export const checkItemsExact = (items, expected, fields) => {
 
   // Un-ordered check, so sort them as JSON
   const expectedJson = expected.map(x => JSON.stringify(removePrivate(x, fields))).sort();
+  console.log('expectedJson', expectedJson);
+
   const itemsJson = items.map(x => JSON.stringify(removePrivate(x, fields))).sort();
+  console.log('itemsJson', itemsJson);
 
   // Check that all expected are found
   for (let i = 0; i < expectedJson.length; i++) {

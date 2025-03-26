@@ -110,7 +110,7 @@ export const BaseAI = class {
     const tokens = await this.countTokens(str, options);
     while (true) {
       const r = this.limiter.getTokensRemaining();
-      this.logger.info(`${this} Check rate limit: tpm=${this.tpm}, tokens available=${r}`);
+      this.logger.debug(`${this} Check rate limit: tpm=${this.tpm}, tokens available=${r}`);
       if (this.limiter.tryRemoveTokens(tokens) || r == this.tpm) {
         break;
       }
@@ -170,7 +170,7 @@ export const BaseAI = class {
     await this.init();
 
     const tokens = await this.limitReady(prompt);
-    this.logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
+    this.logger.debug(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
     let cached;
@@ -290,7 +290,7 @@ export const BaseAI = class {
 
   async ask(prompt, options) {
     const tokens = await this.limitReady(prompt);
-    this.logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
+    this.logger.debug(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     let result;
     let retries = Math.min(this.maxRetries, options?.retries ?? 2);
