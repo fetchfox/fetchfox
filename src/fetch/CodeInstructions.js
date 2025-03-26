@@ -17,7 +17,7 @@ export const CodeInstructions = class {
       null,
       { cache: this.cache, signal: this.signal });
     this.kv = options?.kv || getKV();
-    this.timeout = options?.timeout || 60000;
+    this.timeout = options?.timeout || this.fetcher.timeout || 60000;
     this.limit = options?.limit;
     this.hint = options?.hint;
     this.logger = options?.logger || defaultLogger

@@ -38,11 +38,10 @@ export const AuthorExtractor = class extends BaseExtractor {
       cache: this.cache,
       logger: this.logger,
       transformers,
-      timeout: 30 * 1000,  // TODO: figure out author timeout
+      timeout: this.timeout || 90 * 1000,
     });
 
     const gen = await author.run(task, [url]);
-
     for await (const val of gen) {
       // Sometimes AI serializes the results in JSON
       if (typeof val.result == 'string') {

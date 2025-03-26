@@ -59,6 +59,8 @@ const decodeArgs = (args, cache) => {
 
     if (!val) {
       const useOptions = { ...decoded, logger, cache: decoded.cache, ...options };
+
+      console.log('options', useOptions);
       val = getter(which, useOptions);
     }
     decoded[key] = val;

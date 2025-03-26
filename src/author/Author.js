@@ -202,7 +202,9 @@ export const Author = class {
           // Only do each action once in write mode
           const cb = (r) => { output = r; return false };
           try {
+            console.log('exec the code');
             await exec(code, this.logger, this.fetcher, ctx, cb);
+            console.log('OK: exec the code');
             ok = true;
             script.push(code);
             break;
@@ -248,6 +250,7 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
   let result = {
     messages: '',
   }
+  console.log('tofn the code');
   const fn = toFn(code);
   const run = new Promise((ok) => {
     fn(
@@ -294,6 +297,11 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
     )
   });
 
-  await run;
+  try {
+    await run;
+  } catch (e) {
+    console.error('Got error while execing the ai code:', e);
+    throw e;
+  }
   return result;
 }
