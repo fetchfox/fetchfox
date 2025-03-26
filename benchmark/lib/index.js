@@ -22,6 +22,9 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
         const resp = await fetch('https://fetchfox.ai/api/v2/jobs/' + jobId);
         const data = await resp.json();
         json = data.workflow;
+        for (const step of json.steps){
+          step.maxPages = 1
+        }
       }
 
       try {

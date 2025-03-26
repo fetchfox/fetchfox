@@ -19,15 +19,15 @@ export const Instructions = class {
 
     this.url = url;
     this.commands = [];
-    for (const command of commands) {
-      let c;
-      if (typeof command == 'string') {
-        c = { prompt: command };
-      } else {
-        c = command;
-      }
-      this.commands.push(c);
-    }
+    // for (const command of commands) {
+    //   let c;
+    //   if (typeof command == 'string') {
+    //     c = { prompt: command };
+    //   } else {
+    //     c = command;
+    //   }
+    //   this.commands.push(c);
+    // }
     this.cache = options?.cache;
 
     this.ai = options?.ai || getAI(null, { cache: this.cache });
@@ -55,10 +55,11 @@ export const Instructions = class {
   }
 
   unshiftCommand(command) {
-    this.learned = null;
-    this.commands.unshift(command);
 
-    this.codeInstructions?.unshiftCommand(command);
+    // this.learned = null;
+    // this.commands.unshift(command);
+
+    // this.codeInstructions?.unshiftCommand(command);
   }
 
   cacheKey() {
