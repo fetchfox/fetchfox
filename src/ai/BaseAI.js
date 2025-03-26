@@ -17,18 +17,14 @@ export const BaseAI = class {
       apiKey,
       advanced,
     } =
-    Object.assign(
-      {
-        maxRetries: 10,
-        retryMsec: 5000,
-        model: this.constructor.defaultModel,
-        apiKey: (apiKeyEnvVariable ? process.env[apiKeyEnvVariable] : null),
-      },
-      options);
-
-    if (!apiKey && !this.constructor.optionalApiKey) {
-      throw new Error(`FetchFox is missing API key for ${this.constructor.name}. Enter it using environment variable ${apiKeyEnvVariable} or pass it in to the constructor`);
-    }
+      Object.assign(
+        {
+          maxRetries: 10,
+          retryMsec: 5000,
+          model: this.constructor.defaultModel,
+          apiKey: (apiKeyEnvVariable ? process.env[apiKeyEnvVariable] : null),
+        },
+        options);
 
     if (cache) this.cache = cache;
     this.logger = logger || defaultLogger;
@@ -62,7 +58,7 @@ export const BaseAI = class {
       tokens: { input: 0, output: 0, total: 0 },
       cost: { input: 0, output: 0, total: 0 },
       runtime: { sec: 0, msec: 0 },
-      requests: { attempts: 0, errors: 0, failures: 0  },
+      requests: { attempts: 0, errors: 0, failures: 0 },
     }
 
     this.baseURL = options?.baseURL;
@@ -139,6 +135,10 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
+    if (!this.apiKey && !this.constructor.optionalApiKey) {
+      throw new Error(`FetchFox is missing API key for ${this.constructor.name}. Enter it using environment variable ${this.constructor.apiKeyEnvVariable} or pass it in to the constructor`);
+    }
+
     await this.init();
 
     let tokens;
@@ -278,14 +278,14 @@ export const BaseAI = class {
 
     let result;
     let retries = Math.min(this.maxRetries, options?.retries ?? 2);
-    const retryMsec= 5000;
+    const retryMsec = 5000;
     while (true) {
       try {
         for await (const chunk of this.stream(prompt, options)) {
           result = chunk;
         }
 
-      } catch(e) {
+      } catch (e) {
         this.logger.error(`Caught ${this} error: ${e}`);
 
         if (!e.status || --retries <= 0) {
