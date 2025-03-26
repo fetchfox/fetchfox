@@ -22,6 +22,7 @@ export const AuthorExtractor = class extends BaseExtractor {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     const url = doc.url;
+
     const namespace = new URL(url).host;
     const task = new ExtractionTask(namespace, questions, { extractor: this.baseline });
 
@@ -41,7 +42,13 @@ export const AuthorExtractor = class extends BaseExtractor {
       timeout: this.timeout || 90 * 1000,
     });
 
-    const gen = await author.run(task, [url]);
+    const urls = [url];
+    if (doc.htmlUrl) {
+      // It's likely the same data, but it's fast and we arleady have it,
+      // and this helps with flakey fetches
+      urls.push(doc.htmlUrl);
+    }
+    const gen = await author.run(task, urls);
     for await (const val of gen) {
       // Sometimes AI serializes the results in JSON
       if (typeof val.result == 'string') {

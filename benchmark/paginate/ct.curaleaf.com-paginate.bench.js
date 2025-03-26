@@ -60,4 +60,31 @@ describe('paginate ct.curaleaf.com', async function() {
         shouldSave: true,
       });
   }
+
+  {
+    const limit = 50;
+    const wf = await fox
+      .init('https://ct.curaleaf.com/shop/connecticut/curaleaf-ct-stamford/categories/flower?page=4')
+      .extract({
+        questions: {
+          url: 'What is the URL of the product (flower)?'
+        },
+        mode: 'auto',
+        maxPages: 3,
+      })
+      .limit(limit)
+      .plan();
+
+    itRunMatrix(
+      it,
+      'paginate ct.curaleaf.com (last)',
+      wf.dump(),
+      matrix,
+      [
+        (items) => checkAtLeast(items, limit),
+      ],
+      {
+        shouldSave: true,
+      });
+  }
 });

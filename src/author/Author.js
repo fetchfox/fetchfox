@@ -39,10 +39,9 @@ export const Author = class {
       yield Promise.resolve(output);
     }
 
-    const chan = createChannel();
-
     // TODO: process these concurrently?
     for (const url of urls) {
+      const chan = createChannel();
       /* eslint-disable no-async-promise-executor */
       const promise = new Promise(async (ok) => {
         const ctx = {};
