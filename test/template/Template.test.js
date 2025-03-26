@@ -22,9 +22,9 @@ describe('Template', function() {
 
     const context = { field };
     const { prompt } = await template.renderCapped(context, 'field', ai);
-
     const tokens = await ai.countTokens(prompt);
     assert.ok(tokens < ai.maxTokens);
+    assert.ok(tokens > ai.maxTokens / 4);
   });
 
 });

@@ -1,3 +1,4 @@
+import fetch from 'node-fetch';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
@@ -83,23 +84,22 @@ export const BaseFetcher = class {
           {
             ai: this.ai,
             cache: this.cache,
-            loadTimeout: this.loadTimeout,
+            signal: this.signal,
+            timeout: this.timeout,
             hint: options?.hint,
           });
       }
 
       const maxPages = options?.maxPages || 0;
       if (maxPages > 1) {
-        instr.unshiftCommand({
-          prompt: '{{nextPage}}',
-          limit: maxPages,
-        });
+        instr.addPaginationCommand(maxPages);
       }
 
       return instr;
     }
 
     const instr = toInstructions(target);
+
     try {
       const url = new URL(instr.url);
       if (!['http:', 'https:'].includes(url.protocol)) {
@@ -115,9 +115,11 @@ export const BaseFetcher = class {
       css: options?.css,
     };
 
+    const cacheKey = instr.serialize();
+
     let cached;
     try {
-      cached = await this.getCache(instr.serialize(), cacheOptions);
+      cached = await this.getCache(cacheKey, cacheOptions);
     } catch (e) {
       this.logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
@@ -161,8 +163,12 @@ export const BaseFetcher = class {
 
         this.logger.debug(`${this} Decoding PDF via ${apiUrl}`);
         instr.url = apiUrl;
-      }
 
+        // TODO: cleanup
+        if (instr.codeInstructions) {
+          instr.codeInstructions.url = instr.url;
+        }
+      }
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
       this.logger.debug(`${this} Adding to fetch queue: ${instr.url} ${debugStr()}`);
@@ -184,7 +190,7 @@ export const BaseFetcher = class {
             try {
               this.logger.debug(`${this} Starting at ${instr.url}`);
 
-              const hash = (doc) => shortObjHash({ data: doc.selectHtml || doc.text || doc.html });
+              const hash = (doc) => shortObjHash({ data: doc?.selectHtml || doc?.text || doc?.html });
 
               let cacheKey;
               if (options?.instructionsCacheKey) {
@@ -204,7 +210,6 @@ export const BaseFetcher = class {
               }
 
               const gen = await instr.execute(this);
-
               for await (const r of gen) {
                 const doc = r?.doc;
                 if (this.signal?.aborted) {
@@ -230,7 +235,6 @@ export const BaseFetcher = class {
 
             this.logger.debug(`${this} Closing docs channel`);
             channel.end();
-
             ok();
           });
           /* eslint-enable no-async-promise-executor */
@@ -291,6 +295,9 @@ export const BaseFetcher = class {
     if (!this.s3) {
       return;
     }
+    if (!doc) {
+      return;
+    }
 
     this.logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     const bucket = this.s3.bucket;
@@ -298,7 +305,7 @@ export const BaseFetcher = class {
     const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
     const acl = this.s3.acl || '';
     const id = srid(10);
-    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]+/g, '-');
+    const cleanUrl = (doc.url || '').replace(/[^A-Za-z0-9]+/g, '-');
     const key = keyTemplate
       .replaceAll('{id}', id)
       .replaceAll('{url}', cleanUrl);
@@ -365,7 +372,13 @@ export const BaseFetcher = class {
 
 const isPdf = async (url, logger) => {
   try {
-    const resp = await fetch(url, { method: 'HEAD' });
+    logger.debug(`Check if ${url} is PDF using HEAD`);
+    const resp = await fetch(
+      url,
+      {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(2000),
+      });
     const contentType = resp.headers.get('Content-Type');
 
     return contentType && contentType.startsWith('application/pdf');

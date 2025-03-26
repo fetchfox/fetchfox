@@ -1,6 +1,5 @@
 import { logger } from '../log/logger.js';
 
-// TODO: refactor Document entirely
 export const Document = class {
   constructor() {}
 

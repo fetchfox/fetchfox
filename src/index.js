@@ -26,6 +26,10 @@ export { DiskCache } from './cache/DiskCache.js';
 export { S3Cache } from './cache/S3Cache.js';
 export { RedisCache } from './cache/RedisCache.js';
 
+export { DiskKV } from './kv/DiskKV.js';
+export { S3KV } from './kv/S3KV.js';
+export { MemKV } from './kv/MemKV.js';
+
 export { Workflow } from './workflow/Workflow.js';
 
 export { Planner } from './plan/Planner.js';

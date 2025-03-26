@@ -129,7 +129,7 @@ export const abortable = async (signal, promise) => {
       if (signal?.aborted) {
         return { aborted: true };
       }
-      logger.error(`Abortable got error: ${e}`);
+      logger.error(`Abortable got error: ${e.stack}`);
       throw e;
     });
 
@@ -160,5 +160,14 @@ export const abortable = async (signal, promise) => {
     return result;
   } finally {
     signal.removeEventListener('abort', abortListener);
+  }
+}
+
+export const clip = (val, num) => {
+  const str = (typeof val == 'string' ? val : JSON.stringify(val)) || '';
+  if (str.length <= num) {
+    return str;
+  } else {
+    return `"${str.substring(0, num)}..." (${str.length - num} more bytes)`;
   }
 }

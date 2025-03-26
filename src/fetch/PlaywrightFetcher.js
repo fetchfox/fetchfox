@@ -20,11 +20,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
     super(options);
     this.headless = options?.headless === undefined ? true : options?.headless;
+    if (process.env.HEADFUL) {
+      this.headless = false;
+    }
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
     this.logger = options?.logger || defaultLogger;
-  }
+  }a
 
   cacheOptions() {
     return {
@@ -33,46 +36,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       waitForText: this.waitForText,
     };
   }
-
-  async _goto(url, ctx) {
-    if (!ctx.page) {
-      ctx.page = await ctx.browser.newPage();
-    }
-
-    try {
-      const { aborted } = await abortable(
-        this.signal,
-        ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
-      if (aborted) {
-        this.logger.warn(`${this} Aborted on goto`);
-        return;
-      }
-    } catch (e) {
-      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
-    }
-  }
-
-  async current(ctx) {
-    let doc;
-    let aborted;
-    try {
-      const result = await abortable(this.signal, this._docFromPage(ctx.page, ctx.timer));
-      aborted = result.aborted;
-      doc = result.result;
-    } catch (e) {
-      this.logger.error(`${this} Error while getting current doc: ${e}`);
-      return;
-    }
-    if (aborted) {
-      this.logger.warn(`${this} Aborted while getting current doc`);
-      return;
-    }
-
-    await this.putS3(doc);
-
-    return doc;
-  }
-
 
   async _launch() {
     this.logger.debug(`Playwright launching...`);
@@ -89,6 +52,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
           promise = chromium.launch({ headless: this.headless });
         }
+
         const browser = await promise;
         return browser;
       } catch (e) {
@@ -102,7 +66,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     throw err;
   }
 
+  _ctxLastTouch(ctx) {
+    ctx.lastTouch = new Date().getTime();
+  }
+
   async start(ctx) {
+    this._ctxLastTouch(ctx);
     const timer = ctx.timer || new Timer();
 
     if (ctx.browser) {
@@ -121,7 +90,52 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return ctx;
   }
 
+  async _goto(url, ctx) {
+    this._ctxLastTouch(ctx);
+
+    if (!ctx.page) {
+      ctx.page = await ctx.browser.newPage();
+    }
+
+    try {
+      const { aborted } = await abortable(
+        this.signal,
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
+      if (aborted) {
+        this.logger.warn(`${this} Aborted on goto`);
+        return;
+      }
+    } catch (e) {
+      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
+    }
+  }
+
+  async current(ctx) {
+    // No last touch, this is read-only
+
+    let doc;
+    let aborted;
+    try {
+      const result = await abortable(this.signal, this._docFromPage(ctx, ctx.timer));
+      aborted = result.aborted;
+      doc = result.result;
+    } catch (e) {
+      this.logger.error(`${this} Error while getting current doc: ${e}`);
+      return;
+    }
+    if (aborted) {
+      this.logger.warn(`${this} Aborted while getting current doc`);
+      return;
+    }
+
+    await this.putS3(doc);
+
+    return doc;
+  }
+
   async finish(ctx) {
+    this._ctxLastTouch(ctx);
+
     if (!ctx.browser) {
       return;
     }
@@ -132,6 +146,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, seen) {
+    this._ctxLastTouch(ctx);
+
     const timer = ctx.timer || new Timer();
     this.logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
@@ -141,6 +157,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       switch (action.type) {
         case 'click':
           r = await this.click(
+            ctx,
+            action.arg,
+            seen,
+            { timeout: action.timeout || this.actionTimeout });
+          break;
+
+        case 'focus':
+          r = await this.focus(
             ctx,
             action.arg,
             seen,
@@ -168,13 +192,17 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
   }
 
-  async click(ctx, selector, seen, options) {
-    this.logger.debug(`${this} Click selector=${selector}`);
+  async _actOnEl(ctx, selector, seen, options, fn) {
+    this._ctxLastTouch(ctx);
 
     // TODO: for text= matchers, add a heuristic to prefer tighter  matches
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       this.logger.warn(`{this} Invalid selector: ${selector}`);
       return { ok: false };
+    }
+
+    if (selector.startsWith('text=')) {
+      selector = selector.replaceAll('>', '&gt;');
     }
 
     const timeout = options?.timeout || this.actionTimeout;
@@ -188,42 +216,79 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     for (let i = 0; el == null; i++) {
       try {
         await loc.nth(i).waitFor({ state: 'attached', timeout });
+        el = await loc.nth(i);
+
+        if (!await el.isVisible()) {
+          this.logger.debug(`${this} Skipping non visible element: ${el} on iteation ${i}`);
+          el = null;
+          continue;
+        }
+
+        text = await el.textContent();
+        html = await el.evaluate(el => el.outerHTML);
+
+        if (seen && (seen[text] || seen[html])) {
+          el = null;
+          continue;
+        }
+
+        this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
+        await fn(ctx, el, timeout);
+
       } catch (e) {
-        this.logger.warn(`${this} Caught error while waiting for ${loc} nth=${i}: ${e}`);
+        this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
         return { ok: false };
       }
-
-      el = await loc.nth(i);
-      text = await el.textContent();
-      html = await el.evaluate(el => el.outerHTML);
-
-      if (seen && (seen[text] || seen[html])) {
-        el = null;
-        continue;
-      }
-
-      this.logger.debug(`${this} Found new element ${el} after ${i} iterations`);
-    }
-
-    try {
-      await el.scrollIntoViewIfNeeded({ timeout });
-      await el.click({ timeout });
-    } catch (e) {
-      this.logger.warn(`${this} Caught error while trying to click ${el}: ${e}`);
-      return { ok: false };
     }
 
     return { ok: true, text, html };
   }
 
-  async evaluate() {
-    throw new Error('TODO');
+  async click(ctx, selector, seen, options) {
+    this._ctxLastTouch(ctx);
+
+    this.logger.debug(`${this} Click selector=${selector}`);
+
+    const fn = async (ctx, el, timeout) => {
+      this.logger.debug(`${this} Found ${el}, clicking, timeout=${timeout}`);
+      await el.scrollIntoViewIfNeeded({ timeout });
+      await el.click({ timeout });
+    }
+
+    return this._actOnEl(ctx, selector, seen, options, fn);
+  }
+
+  async focus(ctx, selector, seen, options) {
+    this._ctxLastTouch(ctx);
+
+    this.logger.debug(`${this} Focus selector=${selector}`);
+
+    const fn = async (ctx, el, timeout) => {
+      let skip = false;
+      if (ctx.focused) {
+        const elHtml = await el.evaluate(el => el.outerHTML);
+        const focusHtml = await ctx.focused.evaluate(el => el.outerHTML);
+        skip = elHtml == focusHtml;
+      }
+
+      if (skip) {
+        this.logger.debug(`${this} Already focused on ${el}, skipping`);
+        return;
+      }
+
+      this.logger.debug(`${this} Focusing on ${el} by clicking, timeout=${timeout}`);
+      await el.click({ timeout });
+      ctx.focused = el;
+      this.logger.debug(`${this} Focus is now on ${ctx.focused}`);
+    };
+
+    return this._actOnEl(ctx, selector, seen, options, fn);
   }
 
   async scroll(ctx, type) {
-    this.logger.debug(`${this} Scroll type=${type}`);
+    this._ctxLastTouch(ctx);
 
-    // TODO: Check if scrolling worked
+    this.logger.debug(`${this} Scroll type=${type}`);
 
     switch (type) {
       case 'page-down':
@@ -256,7 +321,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return { ok: true };
   }
 
-  async _docFromPage(page, timer) {
+  async _docFromPage(ctx, timer) {
     timer ||= new Timer();
 
     let html;
@@ -269,7 +334,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       const result = await abortable(
         this.signal,
         getHtmlFromSuccess(
-          page,
+          ctx,
           {
             loadWait: this.loadWait,
             pullIframes: this.pullIframes,
@@ -286,13 +351,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       selectHtml = result.result.selectHtml;
     } catch (e) {
 
-      this.logger.error(`Playwright could not get from ${page.url()}: ${e}`);
+      this.logger.error(`Playwright could not get from ${ctx.page.url()}: ${e}`);
       this.logger.debug(`Trying to salvage results`);
 
       try {
         const result = await abortable(
           this.signal,
-          getHtmlFromError(page, { logger: this.logger }));
+          getHtmlFromError(ctx.page, { logger: this.logger }));
         if (result.aborted) {
           return;
         }
@@ -312,7 +377,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       timer.pop();
     }
 
-    const url = page.url();
+    const url = ctx.page.url();
     const data = {
       status,
       url,
@@ -330,9 +395,16 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 }
 
-const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
-  logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
-  await new Promise(ok => setTimeout(ok, loadWait));
+const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, logger }) => {
+  const now = new Date().getTime();
+  lastTouch ||= now;
+  const diff = now - lastTouch;
+  const wait = Math.max(1, loadWait - diff);
+  logger.debug(`Load waiting ${(wait).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
+  await new Promise(ok => setTimeout(ok, wait));
+
+  // console.log('pullIframes? ' + pullIframes);
+  // throw 'pullIframes';
 
   if (pullIframes) {
     // Get all the iframes
@@ -369,7 +441,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
       const iframe = iframes[i];
       let content;
       try {
-        content = await iframe.content();
+        content = await iframe.content({ timeout: 10 * 1000 });
       } catch {
         content = '[iframe unavailable]';
       }
@@ -405,6 +477,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
         logger.warn(`${this} Error while updating trusted policy, ignoring: ${e}`);
       }
     }
+    logger.debug(`Done getting iframes`);
   }
 
   // Minimize the HTML before returning it
@@ -413,7 +486,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
   try {
     /* eslint-disable no-undef */
     outs = await page.evaluate(async () => {
-      // Attach the function to document to avoid errors in certain situatios,
+      // Attach the function to document to avoid errors in certain situations,
       // eg. https://github.com/privatenumber/tsx/issues/113
       document.toText = (min, node) => {
         if (node.nodeType === Node.TEXT_NODE) {

@@ -1,8 +1,7 @@
 import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkExcludeUrls } from '../lib/checks.js';
-import { storeScores } from '../lib/store.js';
+import { checkItemsAI } from '../lib/checks.js';
 
 describe('extract from transcripts.recursiveprojects.cloud', async function() {
   const matrix = standardMatrix({
@@ -51,36 +50,34 @@ describe('extract from transcripts.recursiveprojects.cloud', async function() {
     },
   ]
 
-  const wf = await fox
-    .init('https://ffcloud.s3.amazonaws.com/fetchfox-docs/jbwswaczy5/https-transcripts-recursiveprojects-cloud-archive-18396-207381.html')
-    .extract({
-      timestamp: 'What is the timestamp of the message?',
-      content: 'What is the content of the message?',
-    })
-    .limit(10)
-    .plan();
+  const cases = [
+    {
+      name: 'saved',
+      url: 'https://ffcloud.s3.amazonaws.com/fetchfox-docs/jbwswaczy5/https-transcripts-recursiveprojects-cloud-archive-18396-207381.html',
+      expected,
+    },
+  ];
 
-  return itRunMatrix(
-    it,
-    'extract transcript of Carlos Sainz',
-    wf.dump(),
-    matrix,
-    [
-      (items) => {
-        const score = [0, 0];
+  const questions = {
+    timestamp: 'What is the timestamp of the message?',
+    content: 'What is the content of the message?',
+  }
 
-        for (let i = 0; i < expected.length; i++) {
-          score[1]++;
-          if (i >= items.length) continue;
-          const e = expected[i];
-          const item = items[i];
-          if ((item.timestamp || '').indexOf(e.timestamp) == -1) continue;
-          if ((item.content || '').trim() != e.content.trim()) continue;
-          score[0]++;
-        }
+  for (const { name, url, expected } of cases) {
+    const wf = await fox
+      .init(url)
+      .extract({ questions })
+      .limit(10)
+      .plan();
 
-        return score;
-      },
-    ],
-    { shouldSave: true });
+    return itRunMatrix(
+      it,
+      `extract transcript of Carlos Sainz (${name})`,
+      wf.dump(),
+      matrix,
+      [
+        (items) => checkItemsAI(items, expected, questions),
+      ],
+      { shouldSave: true });
+    }
 });

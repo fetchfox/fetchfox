@@ -1,7 +1,9 @@
 import { logger } from '../../src/log/logger.js';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { srid } from '../../src/util.js'
+import { srid } from '../../src/util.js';
+import { summarize } from './summary.js';
+import { score } from '../../src/crawl/prompts.js';
 
 const allScores = [];
 let id = 0; // per parallel execution sequential id, combined with uuid
@@ -55,6 +57,50 @@ const registerCommit = async () => {
   }
 }
 
+const persistAnalysis = async (scores) => {
+  // aggregate analysis by name / config_ai
+  const grouped = {};
+  const rows = [];
+  for (const score of scores) {
+    const { name, config_ai: configAI, analysis } = score;
+    const analyses = Array.isArray(analysis) ? analysis : [analysis];
+
+    if (!grouped[name]) {
+      grouped[name] = {};
+    }
+    if (!grouped[name][configAI]) {
+      grouped[name][configAI] = [];
+    }
+
+    // Push the analysis data into the array
+    grouped[name][configAI].push(...analyses);
+  }
+
+  for (const name of Object.keys(grouped)) {
+    for (const configAI of Object.keys(grouped[name])) {
+      const row = {
+        name,
+        config_ai: configAI,
+        analysis: grouped[name][configAI],
+      }
+      rows.push(row);
+    }
+  }
+
+  for (const row of rows) {
+    if (!row.analysis.length) {
+      row.analysis = '';
+    } else if (row.analysis.length == 1) {
+      row.analysis = row.analysis[0];
+    } else {
+      row.analysis = await summarize(row.analysis);
+    }
+  }
+
+  console.log(rows);
+  // TODO: persist to analysisTable
+}
+
 const persistAllScores = async () => {
   const scoresTable = process.env.BENCH_SCORES_TABLE;
 
@@ -65,14 +111,88 @@ const persistAllScores = async () => {
   const commit = process.env.COMMIT || 'local';
 
   if (commit == 'local') {
-    logger.debug(`Skipping putting aggregate scores in DynamoDB, logging to debug ${allScores.length} rows instead`);
-    logger.debug(JSON.stringify(allScores));
+    logger.info(`Skipping putting aggregate scores in DynamoDB, displaying summary of ${allScores.length} rows instead`);
+    const summary = async (scores) => {
+      const results = [];
+      const byName = {};
+
+      let sum = 0;
+      let count = 0;
+      for (const score of scores) {
+        const score_pct = score.score0 / score.score1;
+        byName[score.name] ||= [];
+        byName[score.name].push({
+          name: score.name,
+          score0: score.score0,
+          score1: score.score1,
+          score_pct,
+          analysis: score.analysis,
+        });
+        if (!Number.isNaN(score_pct)) {
+          sum += score_pct;
+          count += 1;
+        }
+      }
+
+      const allAnalyses = [];
+      for (const name of Object.keys(byName)) {
+        let sum = 0;
+        let count = 0;
+        let analyses = [];
+        for (const score of byName[name]) {
+          const score_pct = score.score_pct;
+          if (!Number.isNaN(score_pct)) {
+            sum += score_pct;
+            count += 1;
+          }
+          const analysis = Array.isArray(score.analysis) ? score.analysis : [score.analysis];
+          analyses.push(...analysis);
+        }
+        if (analyses.legnth == 0) {
+          analyses = '';
+        } else if (analyses.length == 1) {
+          analyses = analyses[0];
+        } else {
+          analyses = await summarize(analyses);
+        }
+        const agg = {
+          name: name + ' Mean',
+          score_pct: sum / count,
+          analysis: analyses,
+        }
+        results.push(agg);
+        allAnalyses.push({
+          benchmarkName: name,
+          analyses,
+        });
+      }
+
+      const analysis = allAnalyses.length > 1 ? await summarize(allAnalyses) : '';
+      const agg = {
+        name: "All Benchmarks Mean",
+        score_pct: sum / count,
+        analysis,
+      };
+      results.push(agg);
+
+      return results;
+    }
+
+    logger.debug(JSON.stringify(allScores, null, 2));
+    console.log(await summary(allScores));
+    persistAnalysis(allScores);
     return;
   }
 
   await registerCommit();
 
   logger.debug(`Putting aggregate scores in DynamoDB with ${allScores.length} rows`);
+  // persistAnalysis(allScores);
+
+  // Exclude analysis from scoresTable
+  for (const score of allScores) {
+    delete score[analysis];
+  }
 
   // batch update scores using AWS DynamoDB DocumentClient
   const batchSize = 25; // DynamoDB batchWrite has a max of 25 items per batch
@@ -114,6 +234,14 @@ const persistAllScores = async () => {
   }
 }
 
+export const storeAnalysis = async (scores) => {
+  const rows = [];
+  // TODO: implement
+  for (const score of scores) {
+    score;
+  }
+}
+
 export const storeScores = async (scores) => {
   const rows = [];
   for (const score of scores) {
@@ -125,6 +253,7 @@ export const storeScores = async (scores) => {
       name: score.name || 'unknown',
       date: score.date || new Date().toISOString().split('T')[0],
       branch: score.branch || 'unknown',
+      analysis: score.analysis || '',
 
       score0: score.score[0] || 0,
       score1: score.score[1] || 0,

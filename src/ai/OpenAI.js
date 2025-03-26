@@ -10,7 +10,7 @@ export const OpenAI = class extends BaseAI {
     // just (over) estimate the nubmer of tokens. This is usually
     // fine, since the promps chunk and iterate anyways.
     // TODO: find a way to efficiently count tokens
-    return str.length / 2;
+    return str.length / 1.5;
 
     // const timer = options?.timer || new Timer();
     // timer.push(`${this}.countTokens`);

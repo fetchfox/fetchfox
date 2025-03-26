@@ -19,7 +19,7 @@ describe('BaseStep', function() {
       .extract({
         batchSize,
         maxPages: 1,
-        question: {
+        questions: {
           name: 'Pokemon name, starting with the first pokemon',
           number: 'Pokemon number, format: #XXXX',
         }
@@ -44,7 +44,7 @@ describe('BaseStep', function() {
       .extract({
         batchSize,
         maxPages: 1,
-        question: {
+        questions: {
           name: 'Pokemon name, starting with the first pokemon',
           number: 'Pokemon number, format: #XXXX',
         }
@@ -68,7 +68,7 @@ describe('BaseStep', function() {
       .extract({
         batchSize,
         maxPages: 1,
-        question: {
+        questions: {
           name: 'Pokemon name, starting with the first pokemon',
           number: 'Pokemon number, format: #XXXX',
         }
@@ -93,7 +93,7 @@ describe('BaseStep', function() {
       .extract({
         batchSize,
         maxPages: 1,
-        question: {
+        questions: {
           name: 'Pokemon name, starting with the first pokemon',
           number: 'Pokemon number, format: #XXXX',
         }

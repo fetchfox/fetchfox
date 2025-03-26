@@ -66,8 +66,32 @@ export const ExtractStep = class extends BaseStep {
         if (item instanceof Document) {
           combined = output;
         } else {
-          // TODO: intelligently merge so new stuff goes first, and isn't overriden
-          combined = { ...item, ...output };
+          const falsey = (val) => (
+            val === undefined ||
+            val === null ||
+            val === '' ||
+            val === '(not found)'
+          );
+
+          const mid = {};
+          for (const [key, val] of Object.entries(item)) {
+            mid[key] = val;
+          }
+
+          for (const [key, val] of Object.entries(output)) {
+            const existing = mid[key];
+            if (existing && falsey(val)) {
+              continue;
+            }
+            mid[key] = val;
+          }
+
+          // Put new fields at the start
+          combined = {};
+          for (const key of [...Object.keys(output), ...Object.keys(item)]) {
+            combined[key] = mid[key];
+          }
+
         }
         cursor.ctx.logger.debug(`${this} Yielding ${JSON.stringify(combined).substr(0, 360)}`);
 

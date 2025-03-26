@@ -10,6 +10,7 @@ export const ActionStep = class extends BaseStep {
 
   async process({ cursor, item }, cb) {
     const url = item.url || item._url;
+
     const instr = new Instructions(url, this.commands, cursor.ctx);
 
     // TODO: refactor how fetcher works to eliminate ctx concept
