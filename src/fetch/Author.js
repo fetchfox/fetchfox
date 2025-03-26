@@ -225,6 +225,7 @@ export const Author = class {
       await this.fetcher.goto(url, ctx);
       for (const goal of goals) {
         const doc = await this.fetcher.current(ctx);
+        this.logger.info(`initial html length ${doc.html.length}`);
         const context = {
           goal,
           html: await this.transform(doc.html),
@@ -232,6 +233,7 @@ export const Author = class {
           wait: this.wait,
           expected: expected ? JSON.stringify(expected, null, 2) : '(Expected results not available)',
         };
+        this.logger.info(`final html length ${context.html.length}`);
 
         this.logger.debug(`${this} Writing code with ${this.ai.advanced}`);
         const { prompt } = await prompts.pageActionCode

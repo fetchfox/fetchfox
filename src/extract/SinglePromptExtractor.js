@@ -115,9 +115,8 @@ export const SinglePromptExtractor = class extends BaseExtractor {
     const goal = goalPrompt(questions);
     const transformers = [];
     if (process.env.USE_TRANSFORM) {
-      transformers.push(new PrettyTransformer(this));
       transformers.push(new DropTransformer(this));
-      // transformers.push(new SelectorTransformer(questions, this));
+      transformers.push(new PrettyTransformer(this));
     }
 
     const url = doc.url;

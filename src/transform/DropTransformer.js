@@ -5,7 +5,7 @@ export const DropTransformer = class extends BaseTransformer {
   async _transform(html) {
     const dropMiddle = (node) => {
       const n = node.childNodes.length;
-      const l = 10;
+      const l = 8;
       if (n > 2 * l) {
         const first = node.childNodes.slice(0, l);
         const middle = node.childNodes.slice(l, -l);
@@ -15,11 +15,11 @@ export const DropTransformer = class extends BaseTransformer {
           dropMiddle(child);
         }
         for (const child of middle) {
-          child.remove();
+          node.removeChild(child);
         }
       }
+      return node;
     }
-
     const root = parse(html);
     const dropHtml = dropMiddle(root).toString();
     return dropHtml;
