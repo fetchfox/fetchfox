@@ -20,7 +20,7 @@ describe('workflow ct.curaleaf.com', async function() {
         product_strain: "hybrid, indica, or sativa",
         product_price: "the cost of the flower product in dollars"
       },
-      maxPages: 3
+      maxPages: 3,
       mode: 'multiple',
     })
     .limit(limit)

@@ -400,8 +400,8 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   const diff = now - lastTouch;
 
   // TODO: double check this before pushing it to prod
-  const wait = Math.max(1, loadWait - diff);
-  // const wait = loadWait;
+  // const wait = Math.max(1, loadWait - diff);
+  const wait = loadWait;
 
   logger.debug(`Load waiting ${(wait).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
   await new Promise(ok => setTimeout(ok, wait));
