@@ -59,7 +59,9 @@ export const OpenAI = class extends BaseAI {
       baseURL: this.baseURL,
     });
 
-    const systemPrompt = 'Act as a web scraping assistant, adept at understanding HTML and CSS and producing structured output.  You will help navigate a page by identifying and selecting relevant elements to click , particularly for accepting cookies and reaching the next page of content.  Never try to select an element that that does not exist.';
+    const systemPrompt = 'Act as an advanced web scraping assistant, adept at understanding HTML and CSS and producing accurate code and structured output.  You will help navigate a page by identifying and selecting relevant elements to click , particularly for accepting cookies and reaching the next page of content.  Never try to select an element that that does not exist.';
+    // const systemPrompt = 'Act as a web scraping assistant, adept at understanding HTML and CSS and producing code and structured output.'
+
     const args = {
       model: this.model,
       messages: [{ role: 'user', content: prompt }],

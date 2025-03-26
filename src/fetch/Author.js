@@ -142,14 +142,14 @@ export const Author = class {
               const r = await this.write(url, goals, expected);
               codes = r.codes;
               try {
-                for (line of codes.split("\n")) {
+                for (const line of codes[0].split("\n")) {
                   if (line.includes('Confidence: ')) {
-                    confidence = int(line.split('Confidence: ')[1]);
+                    confidence = parseInt(line.split('Confidence: ')[1]);
                     break;
                   }
                 }
-                // confidence = int(codes.split("\n").slice(-1).split('Confidence: ')[1]);
               } catch (e) {
+                this.logger.warn(e);
                 confidence = 0;
               }
               this.logger.info(`Confidence: ${confidence}`);
@@ -184,7 +184,7 @@ export const Author = class {
           // ok({ output, fns: codes.map(toFn), codes });
           ok({ output, fns: toFn(codes[0]), codes });
         } finally {
-          this.logger.debug(`${this} Release lock on ${key} (count=${lockers})`);
+          // this.logger.debug(`${this} Release lock on ${key} (count=${lockers})`);
           // done();
         }
       };

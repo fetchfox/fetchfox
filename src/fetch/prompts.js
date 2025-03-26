@@ -197,6 +197,7 @@ Important guidelines:
 * Your code will be used on the page HTML above, and similar pages
 * Do NOT guess at selectors you don't see on the page
 * If the action seems impossible, or not relevant, just write a noop function that calls done() right away
+* In case of severe error or failure, raise an exception or return no results
 * Do not waste time trying to click selectors that don't exist
 * Write robust code. If selectors timeout or fail, catch the error and try to continue
 

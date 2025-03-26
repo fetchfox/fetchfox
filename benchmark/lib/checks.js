@@ -51,10 +51,9 @@ export const checkItemsAI = async (items, expected, questions, fields) => {
 
   const prompt = `Give a score from 0 to 100 of how closely the actual results match the expected results.
 
-- You may based your score on the approximate percentage of expected fields that are exactly matched in the actual results.
+- You may base your score on the approximate percentage of expected fields that are exactly matched in the actual results.
 - However, you may give partial credit for responses that answer a question in a slightly different format if the corresponding question's wording allows it.
-- For fields that are subjective, like "tone" or "summary", you should not expect an exact match. Give full credit for differnces in subjective fields, as long as format is correct and the answers seem reasonable.
-- For objective fields, however, do expect an exact match
+- For fields that are more subjective, like "tone" or "summary", you should not expect an exact match. Give full credit for differnces in subjective fields, as long as format is correct and the answers seem reasonable.
 
 If there is a format discrepancy, try to determine if the answer is generally too short or too long, or still properly answers the question although it differs from the expected response.
 In the analysis, ensure that the most important information is mentioned first: Start with an overall evaluation, noting any missing results or fields, any extra results or fields or other major mistakes, then less important issues and optionally correct fields. Also note any out of order results, and any format differences that still answer the question properly.
@@ -69,7 +68,7 @@ Format your response like this:
 Example of valid response:
 {
   "analysis": "Mostly accurate but username format differs. Results match in username and comments fields, but 1 result (of 10) is missing. Username format differs but still is valid.",
-  "score": 80
+  "score": 85
 }
 
 -----
