@@ -1,6 +1,7 @@
 import pretty from 'pretty';
 import { shortObjHash } from '../util.js';
 import { BaseTransformer } from './BaseTransformer.js';
+import { DropTransformer } from './DropTransformer.js';
 import * as prompts from './prompts.js';
 import { parse } from 'node-html-parser';
 
@@ -23,6 +24,10 @@ export const SelectorTransformer = class extends BaseTransformer {
   }
 
   async _transform(html) {
+    const root = parse(html);
+    // const original = html;
+    // html = await (new DropTransformer()).transform(html);
+
     const context = {
       html: pretty(html, { ocd: true }),
       template: JSON.stringify(this.template, null, 2),
@@ -52,8 +57,6 @@ export const SelectorTransformer = class extends BaseTransformer {
     }
 
     this.logger.debug(`${this} Selectors map: ${JSON.stringify(map, null, 2)}`);
-
-    const root = parse(html);
 
     const grouped = {};
     for (const group of candidates) {
@@ -102,10 +105,6 @@ export const SelectorTransformer = class extends BaseTransformer {
     const selector = selectors[0];
 
     this.logger.debug(`${this} Using selector: ${selector}`);
-
-    if (!selector) {
-      throw '??';
-    }
 
     const htmls = [];
     for (const el of root.querySelectorAll(selector)) {

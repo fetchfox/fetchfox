@@ -8,7 +8,7 @@ import { storeScores } from '../lib/store.js';
 describe('workflow ct.curaleaf.com', async function() {
   const matrix = standardMatrix();
 
-  const limit = 50;
+  const limit = 100;
   const wf = await fox
     .init('https://ct.curaleaf.com/shop/connecticut/curaleaf-ct-stamford/categories/flower')
     .extract({
@@ -20,7 +20,7 @@ describe('workflow ct.curaleaf.com', async function() {
         product_strain: "hybrid, indica, or sativa",
         product_price: "the cost of the flower product in dollars"
       },
-      maxPages: 3,
+      maxPages: 10,
       mode: 'multiple',
     })
     .limit(limit)
@@ -33,9 +33,8 @@ describe('workflow ct.curaleaf.com', async function() {
     matrix,
     [
       (items) => {
-        // TODO: CHECK AND SCORE
-        // checkAtLeast(limit);
-        return [1, 1];
+        console.log('items', items);
+        return checkAtLeast(items, limit)
       }
     ],
     { shouldSave: true });

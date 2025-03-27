@@ -128,20 +128,20 @@ export const Instructions = class {
     const paginationLimit = this.commands[0].limit || 25;
     const legacy = this.commands.filter(it => it.legacy);
     const commands = legacy.length ? legacy : [
-      // {
-      //   prompt: 'Click yes on age verification prompts, if they exist.',
-      //   optional: true,
-      //   mode: 'all',
-      //   limit: 1,
-      //   timeout: 5000,
-      // },
-      // {
-      //   prompt: 'Click yes on cookie prompts, if they exist.',
-      //   optional: true,
-      //   mode: 'all',
-      //   limit: 1,
-      //   timeout: 5000,
-      // },
+      {
+        prompt: 'Click yes on age verification prompts, if they exist.',
+        optional: true,
+        mode: 'all',
+        limit: 1,
+        timeout: 5000,
+      },
+      {
+        prompt: 'Click yes on cookie prompts, if they exist.',
+        optional: true,
+        mode: 'all',
+        limit: 1,
+        timeout: 5000,
+      },
       {
         prompt: nextPagePrompt + domainSpecific,
         mode: 'repeat',
@@ -404,15 +404,12 @@ ${this.hint}` : '',
 
       // Keep original prompt in stored state
       if (learned.length) {
-        console.log('JSON.stringify(learned)', JSON.stringify(learned, null, 2));
-
         this.logger.debug(`${this} Storing learned state in ${key}`);
         await this.kv.set(key, JSON.stringify(learned));
       }
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
-
 
     } catch (e) {
       this.logger.error(`${this} Got error: ${e}`);
