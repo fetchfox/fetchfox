@@ -2,17 +2,9 @@ import { setMaxListeners } from 'events';
 import { Cursor } from '../cursor/Cursor.js';
 import { Context } from '../context/Context.js';
 import { Planner } from '../plan/Planner.js';
-import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 import { BaseWorkflow } from './BaseWorkflow.js';
 import { isPlainObject } from '../util.js';
 import { classMap, stepNames, BaseStep } from '../step/index.js';
-
-const authorWhitelist = [
-  'curaleaf',
-];
-const transformWhitelist = [
-  'finefettle',
-];
 
 export const Workflow = class extends BaseWorkflow {
   constructor() {
@@ -101,26 +93,6 @@ export const Workflow = class extends BaseWorkflow {
     return this.cursor.out(markDone);
   }
 
-  useAuthor() {
-    const json = JSON.stringify(this.steps);
-    for (const wl of authorWhitelist) {
-      if (json.includes(wl)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  useTransform() {
-    const json = JSON.stringify(this.steps);
-    for (const wl of transformWhitelist) {
-      if (json.includes(wl)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   async run(args, cb) {
     // Create an abort controller that can cancel this worklfow,
     // and listen to the signal in context if one exists.
@@ -151,23 +123,6 @@ export const Workflow = class extends BaseWorkflow {
       for (const step of this.steps) {
         step.limit = step.limit ? Math.min(this.ctx.limit, step.limit) : this.ctx.limit;
       }
-    }
-
-    if (this.useAuthor()) {
-      this.ctx.logger.debug(`${this} Using AuthorExtractor`);
-      this.ctx.extractor = new AuthorExtractor({
-        ...this.ctx.extractor,
-        baseline: this.ctx.extractor,
-      });
-      this.cursor.ctx.extractor = this.ctx.extractor;
-    }
-
-    if (this.useTransform()) {
-      this.ctx.logger.debug(`${this} Using TransformExtractor`);
-      this.ctx.extractor = new TransformExtractor({
-        ...this.ctx.extractor,
-      });
-      this.cursor.ctx.extractor = this.ctx.extractor;
     }
 
     const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
