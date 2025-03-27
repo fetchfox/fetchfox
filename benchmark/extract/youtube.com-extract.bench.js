@@ -2,10 +2,7 @@ import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsAI } from '../lib/checks.js';
-<<<<<<< HEAD:benchmark/extract/youtube.com.bench.js
-=======
 import { storeScores } from '../lib/store.js';
->>>>>>> dev:benchmark/extract/youtube.com-extract.bench.js
 
 describe('extract from youtube.com', async function() {
   const matrix = standardMatrix({});
