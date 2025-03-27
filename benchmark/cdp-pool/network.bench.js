@@ -8,7 +8,6 @@ import { storeScores } from '../lib/store.js';
 const limit = 10;
 
 
-
 // describe('network bench (prodrecent)', function () {
 //   const matrix = standardMatrix();
 //   const jobId = 'xxf4lzsicu';
@@ -32,6 +31,7 @@ const limit = 10;
 // });
 
 
+//This should perform pretty identically without the media requests.  Very simple
 describe('network bench (marginalia sanity check)', function () {
   const matrix = standardMatrix();
   const jobId = 'vwriwya348';
@@ -54,6 +54,34 @@ describe('network bench (marginalia sanity check)', function () {
   );
 });
 
+
+
+// describe('network bench (500px contact info)', function () {
+//   const matrix = standardMatrix();
+//   const jobId = 'w9g0gm0nbw';
+
+//   itRunMatrix(
+//     it,
+//     `network bench (500px contact info)`,
+//     jobId,
+//     matrix,
+//     [
+//       async (items) => {
+//         console.log('items -->', items);
+//         const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+//         const data = await resp.json();
+//         const expected = (data.results.items || []).slice(0, limit);
+//         return checkItemsAI(items, expected);
+//       },
+//     ],
+//     { shouldSave: true, limit }
+//   );
+// });
+
+
+
+
+// NOTE: Ignore these for now, earlier experiments.
 
 // describe('network bench (pokemon)', function () {
 //   const matrix = standardMatrix();
