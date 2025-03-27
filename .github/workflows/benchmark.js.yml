@@ -22,14 +22,13 @@ jobs:
           - google:gemini-1.5-pro
           - google:gemini-1.5-flash
           - google:gemini-2.0-flash
-          - google:gemini-2.0-pro
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Extract branch name
       id: get_branch
-      run: echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      run: echo "BRANCH=${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4

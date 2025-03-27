@@ -39,6 +39,21 @@ export const Instructions = class {
 
     this.limit = options?.limit;
     this.hint = options?.hint;
+    if (this.ai.model.includes("o3-mini")) {
+      this.generationConfig = {};
+    } else if (this.ai.model.includes("gemini")) {
+      this.generationConfig = {
+        temperature: options?.temperature || 0.2,
+        topP: options?.topP || 0.4,
+      };
+    } else {
+      this.generationConfig = {
+        temperature: options?.temperature || 0.5,
+        topP: options?.topP || 0.3,
+      };
+    }
+
+    this.logger = options?.logger || defaultLogger
 
     this.codeInstructions = new CodeInstructions(url, this.commands, options);
   }
@@ -217,7 +232,7 @@ ${this.hint}` : '',
           .renderMulti(context, 'html', ai.advanced, { maxTokens });
         const answers = (
           await Promise.allSettled(actionPrompts.map(
-            (prompt) => this.ai.advanced.ask(prompt, { format: 'json' })
+            (prompt) => this.ai.advanced.ask(prompt, { format: 'json', ...this.generationConfig })
           ))
         )
           .filter(result => result.status == 'fulfilled');
@@ -714,7 +729,7 @@ ${this.hint}` : '',
         context, 'iterations', this.ai.advanced);
 
       this.logger.debug(`${this} Check if ${goal} succeeded`);
-      const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+      const answer = await this.ai.advanced.ask(prompt, { format: 'json', ...this.generationConfig });
       this.logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
 
       return answer.partial.didComplete == 'yes';
@@ -774,6 +789,6 @@ Note:
 - If you're less confident you may scroll or click a button to Load More data or Show More data.
 - The page may be in a foreign language, handle that also
 
-You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
+You will know pagination was successful if you see relevant new results on each iteration.
 
 Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets. In your analysis, figure out if this is pagination for the main content or a widget, and give low relevancy and score if its a widget, carousel, etc.`;

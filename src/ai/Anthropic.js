@@ -53,13 +53,21 @@ export const Anthropic = class extends BaseAI {
     return { id, model, message, usage };
   }
 
-  async *inner(prompt) {
+  async *inner(prompt, options) {
     const anthropic = new AnthropicLib({ apiKey: this.apiKey });
+    const generationConfig = {};
+    if (options?.temperature) {
+      generationConfig.temperature = options.temperature;
+    }
+    if (options?.topP) {
+      generationConfig.top_p = options.topP;
+    }
     const completion = await anthropic.messages.create({
       max_tokens: this.maxTokensOut,
       messages: [{ role: 'user', content: prompt }],
       model: this.model,
       stream: true,
+      ...generationConfig,
     });
     for await (const chunk of completion) {
       yield Promise.resolve(chunk);
