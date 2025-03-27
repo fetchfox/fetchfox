@@ -507,16 +507,17 @@ describe('extract finefettle.com', async function() {
   ];
 
   const cases = [
-    // {
-    //   name: 'live',
-    //   url: 'https://www.finefettle.com/connecticut/stamford-dispensary/recreational/menu/flower',
-    //   expected,
-    // },
-
+    {
+      name: 'live',
+      url: 'https://www.finefettle.com/connecticut/stamford-dispensary/recreational/menu/flower',
+      expected,
+      maxPages: 10,
+    },
     {
       name: 'saved',
       url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/lqynlvd6fm/https-www-finefettle-com-connecticut-stamford-dispensary-recreational-menu-flower.html',
       expected,
+      maxPages: 1,
     },
   ];
 
@@ -529,14 +530,14 @@ describe('extract finefettle.com', async function() {
     product_price: 'the cost of the flower product in dollars'
   };
 
-  for (const { name, url, expected } of cases) {
+  for (const { name, url, maxPages, expected } of cases) {
     const wf = await fox
       .init(url)
       .extract({
         questions,
         mode: 'multiple',
         view: 'html',
-        maxPages: 1,
+        maxPages,
       })
       .plan();
 
@@ -546,7 +547,12 @@ describe('extract finefettle.com', async function() {
       wf.dump(),
       matrix,
       [
-        (items) => checkItemsAI(items, expected, questions),
+        (items) => checkItemsAI(
+          items,
+          expected,
+          questions,
+          name == 'live' ? 'The actual data is from the live site, while the expected results were collected and are not frequently updated. Also, the expecte results only include the first 67 results. For this live data check, focus mainly on the shape of the actualu results, verifying that it matches the shape of the expected results, and for accuracy focus on only the first 50 or so items.' : null,
+        ),
         (items) => checkAtLeast(items, 67),
       ],
       { shouldSave: true });

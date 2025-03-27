@@ -67,14 +67,17 @@ Example of valid response:
   "score": 70
 }
 
->>>> Questions:
+>>> Questions:
 ${questions}
 
->>>> Expected results:
+>>> Expected results:
 ${expectedStr}
 
->>>> Actual results:
+>>> Actual results:
 ${itemsStr}
+
+>>> Additional guidance for scoring this specific result set:
+${hint}
 
 Respond ONLY with JSON, as your reponse will be machine parsed using JSON.parse().`;
 

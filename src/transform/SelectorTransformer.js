@@ -103,6 +103,10 @@ export const SelectorTransformer = class extends BaseTransformer {
 
     this.logger.debug(`${this} Using selector: ${selector}`);
 
+    if (!selector) {
+      throw '??';
+    }
+
     const htmls = [];
     for (const el of root.querySelectorAll(selector)) {
       htmls.push(pretty(el.toString(), { ocd: true }));
@@ -110,7 +114,7 @@ export const SelectorTransformer = class extends BaseTransformer {
 
     return htmls;
 
-    // TODO: REmove or refactor old code below
+    // TODO: Remove or refactor old code below
     
     // const matches = [];
     // for (const s of selectors) {
