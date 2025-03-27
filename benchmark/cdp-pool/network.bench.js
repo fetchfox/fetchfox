@@ -7,13 +7,38 @@ import { storeScores } from '../lib/store.js';
 
 const limit = 10;
 
-describe('network bench (prodrecent)', function () {
+
+
+// describe('network bench (prodrecent)', function () {
+//   const matrix = standardMatrix();
+//   const jobId = 'xxf4lzsicu';
+
+//   itRunMatrix(
+//     it,
+//     `network bench (prodrecent)`,
+//     jobId,
+//     matrix,
+//     [
+//       async (items) => {
+//         console.log('items -->', items);
+//         const resp = await fetch(`https://fetchfox.ai/api/v2/jobs/${jobId}`);
+//         const data = await resp.json();
+//         const expected = (data.results.items || []).slice(0, limit);
+//         return checkItemsAI(items, expected);
+//       },
+//     ],
+//     { shouldSave: true, limit }
+//   );
+// });
+
+
+describe('network bench (marginalia sanity check)', function () {
   const matrix = standardMatrix();
-  const jobId = 'xxf4lzsicu';
+  const jobId = 'vwriwya348';
 
   itRunMatrix(
     it,
-    `network bench (prodrecent)`,
+    `network bench (marginalia sanity check)`,
     jobId,
     matrix,
     [
@@ -28,6 +53,7 @@ describe('network bench (prodrecent)', function () {
     { shouldSave: true, limit }
   );
 });
+
 
 // describe('network bench (pokemon)', function () {
 //   const matrix = standardMatrix();
