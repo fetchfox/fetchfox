@@ -10,6 +10,73 @@ describe('action domain.com.au', async function() {
 
   const cases = [
     {
+      name: 'townsville-city-qld-4810',
+      url: 'https://www.domain.com.au/real-estate-agents/townsville-city-qld-4810/',
+      expected: [
+        {
+          name: 'Giovanni Spinella',
+          phone: '0406 664 191',
+        },
+        {
+          name: 'Marion Grice',
+          phone: '0412 960 744',
+        },
+        {
+          name: 'Damien Keyes',
+          phone: '07 4447 9010',
+        },
+        {
+          name: 'Karyn Voevodin',
+          phone: '0417 616 004',
+        },
+        {
+          name: 'Taylor Pearce',
+          phone: '0403 093 225',
+        },
+        {
+          name: 'Jabyn Manning',
+          phone: '07 4750 4000',
+        },
+        {
+          name: 'Dean Dank',
+          phone: '0444 847 00',
+        },
+        {
+          name: 'Tammy Tyrrell',
+          phone: '07 4772 2022',
+        },
+        {
+          name: 'Leanne Harris',
+          phone: '07 4727 2450',
+        },
+        {
+          name: 'Janelle Bourne',
+          phone: '0405 158 070',
+        },
+        {
+          name: 'Shane Lindo',
+          phone: '0438 418 474',
+        },
+        {
+          name: 'Jodi Westcott',
+          phone: '07 4727 2450',
+        },
+        {
+          name: 'Dan Ryder',
+          phone: '0408 887 021',
+        },
+        {
+          name: 'Jaimee Rankin',
+          phone: '0498 656 483',
+        },
+        {
+          name: 'Phill Charlwood',
+          phone: '0404 144 607',
+        },
+      ],
+    },
+
+    {
       name: 'sydneycoveproperty-6877',
       url: 'https://www.domain.com.au/real-estate-agencies/sydneycoveproperty-6877/',
       expected: [
@@ -187,7 +254,10 @@ describe('action domain.com.au', async function() {
         wf.dump(),
         matrix,
         [
-          (items) => checkItemsAI(items, expected, ['name', 'phone']),
+          (items) => {
+            console.log(items);
+            return checkItemsAI(items, expected, ['name', 'phone']);
+          }
         ],
         {
           shouldSave: true,
