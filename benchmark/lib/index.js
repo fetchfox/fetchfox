@@ -110,6 +110,10 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     const after = JSON.parse(JSON.stringify(wf.ctx.ai.stats));
     const diff = diffStats(before, after);
 
+    if (wf.ctx.fetcher?.usage) {
+      diff.fetcher = wf.ctx.fetcher.usage;
+    }
+
     console.log('AI stats:');
     console.log(JSON.stringify(diff, null, 2));
 

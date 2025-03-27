@@ -16,7 +16,7 @@ export const BaseFetcher = class {
     this.ai = options?.ai || getAI();
     this.kv = options?.kv || getKV();
     this.queue = [];
-    this.usage = { goto: 0 };
+    this.usage = { goto: 0, bandwidth: 0 };
 
     this.q = new PQueue({
       concurrency: options?.concurrency || 4,

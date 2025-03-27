@@ -168,6 +168,7 @@ export const storeScores = async (scores) => {
   for (const score of scores) {
     // commit and id fields required for DynamoDB scores table
     // currently overwrites if commit / id already in database
+          debugger;
     const row = {
       commit: score.commit || 'unknown', // partition key
       id: `${id++}#${srid()}`, // sort key, must be unique string
@@ -195,6 +196,10 @@ export const storeScores = async (scores) => {
       requests_attempts: score.stats?.requests?.attempts ?? -1,
       requests_errors: score.stats?.requests?.errors ?? -1,
       requests_failures: score.stats?.requests?.failures ?? -1,
+
+      fetcher_bandwidth_bytes: scores.stats?.fetcher.bandwidth,
+      fetcher_bandwidth_mb: ((scores.stats?.fetcher.bandwidth || 0) / (1024*1024)).toFixed(2),
+      fetcher_goto_count: scores.stats?.fetcher.goto,
 
       // NOTE: We can store items later if needed. Leave it off
       // for now to avoid putting junk in the jsonl file.

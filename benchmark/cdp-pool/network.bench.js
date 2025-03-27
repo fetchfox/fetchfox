@@ -5,7 +5,7 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsExact, checkItemsAI } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-const limit = 5;
+const limit = 10;
 
 describe('network bench (prodrecent)', function () {
   const matrix = standardMatrix();

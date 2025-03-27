@@ -57,9 +57,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   _setupBandwidthTracking(ctx) {
+    // if (!ctx.netStats) {
+    //  ctx.netStats = {
+    //   totalBandwidth: 0
+    //  };
+    // }
+    const usage = this.usage;
     ctx.page.on('requestfinished', async request => {
-      const sizes = await request.sizes()
-      this.logger.debug(sizes)
+      const sizes = await request.sizes();
+      usage.bandwidth += sizes.requestBodySize;
+      usage.bandwidth += sizes.requestHeadersSize;
+      usage.bandwidth += sizes.responseBodySize;
+      usage.bandwidth += sizes.responseHeadersSize;
+      //this.logger.debug(sizes)
       // TODO: we can just sum these and accumulate on the benchmark somehow
     })
   }
