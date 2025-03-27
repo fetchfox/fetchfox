@@ -70,6 +70,9 @@ Iterating over matched elements:
 Variable context:
 - Recall that Playwright like evaluateAll() and evaluate() have their own execution context, sine they execute inside the Chrome instance. Therefore, fnSendResults and fnDebugLog are not available inside the functions passed to evaluateAll(), evaluate(), etc.
 
+Playwright strict mode:
+- Recall that Playwright applies strict mode to locators. Whenever you use a locator, either iterate over all matches using evaluateAll(), or use the first one using .first() in cases where you are simply waiting for it to load. Do NOT write code that will trigger a strict mode violation
+
 Selector guidance:
 - Prefer CSS selectors, but use text= when necessary
 - Do NOT mix text= and css= selectors. Choose one or the other
