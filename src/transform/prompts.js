@@ -10,8 +10,9 @@ In some cases, the data the user needs will be in two or more parts of the DOM t
 
 Your return format should be a JSON array of items, with each item in this format:
 
-- "analysis": An analysis of how this selector functions, 5-20 words
+- "analysis": An analysis of how this selector functions, 100 words. Describe expected accuracy, semantic vs. random text nature, and other fators
 - "selector": A valid CSS selector that gets the target data
+- "stability": A score of how stable you expect this selector to be, from 1..100. Semantic selectors are more stable, random string selectors are less stable
 - "rating": A score of how well you think this selector will work, from 1..100
 
 Finally, your *first* response should be a meta record that contains a 50-100 word analysis of the page, like this:
@@ -23,8 +24,8 @@ Example of valid output:
 
 [
   {"_meta": "...lorem ipsum...", "_example": {"author": "John Doe", "title": "Some Title", "review_text": "I Liked it"}},
-  {"analysis": "This selector gets the parent element containing author and title", "selector": ".book-node", "rating": 90},
-  {"analysis": "Each review has its own node with a .review-content > div child that always has text", "selector": ".review-content > div", "rating": 85},
+  {"analysis": "This selector gets the parent element containing author and title", "selector": ".book-node", "stability": 95, "rating": 90},
+  {"analysis": "Each review has its own node with a .review-content > div child that always has text", "selector": ".review-content > div.y3dxbd", "stability": 25, "rating": 85},
 ]
 
 >>> Page HTML is:

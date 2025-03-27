@@ -61,8 +61,6 @@ export const Template = class {
 
     const maxTokens = (options?.maxTokens || ai.maxTokens || 128000) * this.safetyMarginPercent;
 
-    console.log('maxTokens', maxTokens);
-
     const countFn = async (str) => ai.countTokens(str, { timer });
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 
@@ -91,12 +89,9 @@ export const Template = class {
       return this.render(copy);
     }
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       prompt = render(guess);
       tokens = await countFn(prompt);
-
-      console.log('tokens', tokens);
-      console.log('len   ', prompt.length);
 
       const diff = maxTokens - tokens;
 
@@ -122,11 +117,6 @@ export const Template = class {
 
     timer.log(`bytes per token=${bytesPerToken.toFixed(2)}`);
     timer.pop();
-
-    console.log('bytesUsed', bytesUsed, final);
-    if (bytesUsed == 0) {
-      throw '!!';
-    }
 
     return { prompt, bytesUsed, done: bytesUsed == len };
   }

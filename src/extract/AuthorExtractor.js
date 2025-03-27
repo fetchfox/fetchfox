@@ -27,20 +27,13 @@ export const AuthorExtractor = class extends BaseExtractor {
 
     const namespace = new URL(url).host;
     const task = new ExtractionTask(namespace, questions, { extractor: this.baseline });
-
-    const transformers = [];
-    if (process.env.USE_TRANSFORM) {
-      // transformers.push(new PrettyTransformer(this));
-      // transformers.push(new SelectorTransformer(questions, this));
-    }
-
     const author = new Author({
       fetcher: this.fetcher,
       kv: this.kv,
       ai: this.ai,
       cache: this.cache,
       logger: this.logger,
-      transformers,
+      transformers: [],
       timeout: this.timeout || 90 * 1000,
     });
 

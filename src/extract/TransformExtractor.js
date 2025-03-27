@@ -1,3 +1,5 @@
+import PQueue from 'p-queue';
+import { createChannel, promiseAllStrict } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import {
@@ -7,7 +9,7 @@ import {
 import * as prompts from './prompts.js';
 import { getKV } from '../kv/index.js';
 
-export const DirectExtractor = class extends BaseExtractor {
+export const TransformExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.kv = options?.kv || getKV();
@@ -16,37 +18,54 @@ export const DirectExtractor = class extends BaseExtractor {
   async *_run(doc, questions, options) {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    const extraRules = modeRules(options?.mode || 'auto');
+    const transformer = new SelectorTransformer(questions, this);
+    const htmls = await transformer.transform(doc.html);
+
+    this.logger.debug(`${this} Running on ${htmls.length} html chunks`);
+
+    const buffer = [];
+    let idx = 0;
+    htmls.forEach(() => { buffer.push(null) });
+
+    const chan = createChannel();
+    const q = new PQueue({ concurrency: 16 });
+    const all = [];
+    for (const [i, html] of htmls.entries()) {
+      const task = q.add(async () => {
+        this.logger.debug(`${this} Run on chunk #${i} of ${htmls.length}`);
+        const item = await this._runSingle(doc, html, questions, options);
+        chan.send({ index: i, item });
+      });
+      all.push(task);
+    }
+
+    const p = promiseAllStrict(all).then(() => chan.end());
+    for await (const r of chan.receive()) {
+      if (r.end) {
+        break;
+      }
+
+      buffer[r.index] = r.item;
+      while (buffer[idx]) {
+        this.logger.debug(`${this} Yield from buffer ${idx}`);
+        yield Promise.resolve(buffer[idx]);
+        idx++;
+      }
+    }
+
+    await p;
+  }
+
+  async _runSingle(doc, html, questions, options) {
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      body: doc.html,
-      extraRules,
+      body: html,
     };
-
-    let scrapePrompts = await prompts.scrapeOnce.renderMulti(context, 'body', this.ai);
-    const max = 32
-    if (scrapePrompts.length > max) {
-      this.logger.warn(`${this} Got too many prompts (${scrapePrompts.length}), only processing ${max}`);
-      scrapePrompts = scrapePrompts.slice(0, max);
-    }
-
-    try {
-      for (const prompt of scrapePrompts) {
-        const gen = this.ai.stream(prompt, { format: 'jsonl' });
-        for await (const { delta } of gen) {
-          if (delta._meta) {
-            this.logger.debug(`${this} Skipping meta result: ${JSON.stringify(delta)} for ${doc.url}`);
-            continue;
-          }
-
-          yield Promise.resolve(new Item(delta, doc));
-        }
-      }
-    } catch (e) {
-      this.logger.error(`${this} Got error while extracting: ${e}`);
-      throw e;
-    }
+    const { prompt } = await prompts.scrapeSingleShort.renderCapped(
+      context, 'body', this.ai);
+    const answer = await this.ai.ask(prompt, { format: 'json' });
+    return new Item(answer.partial, doc);
   }
 }
 
