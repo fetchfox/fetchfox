@@ -2,10 +2,7 @@ import PQueue from 'p-queue';
 import { createChannel, clip, promiseAllStrict } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import {
-  PrettyTransformer,
-  SelectorTransformer,
-} from '../transform/index.js';
+import { DropTransformer } from '../transform/index.js';
 import * as prompts from './prompts.js';
 import { getKV } from '../kv/index.js';
 import { DirectExtractor } from './DirectExtractor.js';
@@ -27,13 +24,14 @@ export const AuthorExtractor = class extends BaseExtractor {
 
     const namespace = new URL(url).host;
     const task = new ExtractionTask(namespace, questions, { extractor: this.baseline });
+    const transformer = new DropTransformer();
     const author = new Author({
       fetcher: this.fetcher,
       kv: this.kv,
       ai: this.ai,
       cache: this.cache,
       logger: this.logger,
-      transformers: [],
+      transformer,
       timeout: this.timeout || 90 * 1000,
     });
 

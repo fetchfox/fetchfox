@@ -48,6 +48,10 @@ export const ExtractStep = class extends BaseStep {
   }
 
   useAuthor(item) {
+    if (process.env.USE_AUTHOR) {
+      return true;
+    }
+
     const json = JSON.stringify(item);
     for (const wl of authorWhitelist) {
       if (json.includes(wl)) {
@@ -58,6 +62,10 @@ export const ExtractStep = class extends BaseStep {
   }
 
   useTransform(item) {
+    if (process.env.USE_TRANSFORM) {
+      return true;
+    }
+
     const json = JSON.stringify(item);
     for (const wl of transformWhitelist) {
       if (json.includes(wl)) {
@@ -76,8 +84,8 @@ export const ExtractStep = class extends BaseStep {
       ex = new TransformExtractor(cursor.ctx.extractor);
     } else if (this.useAuthor(item)) {
       ex = new AuthorExtractor({
-        ...this.ctx.extractor,
-        baseline: this.ctx.extractor,
+        ...cursor.ctx.extractor,
+        baseline: cursor.ctx.extractor,
       });
     } else {
       ex = cursor.ctx.extractor;

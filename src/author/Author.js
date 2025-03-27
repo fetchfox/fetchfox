@@ -18,7 +18,7 @@ export const Author = class {
     this.fetcher = options?.fetcher || getFetcher();
     this.kv = options?.kv || getKV();
     this.ai = options?.ai || getAI(null, { cache: this.cache });
-    this.transformers = options?.transformers || [];
+    this.transformer = options?.transformer || [];
     this.logger = options?.logger || defaultLogger
     this.timeout = options?.timeout || this.fetcher.timeout || 60 * 1000;
     this.wait = options?.wait || this.fetcher.wait || 4 * 1000;
@@ -346,15 +346,8 @@ export const Author = class {
   }
 
   async transform(html) {
-    this.logger.debug(`${this} Running ${this.transformers.length} transformers on ${html.length} bytes`);
-    let out = html;
-
-    for (const t of this.transformers) {
-      out = await t.transform(out);
-    }
-
-    this.logger.debug(`${this} Final HTML is ${out.length} bytes`);
-    return out;
+    this.logger.debug(`${this} Running ${this.transformer} on ${html.length} bytes`);
+    return this.transformer.transform(html);
   }
 }
 
