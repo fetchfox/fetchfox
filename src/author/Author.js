@@ -14,6 +14,7 @@ const lock = new AsyncLock();
 
 export const Author = class {
   constructor(options) {
+    this.cache = options?.cache;
     this.fetcher = options?.fetcher || getFetcher();
     this.kv = options?.kv || getKV();
     this.ai = options?.ai || getAI(null, { cache: this.cache });
@@ -28,19 +29,39 @@ export const Author = class {
     return `[${this.constructor.name}]`;
   }
 
-  async *run(task, urls) {
-    const { script, output } = await this.get(task, urls);
+  scriptCacheKey(task, url, script) {
+    const hash = shortObjHash({
+      url,
+      goals: task.goals.join('\n'),
+      codes: script.codes.join('\n'),
+    });
+    return `run-script:${hash}`;
+  }
 
-    const seen = {};
-    const hash = it => shortObjHash({ r: it.result });
+  async getScriptCache(task, url, script) {
+    if (!this.cache) return;
+    const cacheKey = this.scriptCacheKey(task, url, script);
+    return this.cache.get(cacheKey);
+  }
 
-    if (output) {
-      seen[hash(output)] = true;
-      yield Promise.resolve(output);
-    }
+  async setScriptCache(task, url, script, val) {
+    if (!this.cache) return;
+    const cacheKey = this.scriptCacheKey(task, url, script);
+    return this.cache.set(cacheKey, val);
+  }
 
+  // TODO: move this into BaseTask?
+  async *runScript(task, urls, script) {
     // TODO: process these concurrently?
     for (const url of urls) {
+      const cached = await this.getScriptCache(task, url, script);
+      if (cached) {
+        for (const val of cached) {
+          yield Promise.resolve(val);
+        }
+        return;
+      }
+
       const chan = createChannel();
       /* eslint-disable no-async-promise-executor */
       const promise = new Promise(async (ok) => {
@@ -76,21 +97,41 @@ export const Author = class {
       });
       /* eslint-enable no-async-promise-executor */
 
+      const results = [];
       for await (const val of chan.receive()) {
         if (val.end) {
           break;
         }
 
-        const h = hash(val);
-        if (seen[h]) {
-          continue;
-        }
-        seen[h] = true;
         this.logger.info(`${this} Yielding a result ${clip(val, 100)}`);
         yield Promise.resolve(val);
+        results.push(val);
       }
 
       await promise;
+      await this.setScriptCache(task, url, script, results);
+    }
+  }
+
+  async *run(task, urls) {
+    const { script, output } = await this.get(task, urls);
+
+    const seen = {};
+    const hash = it => shortObjHash({ r: it.result });
+
+    if (output) {
+      seen[hash(output)] = true;
+      yield Promise.resolve(output);
+    }
+
+    const gen = this.runScript(task, urls, script);
+    for await (const val of gen) {
+      const h = hash(val);
+      if (seen[h]) {
+        continue;
+      }
+      seen[h] = true;
+      yield Promise.resolve(val);
     }
   }
 
@@ -143,6 +184,9 @@ export const Author = class {
             await this.save(task, script);
           }
 
+          // console.log('found script:', script);
+          // const script2 = await this.evaluate(task, urls, script);
+
           this.logger.debug(`${this} Returning script: ${script} with code=${script.codes.join('\n\n')}`);
           lockers--;
           ok({ script, output });
@@ -154,11 +198,85 @@ export const Author = class {
     });
   }
 
+  async write(task, urls, options) {
+    const draft = await this.generate(task, urls, options);
+    // TODO
+    return draft;
+  }
+
+  async evaluate(task, urls, script) {
+    // Get code
+    // TODO: use all codes
+    const code = script.codes[0].replace(/Confidence: \d+/g, '');
+
+    // Get HTML
+    const url = urls[0]; // TODO: use all urls
+    const ctx = {};
+    await this.fetcher.start(ctx);
+    await this.fetcher.goto(url, ctx);
+    const doc = await this.fetcher.current(ctx);
+
+    const expected = await task.expected(urls, 3);
+    const actual = [];
+    const gen = this.runScript(task, urls, script);
+    for await (const val of gen) {
+      actual.push(...(val.result || []));
+    }
+
+    // Get feedback
+    const contextFeedback = {
+      html: await this.transform(doc.html),
+      expected,
+      actual: JSON.stringify(actual, null, 2),
+      code,
+    };
+    this.logger.info(`${this} Get feedback from ${this.ai.advanced}`);
+    const { prompt: promptFeedback } = await prompts.evaluateResults
+      .renderCapped(contextFeedback, 'html', this.ai.advanced);
+    console.log('prompt', promptFeedback);
+    const answerFeedback = await this.ai.advanced.ask(
+      promptFeedback, { format: 'json' });
+    const feedback = answerFeedback.partial;
+    console.log('Feedback -->', feedback);
+
+    // Iterate on the feedback
+    const contextIterate = {
+      html: await this.transform(doc.html),
+      expected,
+      actual: JSON.stringify(actual, null, 2),
+      code,
+      feedback: JSON.stringify(feedback, null, 2),
+    }
+    const { prompt: promptIterate } = await prompts.iterateCode
+      .renderCapped(contextIterate, 'html', this.ai.advanced);
+    const answerIterate = await this.ai.advanced.ask(
+      promptIterate, { format: 'text' });
+    console.log('answerIterate', answerIterate.partial);
+
+    // TODO: consolidate this w/ code in generate();
+    const script2 = new Script();
+    const code2 = answerIterate.partial
+      .replaceAll('```javascript', '')
+      .replaceAll('```', '');
+
+    console.log('code2:', code2);
+    script2.push(code2);
+    console.log('\n\tGet actual results 2....\n');
+    const actual2 = [];
+    const gen2 = this.runScript(task, urls, script2);
+    for await (const val of gen2) {
+      actual2.push(...(val.result || []));
+    }
+    console.log('actual2', actual2);
+
+    return script2
+  }
+  
   async iterate() {
     throw 'TODO';
   }
 
-  async write(task, urls, options) {
+  async generate(task, urls, options) {
     const maxAttempts = options?.maxAttempts || 3;
     const url = urls[0]; // TODO: use all urls
     const expected = await task.expected(urls, 3);
@@ -167,7 +285,7 @@ export const Author = class {
     let output;
     let ok = false;
 
-    this.logger.debug(`${this} Write code for url=${url} task=${task}`);
+    this.logger.info(`${this} Write code for url=${url} task=${task}`);
 
     // Set up fetcher
     const ctx = {};
@@ -187,7 +305,7 @@ export const Author = class {
             expected,
           };
 
-          this.logger.debug(`${this} Writing code with ${this.ai.advanced}, attempt=${attempt}`);
+          this.logger.info(`${this} Writing code with ${this.ai.advanced}, attempt=${attempt}`);
           const { prompt } = await prompts.pageActionCode
             .renderCapped(context, 'html', this.ai.advanced);
 
@@ -301,3 +419,4 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
   }
   return result;
 }
+

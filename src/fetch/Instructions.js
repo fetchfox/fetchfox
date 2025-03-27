@@ -113,20 +113,20 @@ export const Instructions = class {
     const paginationLimit = this.commands[0].limit || 25;
     const legacy = this.commands.filter(it => it.legacy);
     const commands = legacy.length ? legacy : [
-      {
-        prompt: 'Click yes on age verification prompts, if they exist.',
-        optional: true,
-        mode: 'all',
-        limit: 1,
-        timeout: 5000,
-      },
-      {
-        prompt: 'Click yes on cookie prompts, if they exist.',
-        optional: true,
-        mode: 'all',
-        limit: 1,
-        timeout: 5000,
-      },
+      // {
+      //   prompt: 'Click yes on age verification prompts, if they exist.',
+      //   optional: true,
+      //   mode: 'all',
+      //   limit: 1,
+      //   timeout: 5000,
+      // },
+      // {
+      //   prompt: 'Click yes on cookie prompts, if they exist.',
+      //   optional: true,
+      //   mode: 'all',
+      //   limit: 1,
+      //   timeout: 5000,
+      // },
       {
         prompt: nextPagePrompt + domainSpecific,
         mode: 'repeat',

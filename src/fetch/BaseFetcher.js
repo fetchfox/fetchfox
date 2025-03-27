@@ -277,7 +277,7 @@ export const BaseFetcher = class {
       }
 
     } finally {
-      if (this.signal) {
+      if (this.signal){ 
         this.signal.removeEventListener('abort', abortListener);
       }
       const took = (new Date()).getTime() - start;

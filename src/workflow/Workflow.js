@@ -10,6 +10,7 @@ import { classMap, stepNames, BaseStep } from '../step/index.js';
 
 const authorWhitelist = [
   'curaleaf',
+  'finefettle',
 ];
 
 export const Workflow = class extends BaseWorkflow {

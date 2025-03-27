@@ -386,7 +386,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       html,
       text,
       selectHtml: selectHtml,
-      headers: {'content-type': 'text/html' },
+      // TODO: get content type from the response object
+      headers: {'content-type': 'text/html; charset=utf-8' },
     };
 
     const doc = new Document();
@@ -562,6 +563,16 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
           },
         },
       ];
+
+      /* NEW CODE: Append shadow DOM content as a <shadow-root> element to its host element */
+      document.querySelectorAll('*').forEach(el => {
+        if (el.shadowRoot) {
+          const shadowWrapper = document.createElement('shadow-root');
+          shadowWrapper.innerHTML = el.shadowRoot.innerHTML;
+          el.appendChild(shadowWrapper);
+        }
+      });
+      /* END NEW CODE */
 
       const outs = {};
       for (const min of minimizers) {

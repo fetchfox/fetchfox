@@ -30,8 +30,8 @@ export const AuthorExtractor = class extends BaseExtractor {
 
     const transformers = [];
     if (process.env.USE_TRANSFORM) {
-      transformers.push(new PrettyTransformer(this));
-      transformers.push(new SelectorTransformer(questions, this));
+      // transformers.push(new PrettyTransformer(this));
+      // transformers.push(new SelectorTransformer(questions, this));
     }
 
     const author = new Author({
@@ -44,11 +44,11 @@ export const AuthorExtractor = class extends BaseExtractor {
       timeout: this.timeout || 90 * 1000,
     });
 
-    const urls = [url];
+    const urls = [];
     if (doc.htmlUrl) {
-      // It's likely the same data, but it's fast and we already have it,
-      // and this helps with flakey fetches
       urls.push(doc.htmlUrl);
+    } else {
+      urls.push(doc.url);
     }
 
     // Sometimes the authored code references window.location.origin, so

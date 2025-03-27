@@ -21,10 +21,11 @@ export const standardMatrix = (extra, options) => {
     ai = process.env.BENCH_MATRIX_AI.split(',');
   } else {
     ai = [
-      'openai:gpt-4o-mini',
-      'openai:gpt-4o',
-      'google:gemini-1.5-flash',
-      'google:gemini-1.5-pro',
+      ['openai:gpt-4o', { advanced: 'openai:o3-mini' }],
+      // 'openai:gpt-4o-mini',
+      // 'openai:gpt-4o',
+      // 'google:gemini-1.5-flash',
+      // 'google:gemini-1.5-pro',
     ];
   }
   const extractor = [
@@ -66,17 +67,17 @@ export const createMatrix = (configs, options) => {
           } else {
             val[1].timeout = 20 * 1000;
           }
-          val[1].wait = 6 * 1000;
+          val[1].wait = 1 * 1000;
         }
 
         if (process.env.BENCH_USE_CACHE) {
-          val[1].cache = new DiskCache('/tmp/ffbenchcache-3');
+          val[1].cache = new DiskCache('/tmp/ffbenchcache-4');
         }
 
         if (process.env.BENCH_USE_KV) {
           val[1].kv = new S3KV({
             bucket: 'ffcloud',
-            prefix: process.env.BENCH_KV_PREFIX || 'benchkv/fixed/',
+            prefix: process.env.BENCH_KV_PREFIX || 'benchkv/fixed-3/',
             acl: 'public-read',
           });
         }
