@@ -17,6 +17,10 @@ const classes = {
 
   p: PlaywrightFetcher,
   playwright: PlaywrightFetcher,
+  playwright_chromium_multiproxy: PlaywrightFetcher,
+  playwright_browserless_noproxy: PlaywrightFetcher,
+  playwright_brightdata: PlaywrightFetcher,
+  playwright_brightdata_nomedia: PlaywrightFetcher
 };
 
 export const registerFetcher = (tag, cls) => {

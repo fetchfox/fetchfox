@@ -11,7 +11,25 @@ export const standardMatrix = (extra, options) => {
   let ai;
 
   const fetcher = [
-    ['playwright', { s3 }],
+    [
+      'playwright_brightdata_nomedia',
+      {
+        s3,
+        cdp: process.env.BRIGHTDATA_CDP,
+        blockMediaRequests: true
+      }
+    ],
+    [
+      'playwright_brightdata',
+      { s3, cdp: process.env.BRIGHTDATA_CDP }
+    ],
+
+    //['playwright_chromium_multiproxy', { s3, cdp: process.env.CHROMIUM_SCRAPOXY_MULTI_CDP }],
+    //['playwright_browserless_noproxy', { s3, cdp: process.env.BROWSERLESS_NO_PROXY_CDP }],
+    //['playwright', { s3, cdp: 'cdp url 3' }],
+    // nomedia
+    //media
+    //use
   ];
   if (process.env.HEADFUL) {
     fetcher[0][1].headless = false;
@@ -40,7 +58,7 @@ export const standardMatrix = (extra, options) => {
 }
 
 export const createMatrix = (configs, options) => {
-  const cdp = process.env.CDP_URL;
+  //const cdp = process.env.CDP_URL;
 
   let matrix = [{}];
 
@@ -60,8 +78,11 @@ export const createMatrix = (configs, options) => {
         const updated = { ...existing };
         updated[key] = val;
         if (key == 'fetcher') {
-          if (cdp && (options?.useCdp || process.env.BENCH_USE_CDP)) {
-            val[1].cdp = cdp;
+          if (options?.useCdp || process.env.BENCH_USE_CDP) {
+            /*if (!cdp) {
+              throw new Error('Need CDP Env var');
+            }
+            val[1].cdp = cdp;*/
             val[1].timeout = 120 * 1000; // long timeouts for proxy providers
           } else {
             val[1].timeout = 20 * 1000;

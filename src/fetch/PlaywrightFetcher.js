@@ -27,6 +27,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
+    this.blockMediaRequests = options?.blockMediaRequests
     this.logger = options?.logger || defaultLogger;
     this.kv = options?.kv || getKV();
   }
@@ -37,6 +38,30 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       loadWait: this.loadWait,
       waitForText: this.waitForText,
     };
+  }
+
+  async _setPageNetworkPolicy(ctx) {
+    if (!ctx.page || !this.blockMediaRequests) return;
+
+    // see https://playwright.dev/docs/api/class-request#request-resource-type
+    const resourceTypesToBlock = ["stylesheet", "image", "media", "font"];
+
+    await ctx.page.route("**/*", async route => {
+      const resourceType = route.request().resourceType();
+      if (resourceTypesToBlock.includes(resourceType)) {
+        await route.abort();
+      } else {
+        await route.continue();
+      }
+    });
+  }
+
+  _setupBandwidthTracking(ctx) {
+    ctx.page.on('requestfinished', async request => {
+      const sizes = await request.sizes()
+      this.logger.debug(sizes)
+      // TODO: we can just sum these and accumulate on the benchmark somehow
+    })
   }
 
   async _launch() {
@@ -95,7 +120,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this._ctxLastTouch(ctx);
 
     if (!ctx.page) {
-      ctx.page = await ctx.browser.newPage();
+      const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+      const harPath = `/tmp/page-${timestamp}.har`;
+      ctx.page = await ctx.browser.newPage({
+        recordHar: {
+          path: harPath,
+          omitContent: false  // unsure about default, but wanted to note option
+        },
+        recordVideo: {
+          dir: '/tmp'
+        }
+      });
+      await this._setPageNetworkPolicy(ctx);
+      this._setupBandwidthTracking(ctx);
     }
 
     try {
@@ -142,6 +179,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     this.logger.debug(`${this} Closing browser`);
+    await ctx.page.close(); // need this to HAR dump
     await ctx.browser.close();
     delete ctx.browser;
   }
