@@ -18,7 +18,7 @@ export const ActionTask = class extends BaseTask {
   }
 
   async expected() {
-    return `It is expected that the following actions were performed properly:
->>> ${this.goals.join('\n\n>>> ')}`;
+    // TODO: how to handle on per-goal basis
+    return `It is expected that the goals were achieved properly`;
   }
 }

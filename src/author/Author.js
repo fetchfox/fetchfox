@@ -18,7 +18,6 @@ export const Author = class {
     this.fetcher = options?.fetcher || getFetcher();
     this.kv = options?.kv || getKV();
     this.ai = options?.ai || getAI(null, { cache: this.cache });
-    this.transformer = options?.transformer || [];
     this.logger = options?.logger || defaultLogger
     this.timeout = options?.timeout || this.fetcher.timeout || 60 * 1000;
     this.wait = options?.wait || this.fetcher.wait || 4 * 1000;
@@ -225,7 +224,7 @@ export const Author = class {
 
     // Get feedback
     const contextFeedback = {
-      html: await this.transform(doc.html),
+      html: doc.html,
       expected,
       actual: JSON.stringify(actual, null, 2),
       code,
@@ -241,7 +240,7 @@ export const Author = class {
 
     // Iterate on the feedback
     const contextIterate = {
-      html: await this.transform(doc.html),
+      html: doc.html,
       expected,
       actual: JSON.stringify(actual, null, 2),
       code,
@@ -296,16 +295,17 @@ export const Author = class {
 
       for (const goal of task.goals) {
         for (let attempt = 0; attempt <= maxAttempts; attempt++) {
+          this.logger.info(`${this} Writing code for ${goal} with ${this.ai.code}, attempt=${attempt}`);
+
           const doc = await this.fetcher.current(ctx);
           const context = {
             goal: goal,
-            html: await this.transform(doc.html),
+            html: doc.html,
             timeout: this.timeout,
             wait: this.wait,
             expected,
           };
 
-          this.logger.info(`${this} Writing code with ${this.ai.code}, attempt=${attempt}`);
           const { prompt } = await prompts.pageActionCode
             .renderCapped(context, 'html', this.ai.code);
 
@@ -343,11 +343,6 @@ export const Author = class {
 
     this.logger.info(`${this} Done writing code`);
     return { output, script };
-  }
-
-  async transform(html) {
-    this.logger.debug(`${this} Running ${this.transformer} on ${html.length} bytes`);
-    return this.transformer.transform(html);
   }
 }
 

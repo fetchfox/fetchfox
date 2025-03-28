@@ -10,7 +10,7 @@ The Javascript code will have the parameters available:
 
 * page: a Playwright page object
 * fnSendResults(results): a function to send the results for evaluation. The results may be page HTML, JSON extracton, etc.. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue. Always call this at least once at the end, even if not requested.
-* fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on. Send frequent updates about data your are extracting to help wiht debugging
+* fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on. Send frequent updates about data your are extracting to help with debugging, before/after actions, etc.
 * done: call this when the function is done
 
 >>> The current state is:
@@ -80,6 +80,9 @@ Selector guidance:
 - Do NOT use any pseudo selectors for css=
 - Surprisingly, you cannot use numbers IDs as selectors. For example, css=input#0 is an invalid selector, because of the number ID. If you see this, use a different selector instead.
 - For attribute selectors, [attr=val] matches the full exact string, while [attr~=val] matches space separated strings
+
+Common mistakes:
+- page.evaluateAll() is not a function. Only locators have evaluateAll(), so you need to make a locator and do locator.evaluateAll()
 
 Errors:
 - Log and rethrow errors. Log errors through fnDebugLog, and then rethrow
