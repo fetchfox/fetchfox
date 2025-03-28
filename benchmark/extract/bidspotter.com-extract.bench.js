@@ -677,17 +677,19 @@ describe('extract bidspotter.com', async function() {
   ];
 
   const cases = [
-    // {
-    //   name: 'live',
-    //   url: 'https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10317',
-    //   expected,
-    // },
-
     {
-      name: 'saved',
-      url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/juojgjpm3w/https-www-bidspotter-com-en-us-auction-catalogues-bscpau-catalogue-id-bscpau10317.html',
+      name: 'live',
+      url: 'https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10317',
       expected,
+      maxPages: 10,
     },
+
+    // {
+    //   name: 'saved',
+    //   url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/juojgjpm3w/https-www-bidspotter-com-en-us-auction-catalogues-bscpau-catalogue-id-bscpau10317.html',
+    //   expected,
+    //   maxPages: 1,
+    // },
   ];
 
   const questions = {
@@ -703,11 +705,11 @@ describe('extract bidspotter.com', async function() {
   };
 
   for (const prefix of prefixes) {
-    for (const { name, url, expected } of cases) {
+    for (const { name, url, expected, maxPages } of cases) {
       const wf = await fox
         .init(url)
-        .extract({ questions })
-        .limit(100)
+        .extract({ questions, maxPages })
+        .limit(500)
         .plan();
 
       return itRunMatrix(

@@ -9,6 +9,7 @@ const authorWhitelist = [
 ];
 const transformWhitelist = [
   'finefettle',
+  'bidspotter',
 ];
 
 export const ExtractStep = class extends BaseStep {
