@@ -66,6 +66,37 @@ Follow these important rules:
 Your response will be parsed directly using JSON.parse(), so respond ONLY with valid JSON, no explanation.
 `);
 
+export const scrapeBatchShort = new Template(
+  ['questions', 'url', 'body', 'count'],
+  `Convert the HTML you see into exactly {{count}} output items matching a template. Return array of JSON objects.
+
+>>> The HTML is:
+{{body}}
+
+>>>> The URL of the website:
+{{url}}
+
+>>> The item template is:
+{{questions}}
+
+You will return an ARRAY of JSON objects matching this template.
+
+Formatting:
+- Follow similar formatting conventions acros all objects. For example, use the same format for dates, currencies, numbers, etc.
+
+Follow these important rules:
+- ONLY return data that you see in the HTML of the page.
+- The VALUES of the questions dictionary is what you are looking for
+- Use EXACT SAME KEYS keys for each item as you find in the questions dictionary.
+- Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys. KEEP THEM EXACTLY!!
+- Pay attention to user format specifications
+- Generally avoid returning results with many (not found) fields
+- For URL, always include the FULL ABSOLUTE URL
+- Clean up unicode / utf-8 encoding related issues
+
+Your response will be parsed directly using JSON.parse(), so respond ONLY with valid JSON, no explanation.
+`);
+
 export const scrapeSelect = new Template(
   ['extraRules', 'questions', 'url', 'body', 'hint'],
   `You are a web scraping extraction program. You will receive webpage content including HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar.

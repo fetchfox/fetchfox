@@ -4,6 +4,7 @@ import { parse } from 'node-html-parser';
 export const DropTransformer = class extends BaseTransformer {
   constructor(config, options) {
     super(options);
+    this.levels = config?.levels || 2;
     this.limit = config?.limit || 16;
   }
 
@@ -43,7 +44,7 @@ export const DropTransformer = class extends BaseTransformer {
           continue;
         }
 
-        const s = shape(child, 2);
+        const s = shape(child, this.levels);
         runs[s] ||= [];
         runs[s].push(child);
         c++;

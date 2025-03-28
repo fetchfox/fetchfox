@@ -32,17 +32,6 @@ export const SelectorTransformer = class extends BaseTransformer {
   }
 
   async _transform(html, url) {
-
-    // const before = pretty(html, { ocd: true });
-    // const tt = new TagsTransformer();
-    // after = await tt.transform(before);
-    // console.log('before', before.length);
-    // console.log('after ', after.length);
-    
-    // throw 'STOP';
-
-    const root = parse(html);
-
     const key = this.key(url);
     const saved = await this.kv.get(key);
 
@@ -52,7 +41,7 @@ export const SelectorTransformer = class extends BaseTransformer {
       const data = JSON.parse(saved);
       selector = data.selector;
     } else {
-      selector = await this._learn(html, url, root);
+      selector = await this._learn(html, url);
     }
 
     if (!selector) {
@@ -60,6 +49,7 @@ export const SelectorTransformer = class extends BaseTransformer {
       return;
     }
 
+    const root = parse(html);
     const htmls = [];
     for (const el of root.querySelectorAll(selector)) {
       htmls.push(pretty(el.toString(), { ocd: true }));
@@ -71,7 +61,13 @@ export const SelectorTransformer = class extends BaseTransformer {
     return htmls;
   }
 
-  async _learn(html, url, root) {
+  async _learn(html, url) {
+    const dt = new DropTransformer();
+    const tt = new TagsTransformer();
+
+    html = await dt.transform(await tt.transform(html));
+    const root = parse(html);
+
     const context = {
       html: pretty(html, { ocd: true }),
       template: JSON.stringify(this.template, null, 2),
@@ -113,6 +109,7 @@ export const SelectorTransformer = class extends BaseTransformer {
       let count = 0;
       for (const c of group) {
         const matches = root.querySelectorAll(c.selector);
+        this.logger.debug(`${this} Found ${matches.length} matches for ${c.selector}`);
         for (const node of matches) {
           const h = shortObjHash({ html: node.innerHTML });
           hashes.push(h);

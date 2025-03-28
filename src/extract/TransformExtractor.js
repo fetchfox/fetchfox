@@ -48,19 +48,35 @@ export const TransformExtractor = class extends BaseExtractor {
     const chan = createChannel();
     const q = new PQueue({ concurrency: 16 });
     const all = [];
-    for (const [i, html] of htmls.entries()) {
-      const num = i + 1;
-      const h = shortObjHash({ html });
-      // if (this.seen[h]) {
-      //   this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
-      //   continue;
-      // }
-      // this.seen[h] = true;
+
+    const size = 4;
+
+    const batches = [];
+    for (let i = 0; i < htmls.length; i += size) {
+      batches.push(htmls.slice(i, i + size));
+    }
+
+    for (let i = 0; i < batches.length; i++) {
+      const myI = i;
+      const batch = batches[myI];
+
+      const filtered = [];
+      for (const html of batch) {
+        const h = shortObjHash({ html });
+        if (this.seen[h]) {
+          this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
+          continue;
+        }
+        this.seen[h] = true;
+        filtered.push(html);
+      }
 
       const task = q.add(async () => {
-        this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
-        const item = await this._runSingle(doc, html, questions, options);
-        chan.send({ index: i, item });
+        this.logger.debug(`${this} Run on chunk #${i} of ${htmls.length}`);
+        const results = await this._runBatch(doc, filtered, questions, options);
+        results.forEach((it, j) => {
+          chan.send({ index: (i * size) + j, item: new Item(it, doc) });
+        });
       });
       all.push(task);
     }
@@ -82,16 +98,17 @@ export const TransformExtractor = class extends BaseExtractor {
     await p;
   }
 
-  async _runSingle(doc, html, questions, options) {
+  async _runBatch(doc, batch, questions, options) {
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      body: html,
+      body: batch.join('\n'),
+      count: batch.length,
     };
-    const { prompt } = await prompts.scrapeSingleShort.renderCapped(
+    const { prompt } = await prompts.scrapeBatchShort.renderCapped(
       context, 'body', this.ai);
     const answer = await this.ai.ask(prompt, { format: 'json' });
-    return new Item(answer.partial, doc);
+    return answer.partial;
   }
 }
 
