@@ -191,7 +191,7 @@ const persistAllScores = async () => {
 
   // Exclude analysis from scoresTable
   for (const score of allScores) {
-    delete score[analysis];
+    delete score['analysis'];
   }
 
   // batch update scores using AWS DynamoDB DocumentClient
