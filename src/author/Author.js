@@ -230,11 +230,11 @@ export const Author = class {
       actual: JSON.stringify(actual, null, 2),
       code,
     };
-    this.logger.info(`${this} Get feedback from ${this.ai.advanced}`);
+    this.logger.info(`${this} Get feedback from ${this.ai.code}`);
     const { prompt: promptFeedback } = await prompts.evaluateResults
-      .renderCapped(contextFeedback, 'html', this.ai.advanced);
+      .renderCapped(contextFeedback, 'html', this.ai.code);
     console.log('prompt', promptFeedback);
-    const answerFeedback = await this.ai.advanced.ask(
+    const answerFeedback = await this.ai.code.ask(
       promptFeedback, { format: 'json' });
     const feedback = answerFeedback.partial;
     console.log('Feedback -->', feedback);
@@ -248,8 +248,8 @@ export const Author = class {
       feedback: JSON.stringify(feedback, null, 2),
     }
     const { prompt: promptIterate } = await prompts.iterateCode
-      .renderCapped(contextIterate, 'html', this.ai.advanced);
-    const answerIterate = await this.ai.advanced.ask(
+      .renderCapped(contextIterate, 'html', this.ai.code);
+    const answerIterate = await this.ai.code.ask(
       promptIterate, { format: 'text' });
     console.log('answerIterate', answerIterate.partial);
 
@@ -305,16 +305,16 @@ export const Author = class {
             expected,
           };
 
-          this.logger.info(`${this} Writing code with ${this.ai.advanced}, attempt=${attempt}`);
+          this.logger.info(`${this} Writing code with ${this.ai.code}, attempt=${attempt}`);
           const { prompt } = await prompts.pageActionCode
-            .renderCapped(context, 'html', this.ai.advanced);
+            .renderCapped(context, 'html', this.ai.code);
 
-          const answer = await this.ai.advanced.ask(prompt, { format: 'text' });
+          const answer = await this.ai.code.ask(prompt, { format: 'text' });
           let code = answer.partial
             .replaceAll('```javascript', '')
             .replaceAll('```', '');
 
-          this.logger.debug(`${this} Wrote code from ${this.ai.advanced} for ${task.key}: ${code}`);
+          this.logger.debug(`${this} Wrote code from ${this.ai.code} for ${task.key}: ${code}`);
 
           // Only do each action once in write mode
           const cb = (r) => { output = r; return false };
@@ -359,55 +359,59 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
     messages: '',
   }
   const fn = toFn(code);
-  const run = new Promise((ok) => {
-    fn(
-      ctx.page,
+  const run = new Promise(async (ok) => {
+    try {
+      await fn(
+        ctx.page,
 
-      // fnSendResults
-      async (result) => {
-        logger.debug(`AI generated code sent results: ${clip(result, 200)}`);
-        await new Promise(ok => setTimeout(ok, 2000));
-        if (!cb) {
-          logger.debug(`No callback, always continue`);
-          return true;
-        }
+        // fnSendResults
+        async (result) => {
+          logger.debug(`AI generated code sent results: ${clip(result, 200)}`);
+          await new Promise(ok => setTimeout(ok, 2000));
+          if (!cb) {
+            logger.debug(`No callback, always continue`);
+            return true;
+          }
 
-        const doc = await fetcher.current(ctx);
+          const doc = await fetcher.current(ctx);
 
-        try {
-          // In case the AI serialized it
-          result = JSON.parse(result);
-        } catch {
-          // Ignore
-        }
+          try {
+            // In case the AI serialized it
+            result = JSON.parse(result);
+          } catch {
+            // Ignore
+          }
 
-        const more = await cb({ doc, result });
-        if (!more) {
-          logger.debug(`Callback says to stop`);
+          const more = await cb({ doc, result });
+          if (!more) {
+            logger.debug(`Callback says to stop`);
+            ok();
+          }
+          logger.debug(`Callback says to continue`);
+          return more;
+        },
+
+        // fnDebugLog
+        (msg) => {
+          logger.debug(`${chalk.bold('[AIGEN]')} ${msg} url=${ctx.page.url()}`);
+          result.messages += `${msg}\n`;
+        },
+
+        // done
+        async () => {
+          logger.debug(`Generated code is done`);
           ok();
         }
-        logger.debug(`Callback says to continue`);
-        return more;
-      },
-
-      // fnDebugLog
-      (msg) => {
-        logger.debug(`${chalk.bold('[AIGEN]')} ${msg} url=${ctx.page.url()}`);
-        result.messages += `${msg}\n`;
-      },
-
-      // done
-      async () => {
-        logger.debug(`Generated code is done`);
-        ok();
-      }
-    )
+      )
+    } catch (e) {
+      throw e;
+    }
   });
 
   try {
     await run;
   } catch (e) {
-    console.error('Got error while execing the ai code:', e);
+    logger.error(`Got error while running AI code: ${e} ${e.stack}`);
     throw e;
   }
   return result;

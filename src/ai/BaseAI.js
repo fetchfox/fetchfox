@@ -18,6 +18,7 @@ export const BaseAI = class {
       model,
       apiKey,
       advanced,
+      code,
     } =
     Object.assign(
       {
@@ -51,6 +52,7 @@ export const BaseAI = class {
     }
 
     this._advanced = advanced ? getAI(advanced) : null;
+    this._code = code ? getAI(code) : null;
 
     this.provider = this.constructor.name.toLowerCase();
     this.model = model;
@@ -88,7 +90,10 @@ export const BaseAI = class {
       return;
     }
 
-    const p = this._advanced ? this._advanced.init() : Promise.resolve();
+    const p = Promise.all([
+      this._advanced ? this._advanced.init() : Promise.resolve(),
+      this._code ? this._code.init() : Promise.resolve(),
+    ]);
 
     const data = await getModelData(this.provider, this.model, this.cache);
     this.maxTokens = data.maxTokens;
@@ -100,6 +105,10 @@ export const BaseAI = class {
 
   get advanced() {
     return this._advanced || this;
+  }
+
+  get code() {
+    return this._code || this.advanced;
   }
 
   get id() {

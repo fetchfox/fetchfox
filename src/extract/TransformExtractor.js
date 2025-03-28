@@ -1,7 +1,8 @@
 import PQueue from 'p-queue';
-import { createChannel, promiseAllStrict } from '../util.js';
+import { shortObjHash, createChannel, promiseAllStrict } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
+import { DirectExtractor } from './DirectExtractor.js';
 import {
   PrettyTransformer,
   SelectorTransformer,
@@ -13,13 +14,30 @@ export const TransformExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.kv = options?.kv || getKV();
+    this.seen = {};
+    this.baseline = options?.baseline || new DirectExtractor(options);
   }
 
   async *_run(doc, questions, options) {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     const transformer = new SelectorTransformer(questions, this);
-    const htmls = await transformer.transform(doc.html);
+    const htmls = await transformer.transform(doc.html, doc.url);
+
+    if (!htmls) {
+      this.logger.warn(`${this} Failed to transform, using baseline`);
+
+      if (process.env.STRICT_ERRORS) {
+        throw new Error('Failed to transform');
+      }
+
+      // Fallback to baseline
+      const gen = this.baseline.run(doc, questions, options);
+      for await (const r of gen) {
+        yield Promise.resolve(r);
+      }
+      return;
+    }
 
     this.logger.debug(`${this} Running on ${htmls.length} html chunks`);
 
@@ -31,8 +49,16 @@ export const TransformExtractor = class extends BaseExtractor {
     const q = new PQueue({ concurrency: 16 });
     const all = [];
     for (const [i, html] of htmls.entries()) {
+      const num = i + 1;
+      const h = shortObjHash({ html });
+      // if (this.seen[h]) {
+      //   this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
+      //   continue;
+      // }
+      // this.seen[h] = true;
+
       const task = q.add(async () => {
-        this.logger.debug(`${this} Run on chunk #${i} of ${htmls.length}`);
+        this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
         const item = await this._runSingle(doc, html, questions, options);
         chan.send({ index: i, item });
       });

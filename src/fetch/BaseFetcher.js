@@ -25,7 +25,6 @@ export const BaseFetcher = class {
     });
 
     this.s3 = options?.s3;
-    this.css = options?.css;
     this.signal = options?.signal;
 
     this.wait = options?.wait || 4000;
@@ -114,10 +113,7 @@ export const BaseFetcher = class {
     }
 
     // Pull out options that affect caching
-    const cacheOptions = {
-      css: options?.css,
-    };
-
+    const cacheOptions = {};
     const cacheKey = instr.serialize();
 
     let cached;
@@ -260,12 +256,6 @@ export const BaseFetcher = class {
           }
 
           const doc = val.doc;
-
-          this.logger.debug(`${this} Should we filter for CSS? ${options?.css}`);
-          if (options?.css) {
-            doc.parseHtml(options.css);
-          }
-
           await this.putS3(doc);
 
           this.logger.info(`${chalk.yellow('\u{25CF}')} Yielding document: ${doc}`);

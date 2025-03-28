@@ -81,6 +81,9 @@ Selector guidance:
 - Surprisingly, you cannot use numbers IDs as selectors. For example, css=input#0 is an invalid selector, because of the number ID. If you see this, use a different selector instead.
 - For attribute selectors, [attr=val] matches the full exact string, while [attr~=val] matches space separated strings
 
+Errors:
+- Log and rethrow errors. Log errors through fnDebugLog, and then rethrow
+
 >>> The user requested a timeout the following timeout for selectors and actions:
 {{timeout}} milliseconds
 Generally follow this timeout, but adjust a little if needed

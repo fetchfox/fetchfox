@@ -67,7 +67,7 @@ export const createMatrix = (configs, options) => {
           } else {
             val[1].timeout = 20 * 1000;
           }
-          val[1].wait = 8 * 1000;
+          val[1].wait = 12 * 1000;
         }
 
         if (process.env.BENCH_USE_CACHE) {
@@ -77,7 +77,7 @@ export const createMatrix = (configs, options) => {
         if (process.env.BENCH_USE_KV) {
           val[1].kv = new S3KV({
             bucket: 'ffcloud',
-            prefix: process.env.BENCH_KV_PREFIX || 'benchkv/fixed-3/',
+            prefix: process.env.BENCH_KV_PREFIX || 'benchkv/fixed-4/',
             acl: 'public-read',
           });
         }

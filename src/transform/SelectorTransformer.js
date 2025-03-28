@@ -23,20 +23,55 @@ export const SelectorTransformer = class extends BaseTransformer {
     this.template = template;
   }
 
-  async _transform(html) {
-    const root = parse(html);
-    // const original = html;
-    // html = await (new DropTransformer()).transform(html);
+  key(url) {
+    const u = new URL(url);
+    const format = u.origin + u.pathname.replace(/[^/]+/g, '*');
+    const hash = shortObjHash({ template: this.template });
+    return `select-transform-${format}-${hash}`;
+  }
 
+  async _transform(html, url) {
+    const root = parse(html);
+
+    const key = this.key(url);
+    const saved = await this.kv.get(key);
+
+    let selector;
+    if (saved) {
+      this.logger.debug(`${this} Using saved selectors from ${key}: ${saved}`);
+      const data = JSON.parse(saved);
+      selector = data.selector;
+    } else {
+      selector = await this._learn(html, url, root);
+    }
+
+    if (!selector) {
+      this.logger.debug(`${this} Couldn't find any selectors`);
+      return;
+    }
+
+    const htmls = [];
+    for (const el of root.querySelectorAll(selector)) {
+      htmls.push(pretty(el.toString(), { ocd: true }));
+    }
+
+    this.logger.debug(`${this} Saving selector in ${key}: ${selector}`);
+    await this.kv.set(key, JSON.stringify({ selector }));
+
+    return htmls;
+  }
+
+  async _learn(html, url, root) {
     const context = {
       html: pretty(html, { ocd: true }),
       template: JSON.stringify(this.template, null, 2),
     }
     const cssPrompts = await prompts.learnCSS
-      .renderMulti(context, 'html', this.ai.advanced);
+      .renderMulti(context, 'html', this.ai);
+
     const answers = (
       await Promise.allSettled(cssPrompts.map(
-        (prompt) => this.ai.advanced.ask(prompt, { format: 'json' })
+        (prompt) => this.ai.ask(prompt, { format: 'json' })
       ))
     )
       .filter(it => it.status == 'fulfilled')
@@ -88,11 +123,18 @@ export const SelectorTransformer = class extends BaseTransformer {
       );
     }
 
-    const sorted = Object.values(grouped).sort((a, b) => b.rank - a.rank);
+    const sorted = Object.values(grouped)
+      .filter(it => it.matches > 0)
+      .filter(it => it.rating > 75)
+      .sort((a, b) => b.rank - a.rank);
     this.logger.debug(`${this} Got ${sorted.length} candidates, first few are: ${JSON.stringify(sorted.slice(0, 5), null, 2)}`);
 
     const best = sorted[0];
     this.logger.debug(`${this} Using best selector candidate: ${JSON.stringify(best, null, 2)}`);
+
+    if (!best) {
+      return;
+    }
 
     // Pick the best one within the group
     const selectors = best.selectors[0];
@@ -103,15 +145,10 @@ export const SelectorTransformer = class extends BaseTransformer {
     // TODO: handle multiple selectors.
     // This will happen when data does not divid neatly
     const selector = selectors[0];
-
     this.logger.debug(`${this} Using selector: ${selector}`);
 
-    const htmls = [];
-    for (const el of root.querySelectorAll(selector)) {
-      htmls.push(pretty(el.toString(), { ocd: true }));
-    }
-
-    return htmls;
+    return selector;
+  }
 
     // TODO: Remove or refactor old code below
     
@@ -176,5 +213,4 @@ export const SelectorTransformer = class extends BaseTransformer {
     //   { ocd: true });
 
     // return t;
-  }
 }

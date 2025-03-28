@@ -10,7 +10,7 @@ In some cases, the data the user needs will be in two or more parts of the DOM t
 
 Your return format should be a JSON array of items, with each item in this format:
 
-- "analysis": An analysis of how this selector functions, 100 words. Describe expected accuracy, semantic vs. random text nature, and other fators
+- "analysis": An analysis of how this selector functions, 100 words. Describe if this selector appears semantic, or is a string of random characters
 - "selector": A valid CSS selector that gets the target data
 - "stability": A score of how stable you expect this selector to be, from 1..100. Semantic selectors are more stable, random string selectors are less stable
 - "rating": A score of how well you think this selector will work, from 1..100
