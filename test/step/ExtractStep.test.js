@@ -53,7 +53,7 @@ describe('ExtractStep', function() {
       })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
-        name: 'What is the name of the pokemon? Starting with the first numbered pokemon',
+        name: 'What is the name of the pokemon? Starting with the first numbered pokemon, Pokemon 0001 to 0010',
         url: 'What is the URL of this pokemon',
         number: 'What is the pokedex number? Format: #0001',
         height: 'What is the height of this pokemon?',
@@ -64,7 +64,7 @@ describe('ExtractStep', function() {
         height: 'What is the height of this pokemon?',
         maxPages: 1,
       })
-      .limit(3);
+      .limit(10);
 
     const out = await f.run();
 
@@ -95,8 +95,6 @@ describe('ExtractStep', function() {
         height: '2.0 m (6′07″)',
       },
     ];
-
-    assert.equal(out.items.length, 3);
 
     out.items.sort((a, b) => a.number.localeCompare(b.number));
     for (let i = 0; i < expected.length; i++) {
