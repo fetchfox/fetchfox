@@ -15,7 +15,6 @@ export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
   for (const config of matrix) {
     const testName = `${name} { ${Object.keys(config).map(k => k + '=' + config[k][0]).join('; ')} } @bench`;
 
-
     it(testName, async function () {
       try {
         this.timeout(10 * 60 * 1000); // 10 minutes per benchmark
@@ -100,7 +99,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     const diff = diffStats(before, after);
 
     console.log('AI stats:');
-    console.log(JSON.stringify(diff, null, 2));
+    // console.log(JSON.stringify(diff, null, 2));
 
     logger.info(``);
     logger.info(`  Running benchmark ${++i}/${matrix.length} with config ${JSON.stringify(config)}`);
@@ -142,7 +141,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
 
     const copy = { ...s };
     delete copy.items;
-    console.log(JSON.stringify(copy, null, 2));
+    // console.log(JSON.stringify(copy, null, 2));
 
     scores.push(s);
   }

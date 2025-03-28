@@ -2,6 +2,7 @@ import pretty from 'pretty';
 import { shortObjHash } from '../util.js';
 import { BaseTransformer } from './BaseTransformer.js';
 import { DropTransformer } from './DropTransformer.js';
+import { TagsTransformer } from './TagsTransformer.js';
 import * as prompts from './prompts.js';
 import { parse } from 'node-html-parser';
 
@@ -31,6 +32,15 @@ export const SelectorTransformer = class extends BaseTransformer {
   }
 
   async _transform(html, url) {
+
+    // const before = pretty(html, { ocd: true });
+    // const tt = new TagsTransformer();
+    // after = await tt.transform(before);
+    // console.log('before', before.length);
+    // console.log('after ', after.length);
+    
+    // throw 'STOP';
+
     const root = parse(html);
 
     const key = this.key(url);
@@ -82,7 +92,11 @@ export const SelectorTransformer = class extends BaseTransformer {
     for (const answer of answers) {
       const group = [];
       for (const it of answer.partial) {
+        this.logger.debug(`${this} Got selector candidate: ${JSON.stringify(it, null, 2)}`);
         if (it._meta) {
+          continue;
+        }
+        if (!it.selector) {
           continue;
         }
         group.push(it);

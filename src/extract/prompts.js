@@ -61,6 +61,7 @@ Follow these important rules:
 - Pay attention to user format specifications
 - Generally avoid returning results with many (not found) fields
 - For URL, always include the FULL ABSOLUTE URL
+- Clean up unicode / utf-8 encoding related issues
 
 Your response will be parsed directly using JSON.parse(), so respond ONLY with valid JSON, no explanation.
 `);

@@ -5,11 +5,11 @@ import { stepDescriptionsMap } from './info.js';
 import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 
 const authorWhitelist = [
-  'curaleaf',
 ];
 const transformWhitelist = [
+  'curaleaf',
   'finefettle',
-  'bidspotter',
+  // 'bidspotter',
 ];
 
 export const ExtractStep = class extends BaseStep {
@@ -91,6 +91,9 @@ export const ExtractStep = class extends BaseStep {
     } else {
       ex = cursor.ctx.extractor;
     }
+
+    // console.log('ex', ex);
+    // throw 'stop';
 
     try {
       const stream = ex.stream(

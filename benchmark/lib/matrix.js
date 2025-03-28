@@ -67,7 +67,7 @@ export const createMatrix = (configs, options) => {
           } else {
             val[1].timeout = 20 * 1000;
           }
-          val[1].wait = 12 * 1000;
+          val[1].wait = 6 * 1000;
         }
 
         if (process.env.BENCH_USE_CACHE) {

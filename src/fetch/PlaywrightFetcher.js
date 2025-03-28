@@ -404,10 +404,11 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   // TODO: double check this before pushing it to prod
   // const wait = Math.max(1, loadWait - diff);
   let wait = loadWait;
-  if (page.url().includes('https://www.finefettle.com/')) {
-    wait = 30 * 1000;
-    logger.debug(`Extra wait for finefettle.com: ${wait}`);
-  }
+
+  // if (page.url().includes('https://www.finefettle.com/')) {
+  //   wait = 30 * 1000;
+  //   logger.debug(`Extra wait for finefettle.com: ${wait}`);
+  // }
 
   logger.debug(`Load waiting ${(wait).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
   await new Promise(ok => setTimeout(ok, wait));

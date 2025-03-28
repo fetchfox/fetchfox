@@ -201,6 +201,7 @@ describe('extract ct.curaleaf.com', async function() {
         view: 'html',
         maxPages: 1,
       })
+      .limit(20)
       .plan();
 
     await itRunMatrix(
@@ -210,8 +211,6 @@ describe('extract ct.curaleaf.com', async function() {
       matrix,
       [
         (items) => {
-          // console.log('CT items:', items);
-
           for (const i of items) {
             console.log(new Item(i).publicOnly());
           }
