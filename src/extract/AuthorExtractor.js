@@ -70,7 +70,11 @@ export const AuthorExtractor = class extends BaseExtractor {
       const chan = createChannel();
 
       // Handle any fields that need AI post-processing
-      const q = new PQueue({ concurrency: 32 });
+      const q = new PQueue({
+        concurrency: 32,
+        intervalCap: 4,
+        interval: 1000,
+      });
       const all = [];
       for (const item of list) {
         const task = q.add(async () => {
