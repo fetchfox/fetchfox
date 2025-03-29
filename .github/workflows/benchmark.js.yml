@@ -55,6 +55,9 @@ jobs:
 
         REDIS_URL: ${{ secrets.REDIS_URL }}
 
+        USE_TRANSFORM: 1
+        USE_AUTHOR: 1
+
         BENCH_LOOKUP: default
         BENCH_COMMITS_TABLE: benchmarks_commits
         BENCH_SCORES_TABLE: benchmarks_scores
