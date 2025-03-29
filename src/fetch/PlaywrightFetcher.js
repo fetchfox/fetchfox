@@ -47,7 +47,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       try {
         let promise;
         if (this.cdp) {
-          this.logger.debug(`Playwright using CDP endpoint ${this.cdp}, attempt=${i}`);
+          this.logger.debug(`Playwright using CDP endpoint, attempt=${i}`);
           promise = chromium.connectOverCDP(this.cdp);
         } else {
           this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
