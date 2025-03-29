@@ -388,18 +388,19 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     if (this.shouldScreenshot) {
       try {
         const keyTemplate = this.s3.key || 'fetchfox-docs/ss/{id}/{url}.png';
-        const acl = this.s3.acl || '';
+        const acl = this.s3.acl || 'public-read';
         const id = srid(10);
+        const cleanUrl = url.replace(/[^A-Za-z0-9]/g, '-');
         const key = keyTemplate
           .replaceAll('{id}', id)
-          .replaceAll('{url}', url);
+          .replaceAll('{url}', cleanUrl);
 
         screenshotUrl = urlForKey(key, this.s3);
 
         ctx.page.screenshot({ type: 'png' })
-          .then((buf) => putS3(key, buffer, this.s3))
+          .then((buf) => putS3(key, buf, this.s3))
           .catch((e) => {
-            logger.error(`${this} Error while getting or uploading screenshot, ignore: ${e}`);
+            this.logger.error(`${this} Error while getting or uploading screenshot, ignore: ${e}`);
           });
 
       } finally {

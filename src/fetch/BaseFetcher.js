@@ -295,12 +295,13 @@ export const BaseFetcher = class {
     this.logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     const bucket = this.s3.bucket;
     const region = this.s3.region;
-    const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
+    const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{doc.url}.html';
     const acl = this.s3.acl || '';
     const id = srid(10);
+    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]/g, '-');
     const key = keyTemplate
       .replaceAll('{id}', id)
-      .replaceAll('{url}', url);
+      .replaceAll('{url}', cleanUrl);
 
     try {
       const presignedUrl = await presignS3({
