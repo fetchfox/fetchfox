@@ -64,7 +64,7 @@ export const TransformExtractor = class extends BaseExtractor {
       for (const html of batch) {
         const h = shortObjHash({ html });
         if (this.seen[h]) {
-          this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
+          this.logger.debug(`${this} Drop repeat html for ${h}`);
           continue;
         }
         this.seen[h] = true;
