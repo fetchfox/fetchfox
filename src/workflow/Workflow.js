@@ -125,6 +125,11 @@ export const Workflow = class extends BaseWorkflow {
       }
     }
 
+    const logCb = (msg) => {
+      this.cursor.handleLog(msg);
+    }
+    this.ctx.logger.listen(logCb);
+
     const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
     this.ctx.logger.info('╔' + '═'.repeat(msg.length) + '╗');
     this.ctx.logger.info('║' + msg + '║');
@@ -141,6 +146,8 @@ export const Workflow = class extends BaseWorkflow {
       if (this.controller) {
         this.controller.abort();
       }
+
+      this.ctx.logger.unlisten(logCb);
 
       if (ctxSignal) {
         ctxSignal.removeEventListener('abort', abortListener);

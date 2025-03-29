@@ -15,6 +15,10 @@ export const Cursor = class {
 
     this._itemMap = {};
     this._nextId = 1;
+
+    this.numLogs = 5000;
+    this.logs = {};
+    this.lastLogPublish = new Date().getTime();
   }
 
   out(markDone) {
@@ -22,6 +26,7 @@ export const Cursor = class {
       done: this.done,
       items: this.items.filter(it => it._meta?.status != 'loading'),
       full: this.full,
+      logs: this.logs,
     };
 
     if (markDone) {
@@ -44,6 +49,27 @@ export const Cursor = class {
 
     if (this.ctx.publishAllSteps) {
       this.cb(this.out());
+    }
+  }
+
+  handleLog(msg) {
+    console.log('handleLog', msg);
+
+    this.logs[msg.level] ||= [];
+    this.logs[msg.level].push({
+      timestamp: new Date().toISOString(),
+      message: msg.message
+    });
+    while (this.logs[msg.level].length > this.numLogs) {
+      this.logs[msg.level].shift();
+    }
+
+    const msec = new Date().getTime() - this.lastLogPublish;
+    console.log('handleLog msec', msec);
+
+    if (msec > 2000) {
+      console.log('!! PUBLISH logs');
+      this.cb({ ...this.out() });
     }
   }
 
