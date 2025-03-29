@@ -56,7 +56,7 @@ describe('extract pokemondb.net', async function() {
       .limit(5)
       .plan();
 
-    return itRunMatrix(
+    itRunMatrix(
       it,
       `extract pokemondb.net (${name})`,
       wf.dump(),

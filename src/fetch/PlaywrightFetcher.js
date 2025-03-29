@@ -4,7 +4,8 @@ import { logger as defaultLogger } from '../log/logger.js';
 import { getKV } from '../kv/index.js';
 import { Document } from '../document/Document.js';
 import { BaseFetcher } from './BaseFetcher.js';
-import { abortable } from '../util.js';
+import { abortable, srid } from '../util.js';
+import { putS3, urlForKey } from './util.js';
 
 process.on('unhandledRejection', (e) => {
   if (e.name == 'TargetClosedError') {
@@ -28,6 +29,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.pullIframes = options?.pullIframes;
     this.logger = options?.logger || defaultLogger;
     this.kv = options?.kv || getKV();
+    this.shouldScreenshot = Boolean(this.s3); // TODO: separate option for this?
   }
 
   cacheOptions() {
@@ -116,7 +118,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     let doc;
     let aborted;
     try {
-      const result = await abortable(this.signal, this._docFromPage(ctx, ctx.timer));
+      const result = await abortable(
+        this.signal,
+        this._docFromPage(ctx, ctx.timer));
       aborted = result.aborted;
       doc = result.result;
     } catch (e) {
@@ -378,13 +382,39 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     const url = ctx.page.url();
+
+    timer.push(`Take screenshot`);
+    let screenshotUrl;
+    if (this.shouldScreenshot) {
+      try {
+        const keyTemplate = this.s3.key || 'fetchfox-docs/ss/{id}/{url}.png';
+        const acl = this.s3.acl || '';
+        const id = srid(10);
+        const key = keyTemplate
+          .replaceAll('{id}', id)
+          .replaceAll('{url}', url);
+
+        screenshotUrl = urlForKey(key, this.s3);
+
+        ctx.page.screenshot({ type: 'png' })
+          .then((buf) => putS3(key, buffer, this.s3))
+          .catch((e) => {
+            logger.error(`${this} Error while getting or uploading screenshot, ignore: ${e}`);
+          });
+
+      } finally {
+        timer.pop();
+      }
+    }
+
     const data = {
       status,
       url,
       body: html,
       html,
       text,
-      selectHtml: selectHtml,
+      selectHtml,
+      screenshotUrl,
       // TODO: get content type from the response object
       headers: {'content-type': 'text/html; charset=utf-8' },
     };

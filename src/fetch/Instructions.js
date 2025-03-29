@@ -182,7 +182,6 @@ export const Instructions = class {
       await fetcher.goto(this.url, ctx);
       const doc = await this.current(fetcher, ctx);
 
-
       if (!legacy.length) {
         // If we got here, pagination is the only action. Yield the first page
         // before learning.
@@ -638,7 +637,9 @@ ${this.hint}` : '',
   }
 
   async current(fetcher, ctx) {
-    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.timeout });
+    const doc = await pTimeout(
+      fetcher.current(ctx,),
+      { milliseconds: this.timeout });
     this.logger.debug(`${this} Got document: ${doc}`);
     return doc;
   }
