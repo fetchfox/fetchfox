@@ -17,7 +17,7 @@ export const Cursor = class {
     this._nextId = 1;
 
     this.numLogs = 5000;
-    this.logs = {};
+    this.logs = [];
     this.lastLogPublish = new Date().getTime();
   }
 
@@ -53,22 +53,16 @@ export const Cursor = class {
   }
 
   handleLog(msg) {
-    console.log('handleLog', msg);
-
-    this.logs[msg.level] ||= [];
-    this.logs[msg.level].push({
+    this.logs.push({
       timestamp: new Date().toISOString(),
-      message: msg.message
+      level: msg.level,
+      message: msg.message,
     });
-    while (this.logs[msg.level].length > this.numLogs) {
-      this.logs[msg.level].shift();
+    while (this.logs.length > this.numLogs) {
+      this.logs.shift();
     }
-
     const msec = new Date().getTime() - this.lastLogPublish;
-    console.log('handleLog msec', msec);
-
     if (msec > 2000) {
-      console.log('!! PUBLISH logs');
       this.cb({ ...this.out() });
     }
   }

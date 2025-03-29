@@ -131,9 +131,10 @@ export const Workflow = class extends BaseWorkflow {
     this.ctx.logger.listen(logCb);
 
     const msg = ` Starting workflow with ${this.steps.length} steps: ${this.steps.map(s => (''+s).replace('Step', '')).join(' -> ')} `;
-    this.ctx.logger.info('╔' + '═'.repeat(msg.length) + '╗');
-    this.ctx.logger.info('║' + msg + '║');
-    this.ctx.logger.info('╚' + '═'.repeat(msg.length) + '╝');
+    this.ctx.logger.info(
+      '╔' + '═'.repeat(msg.length) + '╗\n' +
+      '║' + msg + '║\n' +
+      '╚' + '═'.repeat(msg.length) + '╝');
     this.ctx.logger.info(`Running with global limit=${this.ctx.limit}`);
 
     try {
