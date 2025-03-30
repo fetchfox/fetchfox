@@ -91,7 +91,7 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
       .limit(10)
       .plan();
 
-    return itRunMatrix(
+    itRunMatrix(
       it,
       `extract realtors from page E of Silver Creek Realty (${name})`,
       wf.dump(),

@@ -26,7 +26,7 @@ describe('crawl en.wikipedia.org/wiki/List_of_presidents_of_the_United_States', 
     .limit(5)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'crawl en.wikipedia.org/wiki/List_of_presidents_of_the_United_States',
     wf.dump(),

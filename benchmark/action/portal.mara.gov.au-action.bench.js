@@ -37,7 +37,7 @@ Send the HTML for each page of results until there are no more pages.`
       .limit(limit)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `action portal.mara.gov.au (prefix=${prefix})`,
       wf.dump(),

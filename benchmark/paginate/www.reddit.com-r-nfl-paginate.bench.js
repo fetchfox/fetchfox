@@ -20,7 +20,7 @@ describe('paginate www.reddit.com/r/nfl/', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate www.reddit.com/r/nfl/', 
     wf.dump(),

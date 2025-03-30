@@ -19,7 +19,7 @@ describe('paginate google.com maps restaurants search', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate google.com maps restaurants search',
     wf.dump(),

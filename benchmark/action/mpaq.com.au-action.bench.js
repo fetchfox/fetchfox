@@ -32,7 +32,7 @@ describe('action mpaq.com.au', async function() {
       .limit(limit)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `action mpaq.com.au (prefix=${prefix})`,
       wf.dump(),

@@ -204,7 +204,7 @@ describe('extract ct.curaleaf.com', async function() {
       .limit(20)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `extract ct.curaleaf.com (${name})`,
       wf.dump(),

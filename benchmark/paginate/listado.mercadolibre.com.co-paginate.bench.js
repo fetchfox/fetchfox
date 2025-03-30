@@ -19,7 +19,7 @@ describe('listado.mercadolibre.com.co', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate listado.mercadolibre.com.co',
     wf.dump(),

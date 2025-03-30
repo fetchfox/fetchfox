@@ -37,7 +37,7 @@ After the cookie modal, separately, click the button to show all reviews. It wil
       .limit(limit)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `extract bokadirekt.se (prefix=${prefix})`,
       wf.dump(),

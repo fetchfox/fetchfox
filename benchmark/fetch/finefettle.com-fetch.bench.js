@@ -19,7 +19,7 @@ describe('extract finefettle.com', async function() {
     })
     .plan();
 
-  await itRunMatrix(
+  itRunMatrix(
     it,
     `fetch finefettle.com`,
     wf.dump(),

@@ -22,7 +22,7 @@ describe('paginate https://action.myrealtyonegroup.com/real-estate-agents', asyn
     .fetch({ maxPages: 5 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate https://action.myrealtyonegroup.com/real-estate-agents', 
     wf.dump(),
