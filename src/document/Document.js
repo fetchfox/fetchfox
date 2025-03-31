@@ -1,6 +1,5 @@
 import { logger } from '../log/logger.js';
 
-// TODO: refactor Document entirely
 export const Document = class {
   constructor() {}
 
@@ -44,7 +43,7 @@ export const Document = class {
   async uploadHtml(presignedUrl) {
     await fetchRetry(presignedUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': 'text/html' },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
       body: this.html,
     });
     this.htmlUrl = presignedUrl.replace(/\?.*$/, '');

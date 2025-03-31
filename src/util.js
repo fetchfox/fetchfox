@@ -162,3 +162,20 @@ export const abortable = async (signal, promise) => {
     signal.removeEventListener('abort', abortListener);
   }
 }
+
+export const clip = (val, num) => {
+  const str = (typeof val == 'string' ? val : JSON.stringify(val)) || '';
+  if (str.length <= num) {
+    return str;
+  } else {
+    return `"${str.substring(0, num)}..." (${str.length - num} more bytes)`;
+  }
+}
+
+export const promiseAllStrict = (all) => {
+  if (process.env.STRICT_ERRORS) {
+    return Promise.all(all);
+  } else {
+    return Promise.allSettled(all);
+  }
+}

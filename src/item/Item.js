@@ -45,8 +45,8 @@ export const Item = class {
     if (/^[0-9,]+$/.test(val)) {
       val = val.replace(/,/g, '');
     }
-    if (val == 'not found') {
-      val = '(not found)';
+    if (val == 'not found' || val == '(not found)') {
+      val = '';
     }
     return val;
   }

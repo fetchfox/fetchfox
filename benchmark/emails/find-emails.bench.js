@@ -11,7 +11,6 @@ describe('emails', async function() {
       'find email address, deobfuscate if needed',
     ],
     url: [
-      'https://opcam.ua.edu/contact.html',
       'https://www.radioalabama.net/contact',
       'https://www.redstate-strategies.com/contact',
       'https://aha-creative.com/contact-aha/',

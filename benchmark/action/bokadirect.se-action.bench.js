@@ -9,8 +9,8 @@ describe('extract bokadirekt.se', async function() {
   const matrix = standardMatrix();
 
   const prefixes = [
-    'benchkv/fixed/',
-    // `benchkv/random-${srid()}/`,
+    // 'benchkv/fixed/',
+    `benchkv/random-${srid()}/`,
   ];
 
   const limit = 200;

@@ -1,59 +1,34 @@
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import { scrapeOnce } from './prompts.js';
-import { Transformer } from './Transformer.js';
+import * as prompts from './prompts.js';
+import { getKV } from '../kv/index.js';
 
-export const SinglePromptExtractor = class extends BaseExtractor {
+export const DirectExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
-  }
-
-  useTransformer(url) {
-    return (
-      url.includes('domain.com.au') ||
-      url.includes('onereal.com/search-agent') ||
-      url.includes('www.kw.com')
-    );
+    this.kv = options?.kv || getKV();
   }
 
   async *_run(doc, questions, options) {
-    this.logger.info(`Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
+    this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    let { mode } = options || {};
-    const extraRules = modeRules(mode);
-
-    let body;
-
-    if (this.useTransformer(doc.url)) {
-      const trans = new Transformer();
-      body = await trans.reduce(doc.html, questions);
-
-    } else {
-      let view = options?.view || 'html';
-      if (!['html', 'text', 'selectHtml'].includes(view)) {
-        this.logger.error(`${this} Invalid view, switching to HTML: ${view}`);
-        view = 'html';
-      }
-      body = doc[view];
-    }
-
+    const extraRules = modeRules(options?.mode || 'auto');
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      html: body,
+      body: doc.html,
       extraRules,
     };
 
-    let prompts = await scrapeOnce.renderMulti(context, 'html', this.ai);
-
+    let scrapePrompts = await prompts.scrapeOnce.renderMulti(context, 'body', this.ai);
     const max = 32
-    if (prompts.length > max) {
-      this.logger.warn(`${this} Got too many prompts (${prompts.length}), only processing ${max}`);
-      prompts = prompts.slice(0, max);
+    if (scrapePrompts.length > max) {
+      this.logger.warn(`${this} Got too many prompts (${scrapePrompts.length}), only processing ${max}`);
+      scrapePrompts = scrapePrompts.slice(0, max);
     }
 
     try {
-      for (const prompt of prompts) {
+      for (const prompt of scrapePrompts) {
         const gen = this.ai.stream(prompt, { format: 'jsonl' });
         for await (const { delta } of gen) {
           if (delta._meta) {

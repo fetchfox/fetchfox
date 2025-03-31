@@ -10,6 +10,7 @@ describe('paginate smithery.ai', async function() {
   const wf = await fox
     .init('https://smithery.ai/?q=agent')
     .fetch({ maxPages: 5 })
+    .unique('url')
     .plan();
 
   const expected = [

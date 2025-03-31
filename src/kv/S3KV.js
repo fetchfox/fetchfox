@@ -54,7 +54,9 @@ export const S3KV = class extends BaseKV {
       }));
       body = await this.streamToString(resp.Body);
     } catch (e) {
-      if (e.name == 'NoSuchKey') return undefined;
+      if (e.name == 'NoSuchKey') {
+        return undefined;
+      }
       this.logger.error(`${this} Error reading key ${this.url(objectKey)}: ${e}`);
       throw e;
     }
@@ -66,6 +68,7 @@ export const S3KV = class extends BaseKV {
       await this.del(key);
       return undefined;
     }
+
   }
 
   async del(key) {

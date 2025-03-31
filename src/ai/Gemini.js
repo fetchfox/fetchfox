@@ -36,9 +36,22 @@ export const Gemini = class extends BaseAI {
     return { model: this.model, message, usage };
   }
 
-  async *inner(prompt) {
+  async *inner(prompt, options) {
     const gemini = new GoogleGenerativeAI(this.apiKey);
-    const model = gemini.getGenerativeModel({ model: this.model });
+
+    const generationConfig = {};
+    if (options?.temperature) {
+      generationConfig.temperature = options.temperature;
+    }
+    if (options?.topP) {
+      generationConfig.topP = options.topP;
+    }
+
+    // const systemPrompt = 'Act as a web scraping assistant, adept at understanding HTML and CSS and producing structured output.  You will help navigate a page by identifying and selecting relevant elements to click , particularly for accepting cookies and reaching the next page of content.  Never try to select an element that that does not exist.';
+    const systemPrompt = 'Act as a web scraping assistant, adept at understanding HTML and CSS and producing code and structured output.'
+
+    // const model = gemini.getGenerativeModel({ model: this.model, systemInstruction: systemPrompt, generationConfig });
+    const model = gemini.getGenerativeModel({ model: this.model, systemInstruction: systemPrompt, generationConfig });
 
     const completion = await model.generateContentStream(prompt);
 

@@ -33,6 +33,15 @@ prefix.apply(log.getLogger('critical'), {
 export class Logger {
   constructor(options) {
     this.prefix = options?.prefix;
+    this.callbacks = [];
+  }
+
+  listen(cb) {
+    this.callbacks.push(cb);
+  }
+
+  unlisten(cb) {
+    this.callbacks = this.callbacks.filter(it => it != cb);
   }
 
   _suffix() {
@@ -67,7 +76,18 @@ export class Logger {
       return;
     }
 
-    log.trace(this._prefix(), ...args, this._suffix());
+    this.trigger('trace', [this._prefix(), ...args, this._suffix()]);
+  }
+
+  trigger(level, args) {
+    log[level](...args);
+
+    for (const cb of this.callbacks) {
+      cb({
+        level,
+        message: args.map(it => it.toString()).join('\t').trim(),
+      });
+    }
   }
 
   debug(...args) {
@@ -76,7 +96,7 @@ export class Logger {
     }
 
     if (log.getLevel() <= log.levels.DEBUG) {
-      log.debug(this._prefix(), ...args, this._suffix());
+      this.trigger('debug', [this._prefix(), ...args, this._suffix()]);
     }
   }
 
@@ -85,7 +105,7 @@ export class Logger {
       return;
     }
 
-    log.info(this._prefix(), ...args, this._suffix());
+    this.trigger('info', [this._prefix(), ...args, this._suffix()]);
   }
 
   warn(...args) {
@@ -93,7 +113,7 @@ export class Logger {
       return;
     }
 
-    log.warn(this._prefix(), ...args, this._suffix());
+    this.trigger('warn', [this._prefix(), ...args, this._suffix()]);
   }
 
   error(...args) {
@@ -101,7 +121,7 @@ export class Logger {
       return;
     }
 
-    log.error(this._prefix(), ...args, this._suffix());
+    this.trigger('error', [this._prefix(), ...args, this._suffix()]);
   }
 }
 

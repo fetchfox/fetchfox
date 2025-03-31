@@ -259,8 +259,6 @@ export const BaseStep = class {
           ); // q.add
 
           try {
-            // const task = await p;
-            // all.push(task);
             qPromises.push(p);
           } catch (e) {
             if (e.name == 'AbortError') {

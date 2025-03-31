@@ -13,12 +13,9 @@ const populate = (json, config) => {
 
 export const itRunMatrix = async (it, name, json, matrix, checks, options) => {
   for (const config of matrix) {
-    const testName = `${name} { ${Object.keys(config).map(k => k + '=' + JSON.stringify(config[k])).join('; ')} } @bench`;
-
+    const testName = `${name} @bench`;
 
     it(testName, async function () {
-      console.log(testName);
-
       try {
         this.timeout(10 * 60 * 1000); // 10 minutes per benchmark
         const scores = await runMatrix(
@@ -102,18 +99,29 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     const diff = diffStats(before, after);
 
     console.log('AI stats:');
-    console.log(JSON.stringify(diff, null, 2));
+    // console.log(JSON.stringify(diff, null, 2));
 
     logger.info(``);
-    logger.info(`  Running benchmark ${++i}/${matrix.length} with config ${JSON.stringify(config)}`);
+    logger.info(`  Running benchmark ${++i}/${matrix.length}`);
     logger.info(``);
 
     const score = [0, 0];
+    const analysis = [];
     for (const check of checks) {
       const s = await check(out.items);
       if (!s) continue;
-      score[0] += s[0];
-      score[1] += s[1];
+      if (Array.isArray(s)) {
+        score[0] += s[0];
+        score[1] += s[1];
+      } else if (typeof s == 'object') {
+        if (Array.isArray(s.score)) {
+          score[0] += s.score[0];
+          score[1] += s.score[1];
+        }
+        if (s.analysis) {
+          analysis.push(s.analysis)
+        }
+      }
     }
 
     const s = {
@@ -127,12 +135,13 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
       config: { ...config },
       stats: diff,
       score,
+      analysis,
       items: out.items,
     };
 
     const copy = { ...s };
     delete copy.items;
-    console.log(JSON.stringify(copy, null, 2));
+    // console.log(JSON.stringify(copy, null, 2));
 
     scores.push(s);
   }

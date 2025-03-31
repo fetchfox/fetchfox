@@ -16,37 +16,11 @@ describe('Instructions', function() {
   });
 
   const cases = [
-    // Objects as the commands
     {
       name: 'should handle next page pagination with objects @fast',
       commands: [
-        { prompt: 'click to go to the next page', mode: 'repeat' },
-        { prompt: 'click each profile link', mode: 'distinct', limit: 12 },
-      ],
-      expected: [
-        ['Page 1', 'Profile content 1'],
-        ['Page 1', 'Profile content 2'],
-        ['Page 1', 'Profile content 3'],
-        ['Page 1', 'Profile content 4'],
-        ['Page 1', 'Profile content 5'],
-
-        ['Page 2', 'Profile content 6'],
-        ['Page 2', 'Profile content 7'],
-        ['Page 2', 'Profile content 8'],
-        ['Page 2', 'Profile content 9'],
-        ['Page 2', 'Profile content 10'],
-
-        ['Page 3', 'Profile content 11'],
-        ['Page 3', 'Profile content 12'],
-      ],
-    },
-
-    // Strings as the commands
-    {
-      name: 'should handle next page pagination with strings @fast',
-      commands: [
-        'click to go to the next page',
-        'click each profile link',
+        { prompt: 'click to go to the next page', mode: 'repeat', legacy: true },
+        { prompt: 'click each profile link', mode: 'distinct', limit: 12, legacy: true },
       ],
       expected: [
         ['Page 1', 'Profile content 1'],
@@ -216,7 +190,7 @@ describe('Instructions', function() {
       const url = `http://localhost:${port}`;
 
       const commands = [
-        { prompt: 'click to go to the next page', mode: 'repeat', limit: 3 },
+        { prompt: 'click to go to the next page', mode: 'repeat', limit: 3, legacy: true },
       ];
 
       const instr = new Instructions(url, commands, { ai });
@@ -459,8 +433,8 @@ alert(1);
       const url = `http://localhost:${port}`;
 
       const commands = [
-        { prompt: 'click to go to the next page', mode: 'repeat' },
-        { prompt: 'click each profile link', mode: 'distinct', limit: 12 },
+        { prompt: 'click to go to the next page', mode: 'repeat', legacy: true },
+        { prompt: 'click each profile link', mode: 'distinct', limit: 12, legacy: true },
       ];
 
       const instr = new Instructions(url, commands, { ai });
@@ -574,8 +548,8 @@ alert(1);
 
     try {
       const commands = [
-        { prompt: 'click accept cookies', optional: true, mode: 'first' },
-        { prompt: 'click to go to the next page', mode: 'repeat', limit },
+        { prompt: 'click accept cookies', optional: true, mode: 'first', legacy: true },
+        { prompt: 'click to go to the next page', mode: 'repeat', limit, legacy: true },
       ];
 
       await fetcher.start(fetcherCtx);
@@ -686,8 +660,8 @@ alert(1);
 
     try {
       const commands = [
-        { prompt: 'click accept cookies', optional: true, mode: 'first' },
-        { prompt: 'click to go to the next page', mode: 'repeat', limit },
+        { prompt: 'click accept cookies', optional: true, mode: 'first', legacy: true },
+        { prompt: 'click to go to the next page', mode: 'repeat', limit, legacy: true },
       ];
 
       await fetcher.start(fetcherCtx);

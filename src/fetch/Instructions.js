@@ -2,6 +2,7 @@ import pretty from 'pretty';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
 import { shortObjHash } from '../util.js';
 import { CodeInstructions } from './CodeInstructions.js';
 import * as prompts from './prompts.js';
@@ -29,21 +30,33 @@ export const Instructions = class {
       this.commands.push(c);
     }
     this.cache = options?.cache;
-
-    this.ai = options?.ai || getAI(null, { cache: this.cache });
+    this.signal = options?.signal;
+    this.kv = options?.kv || getKV();
+    this.ai = options?.ai || getAI(
+      null,
+      { cache: this.cache, signal: this.signal });
     this.timeout = options?.timeout || options?.fetcher?.timeout || 60000;
 
     this.limit = options?.limit;
     this.hint = options?.hint;
-
-    // TODO: migrate everthing to CodeInstructions
-    if (this.useCode()) {
-      if (commands.length > 1) {
-        throw new Error('Code based instructions msut have <= 1 command');
-      }
-      this.codeInstructions = new CodeInstructions(url, this.commands[0], options);
+    if (this.ai.model.includes("o3-mini")) {
+      this.generationConfig = {};
+    } else if (this.ai.model.includes("gemini")) {
+      this.generationConfig = {
+        temperature: options?.temperature || 0.2,
+        topP: options?.topP || 0.4,
+      };
+    } else {
+      this.generationConfig = {
+        temperature: options?.temperature || 0.5,
+        topP: options?.topP || 0.3,
+      };
     }
 
+    this.logger = options?.logger || defaultLogger
+    this.onArtifact = options?.onArtifact;
+
+    this.codeInstructions = new CodeInstructions(url, this.commands, options);
   }
 
   toString() {
@@ -54,35 +67,51 @@ export const Instructions = class {
     return JSON.stringify({ url: this.url, commands: this.commands });
   }
 
-  unshiftCommand(command) {
-    this.learned = null;
-    this.commands.unshift(command);
+  addPaginationCommand(maxPages) {
+    if (this.learned) {
+      throw new Error(`${this} cannod add pagination learning`);
+    }
+    if (this.codeInstructions.learned) {
+      throw new Error(`${this} cannod add pagination after code instructions learning`);
+    }
 
-    this.codeInstructions?.unshiftCommand(command);
+    this.commands.unshift({
+      prompt: nextPageCommand,
+      limit: maxPages,
+    })
   }
 
-  cacheKey() {
-    let hash;
-    hash = shortObjHash({
-      url: this.url,
-      commands: this.commands.map(it => it.prompt),
-    });
-    return `instructions-${hash}`;
+  get useCode() {
+    if (this.commands.length == 0) {
+      this.logger.debug(`${this} Use legacy for 0 commands`);
+      return false;
+    }
+    if (this.isPagination) {
+      this.logger.debug(`${this} Use legacy for pagination`);
+      return false;
+    }
+    if (this.commands.filter(it => it.legacy).length > 0) {
+      this.logger.debug(`${this} Use legacy when requested`);
+      return false;
+    }
+
+    this.logger.debug(`${this} Use code instructions`);
+    return true;
   }
 
-  useCode() {
-    return (
-      (this.url.includes('domain.com.au') && !this.url.match(/domain.com.au.*-[0-9]{4}(\/|$)/)) ||
-      this.url.includes('onereal.com') ||
-      this.url.includes('www.kw.com') ||
-      this.url.includes('mpaq.com.au') ||
-      this.url.includes('portal.mara.gov.au') ||
-      this.url.includes('bokadirekt.se')
-    );
+  get isPagination() {
+    return this.commands[this.commands.length - 1].prompt == nextPageCommand;
+  }
+
+  key(commands) {
+    const url = new URL(this.url);
+    const format = url.origin + url.pathname.replace(/[^/]+/g, '*');
+    const hash = shortObjHash({ commands: this.commands.map(it => it.prompt) });
+    return `instructions-${format}-${hash}`;
   }
 
   async *learn(fetcher, options) {
-    if (this.useCode()) {
+    if (this.useCode) {
       const gen = this.codeInstructions.learn(fetcher, options);
       for await (const r of gen) {
         yield r;
@@ -90,65 +119,94 @@ export const Instructions = class {
       return;
     }
 
+    if (this.commands.length == 0) {
+      return;
+    }
+
     const learned = [];
+
+    const domainSpecific = domainSpecificInstructions(this.url);
+    const paginationLimit = this.commands[0].limit || 25;
+    const legacy = this.commands.filter(it => it.legacy);
+    const commands = legacy.length ? legacy : [
+      {
+        prompt: 'Click yes on age verification prompts, if they exist.',
+        optional: true,
+        mode: 'all',
+        limit: 1,
+        timeout: 5000,
+      },
+      {
+        prompt: 'Click yes on cookie prompts, if they exist.',
+        optional: true,
+        mode: 'all',
+        limit: 1,
+        timeout: 5000,
+      },
+      {
+        prompt: nextPagePrompt + domainSpecific,
+        mode: 'repeat',
+        pagination: true,
+        limit: paginationLimit,
+      },
+    ];
+
+    const key = this.key(commands);
+    const existing = await this.kv.get(key);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      for (const command of commands) {
+        for (let i = 0; i < parsed.length; i++) {
+          if (parsed[i].prompt == command.prompt) {
+            this.logger.debug(`${this} Changing limit on step ${i} from ${parsed[i].limit} to ${command.limit}`);
+            parsed[i].limit = command.limit
+          }
+        }
+      }
+
+      this.logger.debug(`${this} Using learned state from for ${key}: ${JSON.stringify(parsed, null, 2)}`);
+
+      // Remove prompts to clean log output
+      for (let i = 0; i < parsed.length; i++) {
+        delete parsed[i].prompt;
+      }
+
+      this.learned = parsed;
+      return;
+    }
+    this.logger.debug(`${this} No learned state for ${key}`);
 
     const ctx = {};
 
     try {
       await fetcher.start(ctx);
       await fetcher.goto(this.url, ctx);
+      const doc = await this.current(fetcher, ctx);
 
-      // If pagination is the only action, yield the first page before
-      // learning how to do pagination
-      const onlyPagination = (
-        this.commands.length == 1 &&
-        this.commands[0].prompt == nextPageCommand
-      );
+      if (!legacy.length) {
+        // If we got here, pagination is the only action. Yield the first page
+        // before learning.
+        this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
+        yield Promise.resolve({ doc });
+      }
+
+      this.logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(commands, null, 2)}`);
 
       let scrollPromise;
-
-      if (onlyPagination) {
-        const domainSpecific = domainSpecificInstructions(this.url);
-        const paginationLimit = this.commands[0].limit || 25;
-
-        this.commands = [
-          {
-            prompt: acceptCookiesPrompt,
-            optional: true,
-            // In case there are multiple, click up to three times
-            // TODO: more robust solution here
-            mode: 'all',
-            limit: 3,
-            timeout: 5000,
-          },
-          {
-            prompt: nextPagePrompt + domainSpecific,
-            mode: 'repeat',
-            pagination: true,
-            limit: paginationLimit,
-          },
-        ];
-
-        this.logger.debug(`${this} Expanded command for pagination: ${JSON.stringify(this.commands, null, 2)}`);
-        this.logger.info(`${this} Only instructions are to paginate, so yield first page in learn`);
-
-        const doc = await this.current(fetcher, ctx);
-
-        if (!domainSpecific) {
-          const p = this.tryScrolling(fetcher, doc, paginationLimit)
-            .catch((e) => {
-              this.logger.error(`Error while trying to scroll for pagination: ${e}`);
-            });
-          scrollPromise = pTimeout(p, { milliseconds: this.timeout });
-        }
-
-        yield Promise.resolve({ doc });
+      if (!domainSpecific) {
+        scrollPromise = pTimeout(
+          this.tryScrolling(fetcher, doc, paginationLimit),
+          { milliseconds: this.timeout }
+        )
+          .catch((e) => {
+            this.logger.warn(`Error while trying to scroll for pagination: ${e}`);
+          });
       }
 
       // TODO: It would be nice of learning supported caching. Right now,
       // we use the live page for interactions, but it should be possible to
       // cache a chain of url + commands
-      for (const command of this.commands) {
+      for (const command of commands) {
         const doc = await this.current(fetcher, ctx);
 
         if (!doc) {
@@ -157,40 +215,40 @@ export const Instructions = class {
         this.logger.debug(`${this} Learn how to do: ${command.prompt}`);
 
         const context = {
-          // html: doc.html,
-          html: pretty(doc.html, { ocd: true }),
+          html: doc.html,
           command: command.prompt,
           hint: this.hint ? `>>>> The user has passed in this hint, which may be useful. Follow it if it is relevant, ignore it if it is not:
 
 ${this.hint}` : '',
         };
 
+        // o3-mini has trouble with large prompts for this task, so reduce context
+        const ai = this.ai.advanced;
+        let maxTokens = ai.maxTokens;
+        if (ai.model.startsWith('o3')) {
+          maxTokens = 64000;
+        }
         const actionPrompts = await prompts.pageAction
-          .renderMulti(context, 'html', this.ai.advanced);
-
+          .renderMulti(context, 'html', ai.advanced, { maxTokens });
         const answers = (
           await Promise.allSettled(actionPrompts.map(
-            (prompt) => this.ai.advanced.ask(prompt, { format: 'json' })
+            (prompt) => this.ai.advanced.ask(prompt, { format: 'json', ...this.generationConfig })
           ))
         )
           .filter(result => result.status == 'fulfilled');
 
-        this.logger.info(JSON.stringify(answers, null, 2));
-
-        // throw 'stop 123';
-
-        const candidates = [];
+        let candidates = [];
         const seen = {};
         for (const { value: answer } of answers) {
-          const raw = answer.partial.candidates || [];
+          const raw = answer.partial.steps || [];
 
           for (const it of raw) {
-            const type = it.candidateAction;
+            const type = it.action;
             const limit = command.limit || 25;
             const timeout = command.timeout;
-            const optional = command.optional || it.optionalAction == 'yes';
-            const mode = command.mode || answer.partial.actionMode || 'distinct';
-            const confidence = it.candidateConfidence;
+            const optional = command.optional || it.optional == 'yes';
+            const mode = command.mode || it.mode || 'distinct';
+            const score = it.score;
 
             const shared = {
               prompt: command.prompt,
@@ -199,16 +257,16 @@ ${this.hint}` : '',
               timeout,
               optional,
               mode,
-              confidence,
+              score,
             };
 
             let selector;
-            if (it.candidatePlaywrightSelector) {
-              const c = it.candidatePlaywrightSelector;
+            if (it.playwrightSelector) {
+              const c = it.playwrightSelector;
               if (c.startsWith('css=') || c.startsWith('text=')) {
                 selector = c;
               } else {
-                const t = it.candidatePlaywrightSelectorType;
+                const t = it.playwrightSelectorType;
                 selector = `${t}=${c}`;
               }
             }
@@ -225,31 +283,41 @@ ${this.hint}` : '',
                 break;
 
               case 'scroll':
-                candidate = [
-                  {
-                    ...shared,
-                    arg: it.candidateScrollType,
+                if (domainSpecific) {
+                  candidate = [
+                    {
+                      ...shared,
+                      arg: it.scrollType,
 
-                    // Infinite scroll should only yield one document
-                    singleYield: it.candidateScrollType == 'bottom',
-                  }
-                ];
+                      // Infinite scroll should only yield one document
+                      singleYield: it.scrollType == 'bottom',
+                    }
+                  ];
+                } else {
+                  // We do try scrolling now, so only include scroll for domain specific instructions
+                  this.logger.debug(`${this} Ignoring scroll candidate: ${JSON.stringify(it)}`);
+                }
                 break;
 
               case 'click-scroll':
-                candidate = [
-                  {
-                    ...shared,
-                    type: 'focus',
-                    arg: selector,
-                    mode: 'first',
-                  },
-                  {
-                    ...shared,
-                    type: 'scroll',
-                    arg: it.candidateScrollType,
-                  },
-                ]
+                if (domainSpecific) {
+                  candidate = [
+                    {
+                      ...shared,
+                      type: 'focus',
+                      arg: selector,
+                      mode: 'first',
+                    },
+                    {
+                      ...shared,
+                      type: 'scroll',
+                      arg: it.scrollType,
+                    },
+                  ];
+                } else {
+                  // We do try scrolling now, so only include scroll for domain specific instructions
+                  this.logger.debug(`${this} Ignoring click-scroll candidate: ${JSON.stringify(it)}`);
+                }
                 break;
             }
 
@@ -264,57 +332,46 @@ ${this.hint}` : '',
           }
         }
 
-        let scroll;
-        if (scrollPromise) {
-          // If scrolling worked, add it with high confidence
+        if (command.pagination && scrollPromise) {
+          // Check if scrolling worked, and add it if yes
+          let scroll;
           try {
             scroll = await scrollPromise;
           } catch (e) {
-            this.logger.error(`${this} Error while waiting for try scrolling, ignoring: ${e}`);
-            if (process.env.STRICT_ERRORS) {
-              throw e;
-            }
+            this.logger.warn(`${this} Error while waiting for try scrolling, ignoring: ${e}`);
           }
+
           if (scroll) {
             const top = [...(candidates[0] || [])]
               .filter(it => it.prompt != nextPagePrompt);
 
             // Sometimes scrolling loads new items, but they are not main
             // items. This is stuff like "suggested products" widgets. So, Put
-            // confidence of scroll at 74. This will usually put it below
+            // score of scroll at 74. This will usually put it below
             // obvious correct matches like next page buttons.
             // TODO: More robust solution
-            top.push({ ...scroll, prompt: nextPagePrompt, confidence: 74 });
+            top.push({ ...scroll, prompt: nextPagePrompt, score: 74 });
 
             candidates.unshift(top);
           }
         }
 
-        // Sort in confidence order, and for now just pick the first one
-        // Use confidence of the last action in the series
+        // Sort in score order, and for now just pick the first one
+        // Use score of the last action in the series
         candidates.sort((a, b) => {
-          const aCon = (a[a.length - 1].confidence || 0);
-          const bCon = (b[b.length - 1].confidence || 0);
+          const aCon = (a[a.length - 1].score || 0);
+          const bCon = (b[b.length - 1].score || 0);
           return bCon - aCon;
         });
 
         let working;
-        this.logger.info(`${this} Candidates in sorted order:`);
-        this.logger.info(JSON.stringify(candidates, null, 2));
+        this.logger.debug(`${this} Candidates in sorted order: ${JSON.stringify(candidates, null, 2)}`);
 
         for (const set of candidates) {
           this.logger.debug(`${this} Check action on ${JSON.stringify(set)}`);
 
           let ok = true;
           try {
-
-            // TODO: Re-enable action checks. Skip for now to run faster.
-            // ok = await this.checkAction(
-            //   fetcher,
-            //   doc,
-            //   command.prompt,
-            //   [...learned, ...set]);
-
             for (const action of set) {
               const outcome = await fetcher.act(ctx, action, {});
               ok &&= outcome.ok
@@ -345,8 +402,17 @@ ${this.hint}` : '',
         }
       }
 
+      // Keep original prompt in stored state
+      if (learned.length) {
+        this.logger.debug(`${this} Storing learned state in ${key}`);
+        await this.kv.set(key, JSON.stringify(learned));
+      }
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
+
+      if (this.onArtifact) {
+        this.onArtifact({ type: 'instructions', data: { steps: this.learned } });
+      }
 
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
@@ -360,7 +426,7 @@ ${this.hint}` : '',
   }
 
   async *execute(fetcher, options) {
-    if (this.useCode()) {
+    if (this.useCode) {
       const gen = this.codeInstructions.execute(fetcher, options);
       for await (const r of gen) {
         yield Promise.resolve(r);
@@ -368,10 +434,20 @@ ${this.hint}` : '',
       return;
     }
 
-    const learned = options?.learned || this.learned || []
+    const learned = options?.learned || this.learned || [];
 
     if (this.commands?.length && !learned.length) {
       throw new Error('must learn before execute');
+    }
+
+    if (this.commands.length == 0) {
+      this.logger.debug(`${this} No actions, just a simple URL goto`);
+      const ctx = {};
+      await fetcher.start(ctx);
+      await fetcher.goto(this.url, ctx);
+      const doc = await this.current(fetcher, ctx);
+      yield Promise.resolve({ doc });
+      return;
     }
 
     this.logger.info(`${this} Execute instructions: url=${this.url} learned=${JSON.stringify(learned)}`);
@@ -487,7 +563,6 @@ ${this.hint}` : '',
       await fetcher.start(ctx);
       await goto();
 
-      const noActions = !learned || learned.length == 0;
 
       // This is an optimization for when the last action is a repeat. In
       // those cases, we don't need to goto the original URL on each iteration.
@@ -498,12 +573,6 @@ ${this.hint}` : '',
         learned.filter(it => !['repeat', 'first', 'all'].includes(it.mode)).length == 0 &&
         learned[learned.length - 1].mode == 'repeat');
 
-      if (noActions) {
-        this.logger.debug(`${this} No actions, just a simple URL goto`);
-        const doc = await this.current(fetcher, ctx);
-        yield Promise.resolve({ doc });
-        return;
-      }
 
       let state = zeroState();
 
@@ -574,7 +643,9 @@ ${this.hint}` : '',
   }
 
   async current(fetcher, ctx) {
-    const doc = await pTimeout(fetcher.current(ctx), { milliseconds: this.timeout });
+    const doc = await pTimeout(
+      fetcher.current(ctx,),
+      { milliseconds: this.timeout });
     this.logger.debug(`${this} Got document: ${doc}`);
     return doc;
   }
@@ -662,7 +733,7 @@ ${this.hint}` : '',
         context, 'iterations', this.ai.advanced);
 
       this.logger.debug(`${this} Check if ${goal} succeeded`);
-      const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+      const answer = await this.ai.advanced.ask(prompt, { format: 'json', ...this.generationConfig });
       this.logger.debug(`${this} Got answer for ${goal} success: ${JSON.stringify(answer.partial)}`);
 
       return answer.partial.didComplete == 'yes';
@@ -699,9 +770,11 @@ const domainSpecificInstructions = (url) => {
   return result;
 }
 
-export const acceptCookiesPrompt = `Click through any prompts and modals to access the page, like cookie acceptance, age verification, terms of service, or other modals and popups.
+export const acceptCookiesPrompt = `Click yes on age verification prompts, cookie prompts, email popup pronts, etc., if they exist`;
 
-This includes any of the following
+export const acceptCookiesPrompt_ = `Click through any prompts to access the page, like cookie acceptance, age verification, terms of service, or other similar prompts.
+
+This includes any of the following:
 - Cookie prompts (accept cookie, do not manage unless necessary)
 - Age verification terms (agree that you are the required age, eg 21 or older)
 - Accepting terms of service in general (accept the terms)
@@ -710,7 +783,7 @@ This includes any of the following
 This excludes the following:
 - Sidebars and navigation tools relevant to the main site
 
-If there are multiple prompts to accept, return one action for each.`;
+In your analysis, list any prompts you see. If there are multiple prompts to accept, return one action for each.`;
 
 export const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
 
@@ -718,7 +791,8 @@ Note:
 - If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.
 - The next button may have the word next, or some sort of right-arrow like character.
 - If you're less confident you may scroll or click a button to Load More data or Show More data.
+- The page may be in a foreign language, handle that also
 
-You will know pagination was successful if you see different results on each iteration. The previous results may or may not still be visible, but if you see different results, then pagination completed successfully.
+You will know pagination was successful if you see relevant new results on each iteration.
 
-Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets.`;
+Unless otherwise instructed, your pagination should focus on the *main* content of the page, not extra content or small widgets. In your analysis, figure out if this is pagination for the main content or a widget, and give low relevancy and score if its a widget, carousel, etc.`;

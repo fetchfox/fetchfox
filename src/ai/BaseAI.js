@@ -18,6 +18,7 @@ export const BaseAI = class {
       model,
       apiKey,
       advanced,
+      code,
     } =
     Object.assign(
       {
@@ -51,6 +52,7 @@ export const BaseAI = class {
     }
 
     this._advanced = advanced ? getAI(advanced) : null;
+    this._code = code ? getAI(code) : null;
 
     this.provider = this.constructor.name.toLowerCase();
     this.model = model;
@@ -88,7 +90,10 @@ export const BaseAI = class {
       return;
     }
 
-    const p = this._advanced ? this._advanced.init() : Promise.resolve();
+    const p = Promise.all([
+      this._advanced ? this._advanced.init() : Promise.resolve(),
+      this._code ? this._code.init() : Promise.resolve(),
+    ]);
 
     const data = await getModelData(this.provider, this.model, this.cache);
     this.maxTokens = data.maxTokens;
@@ -102,6 +107,10 @@ export const BaseAI = class {
     return this._advanced || this;
   }
 
+  get code() {
+    return this._code || this.advanced;
+  }
+
   get id() {
     return this.provider + ':' + this.model;
   }
@@ -110,9 +119,9 @@ export const BaseAI = class {
     const tokens = await this.countTokens(str, options);
     while (true) {
       const r = this.limiter.getTokensRemaining();
-      this.logger.info(`${this} Check rate limit: tpm=${this.tpm}, tokens available=${r}`);
+      this.logger.debug(`${this} Check rate limit: tpm=${this.tpm}, tokens available=${r}`);
       if (this.limiter.tryRemoveTokens(tokens) || r == this.tpm) {
-        return;
+        break;
       }
 
       this.logger.warn(`${this} Waiting for rate limit, tpm=${this.tpm}`);
@@ -153,6 +162,7 @@ export const BaseAI = class {
     }
     const outcome = result ? '(hit)' : '(miss)';
     this.logger.debug(`Prompt cache ${outcome} for ${key} for prompt "${prompt.substr(0, 32)}..."`);
+
     return result;
   }
 
@@ -169,7 +179,7 @@ export const BaseAI = class {
     await this.init();
 
     const tokens = await this.limitReady(prompt);
-    this.logger.info(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
+    this.logger.debug(`Streaming ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     const { format, cacheHint } = Object.assign({ format: 'text' }, options);
     let cached;
@@ -289,7 +299,7 @@ export const BaseAI = class {
 
   async ask(prompt, options) {
     const tokens = await this.limitReady(prompt);
-    this.logger.info(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
+    this.logger.debug(`Asking ${this} for prompt with ${prompt.length} bytes, ${tokens} tokens`);
 
     let result;
     let retries = Math.min(this.maxRetries, options?.retries ?? 2);

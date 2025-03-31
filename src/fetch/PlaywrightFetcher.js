@@ -1,9 +1,11 @@
 import { chromium } from 'playwright-extra';
 import { Timer } from '../log/timer.js';
 import { logger as defaultLogger } from '../log/logger.js';
+import { getKV } from '../kv/index.js';
 import { Document } from '../document/Document.js';
 import { BaseFetcher } from './BaseFetcher.js';
-import { abortable } from '../util.js';
+import { abortable, srid } from '../util.js';
+import { putS3, urlForKey } from './util.js';
 
 process.on('unhandledRejection', (e) => {
   if (e.name == 'TargetClosedError') {
@@ -14,7 +16,6 @@ process.on('unhandledRejection', (e) => {
     throw e;
   }
 });
-
 
 export const PlaywrightFetcher = class extends BaseFetcher {
   constructor(options) {
@@ -27,6 +28,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.cdp = options?.cdp;
     this.pullIframes = options?.pullIframes;
     this.logger = options?.logger || defaultLogger;
+    this.kv = options?.kv || getKV();
+    this.shouldScreenshot = Boolean(this.s3); // TODO: separate option for this?
   }
 
   cacheOptions() {
@@ -37,46 +40,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
-  async _goto(url, ctx) {
-    if (!ctx.page) {
-      ctx.page = await ctx.browser.newPage();
-    }
-
-    try {
-      const { aborted } = await abortable(
-        this.signal,
-        ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
-      if (aborted) {
-        this.logger.warn(`${this} Aborted on goto`);
-        return;
-      }
-    } catch (e) {
-      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
-    }
-  }
-
-  async current(ctx) {
-    let doc;
-    let aborted;
-    try {
-      const result = await abortable(this.signal, this._docFromPage(ctx.page, ctx.timer));
-      aborted = result.aborted;
-      doc = result.result;
-    } catch (e) {
-      this.logger.error(`${this} Error while getting current doc: ${e}`);
-      return;
-    }
-    if (aborted) {
-      this.logger.warn(`${this} Aborted while getting current doc`);
-      return;
-    }
-
-    await this.putS3(doc);
-
-    return doc;
-  }
-
-
   async _launch() {
     this.logger.debug(`Playwright launching...`);
 
@@ -86,7 +49,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       try {
         let promise;
         if (this.cdp) {
-          this.logger.debug(`Playwright using CDP endpoint ${this.cdp}, attempt=${i}`);
+          this.logger.debug(`Playwright using CDP endpoint, attempt=${i}`);
           promise = chromium.connectOverCDP(this.cdp);
         } else {
           this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
@@ -106,7 +69,12 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     throw err;
   }
 
+  _ctxLastTouch(ctx) {
+    ctx.lastTouch = new Date().getTime();
+  }
+
   async start(ctx) {
+    this._ctxLastTouch(ctx);
     const timer = ctx.timer || new Timer();
 
     if (ctx.browser) {
@@ -121,11 +89,57 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     this.logger.debug(`${this} Got browser`);
-
     return ctx;
   }
 
+  async _goto(url, ctx) {
+    this._ctxLastTouch(ctx);
+
+    if (!ctx.page) {
+      ctx.page = await ctx.browser.newPage();
+    }
+
+    try {
+      const { aborted } = await abortable(
+        this.signal,
+        ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
+      if (aborted) {
+        this.logger.warn(`${this} Aborted on goto`);
+        return;
+      }
+    } catch (e) {
+      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
+    }
+  }
+
+  async current(ctx) {
+    // No last touch, this is read-only
+
+    let doc;
+    let aborted;
+    try {
+      const result = await abortable(
+        this.signal,
+        this._docFromPage(ctx, ctx.timer));
+      aborted = result.aborted;
+      doc = result.result;
+    } catch (e) {
+      this.logger.error(`${this} Error while getting current doc: ${e}`);
+      return;
+    }
+    if (aborted) {
+      this.logger.warn(`${this} Aborted while getting current doc`);
+      return;
+    }
+
+    await this.putS3(doc);
+
+    return doc;
+  }
+
   async finish(ctx) {
+    this._ctxLastTouch(ctx);
+
     if (!ctx.browser) {
       return;
     }
@@ -136,6 +150,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, seen) {
+    this._ctxLastTouch(ctx);
+
     const timer = ctx.timer || new Timer();
     this.logger.debug(`${this} Do action: ${JSON.stringify(action)}`);
 
@@ -181,10 +197,16 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _actOnEl(ctx, selector, seen, options, fn) {
+    this._ctxLastTouch(ctx);
+
     // TODO: for text= matchers, add a heuristic to prefer tighter  matches
     if (!selector.startsWith('text=') && !selector.startsWith('css=')) {
       this.logger.warn(`{this} Invalid selector: ${selector}`);
       return { ok: false };
+    }
+
+    if (selector.startsWith('text=')) {
+      selector = selector.replaceAll('>', '&gt;');
     }
 
     const timeout = options?.timeout || this.actionTimeout;
@@ -227,6 +249,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async click(ctx, selector, seen, options) {
+    this._ctxLastTouch(ctx);
+
     this.logger.debug(`${this} Click selector=${selector}`);
 
     const fn = async (ctx, el, timeout) => {
@@ -239,6 +263,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async focus(ctx, selector, seen, options) {
+    this._ctxLastTouch(ctx);
+
     this.logger.debug(`${this} Focus selector=${selector}`);
 
     const fn = async (ctx, el, timeout) => {
@@ -264,9 +290,9 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async scroll(ctx, type) {
-    this.logger.debug(`${this} Scroll type=${type}`);
+    this._ctxLastTouch(ctx);
 
-    // TODO: Check if scrolling worked
+    this.logger.debug(`${this} Scroll type=${type}`);
 
     switch (type) {
       case 'page-down':
@@ -299,7 +325,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return { ok: true };
   }
 
-  async _docFromPage(page, timer) {
+  async _docFromPage(ctx, timer) {
     timer ||= new Timer();
 
     let html;
@@ -312,7 +338,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       const result = await abortable(
         this.signal,
         getHtmlFromSuccess(
-          page,
+          ctx,
           {
             loadWait: this.loadWait,
             pullIframes: this.pullIframes,
@@ -329,13 +355,13 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       selectHtml = result.result.selectHtml;
     } catch (e) {
 
-      this.logger.error(`Playwright could not get from ${page.url()}: ${e}`);
+      this.logger.error(`Playwright could not get from ${ctx.page.url()}: ${e}`);
       this.logger.debug(`Trying to salvage results`);
 
       try {
         const result = await abortable(
           this.signal,
-          getHtmlFromError(page, { logger: this.logger }));
+          getHtmlFromError(ctx.page, { logger: this.logger }));
         if (result.aborted) {
           return;
         }
@@ -355,15 +381,43 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       timer.pop();
     }
 
-    const url = page.url();
+    const url = ctx.page.url();
+
+    timer.push(`Take screenshot`);
+    let screenshotUrl;
+    if (this.shouldScreenshot) {
+      try {
+        const keyTemplate = this.s3.key || 'fetchfox-docs/ss/{id}/{url}.png';
+        const acl = this.s3.acl || 'public-read';
+        const id = srid(10);
+        const cleanUrl = url.replace(/[^A-Za-z0-9]/g, '-');
+        const key = keyTemplate
+          .replaceAll('{id}', id)
+          .replaceAll('{url}', cleanUrl);
+
+        screenshotUrl = urlForKey(key, this.s3);
+
+        ctx.page.screenshot({ type: 'png' })
+          .then((buf) => putS3(key, buf, this.s3))
+          .catch((e) => {
+            this.logger.error(`${this} Error while getting or uploading screenshot, ignore: ${e}`);
+          });
+
+      } finally {
+        timer.pop();
+      }
+    }
+
     const data = {
       status,
       url,
       body: html,
       html,
       text,
-      selectHtml: selectHtml,
-      headers: {'content-type': 'text/html' },
+      selectHtml,
+      screenshotUrl,
+      // TODO: get content type from the response object
+      headers: {'content-type': 'text/html; charset=utf-8' },
     };
 
     const doc = new Document();
@@ -373,9 +427,22 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 }
 
-const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
-  logger.debug(`Load waiting ${(loadWait / 1000).toFixed(1)} sec`);
-  await new Promise(ok => setTimeout(ok, loadWait));
+const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, logger }) => {
+  const now = new Date().getTime();
+  lastTouch ||= now;
+  const diff = now - lastTouch;
+
+  // TODO: double check this before pushing it to prod
+  // const wait = Math.max(1, loadWait - diff);
+  let wait = loadWait;
+
+  // if (page.url().includes('https://www.finefettle.com/')) {
+  //   wait = 30 * 1000;
+  //   logger.debug(`Extra wait for finefettle.com: ${wait}`);
+  // }
+
+  logger.debug(`Load waiting ${(wait).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
+  await new Promise(ok => setTimeout(ok, wait));
 
   if (pullIframes) {
     // Get all the iframes
@@ -412,7 +479,7 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
       const iframe = iframes[i];
       let content;
       try {
-        content = await iframe.content();
+        content = await iframe.content({ timeout: 10 * 1000 });
       } catch {
         content = '[iframe unavailable]';
       }
@@ -448,15 +515,16 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
         logger.warn(`${this} Error while updating trusted policy, ignoring: ${e}`);
       }
     }
+    logger.debug(`Done getting iframes`);
   }
 
   // Minimize the HTML before returning it
-  logger.debug(`Minimizing HTML on ${page.url()}`);
+  logger.debug(`Getting HTML from ${page.url()}`);
   let outs;
   try {
     /* eslint-disable no-undef */
     outs = await page.evaluate(async () => {
-      // Attach the function to document to avoid errors in certain situatios,
+      // Attach the function to document to avoid errors in certain situations,
       // eg. https://github.com/privatenumber/tsx/issues/113
       document.toText = (min, node) => {
         if (node.nodeType === Node.TEXT_NODE) {
@@ -530,6 +598,16 @@ const getHtmlFromSuccess = async (page, { loadWait, pullIframes, logger }) => {
           },
         },
       ];
+
+      /* NEW CODE: Append shadow DOM content as a <shadow-root> element to its host element */
+      document.querySelectorAll('*').forEach(el => {
+        if (el.shadowRoot) {
+          const shadowWrapper = document.createElement('shadow-root');
+          shadowWrapper.innerHTML = el.shadowRoot.innerHTML;
+          el.appendChild(shadowWrapper);
+        }
+      });
+      /* END NEW CODE */
 
       const outs = {};
       for (const min of minimizers) {

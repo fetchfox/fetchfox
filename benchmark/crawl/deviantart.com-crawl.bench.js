@@ -7,7 +7,7 @@ import { storeScores } from '../lib/store.js';
 describe('crawl deviantart.com', async function() {
   const matrix = standardMatrix({
     prompt: [
-      'images',
+      'art',
       'featured art links',
     ],
   });

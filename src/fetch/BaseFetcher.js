@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
+import { getKV } from '../kv/index.js';
 import { logger as defaultLogger } from '../log/logger.js';
 import { Document } from '../document/Document.js';
 import { createChannel, shortObjHash, srid } from '../util.js';
@@ -13,6 +14,7 @@ export const BaseFetcher = class {
     this.cache = options?.cache;
     this.logger = options?.logger || defaultLogger;
     this.ai = options?.ai || getAI();
+    this.kv = options?.kv || getKV();
     this.queue = [];
     this.usage = { goto: 0 };
 
@@ -23,7 +25,6 @@ export const BaseFetcher = class {
     });
 
     this.s3 = options?.s3;
-    this.css = options?.css;
     this.signal = options?.signal;
 
     this.wait = options?.wait || 4000;
@@ -83,7 +84,9 @@ export const BaseFetcher = class {
           [],
           {
             ai: this.ai,
+            kv: this.kv,
             cache: this.cache,
+            signal: this.signal,
             timeout: this.timeout,
             hint: options?.hint,
           });
@@ -91,10 +94,7 @@ export const BaseFetcher = class {
 
       const maxPages = options?.maxPages || 0;
       if (maxPages > 1) {
-        instr.unshiftCommand({
-          prompt: '{{nextPage}}',
-          limit: maxPages,
-        });
+        instr.addPaginationCommand(maxPages);
       }
 
       return instr;
@@ -113,13 +113,12 @@ export const BaseFetcher = class {
     }
 
     // Pull out options that affect caching
-    const cacheOptions = {
-      css: options?.css,
-    };
+    const cacheOptions = {};
+    const cacheKey = instr.serialize();
 
     let cached;
     try {
-      cached = await this.getCache(instr.serialize(), cacheOptions);
+      cached = await this.getCache(cacheKey, cacheOptions);
     } catch (e) {
       this.logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
@@ -163,6 +162,11 @@ export const BaseFetcher = class {
 
         this.logger.debug(`${this} Decoding PDF via ${apiUrl}`);
         instr.url = apiUrl;
+
+        // TODO: cleanup
+        if (instr.codeInstructions) {
+          instr.codeInstructions.url = instr.url;
+        }
       }
 
       const debugStr = () => `(size=${this.q.size}, conc=${this.q.concurrency}, pending=${this.q.pending})`;
@@ -252,12 +256,6 @@ export const BaseFetcher = class {
           }
 
           const doc = val.doc;
-
-          this.logger.debug(`${this} Should we filter for CSS? ${options?.css}`);
-          if (options?.css) {
-            doc.parseHtml(options.css);
-          }
-
           await this.putS3(doc);
 
           this.logger.info(`${chalk.yellow('\u{25CF}')} Yielding document: ${doc}`);
@@ -269,7 +267,7 @@ export const BaseFetcher = class {
       }
 
     } finally {
-      if (this.signal) {
+      if (this.signal){ 
         this.signal.removeEventListener('abort', abortListener);
       }
       const took = (new Date()).getTime() - start;
@@ -297,17 +295,23 @@ export const BaseFetcher = class {
     this.logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     const bucket = this.s3.bucket;
     const region = this.s3.region;
-    const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}.html';
+    const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{doc.url}.html';
     const acl = this.s3.acl || '';
     const id = srid(10);
-    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]+/g, '-');
+    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]/g, '-');
     const key = keyTemplate
       .replaceAll('{id}', id)
       .replaceAll('{url}', cleanUrl);
 
     try {
       const presignedUrl = await presignS3({
-        bucket, key, contentType: 'text/html', acl, region });
+        bucket,
+        key,
+        // TODO: get content type from the document
+        contentType: 'text/html; charset=utf-8',
+        acl,
+        region,
+      });
       await doc.uploadHtml(presignedUrl);
     } catch (e) {
       this.logger.error(`${this} Failed to upload ${key}: ${e}`);

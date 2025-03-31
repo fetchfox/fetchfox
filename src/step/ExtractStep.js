@@ -2,6 +2,18 @@ import { Document } from '../document/Document.js';
 import { BaseStep } from './BaseStep.js';
 import { isPlainObject } from '../util.js';
 import { stepDescriptionsMap } from './info.js';
+import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
+
+const authorWhitelist = [
+  'curaleaf',
+];
+const transformWhitelist = [
+  // 'curaleaf',
+  'pokemon',
+  'finefettle',
+  'bidspotter',
+  'dmaar',
+];
 
 export const ExtractStep = class extends BaseStep {
   constructor(args) {
@@ -39,10 +51,49 @@ export const ExtractStep = class extends BaseStep {
     this.maxPages ??= 1;
   }
 
+  useAuthor(item) {
+    if (process.env.USE_AUTHOR) {
+      return true;
+    }
+
+    const json = JSON.stringify(item);
+    for (const wl of authorWhitelist) {
+      if (json.includes(wl)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  useTransform(item) {
+    if (process.env.USE_TRANSFORM) {
+      return true;
+    }
+
+    const json = JSON.stringify(item);
+    for (const wl of transformWhitelist) {
+      if (json.includes(wl)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   async process({ cursor, item, index }, cb) {
     cursor.ctx.logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
     const start = (new Date()).getTime();
-    const ex = cursor.ctx.extractor;
+
+    let ex;
+    if (this.useTransform(item)) {
+      ex = new TransformExtractor(cursor.ctx.extractor);
+    } else if (this.useAuthor(item)) {
+      ex = new AuthorExtractor({
+        ...cursor.ctx.extractor,
+        baseline: cursor.ctx.extractor,
+      });
+    } else {
+      ex = cursor.ctx.extractor;
+    }
 
     try {
       const stream = ex.stream(
@@ -56,8 +107,10 @@ export const ExtractStep = class extends BaseStep {
           fetchOptions: {
             priority: index,
             hint: this.hint,
-            instructionsCacheKey: `index-${index}`,
           },
+          onArtifact: (art) => {
+            cursor.handleArtifact(art, index);
+          }
         });
       for await (const output of stream) {
         const took = (new Date()).getTime() - start;

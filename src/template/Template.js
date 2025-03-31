@@ -68,6 +68,7 @@ export const Template = class {
     timer.push('Template.renderCapped');
 
     const maxTokens = (options?.maxTokens || ai.maxTokens || 128000) * this.safetyMarginPercent;
+
     const countFn = async (str) => ai.countTokens(str, { timer });
     const accuracyTokens = Math.max(8000, maxTokens * 0.05);
 

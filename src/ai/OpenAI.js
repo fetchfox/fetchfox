@@ -10,7 +10,7 @@ export const OpenAI = class extends BaseAI {
     // just (over) estimate the nubmer of tokens. This is usually
     // fine, since the promps chunk and iterate anyways.
     // TODO: find a way to efficiently count tokens
-    return str.length / 1.25;
+    return str.length / 2;
 
     // const timer = options?.timer || new Timer();
     // timer.push(`${this}.countTokens`);
@@ -59,12 +59,29 @@ export const OpenAI = class extends BaseAI {
       baseURL: this.baseURL,
     });
 
+    const systemPrompt = 'Act as an advanced web scraping assistant, adept at understanding HTML and CSS and producing accurate code and structured output.  You will help navigate a page by identifying and selecting relevant elements to click , particularly for accepting cookies and reaching the next page of content.  Never try to select an element that that does not exist.';
+
     const args = {
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
       stream_options: { include_usage: true },
     };
+    args.messages = [
+      { role: 'system', content: systemPrompt },
+      ...args.messages,
+    ]
+    if (options?.temperature && !this.model.includes('o3')) {
+      args.temperature = options.temperature;
+    }
+    if (options?.topP && !this.model.includes('o3')) {
+      args.top_p = options.topP;
+    }
+
+    // Add OpenRouter fallback models if provided
+    if (this.provider == 'openrouter' && this.fallbacks) {
+      args.extra_body = { models: this.fallbacks };
+    }
 
     if (options?.imageUrl) {
       this.logger.debug(`Adding image URL to prompt: ${options.imageUrl.substr(0, 120)}`);

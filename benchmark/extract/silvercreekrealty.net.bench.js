@@ -1,8 +1,7 @@
 import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkItemsExact } from '../lib/checks.js';
-import { storeScores } from '../lib/store.js';
+import { checkItemsAI } from '../lib/checks.js';
 
 describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory', async function() {
   const matrix = standardMatrix({
@@ -62,27 +61,44 @@ describe('extract from https://silvercreekrealty.net/silvercreek-agent-directory
     }
   ];
 
-  const wf = await fox
-    .init('https://silvercreekrealty.net/silvercreek-agent-directory/?staff-az=E')
-    .crawl({
-      query: 'Look for links to real estate agent profiles. Find specific individual real estate agents',
-      limit: 10,
-    })
-    .extract({
-      name:	'What is the name of this agent?',
-      email: 'What is the email address of this agent? Format: email@example.com',
-      url: `What is the URL of this agent's profile? Format: full absolute URL`,
-    })
-    .limit(10)
-    .plan();
+  const cases = [
+    {
+      name: 'live',
+      url: 'https://silvercreekrealty.net/silvercreek-agent-directory/?staff-az=E',
+      expected,
+    },
+    {
+      name: 'saved',
+      url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/ke9l83vymk/https-silvercreekrealty-net-silvercreek-agent-directory-staff-az-E.html',
+      expected,
+    },
+  ];
 
-  return itRunMatrix(
-    it,
-    'extract realtors from page E of Silver Creek Realty',
-    wf.dump(),
-    matrix,
-    [
-      (items) => checkItemsExact(items, expected),
-    ],
-    { shouldSave: true });
+  const questions = {
+    name:	'What is the name of this agent?',
+    email: 'What is the email address of this agent? Format: email@example.com',
+    url: `What is the URL of this agent's profile? Format: full absolute URL`,
+  }
+
+  for (const { name, url, expected } of cases) {
+    const wf = await fox
+      .init(url)
+      .crawl({
+        query: 'Look for links to real estate agent profiles. Find specific individual real estate agents',
+        limit: 10,
+      })
+      .extract({ questions })
+      .limit(10)
+      .plan();
+
+    return itRunMatrix(
+      it,
+      `extract realtors from page E of Silver Creek Realty (${name})`,
+      wf.dump(),
+      matrix,
+      [
+        (items) => checkItemsAI(items, expected, questions),
+      ],
+      { shouldSave: true });
+    }
 });

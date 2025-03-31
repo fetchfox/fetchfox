@@ -39,7 +39,6 @@ describe('extract kw.com', async function() {
       matrix,
       [
         (items) => {
-          console.log('items', items);
           // return checkItemsAI(items, expected, ['name', 'phone', 'email']);
           // TODO: check it, right now this is known to not work
           return [0, 1];

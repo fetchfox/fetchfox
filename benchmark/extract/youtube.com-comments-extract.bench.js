@@ -2,7 +2,6 @@ import { fox } from '../../src/index.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
 import { checkItemsAI } from '../lib/checks.js';
-import { storeScores } from '../lib/store.js';
 
 describe('youtube.com comments', async function() {
   const matrix = standardMatrix();
@@ -41,14 +40,16 @@ describe('youtube.com comments', async function() {
     },
   ];
 
+  const questions = {
+    comment_text: 'What is the text of the comment? List them in order, starting with the first comment',
+    comment_author: 'Who is the author of the comment?',
+  }
+
   for (const { name, url, expected } of cases) {
     const wf = await fox
       .init(url)
       .extract({
-        questions: {
-          comment_text: 'What is the text of the comment? List them in order, starting with the first comment',
-          comment_author: 'Who is the author of the comment?',
-        },
+        questions,
         mode: 'multiple',
         view: 'html',
       })
@@ -61,7 +62,7 @@ describe('youtube.com comments', async function() {
       wf.dump(),
       matrix,
       [
-        (items) => checkItemsAI(items, expected, ['comment_text', 'comment_author']),
+        (items) => checkItemsAI(items, expected, questions),
       ],
       { shouldSave: true });
   }

@@ -15,6 +15,8 @@ export const BaseExtractor = class {
     this.fetcher = getFetcher(fetcher, { cache, signal, logger });
     this.hardCapTokens = hardCapTokens || 1e7;
     this.hint = hint;
+    this.timeout = options?.timeout || this.fetcher.timeout || 60 * 1000;
+    this.wait = options?.wait || this.fetcher.wait || 4 * 1000;
     this.usage = {
       requests: 0,
       runtime: 0,
@@ -163,7 +165,7 @@ export const BaseExtractor = class {
                   ok();
 
                 } catch(e) {
-                  this.logger.error(`${this} Error in extraction promise: ${e}`);
+                  this.logger.error(`${this} Error in extraction promise: ${e} ${e.stack}`);
                   bad(e);
                 }
               }));

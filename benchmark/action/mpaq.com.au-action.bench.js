@@ -39,7 +39,6 @@ describe('action mpaq.com.au', async function() {
       matrix,
       [
         (items) => {
-          console.log('items', items);
           // TODO: check it items via checkItemsAI
           // return checkItemsAI(items, expected, ['name', 'phone', 'email']);
           return checkAtLeast(items, limit)

@@ -10,11 +10,16 @@ export const Cursor = class {
     this.deferCb = [];
     steps.map((step) => this.full.push({
       items: [],
+      artifacts: [],
       step: step.dump(),
     }));
 
     this._itemMap = {};
     this._nextId = 1;
+
+    this.numLogs = 5000;
+    this.logs = [];
+    this.lastLogPublish = new Date().getTime();
   }
 
   out(markDone) {
@@ -22,6 +27,7 @@ export const Cursor = class {
       done: this.done,
       items: this.items.filter(it => it._meta?.status != 'loading'),
       full: this.full,
+      logs: this.logs,
     };
 
     if (markDone) {
@@ -47,6 +53,37 @@ export const Cursor = class {
     }
   }
 
+  handleLog(msg) {
+    this.logs.push({
+      timestamp: new Date().toISOString(),
+      level: msg.level,
+      message: msg.message,
+    });
+    while (this.logs.length > this.numLogs) {
+      this.logs.shift();
+    }
+    const msec = new Date().getTime() - this.lastLogPublish;
+    if (msec > 2000) {
+      this.cb({ ...this.out() });
+    }
+  }
+
+  handleArtifact(artifact, stepIndex) {
+    const ser = JSON.stringify(artifact);
+    for (const a of this.full[stepIndex].artifacts) {
+      if (JSON.stringify(a) == ser) {
+        // Already have it
+        return;
+      }
+    }
+
+    this.full[stepIndex].artifacts.push(JSON.parse(ser));
+    const shouldPublish = this.ctx.publishAllSteps;
+    if (shouldPublish) {
+      this.cb({ ...this.out(), artifact, stepIndex });
+    }
+  }
+
   publish(id, item, stepIndex, done) {
     if (id) {
       // Got id, update
@@ -59,6 +96,7 @@ export const Cursor = class {
 
       item._meta ||= {};
       item._meta.id = id;
+      item._meta.timestamp = new Date().toISOString();
 
     } else {
       // No id, create
@@ -72,6 +110,7 @@ export const Cursor = class {
 
       copy._meta ||= {};
       copy._meta.id = id;
+      copy._meta.timestamp = new Date().toISOString();
 
       this._itemMap[id] = copy;
       this.full[stepIndex].items.push(copy);

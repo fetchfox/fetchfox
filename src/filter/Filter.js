@@ -1,4 +1,4 @@
-import { logger } from '../log/logger.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { Item } from '../item/Item.js';
 import { getAI } from '../ai/index.js';
 import { chunkList } from '../util.js';
@@ -6,17 +6,17 @@ import { filter } from './prompts.js';
 
 export const Filter = class {
   constructor(options) {
-    const { ai, cache } = options || {};
-    this.ai = getAI(ai, { cache });
+    this.logger = options?.logger || defaultLogger;
+    this.ai = options?.ai || getAI();
+  }
+
+  toString() {
+    return `[${this.constructor.name}]`;
   }
 
   async *run(items, query) {
-    let id = 1;
-    const copy = [...items]
-      .map(item => { return { ...item, _ffid: id++ } });
-
     const maxBytes = this.ai.maxTokens / 2;
-    const chunked = chunkList(copy, maxBytes);
+    const chunked = chunkList(items, maxBytes);
 
     let count = 0;
 
@@ -27,19 +27,23 @@ export const Filter = class {
         items: JSON.stringify(chunk, null, 2),
       });
 
-      const stream = this.ai.stream(prompt, { format: 'jsonl' });
+      const stream = await this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
-        for (let i = 0; i < copy.length; i++) {
-          const data = copy[i];
-          if (data._ffid == delta._ffid) {
-            count++;
-            delete data._ffid;
-            yield Promise.resolve(new Item(data));
-          }
+        this.logger.debug(`${this} Got filter rated: ${JSON.stringify(delta)}`);
+        const copy = JSON.parse(JSON.stringify(delta));
+        let p;
+        try {
+          p = parseInt(copy._percentMatch || 0);
+          delete copy._percentMatch;
+        } catch {
+          p = 0;
+        }
+        if (p >= 80) {
+          yield Promise.resolve(new Item(copy));
         }
       }
     }
 
-    logger.info(`Filter matched ${count} out of original ${items.length}`);
+    this.logger.info(`Filter matched ${count} out of original ${items.length}`);
   }
 }
