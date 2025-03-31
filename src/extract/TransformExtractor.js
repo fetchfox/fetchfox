@@ -22,9 +22,9 @@ export const TransformExtractor = class extends BaseExtractor {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     const transformer = new SelectorTransformer(questions, this);
-    const htmls = await transformer.transform(doc.html, doc.url);
+    const r = await transformer.transform(doc.html, doc.url);
 
-    if (!htmls) {
+    if (!r) {
       this.logger.warn(`${this} Failed to transform, using baseline`);
 
       if (process.env.STRICT_ERRORS) {
@@ -37,6 +37,11 @@ export const TransformExtractor = class extends BaseExtractor {
         yield Promise.resolve(r);
       }
       return;
+    }
+
+    const { htmls, selector, meta } = r;
+    if (options.onArtifact) {
+      options.onArtifact({ type: 'selector', data: { selector, meta } });
     }
 
     this.logger.debug(`${this} Running on ${htmls.length} html chunks`);
@@ -64,7 +69,7 @@ export const TransformExtractor = class extends BaseExtractor {
       for (const html of batch) {
         const h = shortObjHash({ html });
         if (this.seen[h]) {
-          this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
+          this.logger.debug(`${this} Drop repeat html in batch #${myI}: ${h}`);
           continue;
         }
         this.seen[h] = true;

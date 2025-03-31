@@ -6,10 +6,10 @@ import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 
 const authorWhitelist = [
   'curaleaf',
-  'pokemon',
 ];
 const transformWhitelist = [
   // 'curaleaf',
+  'pokemon',
   'finefettle',
   'bidspotter',
   'dmaar',

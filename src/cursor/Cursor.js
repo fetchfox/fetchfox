@@ -109,6 +109,7 @@ export const Cursor = class {
 
       copy._meta ||= {};
       copy._meta.id = id;
+      copy._meta.timestamp = new Date().toISOString();
 
       this._itemMap[id] = copy;
       this.full[stepIndex].items.push(copy);

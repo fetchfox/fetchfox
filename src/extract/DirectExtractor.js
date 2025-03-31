@@ -1,9 +1,5 @@
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
-import {
-  PrettyTransformer,
-  SelectorTransformer,
-} from '../transform/index.js';
 import * as prompts from './prompts.js';
 import { getKV } from '../kv/index.js';
 
