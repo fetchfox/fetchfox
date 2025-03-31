@@ -10,7 +10,7 @@ The Javascript code will have the parameters available:
 
 * page: a Playwright page object
 * fnSendResults(results): a function to send the results for evaluation. The results may be page HTML, JSON extracton, etc.. Call this whenever you have completed an iteration towards the goal. This is an async function, and you MUST await its results. If it return false, then abort. If it returns true, then continue. Always call this at least once at the end, even if not requested.
-* fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on. Send frequent updates about data your are extracting to help with debugging, before/after actions, etc.
+* fnDebugLog(msg): a function to log helpful debug output, use this to explain what is going on.
 * done: call this when the function is done
 
 >>> The current state is:
@@ -83,6 +83,10 @@ Selector guidance:
 
 Common mistakes:
 - page.evaluateAll() is not a function. Only locators have evaluateAll(), so you need to make a locator and do locator.evaluateAll()
+
+Logging:
+- Send frequent updates about data your are extracting to help with debugging
+- Send debug log messages before/after waiting, before/after clicking, before/after setting up and using locators
 
 Errors:
 - Log and rethrow errors. Log errors through fnDebugLog, and then rethrow

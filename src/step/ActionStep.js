@@ -8,10 +8,14 @@ export const ActionStep = class extends BaseStep {
     this.commands = args.commands;
   }
 
-  async process({ cursor, item }, cb) {
+  async process({ cursor, item, index }, cb) {
     const url = item.url || item._url;
 
-    const instr = new Instructions(url, this.commands, cursor.ctx);
+    const options = { ...cursor.ctx };
+    options.artifactCb = (art) => {
+      cursor.handleArtifact(art, index);
+    }
+    const instr = new Instructions(url, this.commands, options);
 
     // TODO: refactor how fetcher works to eliminate ctx concept
     const fetcherCtx = {};

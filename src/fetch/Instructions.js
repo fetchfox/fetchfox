@@ -54,6 +54,7 @@ export const Instructions = class {
     }
 
     this.logger = options?.logger || defaultLogger
+    this.artifactCb = options?.artifactCb;
 
     this.codeInstructions = new CodeInstructions(url, this.commands, options);
   }
@@ -408,6 +409,11 @@ ${this.hint}` : '',
       }
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
+
+      if (this.artifactCb) {
+        this.artifactCb({ type: 'instructions', data: { steps: this.learned } });
+      }
+
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
     } catch (e) {

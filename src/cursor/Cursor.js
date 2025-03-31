@@ -10,6 +10,7 @@ export const Cursor = class {
     this.deferCb = [];
     steps.map((step) => this.full.push({
       items: [],
+      artifacts: [],
       step: step.dump(),
     }));
 
@@ -64,6 +65,22 @@ export const Cursor = class {
     const msec = new Date().getTime() - this.lastLogPublish;
     if (msec > 2000) {
       this.cb({ ...this.out() });
+    }
+  }
+
+  handleArtifact(artifact, stepIndex) {
+    const ser = JSON.stringify(artifact);
+    for (const a of this.full[stepIndex].artifacts) {
+      if (JSON.stringify(a) == ser) {
+        // Already have it
+        return;
+      }
+    }
+
+    this.full[stepIndex].artifacts.push(JSON.parse(ser));
+    const shouldPublish = this.ctx.publishAllSteps;
+    if (shouldPublish) {
+      this.cb({ ...this.out(), artifact, stepIndex });
     }
   }
 

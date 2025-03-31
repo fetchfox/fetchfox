@@ -21,6 +21,7 @@ export const CodeInstructions = class {
     this.limit = options?.limit;
     this.hint = options?.hint;
     this.logger = options?.logger || defaultLogger
+    this.artifactCb = options?.artifactCb;
   }
 
   toString() {
@@ -53,7 +54,14 @@ export const CodeInstructions = class {
     }
 
     const task = new ActionTask(namespace, goals);
-    const gen = author.run(task, [this.url]);
+
+    const urls = [this.url];
+    const { script } = await author.get(task, urls);
+    if (this.artifactCb) {
+      this.artifactCb({ type: 'code', data: { script: JSON.parse(script.dump()) } });
+    }
+
+    const gen = author.run(task, urls);
     for await (const r of gen) {
       yield Promise.resolve(r);
     }

@@ -519,7 +519,7 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   }
 
   // Minimize the HTML before returning it
-  logger.debug(`Minimizing HTML on ${page.url()}`);
+  logger.debug(`Getting HTML from ${page.url()}`);
   let outs;
   try {
     /* eslint-disable no-undef */

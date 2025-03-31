@@ -16,7 +16,7 @@ describe('action businessregistration.moc.gov.kh', async function() {
       commands: [
         'Click "Online Services" and then click "Search Entity"',
         'Type in "a" for "Entity Name or Identifier" and press Enter to submit',
-        'Click on each business name, send HTML, and then click back. After doing this for all businesses, repeat click next page up to 5 times and repeat for the new set of businesses.',
+        'Click on each business name, on the business page click the element with text "Addresses", send HTML, and then click back. After doing this for all businesses, repeat click next page up to 5 times and repeat for the new set of businesses.',
       ]
     })
     .limit(20)

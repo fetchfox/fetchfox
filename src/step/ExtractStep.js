@@ -5,11 +5,14 @@ import { stepDescriptionsMap } from './info.js';
 import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 
 const authorWhitelist = [
+  'curaleaf',
+  'pokemon',
 ];
 const transformWhitelist = [
-  'curaleaf',
+  // 'curaleaf',
   'finefettle',
   'bidspotter',
+  'dmaar',
 ];
 
 export const ExtractStep = class extends BaseStep {
@@ -92,9 +95,6 @@ export const ExtractStep = class extends BaseStep {
       ex = cursor.ctx.extractor;
     }
 
-    // console.log('ex', ex);
-    // throw 'stop';
-
     try {
       const stream = ex.stream(
         item,
@@ -108,6 +108,9 @@ export const ExtractStep = class extends BaseStep {
             priority: index,
             hint: this.hint,
           },
+          artifactCb: (art) => {
+            cursor.handleArtifact(art, index);
+          }
         });
       for await (const output of stream) {
         const took = (new Date()).getTime() - start;
