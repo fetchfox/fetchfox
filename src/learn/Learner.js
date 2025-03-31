@@ -25,22 +25,36 @@ export const Learner = class {
     console.log('urls', urls);
     const docs = await Promise.all(urls.map(url => this.fetcher.first(url)));
 
-    const update = async (url, type, fact) => {
-      await this.kb.update(url, type, fact);
-      cb && cb();
-    }
+    // const update = async (url, type, fact) => {
+    //   await this.kb.update(url, type, fact);
+    //   cb && cb();
+    // }
 
-    await Promise.all([
+    let results = [];
+    await Promise.allSettled([
       this.analyzeLinks(
         { docs, prompt, ...rest },
-        (fact) => update(url, 'links', fact)
+        (fact) => {
+          // update(url, 'links', fact)
+          results.push({
+            type: 'link',
+            fact
+          });
+        }
       ),
 
       this.analyzeItems(
         { docs, prompt, ...rest },
-        (fact) => update(url, 'items', fact)
+        (fact) => {
+          results.push({
+            type: 'item',
+            fact
+          });
+          // update(url, 'items', fact)
+        }
       ),
     ]);
+    return results;
   }
 
   async analyzeItems({ docs, prompt }, cb) {
@@ -75,11 +89,11 @@ export const Learner = class {
       const html = doc.html;
       const baseUrl = doc.url;
       const root = parse(html);
-      console.log('html', html);
-      console.log(`root.querySelectorAll('a')`, root.querySelectorAll('a'));
+      // console.log('html', html);
+      // console.log(`root.querySelectorAll('a')`, root.querySelectorAll('a'));
       root.querySelectorAll('a').forEach(a => {
         const href = a.getAttribute('href');
-        console.log('a', a, href);
+        // console.log('a', a, href);
         if (!href) return;
 
         let url;
