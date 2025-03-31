@@ -12,7 +12,7 @@ export const ActionStep = class extends BaseStep {
     const url = item.url || item._url;
 
     const options = { ...cursor.ctx };
-    options.artifactCb = (art) => {
+    options.onArtifact = (art) => {
       cursor.handleArtifact(art, index);
     }
     const instr = new Instructions(url, this.commands, options);

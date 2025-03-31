@@ -108,7 +108,7 @@ export const ExtractStep = class extends BaseStep {
             priority: index,
             hint: this.hint,
           },
-          artifactCb: (art) => {
+          onArtifact: (art) => {
             cursor.handleArtifact(art, index);
           }
         });

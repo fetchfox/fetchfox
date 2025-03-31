@@ -55,8 +55,8 @@ export const AuthorExtractor = class extends BaseExtractor {
     }
 
     const { script } = await author.get(task, urls);
-    if (options.artifactCb) {
-      options.artifactCb({ type: 'code', data: { script: JSON.parse(script.dump()) } });
+    if (options.onArtifact) {
+      options.onArtifact({ type: 'code', data: { script: JSON.parse(script.dump()) } });
     }
 
     const gen = await author.run(task, urls);
