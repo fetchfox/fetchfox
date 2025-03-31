@@ -96,6 +96,7 @@ export const Cursor = class {
 
       item._meta ||= {};
       item._meta.id = id;
+      item._meta.timestamp = new Date().toISOString();
 
     } else {
       // No id, create
