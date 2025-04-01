@@ -223,18 +223,17 @@ export const BaseFetcher = class {
                   seen[hash(doc)] = true;
                 }
               }
-
             } catch (e) {
               if (process.env.STRICT_ERRORS) {
                 throw e;
               } else {
                 this.logger.error(`${this} Caught error while getting documents, ignoring: ${e} ${e.stack}`);
               }
+            } finally {
+              this.logger.debug(`${this} Closing docs channel`);
+              channel.end();
+              ok();
             }
-
-            this.logger.debug(`${this} Closing docs channel`);
-            channel.end();
-            ok();
           });
           /* eslint-enable no-async-promise-executor */
         },

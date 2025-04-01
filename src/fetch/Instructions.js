@@ -443,10 +443,14 @@ ${this.hint}` : '',
     if (this.commands.length == 0) {
       this.logger.debug(`${this} No actions, just a simple URL goto`);
       const ctx = {};
-      await fetcher.start(ctx);
-      await fetcher.goto(this.url, ctx);
-      const doc = await this.current(fetcher, ctx);
-      yield Promise.resolve({ doc });
+      try {
+        await fetcher.start(ctx);
+        await fetcher.goto(this.url, ctx);
+        const doc = await this.current(fetcher, ctx);
+        yield Promise.resolve({ doc });
+      } finally {
+        await fetcher.finish(ctx);
+      }
       return;
     }
 

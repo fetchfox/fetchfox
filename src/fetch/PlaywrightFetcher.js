@@ -93,6 +93,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _goto(url, ctx) {
+    if (this.signal?.aborted) return;
+
     this._ctxLastTouch(ctx);
 
     if (!ctx.page) {
@@ -113,6 +115,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async current(ctx) {
+    if (this.signal?.aborted) return;
+
     // No last touch, this is read-only
 
     let doc;
@@ -150,6 +154,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, seen) {
+    if (this.signal?.aborted) return;
+
     this._ctxLastTouch(ctx);
 
     const timer = ctx.timer || new Timer();

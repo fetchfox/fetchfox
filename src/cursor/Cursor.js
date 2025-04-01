@@ -17,7 +17,7 @@ export const Cursor = class {
     this._itemMap = {};
     this._nextId = 1;
 
-    this.numLogs = 5000;
+    this.numLogs = 200;
     this.logs = [];
     this.lastLogPublish = new Date().getTime();
   }
