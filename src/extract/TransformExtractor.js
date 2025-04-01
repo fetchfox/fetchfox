@@ -89,6 +89,9 @@ export const TransformExtractor = class extends BaseExtractor {
 
       buffer[r.index] = r.item;
       while (buffer[idx]) {
+        if (this.signal?.aborted) {
+          break;
+        }
         const item = buffer[idx++];
         if (item._dupe) {
           continue;
@@ -110,7 +113,7 @@ export const TransformExtractor = class extends BaseExtractor {
     const { prompt } = await prompts.scrapeSingleShort.renderCapped(
       context, 'body', this.ai);
     const answer = await this.ai.ask(prompt, { format: 'json' });
-    return new Item(answer.partial, doc);
+    return new Item(answer?.partial || {}, doc);
   }
 }
 
