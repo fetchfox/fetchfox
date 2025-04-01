@@ -60,11 +60,11 @@ export const TransformExtractor = class extends BaseExtractor {
       console.log('html', html);
 
       const h = shortObjHash({ html });
-      // if (this.seen[h]) {
-      //   this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
-      //   continue;
-      // }
-      // this.seen[h] = true;
+      if (this.seen[h]) {
+        this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
+        continue;
+      }
+      this.seen[h] = true;
 
       const task = q.add(async () => {
         this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
