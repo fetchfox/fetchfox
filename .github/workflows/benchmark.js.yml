@@ -58,6 +58,7 @@ jobs:
         BENCH_LOOKUP: default
         BENCH_COMMITS_TABLE: benchmarks_commits
         BENCH_SCORES_TABLE: benchmarks_scores
+        BENCH_ANALYSIS_TABLE: benchmarks_analysis
         BENCH_USE_CDP: true
         BENCH_MATRIX_AI: ${{ matrix.ai }}
 

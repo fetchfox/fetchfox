@@ -28,7 +28,7 @@ describe('action ct.curaleaf.com', async function() {
       .limit(limit)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `action ct.curaleaf.com (prefix=${prefix})`,
       wf.dump(),

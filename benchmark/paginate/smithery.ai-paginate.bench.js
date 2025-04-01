@@ -21,7 +21,7 @@ describe('paginate smithery.ai', async function() {
     { url: 'https://smithery.ai/?q=agent&page=5' },
   ];
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate smithery.ai', 
     wf.dump(),

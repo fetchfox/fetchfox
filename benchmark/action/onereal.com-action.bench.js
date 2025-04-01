@@ -42,7 +42,7 @@ describe('action onereal.com', async function() {
       .limit(limit)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `action onereal.com (prefix=${prefix})`,
       wf.dump(),

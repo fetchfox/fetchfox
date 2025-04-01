@@ -41,7 +41,7 @@ describe('extract scotchwhiskyauctions.com', async function() {
       })
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `extract from scotchwhiskyauctions.com (${name})`,
       wf.dump(),

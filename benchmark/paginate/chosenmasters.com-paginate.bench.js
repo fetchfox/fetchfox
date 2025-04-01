@@ -12,7 +12,7 @@ describe('paginate chosenmasters.com/charts', async function() {
     .fetch({ maxPages: 5 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate chosenmasters.com/charts',
     wf.dump(),

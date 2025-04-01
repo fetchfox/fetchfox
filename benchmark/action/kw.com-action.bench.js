@@ -32,7 +32,7 @@ describe('extract kw.com', async function() {
       .limit(50)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `extract kw.com (prefix=${prefix})`,
       wf.dump(),

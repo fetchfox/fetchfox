@@ -22,7 +22,7 @@ describe('grailzee.com', async function() {
     .limit(50)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'should paginate grailzee.com',
     wf.dump(),

@@ -56,7 +56,7 @@ describe('youtube.com comments', async function() {
       .limit(5)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `extract comments from a YouTube page (${name})`,
       wf.dump(),

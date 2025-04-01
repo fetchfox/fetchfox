@@ -30,7 +30,7 @@ describe('startops.network', async function() {
     })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'should paginate startops.network',
     wf.dump(),

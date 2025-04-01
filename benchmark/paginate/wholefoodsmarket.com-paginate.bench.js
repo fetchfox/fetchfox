@@ -22,7 +22,7 @@ describe('wholefoodsmarket.com', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'should paginate wholefoodsmarket.com',
     wf.dump(),

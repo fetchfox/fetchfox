@@ -19,7 +19,7 @@ describe('crawl pokemondb', async function() {
     .limit(20)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'crawl pokemon',
     wf.dump(),

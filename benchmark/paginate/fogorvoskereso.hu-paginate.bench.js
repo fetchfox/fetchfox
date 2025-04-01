@@ -20,7 +20,7 @@ describe('fogorvoskereso.hu', async function() {
     .limit(80)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'should paginate fogorvoskereso.hu',
     wf.dump(),

@@ -21,7 +21,7 @@ describe('crawl pressebox.com', async function() {
     .limit(40)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'crawl pressebox.com',
     wf.dump(),

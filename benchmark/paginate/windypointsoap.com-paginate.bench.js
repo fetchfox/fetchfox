@@ -21,7 +21,7 @@ describe('windypointsoap.com', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate windypointsoap.com', 
     wf.dump(),
