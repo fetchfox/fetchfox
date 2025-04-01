@@ -55,7 +55,7 @@ describe('action domain.com.au-agent-page', async function() {
         })
         .plan();
 
-      await itRunMatrix(
+      itRunMatrix(
         it,
         `action domain.com.au-agent-page (name=${name}, prefix=${prefix})`,
         wf.dump(),

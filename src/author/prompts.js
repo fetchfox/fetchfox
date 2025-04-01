@@ -25,8 +25,8 @@ BEFORE writing code:
   * Goal (10-20 words): Summarize the goal in your own words
   * Relevance (20-30 words): Is this goal feasible and relvent given the HTML?
   * Selector analysis (10-100 words): Which relevant selectors exist on the page, and how do they relate to the task at hand? If none exist, say so. Do not suggest selectors that don't exist on the page.
-  * Variable context handling (10-100 words): How will you account for the distinct variable contexts in Playwright, specifically noting which variables are available in evaluate and evaluateAll blocks that execute in the browser context
-  * Iteration using locator.evaluateAll() approach: (10-100 words): Desribe how you will always iterate using locator.evaluateAll(), and never using "nth" selectors/locators
+  * Variable context handling (10-100 words): How will you account for the distinct variable contexts in Playwright, specifically noting which variables are available in evaluate and evaluateAll blocks that execute in the browser context. Note that you will not access page inside evaluateAll().
+  * Iteration approach: (10-100 words): Describe how you will always iterate, with strong preference for locator.evaluateAll(). You will only use nth(i) iteration when necessary.
 
 AFTER writing code:
 * Give a comment line in exactly this format:

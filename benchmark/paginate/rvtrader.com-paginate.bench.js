@@ -21,7 +21,7 @@ describe('rvtrader.com', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate rvtrader.com', 
     wf.dump(),

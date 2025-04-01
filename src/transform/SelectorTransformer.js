@@ -43,9 +43,9 @@ export const SelectorTransformer = class extends BaseTransformer {
       selector = data.selector;
       meta = data.meta;
     } else {
-      const r = await this._learn(html, url);
-      selector = r.selector;
-      meta = r.meta;
+      const r = await this._learn(html);
+      selector = r?.selector;
+      meta = r?.meta;
     }
 
     if (!selector) {
@@ -65,7 +65,7 @@ export const SelectorTransformer = class extends BaseTransformer {
     return { htmls, selector, meta };
   }
 
-  async _learn(html, url) {
+  async _learn(html) {
     const dt = new DropTransformer();
     const tt = new TagsTransformer();
 
@@ -91,11 +91,8 @@ export const SelectorTransformer = class extends BaseTransformer {
     const map = {};
     for (const answer of answers) {
       const group = [];
-      for (const it of answer.partial) {
+      for (const it of (answer?.partial || [])) {
         this.logger.debug(`${this} Got selector candidate: ${JSON.stringify(it, null, 2)}`);
-        if (it._meta) {
-          continue;
-        }
         if (!it.selector) {
           continue;
         }
@@ -140,7 +137,7 @@ export const SelectorTransformer = class extends BaseTransformer {
 
     const sorted = Object.values(grouped)
       .filter(it => it.matches > 0)
-      .filter(it => it.rating > 75)
+      .filter(it => it.rating >= 65)
       .sort((a, b) => b.rank - a.rank);
     this.logger.debug(`${this} Got ${sorted.length} candidates, first few are: ${JSON.stringify(sorted.slice(0, 5), null, 2)}`);
 

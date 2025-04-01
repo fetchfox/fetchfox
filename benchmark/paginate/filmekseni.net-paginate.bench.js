@@ -20,7 +20,7 @@ describe('paginate filmekseni.net', async function() {
     .fetch({ maxPages: 5 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate filmekseni.net', 
     wf.dump(),

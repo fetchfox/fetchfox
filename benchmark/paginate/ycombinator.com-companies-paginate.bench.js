@@ -19,7 +19,7 @@ describe('paginate ycombinator.com/companies', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate ycombinator.com/companies',
     wf.dump(),

@@ -18,7 +18,7 @@ describe('extract patternlanguageindex.com', async function() {
     .limit(5)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'extract patternlanguageindex.com',
     wf.dump(),

@@ -46,7 +46,7 @@ describe('OpenAI', function() {
     const answer = await ai.ask('return 20 random words', { format: 'text' });
     const took = (new Date()).getTime() - start;
 
-    assert.ok(!answer.partial, 'no answer');
+    assert.ok(!answer?.partial, 'no answer');
     assert.ok(took < 500, 'fast abort');
   });
 

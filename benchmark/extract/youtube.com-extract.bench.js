@@ -43,7 +43,7 @@ describe('extract from youtube.com', async function() {
         single: true
       })
       .plan();
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `extract title and creator from youtube.com video`,
       wf.dump(),

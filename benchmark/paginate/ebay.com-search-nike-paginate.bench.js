@@ -20,7 +20,7 @@ describe('paginate ebay.com nike search', async function() {
     { url: 'https://www.ebay.com/sch/i.html?_nkw=nike+sneakers&_pgn=5' },
   ];
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate ebay.com nike search', 
     wf.dump(),

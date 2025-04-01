@@ -223,18 +223,17 @@ export const BaseFetcher = class {
                   seen[hash(doc)] = true;
                 }
               }
-
             } catch (e) {
               if (process.env.STRICT_ERRORS) {
                 throw e;
               } else {
                 this.logger.error(`${this} Caught error while getting documents, ignoring: ${e} ${e.stack}`);
               }
+            } finally {
+              this.logger.debug(`${this} Closing docs channel`);
+              channel.end();
+              ok();
             }
-
-            this.logger.debug(`${this} Closing docs channel`);
-            channel.end();
-            ok();
           });
           /* eslint-enable no-async-promise-executor */
         },
@@ -363,6 +362,8 @@ export const BaseFetcher = class {
 
   async setCache(url, options, val) {
     if (!this.cache) return;
+    if (this.signal?.aborted) return;
+
     const key = this.cacheKey(url, options);
     this.logger.debug(`${this} Set fetch cache for ${url} to "${(JSON.stringify(val)).substr(0, 32)}..." key=${key} options=${JSON.stringify(options)}`);
     return this.cache.set(key, val, 'fetch');

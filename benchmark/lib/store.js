@@ -10,8 +10,51 @@ let id = 0; // per parallel execution sequential id, combined with uuid
 
 const docClient = DynamoDBDocument.from(new DynamoDBClient());
 
-const registerCommit = async () => {
+const putRows = async (tableName, rows) => {
+  // batch update scores using AWS DynamoDB DocumentClient
+  const batchSize = 25; // DynamoDB batchWrite has a max of 25 items per batch
+
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batchItems = rows.slice(i, i + batchSize);
+    const requestItems = {
+      [tableName]: batchItems.map(row => ({
+        PutRequest: {
+          Item: row
+        }
+      }))
+    };
+
+    let retries = 2;
+    let unprocessedItems = requestItems;
+    let done = false;
+    while (!done) {
+      try {
+        const result = await docClient.batchWrite({
+          RequestItems: unprocessedItems
+        });
+        if (result.UnprocessedItems && Object.keys(result.UnprocessedItems).length) {
+          logger.warn('Some items were not processed:', result.UnprocessedItems);
+          retries--;
+          unprocessedItems = result.UnprocessedItems
+        } else {
+          logger.debug('Batch write successful for scores:', batchItems.length);
+          done = true;
+        }
+      } catch (e) {
+        logger.warn('Batch write error:', e);
+        retries--;
+      }
+      if (retries <= 0) {
+        throw new Error('Failed to write all score items to DB after retries');
+      }
+    }
+  }
+}
+
+const persistAllScores = async () => {
+  const scoresTable = process.env.BENCH_SCORES_TABLE;
   const commitsTable = process.env.BENCH_COMMITS_TABLE;
+  const analysisTable = process.env.BENCH_ANALYSIS_TABLE;
   const lookup = process.env.BENCH_LOOKUP || 'default';
 
   const now = new Date();
@@ -20,95 +63,6 @@ const registerCommit = async () => {
 
   const commit = process.env.COMMIT || 'local';
   const branch = process.env.BRANCH || 'unknown';
-
-  if (commit == 'local') {
-    logger.debug('Skipping registering commit in DynamoDB');
-    return;
-  }
-
-  try {
-    // Conditionally put commmit if not already there (transaction / lock)
-    const transactParams = {
-      TransactItems: [
-        {
-          Put: {
-            TableName: commitsTable,
-            Item: { lookup: "LOCK", timestamp: commit },
-            ConditionExpression: 'attribute_not_exists(lookup)',
-          }
-        },
-        {
-          Put: {
-            TableName: commitsTable,
-            Item: { lookup, commit, branch, timestamp, date },
-            ConditionExpression: 'attribute_not_exists(lookup)',
-          }
-        },
-      ]
-    }
-    await docClient.send(new TransactWriteCommand(transactParams));
-    logger.debug(`Registered commit ${commit}`)
-  } catch (e) {
-    if (e.name == 'TransactionCanceledException') {
-        logger.debug('Commit already registered, doing nothing.');
-    } else {
-      throw new Error(`Error registering commit: ${e}`);
-    }
-  }
-}
-
-const persistAnalysis = async (scores) => {
-  // aggregate analysis by name / config_ai
-  const grouped = {};
-  const rows = [];
-  for (const score of scores) {
-    const { name, config_ai: configAI, analysis } = score;
-    const analyses = Array.isArray(analysis) ? analysis : [analysis];
-
-    if (!grouped[name]) {
-      grouped[name] = {};
-    }
-    if (!grouped[name][configAI]) {
-      grouped[name][configAI] = [];
-    }
-
-    // Push the analysis data into the array
-    grouped[name][configAI].push(...analyses);
-  }
-
-  for (const name of Object.keys(grouped)) {
-    for (const configAI of Object.keys(grouped[name])) {
-      const row = {
-        name,
-        config_ai: configAI,
-        analysis: grouped[name][configAI],
-      }
-      rows.push(row);
-    }
-  }
-
-  for (const row of rows) {
-    if (!row.analysis.length) {
-      row.analysis = '';
-    } else if (row.analysis.length == 1) {
-      row.analysis = row.analysis[0];
-    } else {
-      row.analysis = await summarize(row.analysis);
-    }
-  }
-
-  console.log(rows);
-  // TODO: persist to analysisTable
-}
-
-const persistAllScores = async () => {
-  const scoresTable = process.env.BENCH_SCORES_TABLE;
-
-  const now = new Date();
-  const timestamp = now.toISOString();
-  const date = timestamp.split('T')[0];
-
-  const commit = process.env.COMMIT || 'local';
 
   if (commit == 'local') {
     logger.info(`Skipping putting aggregate scores in DynamoDB, displaying summary of ${allScores.length} rows instead`);
@@ -180,66 +134,113 @@ const persistAllScores = async () => {
 
     logger.debug(JSON.stringify(allScores, null, 2));
     console.log(await summary(allScores));
-    persistAnalysis(allScores);
     return;
+  }
+
+  const registerCommit = async () => {
+    if (commit == 'local') {
+      logger.debug('Skipping registering commit in DynamoDB');
+      return;
+    }
+
+    try {
+      // Conditionally put commmit if not already there (transaction / lock)
+      const transactParams = {
+        TransactItems: [
+          {
+            Put: {
+              TableName: commitsTable,
+              Item: { lookup: "LOCK", timestamp: commit },
+              ConditionExpression: 'attribute_not_exists(lookup)',
+            }
+          },
+          {
+            Put: {
+              TableName: commitsTable,
+              Item: { lookup, commit, branch, timestamp, date },
+              ConditionExpression: 'attribute_not_exists(lookup)',
+            }
+          },
+        ]
+      }
+      await docClient.send(new TransactWriteCommand(transactParams));
+      logger.info(`Registered commit ${commit}`)
+    } catch (e) {
+      if (e.name == 'TransactionCanceledException') {
+          logger.debug('Commit already registered, doing nothing.');
+      } else {
+        throw new Error(`Error registering commit: ${e}`);
+      }
+    }
   }
 
   await registerCommit();
 
-  logger.debug(`Putting aggregate scores in DynamoDB with ${allScores.length} rows`);
-  // persistAnalysis(allScores);
+  const persistAnalysis = async (scores) => {
+    // aggregate analysis by name / config_ai
+    const grouped = {};
+    const rows = [];
+    for (const score of scores) {
+      const { name, config_ai: configAI, analysis } = score;
+      const analyses = Array.isArray(analysis) ? analysis : [analysis];
+
+      if (!grouped[name]) {
+        grouped[name] = {};
+      }
+      if (!grouped[name][configAI]) {
+        grouped[name][configAI] = [];
+      }
+
+      // Push the analysis data into the array
+      grouped[name][configAI].push(...analyses);
+    }
+
+    for (const name of Object.keys(grouped)) {
+      for (const configAI of Object.keys(grouped[name])) {
+        const row = {
+          name,
+          config_ai: configAI,
+          analysis: grouped[name][configAI],
+        }
+        rows.push(row);
+      }
+    }
+
+    for (const row of rows) {
+      if (!row.analysis.length) {
+        row.analysis = '';
+      } else if (row.analysis.length == 1) {
+        row.analysis = row.analysis[0];
+      } else {
+        row.analysis = await summarize(row.analysis);
+      }
+    }
+
+    console.log(rows);
+    for (const row of rows) {
+      row.commit = commit;
+      row.benchmark = `${row.name}#${row.config_ai}`;
+    }
+
+    await putRows(analysisTable, rows);
+  }
+
+  try {
+    logger.info(`Putting analysis in DynamoDB for ${allScores.length} rows`);
+    await persistAnalysis(allScores);
+  } catch (e) {
+    logger.warn(`Error putting analysis in DynamoDB: ${e}`);
+  }
+
+  logger.info(`Putting aggregate scores in DynamoDB with ${allScores.length} rows`);
 
   // Exclude analysis from scoresTable
   for (const score of allScores) {
     delete score['analysis'];
   }
 
-  // batch update scores using AWS DynamoDB DocumentClient
-  const batchSize = 25; // DynamoDB batchWrite has a max of 25 items per batch
+  await putRows(scoresTable, allScores);
 
-  for (let i = 0; i < allScores.length; i += batchSize) {
-    const batchItems = allScores.slice(i, i + batchSize);
-    const requestItems = {
-      [scoresTable]: batchItems.map(score => ({
-        PutRequest: {
-          Item: score
-        }
-      }))
-    };
-
-    let retries = 2;
-    let unprocessedItems = requestItems;
-    let done = false;
-    while (!done) {
-      try {
-        const result = await docClient.batchWrite({ 
-          RequestItems: unprocessedItems 
-        });
-        if (result.UnprocessedItems && Object.keys(result.UnprocessedItems).length) {
-          logger.warn('Some items were not processed:', result.UnprocessedItems);
-          retries--;
-          unprocessedItems = result.UnprocessedItems
-        } else {
-          logger.debug('Batch write successful for scores:', batchItems.length);
-          done = true;
-        }
-      } catch (e) {
-        logger.warn('Batch write error:', e);
-        retries--;
-      }
-      if (retries <= 0) {
-        throw new Error('Failed to write all score items to DB after retries');
-      }
-    }
-  }
-}
-
-export const storeAnalysis = async (scores) => {
-  const rows = [];
-  // TODO: implement
-  for (const score of scores) {
-    score;
-  }
 }
 
 export const storeScores = async (scores) => {
@@ -292,7 +293,7 @@ export const storeScores = async (scores) => {
       }
       row[`config_${configKey}`] = str;
     }
-    logger.debug(`Aggregate this benchmark data: ${JSON.stringify(row)}`);
+    logger.info(`Aggregate this benchmark data: ${JSON.stringify(row)}`);
     allScores.push(row);
   }
 }

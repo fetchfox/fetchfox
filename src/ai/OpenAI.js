@@ -124,7 +124,15 @@ export const OpenAI = class extends BaseAI {
       completion = await openai.chat.completions.create(args, aiOptions);
       if (canStream) {
         this.logger.debug(`${this} Stream the completion`);
+        // if (this.signal?.aborted) {
+        //   return;
+        // }
+
         for await (const chunk of completion) {
+          // if (this.signal?.aborted) {
+          //   break;
+          // }
+
           yield Promise.resolve(chunk);
         }
       } else {
@@ -133,7 +141,7 @@ export const OpenAI = class extends BaseAI {
       }
     } catch (e) {
       if (e.constructor.name == 'APIUserAbortError') {
-        this.logger.warn(`${this} Aborted while creating: ${e}`);
+        this.logger.debug(`${this} Aborted while creating: ${e}`);
         return;
       }
 

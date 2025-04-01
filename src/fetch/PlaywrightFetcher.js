@@ -93,6 +93,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async _goto(url, ctx) {
+    if (this.signal?.aborted) return;
+
     this._ctxLastTouch(ctx);
 
     if (!ctx.page) {
@@ -113,6 +115,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async current(ctx) {
+    if (this.signal?.aborted) return;
+
     // No last touch, this is read-only
 
     let doc;
@@ -150,6 +154,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async act(ctx, action, seen) {
+    if (this.signal?.aborted) return;
+
     this._ctxLastTouch(ctx);
 
     const timer = ctx.timer || new Timer();
@@ -343,6 +349,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
             loadWait: this.loadWait,
             pullIframes: this.pullIframes,
             logger: this.logger,
+            signal: this.signal,
           }));
 
       if (result.aborted) {
@@ -388,7 +395,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     if (this.shouldScreenshot) {
       try {
         const keyTemplate = this.s3.key || 'fetchfox-docs/ss/{id}/{url}.png';
-        const acl = this.s3.acl || 'public-read';
         const id = srid(10);
         const cleanUrl = url.replace(/[^A-Za-z0-9]/g, '-');
         const key = keyTemplate
@@ -427,7 +433,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 }
 
-const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, logger }) => {
+const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, logger, signal }) => {
   const now = new Date().getTime();
   lastTouch ||= now;
   const diff = now - lastTouch;
@@ -518,8 +524,13 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
     logger.debug(`Done getting iframes`);
   }
 
+  if (signal?.aborted) {
+    return;
+  }
+
   // Minimize the HTML before returning it
   logger.debug(`Getting HTML from ${page.url()}`);
+
   let outs;
   try {
     /* eslint-disable no-undef */
@@ -599,15 +610,13 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
         },
       ];
 
-      /* NEW CODE: Append shadow DOM content as a <shadow-root> element to its host element */
       document.querySelectorAll('*').forEach(el => {
         if (el.shadowRoot) {
-          const shadowWrapper = document.createElement('shadow-root');
-          shadowWrapper.innerHTML = el.shadowRoot.innerHTML;
-          el.appendChild(shadowWrapper);
+          const shadow = document.createElement('shadow');
+          shadow.innerHTML = el.shadowRoot.innerHTML;
+          el.appendChild(shadow);
         }
       });
-      /* END NEW CODE */
 
       const outs = {};
       for (const min of minimizers) {
@@ -641,7 +650,9 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
     });
     /* eslint-enable no-undef */
   } catch (e) {
-    logger.error(`Error while getting HTML: ${e}`);
+    if (!signal?.aborted) {
+      logger.error(`Error while getting HTML: ${e}`);
+    }
   }
 
   return {

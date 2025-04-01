@@ -80,7 +80,7 @@ export const Author = class {
             }
             const p = exec(code, this.logger, this.fetcher, ctx, cb);
             try {
-              await pTimeout(p, { milliseconds: 300 * 1000 });
+              await pTimeout(p, { milliseconds: 45 * 60 * 1000 });
             } catch (e) {
               this.logger.error(`${this} Exec error: ${e}`);
               throw e;
@@ -354,53 +354,49 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
     messages: '',
   }
   const fn = toFn(code);
-  const run = new Promise(async (ok) => {
-    try {
-      await fn(
-        ctx.page,
+  const run = new Promise((ok) => {
+    fn(
+      ctx.page,
 
-        // fnSendResults
-        async (result) => {
-          logger.debug(`AI generated code sent results: ${clip(result, 200)}`);
-          await new Promise(ok => setTimeout(ok, 2000));
-          if (!cb) {
-            logger.debug(`No callback, always continue`);
-            return true;
-          }
+      // fnSendResults
+      async (result) => {
+        logger.debug(`AI generated code sent results: ${clip(result, 200)}`);
+        await new Promise(ok => setTimeout(ok, 2000));
+        if (!cb) {
+          logger.debug(`No callback, always continue`);
+          return true;
+        }
 
-          const doc = await fetcher.current(ctx);
+        const doc = await fetcher.current(ctx);
 
-          try {
-            // In case the AI serialized it
-            result = JSON.parse(result);
-          } catch {
-            // Ignore
-          }
+        try {
+          // In case the AI serialized it
+          result = JSON.parse(result);
+        } catch {
+          // Ignore
+        }
 
-          const more = await cb({ doc, result });
-          if (!more) {
-            logger.debug(`Callback says to stop`);
-            ok();
-          }
-          logger.debug(`Callback says to continue`);
-          return more;
-        },
-
-        // fnDebugLog
-        (msg) => {
-          logger.debug(`${chalk.bold('[AIGEN]')} ${msg} url=${ctx.page.url()}`);
-          result.messages += `${msg}\n`;
-        },
-
-        // done
-        async () => {
-          logger.debug(`Generated code is done`);
+        const more = await cb({ doc, result });
+        if (!more) {
+          logger.debug(`Callback says to stop`);
           ok();
         }
-      )
-    } catch (e) {
-      throw e;
-    }
+        logger.debug(`Callback says to continue`);
+        return more;
+      },
+
+      // fnDebugLog
+      (msg) => {
+        logger.debug(`${chalk.bold('[AIGEN]')} ${msg} url=${ctx.page && ctx.page.url()}`);
+        result.messages += `${msg}\n`;
+      },
+
+      // done
+      async () => {
+        logger.debug(`Generated code is done`);
+        ok();
+      }
+    );
   });
 
   try {

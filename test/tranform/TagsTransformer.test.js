@@ -39,7 +39,6 @@ describe('TagsTransformer', function() {
 `;
 
     const tHtml = await tt.transform(html);
-    console.log('tHtml', tHtml);
     assert.ok(tHtml.includes('<div class="tile padding-top-16 padding-left-16 padding-right-16">'));
     assert.ok(!tHtml.includes('<svg>stuff</svg>'));
   });

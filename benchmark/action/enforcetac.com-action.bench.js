@@ -24,7 +24,7 @@ describe('action enforcetac.com', async function() {
       })
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       'action enforcetac.com',
       wf.dump(),

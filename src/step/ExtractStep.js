@@ -85,12 +85,14 @@ export const ExtractStep = class extends BaseStep {
 
     let ex;
     if (this.useTransform(item)) {
-      ex = new TransformExtractor(cursor.ctx.extractor);
+      this.transformExtractor ||= new TransformExtractor(cursor.ctx.extractor);
+      ex = this.transformExtractor;
     } else if (this.useAuthor(item)) {
-      ex = new AuthorExtractor({
+      this.authorExtractor ||= new AuthorExtractor({
         ...cursor.ctx.extractor,
         baseline: cursor.ctx.extractor,
       });
+      ex = this.authorExtractor;
     } else {
       ex = cursor.ctx.extractor;
     }

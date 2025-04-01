@@ -168,6 +168,7 @@ export const BaseAI = class {
 
   async setCache(prompt, options, val) {
     if (!this.cache) return;
+    if (this.signal?.aborted) return;
 
     const { systemPrompt, format, cacheHint } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
@@ -304,9 +305,13 @@ export const BaseAI = class {
     let result;
     let retries = Math.min(this.maxRetries, options?.retries ?? 2);
     const retryMsec= 5000;
-    while (true) {
+    let done = false;
+    while (!done) {
       try {
         for await (const chunk of this.stream(prompt, options)) {
+          if (this.signal?.aborted) {
+            done = true;
+          }
           result = chunk;
         }
 
@@ -319,14 +324,19 @@ export const BaseAI = class {
 
         this.logger.debug(`Caught error in ${this}, sleep for ${retryMsec} and try again. ${retries} tries left: ${e.status} ${e}`);
         await sleep(retryMsec);
+        continue;
       }
 
-      break;
+      done = true;
+    }
+
+    if (this.signal?.aborted) {
+      return;
     }
 
     if (!result) {
       this.logger.warn(`Got no response for prompt ${prompt.substr(0, 100)}: ${result}`);
-      result = {};  // Cache it as empty dict
+      return;
     }
 
     return result;

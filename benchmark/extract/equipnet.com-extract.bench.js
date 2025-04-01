@@ -289,7 +289,7 @@ describe('extract equipnet.com', async function() {
       .limit(50)
       .plan();
 
-    await itRunMatrix(
+    itRunMatrix(
       it,
       `extract equipnet.com (${name})`,
       wf.dump(),

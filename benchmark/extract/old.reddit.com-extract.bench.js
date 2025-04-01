@@ -728,7 +728,7 @@ describe('extract old.reddit.com', async function() {
       .limit(500)
       .plan();
 
-    return itRunMatrix(
+    itRunMatrix(
       it,
       `extract old.reddit.com comment thread (${name})`,
       wf.dump(),

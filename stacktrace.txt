@@ -1,0 +1,44 @@
+[01:15:04] INFO  ctdata:zeokdw5jbj:pyrt7nfyqs [ExtractStep] (2) #210 ▶ {"name":"Blanchard, Paige","company":"Iowa Realty Co., Inc","city":"Ankeny, IA","member_id":"325505492","_sourceUrl":"https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1","_sourceSize":"127391","_htmlUrl":"https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-d... BaseStep.js:208
+[01:15:04] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs Check maybe ok [ExtractStep]: parentDone=false, nextDone=false received=20, completed=19 BaseStep.js:289
+[01:15:04] INFO  ctdata:zeokdw5jbj:pyrt7nfyqs [TransformExtractor] Done extracting {"url":"https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1","body":"<html><!--<![endif]--><head><!-- Google tag (gtag.js) --> <!-- for Chrome Nav Color --> <!-- Add if needed : <noscript><link rel=\"stylesheet\" href=\"/css/site/no-js/no-js.min.css\"></noscript> --> <!--[if lte IE 9]><script src=\"/scripts/site/modernizr-print-shiv-placeholder-checks.js\"></script><![endif]-- BaseExtractor.js:224
+[01:15:04] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs Check maybe ok [ExtractStep]: parentDone=false, nextDone=false received=20, completed=20 BaseStep.js:289
+[01:15:04] DEBUG  Putting to S3: ffcloud, fetchfox-docs/ss/kwlgwon1dt/https---www-dmaar-com-members-member-directory-membertype-REALTOR-page-1.png, undefined, public-read, us-west-2 util.js:23
+pyrt7nfyqs Partial update took 0.33 sec for 5873.042 kB
+[01:15:05] ERROR ctdata:zeokdw5jbj:pyrt7nfyqs [Author] Exec error: TimeoutError: Promise timed out after 300000 milliseconds Author.js:85
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [PlaywrightFetcher] Closing browser PlaywrightFetcher.js:147
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [PlaywrightFetcher] Closing docs channel BaseFetcher.js:235
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [PlaywrightFetcher] Closing browser PlaywrightFetcher.js:147
+TimeoutError: Promise timed out after 300000 milliseconds
+    at <anonymous> (/root/app/node_modules/p-timeout/index.js:73:24)
+    at new Promise (<anonymous>)
+    at pTimeout (/root/app/node_modules/p-timeout/index.js:49:25)
+    at <anonymous> (/root/app/node_modules/fetchfox/src/author/Author.js:83:21)
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs Check maybe ok [ActionStep]: parentDone=true, nextDone=false received=1, completed=1 BaseStep.js:289
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [ActionStep] took total of 309.08 sec BaseStep.js:72
+[01:15:05] INFO  ctdata:zeokdw5jbj:pyrt7nfyqs Finish step 1 in cursor Cursor.js:154
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs Check maybe ok [ExtractStep]: parentDone=true, nextDone=false received=20, completed=20 BaseStep.js:289
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [ExtractStep] took total of 309.08 sec BaseStep.js:72
+[01:15:05] INFO  ctdata:zeokdw5jbj:pyrt7nfyqs Finish step 2 in cursor Cursor.js:154
+[01:15:05] INFO  ctdata:zeokdw5jbj:pyrt7nfyqs Finish all in cursor Cursor.js:168
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Error during processing: locator.click: Target page, context or browser has been closed
+Call log:
+  - waiting for locator('a.button.nav-link').first()
+    - locator resolved to <a href="#" class="button nav-link">…</a>
+  - attempting click action
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+    - performing click action
+ url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Attempting to click "Load More" button, iteration 22 url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Error during processing: locator.count: Target page, context or browser has been closed url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Attempting to click "Load More" button, iteration 23 url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Error during processing: locator.count: Target page, context or browser has been closed url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Attempting to click "Load More" button, iteration 24 url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Error during processing: locator.count: Target page, context or browser has been closed url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Attempting to click "Load More" button, iteration 25 url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Error during processing: locator.count: Target page, context or browser has been closed url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Attempting to click "Load More" button, iteration 26 url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Error during processing: locator.count: Target page, context or browser has been closed url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391
+[01:15:05] DEBUG ctdata:zeokdw5jbj:pyrt7nfyqs [AIGEN] Attempting to click "Load More" button, iteration 27 url=https://www.dmaar.com/members/member-directory#membertype=REALTOR&page=1 Author.js:391

@@ -22,7 +22,7 @@ describe('paginate news.ycombinator.com/news', async function() {
     .fetch({ maxPages: 5 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate news.ycombinator.com/news', 
     wf.dump(),

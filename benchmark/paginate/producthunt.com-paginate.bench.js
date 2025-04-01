@@ -12,7 +12,7 @@ describe('paginate producthunt.com', async function() {
     .fetch({ maxPages: 2 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate producthunt.com',
     wf.dump(),

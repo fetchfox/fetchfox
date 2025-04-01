@@ -3,10 +3,7 @@ import { shortObjHash, createChannel, promiseAllStrict } from '../util.js';
 import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { DirectExtractor } from './DirectExtractor.js';
-import {
-  PrettyTransformer,
-  SelectorTransformer,
-} from '../transform/index.js';
+import { SelectorTransformer } from '../transform/index.js';
 import * as prompts from './prompts.js';
 import { getKV } from '../kv/index.js';
 
@@ -24,9 +21,12 @@ export const TransformExtractor = class extends BaseExtractor {
     const transformer = new SelectorTransformer(questions, this);
     const r = await transformer.transform(doc.html, doc.url);
 
+    if (this.signal?.aborted) {
+      return;
+    }
+
     if (!r) {
       this.logger.warn(`${this} Failed to transform, using baseline`);
-
       if (process.env.STRICT_ERRORS) {
         throw new Error('Failed to transform');
       }
@@ -51,37 +51,31 @@ export const TransformExtractor = class extends BaseExtractor {
     htmls.forEach(() => { buffer.push(null) });
 
     const chan = createChannel();
-    const q = new PQueue({ concurrency: 16 });
+    const q = new PQueue({ concurrency: 8 });
     const all = [];
 
-    const size = 4;
-
-    const batches = [];
-    for (let i = 0; i < htmls.length; i += size) {
-      batches.push(htmls.slice(i, i + size));
-    }
-
-    for (let i = 0; i < batches.length; i++) {
-      const myI = i;
-      const batch = batches[myI];
-
-      const filtered = [];
-      for (const html of batch) {
-        const h = shortObjHash({ html });
-        if (this.seen[h]) {
-          this.logger.debug(`${this} Drop repeat html in batch #${myI}: ${h}`);
-          continue;
-        }
-        this.seen[h] = true;
-        filtered.push(html);
+    for (const [i, html] of htmls.entries()) {
+      if (this.signal?.aborted) {
+        break;
       }
 
+      const num = i + 1;
+      const h = shortObjHash({ html });
+      if (this.seen[h]) {
+        this.logger.debug(`${this} Drop repeat html for ${h}`);
+        buffer[i] = { _dupe: true };
+        continue;
+      }
+      this.seen[h] = true;
+
       const task = q.add(async () => {
-        this.logger.debug(`${this} Run on chunk #${i} of ${htmls.length}`);
-        const results = await this._runBatch(doc, filtered, questions, options);
-        results.forEach((it, j) => {
-          chan.send({ index: (i * size) + j, item: new Item(it, doc) });
-        });
+        if (this.signal?.aborted) {
+          return;
+        }
+
+        this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
+        const item = await this._runSingle(doc, html, questions, options);
+        chan.send({ index: i, item });
       });
       all.push(task);
     }
@@ -94,63 +88,30 @@ export const TransformExtractor = class extends BaseExtractor {
 
       buffer[r.index] = r.item;
       while (buffer[idx]) {
-        this.logger.debug(`${this} Yield from buffer ${idx}`);
-        yield Promise.resolve(buffer[idx]);
-        idx++;
+        if (this.signal?.aborted) {
+          break;
+        }
+        const item = buffer[idx++];
+        if (item._dupe) {
+          continue;
+        }
+        this.logger.debug(`${this} Yield from buffer ${idx - 1}`);
+        yield Promise.resolve(new Item(item));
       }
     }
 
     await p;
   }
 
-  async _runBatch(doc, batch, questions, options) {
+  async _runSingle(doc, html, questions) {
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      body: batch.join('\n'),
-      count: batch.length,
+      body: html,
     };
-    const { prompt } = await prompts.scrapeBatchShort.renderCapped(
+    const { prompt } = await prompts.scrapeSingleShort.renderCapped(
       context, 'body', this.ai);
     const answer = await this.ai.ask(prompt, { format: 'json' });
-    return answer.partial;
-  }
-}
-
-const modeRules = (mode) => {
-  switch (mode) {
-    case 'single':
-      return `You are in SINGLE item extraction mode. Return EXACTLY ONE result. This rule overrides previous instructions.`;
-
-    case 'multiple':
-      return  `You are in MULTIPLE item extraction mode. Return ONE OR MORE results. This rule overrides previous instructions. Make sure to find ALL items.
-
-* After every 25 items, return another "_meta" result with an update on your status, how many items you think you have left to find, and a FIRM instruction to yourself on how to proceed. No more than 100 words total.
-* Consider the results of each _meta when looking for more results
-
-{ "_meta": true, "analysis": "...your analysis here..."}`;
-
-    case 'auto':
-      return  `Before beginning extraction, return a single JSONL result that is an analysis result. The format will be like this:
-
-{ "_meta": true, "pageType": "'detail' or 'list' or 'other'":, "analysis": "...your analysis here...", "mode": "'single' or 'multiple'"}
-
-Field meanings:
-- "_meta": indicates this is a meta result. Always true.
-- "pageType": some pages are detail pages, which means they give detail on a single item. They may have links to similar items, or list multiple target items, but if the main point of this page is to give detail about a single specific item, say "detail". If this page's main point is to link to other detail pages, then say "list". If this page is in neither category, say "other"
-- "analysis": given the page info, the pageType, analyze the situation in up to 20 words. The topic of your analysis is whether you should be extracting one item, or multiple items. To determine this, consider BOTH the user extraction goal, AND the content of the page. Are there multiple items on the page matching the user's goal? Or just one?
-- "mode": Give all the above, should the extraction mode be "single" or "multiple"
-
-Important: consider BOTH the page content, and also the URL of the page. Sometimes the URL will give clues about whether this is a detail page or a list page, and therefore single or multiple extraction.
-
-* Once this analysis is complete, the REST of your response SHOULD respect the outcome of this analysis
-* If instructed to find multiple items, make sure to find ALL items that match
-* If instructed to find a single item, return ONLY return one actual result item
-* The "_meta" result does NOT count to the result limit. If you are in single mode, return one _meta result, and then one actual result.
-* If you are extracting multiple items, after every 25 items, return another "_meta" result with an update on your status, how many items you think you have left to find, and a FIRM instruction to yourself on how to proceed. No more than 100 words total.
-* Consider the results of each _meta when looking for more results and deciding if you should stop`;
-
-    default:
-      throw new Error(`Unexpected mode: ${mode}`);
+    return new Item(answer?.partial || {}, doc);
   }
 }

@@ -19,7 +19,7 @@ describe('crawl bbc.com', async function() {
     .limit(40)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'crawl bbc.com',
     wf.dump(),
