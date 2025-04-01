@@ -60,10 +60,9 @@ export const TransformExtractor = class extends BaseExtractor {
       }
 
       const num = i + 1;
-
       const h = shortObjHash({ html });
       if (this.seen[h]) {
-        this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
+        this.logger.debug(`${this} Drop repeat html for ${h}`);
         buffer[i] = { _dupe: true };
         continue;
       }

@@ -248,7 +248,7 @@ describe('action domain.com.au', async function() {
         })
         .plan();
 
-      await itRunMatrix(
+      itRunMatrix(
         it,
         `action domain.com.au (name=${name}, prefix=${prefix})`,
         wf.dump(),

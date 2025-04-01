@@ -22,7 +22,7 @@ describe('action businessregistration.moc.gov.kh', async function() {
     .limit(20)
     .plan();
 
-  await itRunMatrix(
+  itRunMatrix(
     it,
     `action businessregistration.moc.gov.kh`,
     wf.dump(),

@@ -18,7 +18,7 @@ describe('crawl deviantart.com', async function() {
     .limit(40)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'crawl deviantart.com',
     wf.dump(),

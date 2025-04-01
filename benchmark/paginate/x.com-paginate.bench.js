@@ -16,7 +16,7 @@ describe('paginate x.com', async function() {
     .unique('text')
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate x.com',
     wf.dump(),

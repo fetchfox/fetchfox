@@ -12,7 +12,7 @@ describe('paginate github.com', async function() {
     .fetch({ maxPages: 5 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate github.com',
     wf.dump(),

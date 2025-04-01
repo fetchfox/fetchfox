@@ -26,7 +26,7 @@ describe('workflow ct.curaleaf.com', async function() {
     .limit(limit)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'workflow ct.curaleaf.com',
     wf.dump(),

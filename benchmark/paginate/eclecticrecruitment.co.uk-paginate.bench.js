@@ -20,7 +20,7 @@ describe('https://www.eclecticrecruitment.co.uk/jobs', async function() {
     .fetch({ maxPages: 5 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'should paginate eclecticrecruitment.co.uk',
     wf.dump(),

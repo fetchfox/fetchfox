@@ -18,7 +18,7 @@ describe('crawl www2.evo.gg-videos', async function() {
     .limit(40)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'crawl www2.evo.gg-videos',
     wf.dump(),

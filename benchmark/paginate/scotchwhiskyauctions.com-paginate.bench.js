@@ -29,7 +29,7 @@ describe('scotchwhiskyauctions.com', async function() {
     .limit(80)
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'should paginate scotchwhiskyauctions.com',
     wf.dump(),

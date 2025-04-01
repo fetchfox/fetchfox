@@ -22,7 +22,7 @@ describe('emails', async function() {
     .extract({ email: '{{prompt}}' })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'find emails',
     wf.dump(),

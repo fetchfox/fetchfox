@@ -70,7 +70,7 @@ describe('extract from transcripts.recursiveprojects.cloud', async function() {
       .limit(10)
       .plan();
 
-    return itRunMatrix(
+    itRunMatrix(
       it,
       `extract transcript of Carlos Sainz (${name})`,
       wf.dump(),

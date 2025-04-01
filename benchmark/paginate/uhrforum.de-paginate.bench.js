@@ -20,7 +20,7 @@ describe('paginate uhrforum.de', async function() {
     .fetch({ maxPages: 5 })
     .plan();
 
-  return itRunMatrix(
+  itRunMatrix(
     it,
     'paginate uhrforum.de',
     wf.dump(),

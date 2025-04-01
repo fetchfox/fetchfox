@@ -41,7 +41,7 @@ describe('extract acto.com iframe', async function() {
       .limit(5)
       .plan();
 
-    return itRunMatrix(
+    itRunMatrix(
       it,
       `extract acto.com iframe`,
       wf.dump(),

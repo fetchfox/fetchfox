@@ -712,7 +712,7 @@ describe('extract bidspotter.com', async function() {
         .limit(500)
         .plan();
 
-      return itRunMatrix(
+      itRunMatrix(
         it,
         `extract extract bidspotter.com (${name})`,
         wf.dump(),

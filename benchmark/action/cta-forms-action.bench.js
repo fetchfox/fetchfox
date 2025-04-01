@@ -73,7 +73,7 @@ describe('action infigo.net', async function() {
         })
         .plan();
 
-      await itRunMatrix(
+      itRunMatrix(
         it,
         `action ${name} (prefix=${prefix})`,
         wf.dump(),
