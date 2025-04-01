@@ -51,17 +51,16 @@ export const TransformExtractor = class extends BaseExtractor {
     htmls.forEach(() => { buffer.push(null) });
 
     const chan = createChannel();
-    const q = new PQueue({ concurrency: 16 });
+    const q = new PQueue({ concurrency: 8 });
     const all = [];
 
     for (const [i, html] of htmls.entries()) {
       const num = i + 1;
 
-      console.log('html', html);
-
       const h = shortObjHash({ html });
       if (this.seen[h]) {
         this.logger.debug(`${this} Drop repeat html for #${num}: ${h}`);
+        buffer[i] = { _dupe: true };
         continue;
       }
       this.seen[h] = true;
@@ -82,9 +81,12 @@ export const TransformExtractor = class extends BaseExtractor {
 
       buffer[r.index] = r.item;
       while (buffer[idx]) {
-        this.logger.debug(`${this} Yield from buffer ${idx}`);
-        yield Promise.resolve(buffer[idx]);
-        idx++;
+        const item = buffer[idx++];
+        if (item._dupe) {
+          continue;
+        }
+        this.logger.debug(`${this} Yield from buffer ${idx - 1}`);
+        yield Promise.resolve(new Item(item));
       }
     }
 
