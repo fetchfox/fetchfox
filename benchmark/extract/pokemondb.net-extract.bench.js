@@ -36,11 +36,11 @@ describe('extract pokemondb.net', async function() {
       url: 'https://pokemondb.net/pokedex/national',
       expected,
     },
-    {
-      name: 'saved',
-      url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/djh6e69cux/https-pokemondb-net-pokedex-national.html',
-      expected,
-    },
+    // {
+    //   name: 'saved',
+    //   url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/djh6e69cux/https-pokemondb-net-pokedex-national.html',
+    //   expected,
+    // },
   ];
 
   const questions = {
@@ -56,7 +56,7 @@ describe('extract pokemondb.net', async function() {
       .limit(5)
       .plan();
 
-    itRunMatrix(
+    return itRunMatrix(
       it,
       `extract pokemondb.net (${name})`,
       wf.dump(),

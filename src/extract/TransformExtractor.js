@@ -55,6 +55,10 @@ export const TransformExtractor = class extends BaseExtractor {
     const all = [];
 
     for (const [i, html] of htmls.entries()) {
+      if (this.signal?.aborted) {
+        break;
+      }
+
       const num = i + 1;
 
       const h = shortObjHash({ html });
@@ -66,6 +70,10 @@ export const TransformExtractor = class extends BaseExtractor {
       this.seen[h] = true;
 
       const task = q.add(async () => {
+        if (this.signal?.aborted) {
+          return;
+        }
+
         this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
         const item = await this._runSingle(doc, html, questions, options);
         chan.send({ index: i, item });
