@@ -78,20 +78,20 @@ describe('Workflow', function() {
       })
       .limit(3);
 
-    let count = 0;
+    let countItems = 0;
     let countLoading = 0;
 
     await f.run(null, (partial) => {
-      count++
+      if (partial.item) {
+        countItems++;
+      }
       if (partial.item?._meta?.status == 'loading') {
         countLoading2++;
       }
     });
 
-    assert.equal(count, 3);
+    assert.equal(countItems, 3, 'expect 3 item updates');
     assert.equal(countLoading, 0, 'loading by default should not publish');
-
-    return;
 
     const f2 = await fox
       .config({
@@ -102,20 +102,26 @@ describe('Workflow', function() {
       .extract({
         name: 'What is the name of the pokemon?',
         number: 'What is the pokedex number?',
+        url: 'What is the url of the pokemon?',
+      })
+      .extract({
+        hp: 'What is the hp of the pokemon?',
       })
       .limit(3);
 
-    let count2 = 0;
+    let countItems2 = 0;
     let countLoading2 = 0;
 
     await f2.run(null, (partial) => {
-      count2++
+      if (partial.item) {
+        countItems2++;
+      }
       if (partial.item?._meta?.status == 'loading') {
         countLoading2++;
       }
     });
 
-    assert.equal(count2, 16, 'all partials received');
+    assert.ok(countItems2 > 11, 'items patial received');
     assert.ok(countLoading2 >= 3, 'all loading received');
 
     f2.abort();

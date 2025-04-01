@@ -1,4 +1,3 @@
-import pretty from 'pretty';
 import pTimeout from 'p-timeout';
 import { logger as defaultLogger } from "../log/logger.js";
 import { getAI } from '../ai/index.js';
@@ -103,7 +102,7 @@ export const Instructions = class {
     return this.commands[this.commands.length - 1].prompt == nextPageCommand;
   }
 
-  key(commands) {
+  key() {
     const url = new URL(this.url);
     const format = url.origin + url.pathname.replace(/[^/]+/g, '*');
     const hash = shortObjHash({ commands: this.commands.map(it => it.prompt) });
@@ -111,6 +110,10 @@ export const Instructions = class {
   }
 
   async *learn(fetcher, options) {
+    if (this.signal?.aborted) {
+      return;
+    }
+
     if (this.useCode) {
       const gen = this.codeInstructions.learn(fetcher, options);
       for await (const r of gen) {
@@ -426,6 +429,10 @@ ${this.hint}` : '',
   }
 
   async *execute(fetcher, options) {
+    if (this.signal?.aborted) {
+      return;
+    }
+
     if (this.useCode) {
       const gen = this.codeInstructions.execute(fetcher, options);
       for await (const r of gen) {

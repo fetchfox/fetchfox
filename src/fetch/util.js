@@ -29,7 +29,7 @@ export const putS3 = async (key, val, { bucket, contentType, acl, region }) => {
     ContentType: contentType,
     ACL: acl,
   };
-  const resp = await s3.send(new PutObjectCommand(params));
+  await s3.send(new PutObjectCommand(params));
   const url = `https://${bucket}.s3.amazonaws.com/${key}`;
   return url;
 };

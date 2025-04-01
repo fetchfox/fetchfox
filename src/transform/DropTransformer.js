@@ -33,11 +33,7 @@ export const DropTransformer = class extends BaseTransformer {
     }
 
     const process = (node) => {
-      let current = '';
-      let run = [];
       const runs = {};
-
-      let c = 0;
 
       for (const child of node.childNodes) {
         if (child.nodeType == 3) {
@@ -47,7 +43,6 @@ export const DropTransformer = class extends BaseTransformer {
         const s = shape(child, this.levels);
         runs[s] ||= [];
         runs[s].push(child);
-        c++;
       }
 
       for (const [key, run] of Object.entries(runs)) {

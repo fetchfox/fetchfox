@@ -18,17 +18,11 @@ Your return format should be a JSON array of items, with each item in this forma
 - "coverage": A score of how good the coverage for this selector is, from 1..100. Roughly it desribes percent of data available if we use this selector
 - "precision": A score of how good the precision for this selector is, from 1..100. More precise is better
 - "stability": A score of how stable you expect this selector to be, from 1..100. Semantic selectors are more stable, random string selectors are less stable
-- "rating": A score of how well you think this selector will work, combining coverage, stability, precision, and other factors, from 1..100
-
-Finally, your *first* response should be a meta record that contains a 50-100 word analysis of the page, like this:
-
-- "_meta": ...50-100 word analysis of the page, as it relates to your task...
-- "_example": example item object based on the template, or null if none is found
+- "rating": A score of how well you think this selector will work, combining coverage, stability, precision, and other factors, from 1..100. Most important factors are coverage and stability, followed by precision.
 
 Example of valid output:
 
 [
-  {"_meta": "...lorem ipsum...", "_example": {"author": "John Doe", "title": "Some Title", "review_text": "I Liked it"}},
   {"analysis": "This selector gets the parent element containing author and title", "coverageAnalysis": "this gets both book author, title, and review text as requested", "precisionAnalysis": "it grabs some extra data we don't need, like star rating, and metadata", "selector": ".book-node", "stability": 95, "coverage": 100, "precision": 65, "rating": 90},
   {"analysis": "Each review has its own node with a .review-content > div child that always has text", "coverageAnalyis": "It only gets the review text", "precisionAnalysis": "it has lots of uncessary data for this extraction, like review author and links off site", "selector": ".review-content > div.y3dxbd", "stability": 25, "coverage": 35, "precision": 25, "rating": 85},
 ]
@@ -43,5 +37,8 @@ Important;
 * Give 1-3 selectors. The data is typically all related, and there is usually a single selector that encapsulates all child nodes. Look for patterns and try to find the high level selector that gets all the necessary data
 * But don't be afraid to give multiple selectors, if necessary
 * If the data is not available, do not invent selectors, and do not give bad selectors. You may only be looking at a subset of the page HTML.
+
+Keep in mind these points about CSS selectors:
+* :contains('text') is NOT a real CSS selector. Do NOT use this selector, ever. There is no way in CSS to match the text of an element. Do not try to do it
 
 Respond ONLY in JSON as an array, your response will be machine parsed using JSON.parse()`);
