@@ -36,12 +36,16 @@ export const SelectorTransformer = class extends BaseTransformer {
     const saved = await this.kv.get(key);
 
     let selector;
+    let meta;
     if (saved) {
       this.logger.debug(`${this} Using saved selectors from ${key}: ${saved}`);
       const data = JSON.parse(saved);
       selector = data.selector;
+      meta = data.meta;
     } else {
-      selector = await this._learn(html, url);
+      const r = await this._learn(html, url);
+      selector = r.selector;
+      meta = r.meta;
     }
 
     if (!selector) {
@@ -56,9 +60,9 @@ export const SelectorTransformer = class extends BaseTransformer {
     }
 
     this.logger.debug(`${this} Saving selector in ${key}: ${selector}`);
-    await this.kv.set(key, JSON.stringify({ selector }));
+    await this.kv.set(key, JSON.stringify({ selector, meta }));
 
-    return htmls;
+    return { htmls, selector, meta };
   }
 
   async _learn(html, url) {
@@ -158,70 +162,6 @@ export const SelectorTransformer = class extends BaseTransformer {
     const selector = selectors[0];
     this.logger.debug(`${this} Using selector: ${selector}`);
 
-    return selector;
+    return { selector, meta: map[selector] };
   }
-
-    // TODO: Remove or refactor old code below
-    
-    // const matches = [];
-    // for (const s of selectors) {
-    //   matches.push(...root.querySelectorAll(s));
-    // }
-    // const matchingNodes = (node, selectors) => {
-    //   const nodes = [];
-    //   for (const m of matches) {
-    //     const same = m == node;
-    //     if (same && !nodes.includes(node)) {
-    //       nodes.push(node);
-    //       break;
-    //     }
-    //   }
-    //   for (const child of node.childNodes) {
-    //     nodes.push(...matchingNodes(child, selectors));
-    //   }
-    //   return nodes;
-    // }
-    // const include = matchingNodes(root, selectors);
-
-    // const attrsToString = (node) => {
-    //   if (!node.attributes) return '';
-    //   return Object.entries(node.attributes)
-    //     .map(([attr, value]) => ` ${attr}="${value}"`)
-    //     .join('');
-    // }
-
-    // const toHtml = (node, include) => {
-    //   const tagName = node.tagName;
-    //   let html = '';
-    //   let kept = false;
-    //   for (const child of node.childNodes) {
-    //     let keep = '';
-    //     const text = child.innerHTML;
-    //     const ok = include.includes(child);
-    //     const childName = child.tagName || 'div'
-    //     if (ok) {
-    //       const attributes = attrsToString(child);
-    //       kept = true;
-    //       keep += `<${childName} ${attributes}>` + text;
-    //     }
-
-    //     keep += toHtml(child, include);
-    //     if (ok) {
-    //       keep += `</${childName}>`;
-    //     }
-    //     html += keep;
-    //   }
-
-    //   if (kept) {
-    //     const attributes = attrsToString(node);
-    //     html = `<${tagName} ${attributes}>` + html + `</${tagName}>`;
-    //   }
-
-    //   return html.trim();
-    // }
-    // const t = pretty(
-    //   toHtml(root, [root, ...include]),
-    //   { ocd: true });
-
-    // return t;
 }

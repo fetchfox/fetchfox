@@ -21,6 +21,7 @@ export const CodeInstructions = class {
     this.limit = options?.limit;
     this.hint = options?.hint;
     this.logger = options?.logger || defaultLogger
+    this.onArtifact = options?.onArtifact;
   }
 
   toString() {
@@ -53,45 +54,16 @@ export const CodeInstructions = class {
     }
 
     const task = new ActionTask(namespace, goals);
-    const gen = author.run(task, [this.url]);
+
+    const urls = [this.url];
+    const { script } = await author.get(task, urls);
+    if (this.onArtifact) {
+      this.onArtifact({ type: 'code', data: { script: JSON.parse(script.dump()) } });
+    }
+
+    const gen = author.run(task, urls);
     for await (const r of gen) {
       yield Promise.resolve(r);
     }
-
-    // const r = await author.write(task, [this.url]);
-    // const goals = [];
-    // for (const command of this.commands) {
-    //   if (command.prompt == nextPageCommand) {
-    //     goals.push(acceptCookiesPrompt);
-    //     goals.push(nextPagePrompt);
-    //   } else {
-    //     goals.push(command.prompt);
-    //   }
-    // }
-
-    // if (!goals.length) {
-    //   this.logger.info(`${this} No command, just yield current page`);
-    //   const ctx = {};
-    //   await fetcher.start(ctx);
-    //   await fetcher.goto(this.url, ctx);
-    //   const doc = await fetcher.current(ctx);
-    //   yield Promise.resolve({ doc });
-    //   await fetcher.finish(ctx);
-    //   return;
-    // }
-
-    // this.logger.info(`${this} Use author for ${goals.length } goals`);
-    // this.logger.debug(`${this} Goals are: ${goals.join('\n\n')}`);
-    // const author = new Author({
-    //   fetcher: this.fetcher,
-    //   kv: this.kv,
-    //   ai: this.ai,
-    //   cache: this.cache,
-    //   logger: this.logger,
-    //   timeout: this.timeout,
-    // });
-    // for await (const r of author.run(this.url, goals)) {
-    //   yield Promise.resolve(r);
-    // }
   }
 }

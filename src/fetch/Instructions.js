@@ -54,6 +54,7 @@ export const Instructions = class {
     }
 
     this.logger = options?.logger || defaultLogger
+    this.onArtifact = options?.onArtifact;
 
     this.codeInstructions = new CodeInstructions(url, this.commands, options);
   }
@@ -408,6 +409,11 @@ ${this.hint}` : '',
       }
       // Remove prompt to clear up logs
       this.learned = learned.map(it => ({ ...it, prompt: null }));
+
+      if (this.onArtifact) {
+        this.onArtifact({ type: 'instructions', data: { steps: this.learned } });
+      }
+
       this.logger.info(`${this} Learned actions: ${JSON.stringify(this.learned, null, 2)}`);
 
     } catch (e) {
@@ -437,10 +443,14 @@ ${this.hint}` : '',
     if (this.commands.length == 0) {
       this.logger.debug(`${this} No actions, just a simple URL goto`);
       const ctx = {};
-      await fetcher.start(ctx);
-      await fetcher.goto(this.url, ctx);
-      const doc = await this.current(fetcher, ctx);
-      yield Promise.resolve({ doc });
+      try {
+        await fetcher.start(ctx);
+        await fetcher.goto(this.url, ctx);
+        const doc = await this.current(fetcher, ctx);
+        yield Promise.resolve({ doc });
+      } finally {
+        await fetcher.finish(ctx);
+      }
       return;
     }
 

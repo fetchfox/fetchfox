@@ -17,8 +17,9 @@ export const AuthorExtractor = class extends BaseExtractor {
     this._aiProcessCache = {};
   }
 
-  async *_run(doc, questions) {
+  async *_run(doc, questions, options) {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
+    this.logger.trace('??');
 
     const url = doc.url;
 
@@ -51,6 +52,11 @@ export const AuthorExtractor = class extends BaseExtractor {
             new URL(doc.htmlUrl).origin,
             new URL(url).origin)
       );
+    }
+
+    const { script } = await author.get(task, urls);
+    if (options.onArtifact) {
+      options.onArtifact({ type: 'code', data: { script: JSON.parse(script.dump()) } });
     }
 
     const gen = await author.run(task, urls);

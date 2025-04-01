@@ -80,7 +80,7 @@ export const Author = class {
             }
             const p = exec(code, this.logger, this.fetcher, ctx, cb);
             try {
-              await pTimeout(p, { milliseconds: 300 * 1000 });
+              await pTimeout(p, { milliseconds: 45 * 60 * 1000 });
             } catch (e) {
               this.logger.error(`${this} Exec error: ${e}`);
               throw e;

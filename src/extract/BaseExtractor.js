@@ -57,9 +57,6 @@ export const BaseExtractor = class {
     }
 
     for await (let doc of this.fetcher.fetch(url, options)) {
-      if (this.minimizer) {
-        doc = await this.minimizer.min(doc);
-      }
       yield Promise.resolve(doc);
     }
   }

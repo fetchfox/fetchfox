@@ -47,7 +47,7 @@ describe('extract pokemondb.net', async function() {
     name:	'What is the name of this pokemon?',
     number: 'What is the pokemon number',
     description: `Describe this pokemon in 50-100 words`,
-  }
+  };
 
   for (const { name, url, expected } of cases) {
     const wf = await fox

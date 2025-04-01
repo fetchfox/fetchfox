@@ -22,9 +22,9 @@ export const TransformExtractor = class extends BaseExtractor {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     const transformer = new SelectorTransformer(questions, this);
-    const htmls = await transformer.transform(doc.html, doc.url);
+    const r = await transformer.transform(doc.html, doc.url);
 
-    if (!htmls) {
+    if (!r) {
       this.logger.warn(`${this} Failed to transform, using baseline`);
 
       if (process.env.STRICT_ERRORS) {
@@ -39,6 +39,11 @@ export const TransformExtractor = class extends BaseExtractor {
       return;
     }
 
+    const { htmls, selector, meta } = r;
+    if (options.onArtifact) {
+      options.onArtifact({ type: 'selector', data: { selector, meta } });
+    }
+
     this.logger.debug(`${this} Running on ${htmls.length} html chunks`);
 
     const buffer = [];
@@ -46,37 +51,31 @@ export const TransformExtractor = class extends BaseExtractor {
     htmls.forEach(() => { buffer.push(null) });
 
     const chan = createChannel();
-    const q = new PQueue({ concurrency: 16 });
+    const q = new PQueue({ concurrency: 8 });
     const all = [];
 
-    const size = 4;
-
-    const batches = [];
-    for (let i = 0; i < htmls.length; i += size) {
-      batches.push(htmls.slice(i, i + size));
-    }
-
-    for (let i = 0; i < batches.length; i++) {
-      const myI = i;
-      const batch = batches[myI];
-
-      const filtered = [];
-      for (const html of batch) {
-        const h = shortObjHash({ html });
-        if (this.seen[h]) {
-          this.logger.debug(`${this} Drop repeat html for ${h}`);
-          continue;
-        }
-        this.seen[h] = true;
-        filtered.push(html);
+    for (const [i, html] of htmls.entries()) {
+      if (this.signal?.aborted) {
+        break;
       }
 
+      const num = i + 1;
+      const h = shortObjHash({ html });
+      if (this.seen[h]) {
+        this.logger.debug(`${this} Drop repeat html for ${h}`);
+        buffer[i] = { _dupe: true };
+        continue;
+      }
+      this.seen[h] = true;
+
       const task = q.add(async () => {
-        this.logger.debug(`${this} Run on chunk #${i} of ${htmls.length}`);
-        const results = await this._runBatch(doc, filtered, questions, options);
-        results.forEach((it, j) => {
-          chan.send({ index: (i * size) + j, item: new Item(it, doc) });
-        });
+        if (this.signal?.aborted) {
+          return;
+        }
+
+        this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
+        const item = await this._runSingle(doc, html, questions, options);
+        chan.send({ index: i, item });
       });
       all.push(task);
     }
@@ -89,26 +88,31 @@ export const TransformExtractor = class extends BaseExtractor {
 
       buffer[r.index] = r.item;
       while (buffer[idx]) {
-        this.logger.debug(`${this} Yield from buffer ${idx}`);
-        yield Promise.resolve(buffer[idx]);
-        idx++;
+        if (this.signal?.aborted) {
+          break;
+        }
+        const item = buffer[idx++];
+        if (item._dupe) {
+          continue;
+        }
+        this.logger.debug(`${this} Yield from buffer ${idx - 1}`);
+        yield Promise.resolve(new Item(item));
       }
     }
 
     await p;
   }
 
-  async _runBatch(doc, batch, questions, options) {
+  async _runSingle(doc, html, questions, options) {
     const context = {
       url: doc.url,
       questions: JSON.stringify(questions, null, 2),
-      body: batch.join('\n'),
-      count: batch.length,
+      body: html,
     };
-    const { prompt } = await prompts.scrapeBatchShort.renderCapped(
+    const { prompt } = await prompts.scrapeSingleShort.renderCapped(
       context, 'body', this.ai);
     const answer = await this.ai.ask(prompt, { format: 'json' });
-    return answer.partial;
+    return new Item(answer?.partial || {}, doc);
   }
 }
 
