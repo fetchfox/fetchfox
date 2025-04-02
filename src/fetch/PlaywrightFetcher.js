@@ -442,12 +442,16 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   // const wait = Math.max(1, loadWait - diff);
   let wait = loadWait;
 
-  // if (page.url().includes('https://www.finefettle.com/')) {
-  //   wait = 30 * 1000;
-  //   logger.debug(`Extra wait for finefettle.com: ${wait}`);
-  // }
+  if (page.url().includes('https://www.finefettle.com/')) {
+    wait = 30 * 1000;
+    logger.debug(`Extra wait for finefettle.com: ${wait}`);
+  }
+  if (page.url().includes('https://www.onthebeach.co.uk/')) {
+    wait = 20 * 1000;
+    logger.debug(`Extra wait for www.onthebeach.co.uk: ${wait}`);
+  }
 
-  logger.debug(`Load waiting ${(wait).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
+  logger.debug(`Load waiting ${(wait / 1000).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
   await new Promise(ok => setTimeout(ok, wait));
 
   if (pullIframes) {

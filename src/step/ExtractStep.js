@@ -1,6 +1,6 @@
 import { Document } from '../document/Document.js';
 import { BaseStep } from './BaseStep.js';
-import { isPlainObject } from '../util.js';
+import { isPlainObject, clip } from '../util.js';
 import { stepDescriptionsMap } from './info.js';
 import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 
@@ -80,7 +80,7 @@ export const ExtractStep = class extends BaseStep {
   }
 
   async process({ cursor, item, index }, cb) {
-    cursor.ctx.logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${item}`);
+    cursor.ctx.logger.debug(`${this} Getting ${JSON.stringify(this.questions)} from ${clip(item, 1000)}`);
     const start = (new Date()).getTime();
 
     let ex;

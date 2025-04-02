@@ -1,5 +1,6 @@
 import { BaseStep } from './BaseStep.js';
 import { Instructions } from '../fetch/index.js';
+import { Author, ActionTask } from '../author/index.js';
 
 export const ActionStep = class extends BaseStep {
   constructor(args) {
@@ -11,27 +12,28 @@ export const ActionStep = class extends BaseStep {
   async process({ cursor, item, index }, cb) {
     const url = item.url || item._url;
 
-    const options = { ...cursor.ctx };
-    options.onArtifact = (art) => {
-      cursor.handleArtifact(art, index);
-    }
-    const instr = new Instructions(url, this.commands, options);
+    const namespace = new URL(url).host;
+    const author = new Author({ ...cursor.ctx, timeout: 45 * 60 * 1000 });
 
-    // TODO: refactor how fetcher works to eliminate ctx concept
-    const fetcherCtx = {};
-    await cursor.ctx.fetcher.start(fetcherCtx);
-    try {
-      const gen = cursor.ctx.fetcher.fetch(instr);
-      for await (const doc of gen) {
-        if (!doc) {
-          cursor.ctx.logger.warn(`${this} Got null doc for ${instr}`);
-          continue;
-        }
-        const done = cb(doc);
-        if (done) break;
-      }
-    } finally {
-      await cursor.ctx.fetcher.finish(fetcherCtx);
+    const task = new ActionTask(namespace, this.commands.map(it => it.prompt));
+    const urls = [url];
+    const { script } = await author.get(task, urls);
+    cursor.handleArtifact(
+      { type: 'code', data: { script: JSON.parse(script.dump()) } },
+      index);
+
+    // runCb returns true when task execution should stop
+    let done;
+    const runCb = () => {
+      return !done;
     }
+
+    const gen = author.run(task, urls, { cb: runCb });
+    for await (const r of gen) {
+      done = cb(r.doc);
+      if (done) break;
+    }
+
+    done = true;
   }
 }

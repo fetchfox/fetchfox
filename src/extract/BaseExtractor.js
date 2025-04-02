@@ -3,7 +3,7 @@ import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js';
 import { getFetcher } from '../fetch/index.js';
 import { Document } from '../document/Document.js';
-import { createChannel } from '../util.js';
+import { createChannel, clip } from '../util.js';
 
 export const BaseExtractor = class {
   constructor(options) {
@@ -52,7 +52,7 @@ export const BaseExtractor = class {
     }
 
     if (!url) {
-      this.logger.warn(`${this} Could not find extraction target in ${target}`);
+      this.logger.warn(`${this} Could not find extraction target in ${clip(JSON.stringify(target), 400)}`);
       return;
     }
 
