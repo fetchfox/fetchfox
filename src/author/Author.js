@@ -50,7 +50,7 @@ export const Author = class {
   }
 
   // TODO: move this into BaseTask?
-  async *runScript(task, urls, script) {
+  async *runScript(task, urls, script, options) {
     // TODO: process these concurrently?
     for (const url of urls) {
       const cached = await this.getScriptCache(task, url, script);
@@ -75,7 +75,7 @@ export const Author = class {
             if (i == script.codes.length - 1) {
               cb = (r) => {
                 chan.send(r);
-                return true;
+                return !options?.cb || options.cb(r);
               }
             }
             const p = exec(code, this.logger, this.fetcher, ctx, cb);
@@ -112,7 +112,7 @@ export const Author = class {
     }
   }
 
-  async *run(task, urls) {
+  async *run(task, urls, options) {
     const { script, output } = await this.get(task, urls);
 
     const seen = {};
@@ -123,7 +123,7 @@ export const Author = class {
       yield Promise.resolve(output);
     }
 
-    const gen = this.runScript(task, urls, script);
+    const gen = this.runScript(task, urls, script, options);
     for await (const val of gen) {
       const h = hash(val);
       if (seen[h]) {
@@ -183,9 +183,6 @@ export const Author = class {
             await this.save(task, script);
           }
 
-          // console.log('found script:', script);
-          // const script2 = await this.evaluate(task, urls, script);
-
           this.logger.debug(`${this} Returning script: ${script} with code=${script.codes.join('\n\n')}`);
           lockers--;
           ok({ script, output });
@@ -232,7 +229,6 @@ export const Author = class {
     this.logger.info(`${this} Get feedback from ${this.ai.code}`);
     const { prompt: promptFeedback } = await prompts.evaluateResults
       .renderCapped(contextFeedback, 'html', this.ai.code);
-    console.log('prompt', promptFeedback);
     const answerFeedback = await this.ai.code.ask(
       promptFeedback, { format: 'json' });
     const feedback = answerFeedback.partial;
