@@ -7,14 +7,14 @@ import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 const authorWhitelist = [
   'curaleaf',
 ];
-const transformWhitelist = [
-  // 'curaleaf',
-  'pokemon',
-  'finefettle',
-  'bidspotter',
-  'dmaar',
-  'epam',
-];
+
+// const transformWhitelist = [
+//   'pokemon',
+//   'finefettle',
+//   'bidspotter',
+//   'dmaar',
+//   'epam',
+// ];
 
 export const ExtractStep = class extends BaseStep {
   constructor(args) {
@@ -66,18 +66,19 @@ export const ExtractStep = class extends BaseStep {
     return false;
   }
 
-  useTransform(item) {
-    if (process.env.USE_TRANSFORM) {
-      return true;
-    }
+  useTransform() {
+    return true; // Enable on x/instr-code-dev
 
-    const json = JSON.stringify(item);
-    for (const wl of transformWhitelist) {
-      if (json.includes(wl)) {
-        return true;
-      }
-    }
-    return false;
+    // if (process.env.USE_TRANSFORM) {
+    //   return true;
+    // }
+    // const json = JSON.stringify(item);
+    // for (const wl of transformWhitelist) {
+    //   if (json.includes(wl)) {
+    //     return true;
+    //   }
+    // }
+    // return false;
   }
 
   async process({ cursor, item, index }, cb) {

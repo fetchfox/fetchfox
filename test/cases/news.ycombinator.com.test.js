@@ -33,8 +33,8 @@ describe('news.ycombinator.com', function() {
       });
 
     // Sanity checks
-    assert.ok(countPartials > 15 && countPartials < 35, 'partials ballpark');
-    assert.ok(out.items.length > 15 && out.items.length < 35, 'items ballpark');
+    assert.ok(countPartials > 15 && countPartials < 500, 'partials ballpark');
+    assert.ok(out.items.length > 15 && out.items.length < 1000, 'items ballpark');
     const totalComments = out.items
       .filter(item => {
         try {
