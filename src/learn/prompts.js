@@ -46,6 +46,7 @@ Combined item data:
 - If possible and appropriate, include a field named "url" that links to more details about this item. Include this if there is a URL you can follow
 - This field MUST be named "url". Do not name it something like "comment_url" or "profile_url", just "url"
 - All URLs should be full, absolute URLs
+- Do NOT give the same URL as the current page. Do NOT include it if the only URL you can think of is the current page.
 
 Follow these important rules:
 - Provide a SINGLE result for the multiple page samples you give. Look for COMMONALITIES between the pages.
