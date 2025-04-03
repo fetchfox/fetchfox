@@ -38,7 +38,7 @@ export const SelectorTransformer = class extends BaseTransformer {
     let selector;
     let meta;
     if (saved) {
-      this.logger.debug(`${this} Using saved selectors from ${key}: ${saved}`);
+      this.logger.debug(`${this} Found saved selectors from ${key}: ${saved}`);
       const data = JSON.parse(saved);
       selector = data.selector;
       meta = data.meta;
@@ -47,6 +47,8 @@ export const SelectorTransformer = class extends BaseTransformer {
       selector = r?.selector;
       meta = r?.meta;
     }
+
+    this.logger.info(`${this} Got selector for ${key}: ${selector}`);
 
     if (!selector) {
       this.logger.debug(`${this} Couldn't find any selectors`);

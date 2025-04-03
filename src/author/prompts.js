@@ -91,6 +91,15 @@ Logging:
 Errors:
 - Log and rethrow errors. Log errors through fnDebugLog, and then rethrow
 
+Scrolling:
+- Use this code to scroll to the bottom of a page:
+
+  await page.evaluate(() => {
+    window.scrollBy(0, document.body.scrollHeight)
+  });
+
+This will reliably trigger infinite scroll.
+
 >>> The user requested a timeout the following timeout for selectors and actions:
 {{timeout}} milliseconds
 Generally follow this timeout, but adjust a little if needed

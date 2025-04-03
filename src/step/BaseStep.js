@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { Document } from '../document/Document.js';
-import { shortObjHash } from '../util.js';
+import { shortObjHash, clip } from '../util.js';
 import { stepDescriptionsMap, nameMap } from './info.js';
 import { Item } from '../item/Item.js';
 
@@ -205,6 +205,7 @@ export const BaseStep = class {
                     if (serialized.length > 300) {
                       serialized = serialized.substring(0, 280) + '...'
                     }
+
                     cursor.ctx.logger.info(`${chalk.bold.cyan('' + this +' (' + index + ')' + ' #' + this.results.length)} ${chalk.bold.cyan('\u{25B6}')} ${serialized}`);
 
                     cursor.publish(
@@ -234,7 +235,7 @@ export const BaseStep = class {
               );
 
               itemPromise.catch((e) => {
-                cursor.ctx.logger.error(`${this} Got error while processing item=${JSON.stringify(item)}: ${e}`);
+                cursor.ctx.logger.error(`${this} Got error while processing item=${clip(JSON.stringify(item), 1000)}: ${e}`);
 
                 meta.status = 'error';
                 meta.error = `Error in ${this} for url=${item._url}, json=${JSON.stringify(item)}`;

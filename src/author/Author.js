@@ -351,6 +351,7 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
   }
   const fn = toFn(code);
   const run = new Promise((ok) => {
+    logger.debug(`Start execution of AI written scraping code`);
     fn(
       ctx.page,
 

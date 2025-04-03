@@ -50,57 +50,73 @@ export const TransformExtractor = class extends BaseExtractor {
     let idx = 0;
     htmls.forEach(() => { buffer.push(null) });
 
+    const controller = new AbortController();
     const chan = createChannel();
     const q = new PQueue({ concurrency: 8 });
     const all = [];
 
-    for (const [i, html] of htmls.entries()) {
-      if (this.signal?.aborted) {
-        break;
-      }
-
-      const num = i + 1;
-      const h = shortObjHash({ html });
-      if (this.seen[h]) {
-        this.logger.debug(`${this} Drop repeat html for ${h}`);
-        buffer[i] = { _dupe: true };
-        continue;
-      }
-      this.seen[h] = true;
-
-      const task = q.add(async () => {
-        if (this.signal?.aborted) {
-          return;
-        }
-
-        this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
-        const item = await this._runSingle(doc, html, questions, options);
-        chan.send({ index: i, item });
-      });
-      all.push(task);
-    }
-
-    const p = promiseAllStrict(all).then(() => chan.end());
-    for await (const r of chan.receive()) {
-      if (r.end) {
-        break;
-      }
-
-      buffer[r.index] = r.item;
-      while (buffer[idx]) {
+    try {
+      for (const [i, html] of htmls.entries()) {
         if (this.signal?.aborted) {
           break;
         }
-        const item = buffer[idx++];
-        if (item._dupe) {
+
+        const num = i + 1;
+        const h = shortObjHash({ html });
+        if (this.seen[h]) {
+          this.logger.debug(`${this} Drop repeat html for ${h}`);
+          buffer[i] = { _dupe: true };
           continue;
         }
-        this.logger.debug(`${this} Yield from buffer ${idx - 1}`);
-        yield Promise.resolve(new Item(item));
-      }
-    }
+        this.seen[h] = true;
 
-    await p;
+        const task = q.add(
+          async ({ signal }) => {
+            if (this.signal?.aborted || signal.aborted) {
+              return;
+            }
+
+            this.logger.debug(`${this} Run on chunk #${num} of ${htmls.length}`);
+            const item = await this._runSingle(doc, html, questions, options);
+            chan.send({ index: i, item });
+          },
+          { signal: controller.signal }
+        )
+          .catch((e) => {
+            if (e.name == 'AbortError') {
+              // Ignore error from abort signal
+              return;
+            }
+            throw e;
+          });
+        all.push(task);
+      }
+
+      const p = promiseAllStrict(all).then(() => chan.end());
+      for await (const r of chan.receive()) {
+        if (r.end) {
+          break;
+        }
+
+        buffer[r.index] = r.item;
+        while (buffer[idx]) {
+          if (this.signal?.aborted) {
+            break;
+          }
+          const item = buffer[idx++];
+          if (item._dupe) {
+            continue;
+          }
+          this.logger.debug(`${this} Yield from buffer ${idx - 1}`);
+          yield Promise.resolve(new Item(item));
+        }
+      }
+
+      await p;
+
+    } finally {
+      controller.abort();
+    }
   }
 
   async _runSingle(doc, html, questions) {

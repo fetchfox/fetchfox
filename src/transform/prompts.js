@@ -6,7 +6,6 @@ export const learnCSS = new Template(
 
 Your goal is to return a clean, minimal but all inclusive set of CSS selectors. These CSS selectors should select the HTML DOM elements that contain the data the user needs. You should balance specificity with clean selectors. For example, if the user is scraping book title and authors, and there is a ".book-node" selector that gets the book title and author, but also includes the summary, that might be fine to use.
 
-In some cases, the data the user needs will be in two or more parts of the DOM tree. For example, if the user is scraping a comment thread, and wants both the thread title and the replies, the thread title is likely to be in a distant part of the DOM tree from the replies. In this case, return two selectors, one for the thread title, and another for replies. A single output item will combine the data from the two spots in the next part ofthe scraping program.
 
 Your return format should be a JSON array of items, with each item in this format:
 
@@ -41,4 +40,11 @@ Important;
 Keep in mind these points about CSS selectors:
 * :contains('text') is NOT a real CSS selector. Do NOT use this selector, ever. There is no way in CSS to match the text of an element. Do not try to do it
 
+Single selctor only:
+- Give a single selector that encapsulates all the data the user requests, or if that's not possible or realistic, then as much data as you can.
+- Do NOT give multiple selectors using CSS's comma syntax. Just pick the best option, which may be a parent of the ones you wanted to combine
+
 Respond ONLY in JSON as an array, your response will be machine parsed using JSON.parse()`);
+
+
+// In some cases, the data the user needs will be in two or more parts of the DOM tree. For example, if the user is scraping a comment thread, and wants both the thread title and the replies, the thread title is likely to be in a distant part of the DOM tree from the replies. In this case, return two selectors, one for the thread title, and another for replies. A single output item will combine the data from the two spots in the next part ofthe scraping program.

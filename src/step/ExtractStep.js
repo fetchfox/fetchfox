@@ -8,13 +8,13 @@ const authorWhitelist = [
   'curaleaf',
 ];
 
-// const transformWhitelist = [
-//   'pokemon',
-//   'finefettle',
-//   'bidspotter',
-//   'dmaar',
-//   'epam',
-// ];
+const transformWhitelist = [
+  'pokemon',
+  'finefettle',
+  'bidspotter',
+  'dmaar',
+  'epam',
+];
 
 export const ExtractStep = class extends BaseStep {
   constructor(args) {
@@ -66,19 +66,23 @@ export const ExtractStep = class extends BaseStep {
     return false;
   }
 
-  useTransform() {
-    return true; // Enable on x/instr-code-dev
+  useTransform(item) {
+    if (this.mode == 'multiple') {
+      return true;
+    }
 
-    // if (process.env.USE_TRANSFORM) {
-    //   return true;
-    // }
-    // const json = JSON.stringify(item);
-    // for (const wl of transformWhitelist) {
-    //   if (json.includes(wl)) {
-    //     return true;
-    //   }
-    // }
-    // return false;
+    if (process.env.USE_TRANSFORM) {
+      return true;
+    }
+
+    const json = JSON.stringify(item);
+    for (const wl of transformWhitelist) {
+      if (json.includes(wl)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async process({ cursor, item, index }, cb) {
@@ -87,15 +91,20 @@ export const ExtractStep = class extends BaseStep {
 
     let ex;
     if (this.useTransform(item)) {
+      cursor.ctx.logger.debug(`${this} Using transform extractor`);
       this.transformExtractor ||= new TransformExtractor(cursor.ctx.extractor);
       ex = this.transformExtractor;
+
     } else if (this.useAuthor(item)) {
+      cursor.ctx.logger.debug(`${this} Using author extractor`);
       this.authorExtractor ||= new AuthorExtractor({
         ...cursor.ctx.extractor,
         baseline: cursor.ctx.extractor,
       });
       ex = this.authorExtractor;
+
     } else {
+      cursor.ctx.logger.debug(`${this} Using standard extractor`);
       ex = cursor.ctx.extractor;
     }
 
