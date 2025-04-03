@@ -48,7 +48,9 @@ Combined item data:
 - You may have 0, 1, 2, or more of these, as appropriate. For example a article submission on reddit might have "url_article", "url_comment_thread", and "url_submitter" for the various associated URLs
 - All URLs should be full, absolute URLs
 - Do NOT give the same URL as the current page. Do NOT include it if the only URL you can think of is the current page.
-- Finally, if you include any "url_something" fields, include a final one "url" that is the MOST likely one to follow
+
+If you include ANY url_something fiel,ds you MUST follow these instructions:
+- If you include any "url_something" fields, you MUST include a final field just called "url" that is the MOST likely one to follow
 
 Follow these important rules:
 - Provide a SINGLE result for the multiple page samples you give. Look for COMMONALITIES between the pages.
