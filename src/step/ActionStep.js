@@ -1,5 +1,4 @@
 import { BaseStep } from './BaseStep.js';
-import { Instructions } from '../fetch/index.js';
 import { Author, ActionTask } from '../author/index.js';
 
 export const ActionStep = class extends BaseStep {

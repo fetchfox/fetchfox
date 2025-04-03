@@ -13,6 +13,7 @@ const transformWhitelist = [
   'finefettle',
   'bidspotter',
   'dmaar',
+  'epam',
 ];
 
 export const ExtractStep = class extends BaseStep {
