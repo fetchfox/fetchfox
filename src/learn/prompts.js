@@ -9,14 +9,15 @@ You should return a list of JSON objects in JSONL format, where each object has 
 Additionally, focus on items relevant to the user prompt.
 
 - "item": 1-5 word description of the item that is available to scrape
-- "example": A JSON example of this item FROM THIS PAGE, do NOT include any data that is not available on this page
-- "template": A dictionary showing the template of this item. May have nested dictionaries/arrays. Must exactly match the example
+- "example": A JSON example of this item FROM THIS PAGE. Do NOT nest arrays or dictionaries. Do NOT include any data that is not available on this page
+- "template": A dictionary showing the template of this item. Do NOT nest arrays or dictionaries. All values must be strings. Must exactly match the example
 - "perPage": Either "single" if there is one of these item per page, or "multiple" if there is multiple of these items per page
 
 Examples of valid output:
 
-{"item": "book", "template": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ], "url" : "URL of the book details. Full absolute URL" } }
-{"item": "comment", "template": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review", "url": "URL of the comment permalink. Full absolute URL" } }
+{"item": "book", "example": {"title": "1984", "author": "George Orwell", "rating": 4.5, "url": "https://example.com/page" }, "template": { "title": "Title of the book", "author": "Author of the book", "rating": "Rating out of 5 for the book", "url" : "URL of the book details. Full absolute URL" } }
+{"item": "comment", "example": {"username": "Bob", "points": 120, "timestamp": "Jan 1, 2025 12:45pm", "text": "...", "url": "https://example.com/page"}, "template": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted", "text": "Text content of the review", "url": "URL of the comment permalink. Full absolute URL" } }
+
 
 URLs of the pages:
 {{urls}}
@@ -94,3 +95,8 @@ Focus on URLs relevant the user prompt below:
 * Avoid duplicates
 * Typically you should generate 2-4 results
 `);
+
+
+// {"item": "book", "template": { "title": "Title of the book", "author": "Author of the book", "reviews": [ { "reviewer": "Name of the reviewer", "stars": "Number of stars, X.X / 5", "body": "Text of the review" } ], "url" : "URL of the book details. Full absolute URL" } }
+// {"item": "comment", "template": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted, in standard ISO format", "text": "Text content of the review", "url": "URL of the comment permalink. Full absolute URL" } }
+
