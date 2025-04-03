@@ -78,8 +78,8 @@ export const Author = class {
                 return !options?.cb || options.cb(r);
               }
             }
-            const p = exec(code, this.logger, this.fetcher, ctx, cb);
             try {
+              const p = executeAICode(code, this.logger, this.fetcher, ctx, cb);
               await pTimeout(p, { milliseconds: 45 * 60 * 1000 });
             } catch (e) {
               this.logger.error(`${this} Exec error: ${e}`);
@@ -87,6 +87,7 @@ export const Author = class {
             }
           }
         } finally {
+          this.logger.debug(`${this} Finish browser context`);
           this.fetcher.finish(ctx).catch((e) => {
             this.logger.error(`${this} Ignoring error on finish: ${e}`);
           });
@@ -285,7 +286,6 @@ export const Author = class {
     // Set up fetcher
     const ctx = {};
     await this.fetcher.start(ctx);
-
     try {
       await this.fetcher.goto(url, ctx);
 
@@ -315,7 +315,7 @@ export const Author = class {
           // Only do each action once in write mode
           const cb = (r) => { output = r; return false };
           try {
-            await exec(code, this.logger, this.fetcher, ctx, cb);
+            await executeAICode(code, this.logger, this.fetcher, ctx, cb);
             ok = true;
             script.push(code);
             break;
@@ -343,42 +343,60 @@ export const Author = class {
 }
 
 const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-const toFn = (code) => new AsyncFunction('page', 'fnSendResults', 'fnDebugLog', 'done', code);
+const toFn = (code) => {
+  const wrapped = `
+const p = ${code};
 
-const exec = async (code, logger, fetcher, ctx, cb) =>  {
+try {
+  await p;
+} catch (e) {
+  throw e;
+}`;
+  return new AsyncFunction('page', 'fnSendResults', 'fnDebugLog', 'done', wrapped);
+}
+
+const executeAICode = async (code, logger, fetcher, ctx, cb) => {
   let result = {
     messages: '',
   }
   const fn = toFn(code);
-  const run = new Promise((ok) => {
-    fn(
+  const run = new Promise(async (ok, bad) => {
+    logger.debug(`Start execution of AI written scraping code`);
+
+    const p = fn(
       ctx.page,
 
       // fnSendResults
       async (result) => {
-        logger.debug(`AI generated code sent results: ${clip(result, 200)}`);
-        await new Promise(ok => setTimeout(ok, 2000));
-        if (!cb) {
-          logger.debug(`No callback, always continue`);
-          return true;
-        }
-
-        const doc = await fetcher.current(ctx);
-
         try {
-          // In case the AI serialized it
-          result = JSON.parse(result);
-        } catch {
-          // Ignore
-        }
+          logger.debug(`AI generated code sent results: ${clip(result, 200)}`);
+          await new Promise(ok => setTimeout(ok, 2000));
+          if (!cb) {
+            logger.debug(`No callback, always continue`);
+            return true;
+          }
 
-        const more = await cb({ doc, result });
-        if (!more) {
-          logger.debug(`Callback says to stop`);
-          ok();
+          const doc = await fetcher.current(ctx);
+
+          try {
+            // In case the AI serialized it
+            result = JSON.parse(result);
+          } catch {
+            // Ignore
+          }
+
+          const more = await cb({ doc, result });
+          if (more) {
+            logger.debug(`Callback says to continue`);
+            // ok();
+          } else {
+            logger.debug(`Callback says to stop`);
+          }
+          return more;
+        } catch (e) {
+          logger.error(`ERROR IN fnSendResults: ${e}`);
+          throw e;
         }
-        logger.debug(`Callback says to continue`);
-        return more;
       },
 
       // fnDebugLog
@@ -390,9 +408,14 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
       // done
       async () => {
         logger.debug(`Generated code is done`);
-        ok();
-      }
-    );
+      });
+
+    try {
+      await p;
+      ok();
+    } catch (e) {
+      bad(e);
+    }
   });
 
   try {
@@ -404,3 +427,15 @@ const exec = async (code, logger, fetcher, ctx, cb) =>  {
   return result;
 }
 
+process.on('unhandledRejection', (e) => {
+  if (e.ignore) {
+    return;
+  }
+
+  if (e.stack.includes(executeAICode.name)) {
+    defaultLogger.error(`Ignore unhandled rejection in AI code: ${e}`);
+    e.ignore = true;
+  } else {
+    throw e;
+  }
+});

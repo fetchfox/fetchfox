@@ -7,12 +7,13 @@ import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 const authorWhitelist = [
   'curaleaf',
 ];
+
 const transformWhitelist = [
-  // 'curaleaf',
   'pokemon',
   'finefettle',
   'bidspotter',
   'dmaar',
+  'epam',
 ];
 
 export const ExtractStep = class extends BaseStep {
@@ -66,6 +67,10 @@ export const ExtractStep = class extends BaseStep {
   }
 
   useTransform(item) {
+    if (this.mode == 'multiple') {
+      return true;
+    }
+
     if (process.env.USE_TRANSFORM) {
       return true;
     }
@@ -76,6 +81,7 @@ export const ExtractStep = class extends BaseStep {
         return true;
       }
     }
+
     return false;
   }
 
@@ -85,15 +91,20 @@ export const ExtractStep = class extends BaseStep {
 
     let ex;
     if (this.useTransform(item)) {
+      cursor.ctx.logger.debug(`${this} Using transform extractor`);
       this.transformExtractor ||= new TransformExtractor(cursor.ctx.extractor);
       ex = this.transformExtractor;
+
     } else if (this.useAuthor(item)) {
+      cursor.ctx.logger.debug(`${this} Using author extractor`);
       this.authorExtractor ||= new AuthorExtractor({
         ...cursor.ctx.extractor,
         baseline: cursor.ctx.extractor,
       });
       ex = this.authorExtractor;
+
     } else {
+      cursor.ctx.logger.debug(`${this} Using standard extractor`);
       ex = cursor.ctx.extractor;
     }
 

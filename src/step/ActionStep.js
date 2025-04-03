@@ -1,5 +1,4 @@
 import { BaseStep } from './BaseStep.js';
-import { Instructions } from '../fetch/index.js';
 import { Author, ActionTask } from '../author/index.js';
 
 export const ActionStep = class extends BaseStep {
@@ -15,7 +14,8 @@ export const ActionStep = class extends BaseStep {
     const namespace = new URL(url).host;
     const author = new Author({ ...cursor.ctx, timeout: 45 * 60 * 1000 });
 
-    const task = new ActionTask(namespace, this.commands.map(it => it.prompt));
+    const task = new ActionTask(namespace, this.commands.map(
+      it => typeof it == 'string' ? it : it.prompt));
     const urls = [url];
     const { script } = await author.get(task, urls);
     cursor.handleArtifact(

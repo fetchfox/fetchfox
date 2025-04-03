@@ -88,8 +88,21 @@ Logging:
 - Send frequent updates about data your are extracting to help with debugging
 - Send debug log messages before/after waiting, before/after clicking, before/after setting up and using locators
 
-Errors:
-- Log and rethrow errors. Log errors through fnDebugLog, and then rethrow
+Scrolling:
+- Use this code to scroll to the bottom of a page:
+
+  await page.evaluate(() => {
+    window.scrollBy(0, document.body.scrollHeight)
+  });
+n
+This will reliably trigger infinite scroll.
+
+Use an IIFE:
+- Your code should be wrapped as an IIFE like this:
+
+  (async () => { /* your code */ })();
+
+This wrapping is important so that the your caller can properly modify and catch exceptions in your code.
 
 >>> The user requested a timeout the following timeout for selectors and actions:
 {{timeout}} milliseconds
