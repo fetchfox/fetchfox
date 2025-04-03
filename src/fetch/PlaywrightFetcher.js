@@ -8,10 +8,15 @@ import { abortable, srid } from '../util.js';
 import { putS3, urlForKey } from './util.js';
 
 process.on('unhandledRejection', (e) => {
+  if (e.ignore) {
+    return;
+  }
+
   if (e.name == 'TargetClosedError') {
     // These exceptions occur sometimes on browser launch, and we cannot
     // catch them in this as they happen.
     defaultLogger.error(`Ignore unhandled rejection: ${e}`);
+    e.ignore = true;
   } else {
     throw e;
   }
@@ -406,7 +411,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         ctx.page.screenshot({ type: 'png' })
           .then((buf) => putS3(key, buf, this.s3))
           .catch((e) => {
-            this.logger.error(`${this} Error while getting or uploading screenshot, ignore: ${e}`);
+            this.logger.warn(`${this} Error while getting or uploading screenshot, ignore: ${e}`);
           });
 
       } finally {
