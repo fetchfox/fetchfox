@@ -31,22 +31,26 @@ export const parseAnswer = (text, format) => {
         .replaceAll(/^`+|`+$/g, '');
 
   if (format == 'jsonl') {
-    const lines = clean.split('\n');
     const result = [];
-    let leftover = '';
+    let start = 0;
+    let end = 0;
 
-    for (const line of lines) {
-      if (leftover.trim()) {
-        leftover += line.trim();
-        continue;
+    while (end < clean.length) {
+      const part = clean.substring(start);
+      const index = part.indexOf('}');
+      if (index == -1) {
+        break;
       }
-
+      end = start + index + 1;
+      const sub = clean.substring(start, end);
       try {
-        result.push(trimJson(JSON.parse(line))) }
-      catch {
-        leftover = line;
+        const obj = trimJson(JSON.parse(clean.substring(start, end)));
+        result.push(obj);
+        start = end;
+      } catch (e) {
       }
     }
+    const leftover = clean.substring(end);
     return { result, leftover };
 
   } else if (format == 'json') {
