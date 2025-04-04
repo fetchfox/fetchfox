@@ -13,9 +13,9 @@ describe('examples', function() {
 
   it('should do basic example @fast', async () => {
     const cases = [
-      { ai: 'openai:gpt-4o' },
+      // { ai: 'openai:gpt-4o' },
       // { ai: 'openai:gpt-4o-mini' },
-      // { ai: 'openrouter:openai/gpt-4o' },
+      { ai: 'openrouter:openai/gpt-4o' },
     ];
 
     const logger = new Logger({ prefix: 'abc123xyz' });
@@ -56,7 +56,7 @@ describe('examples', function() {
 
   it('should do streaming example @fast', async () => {
     const stream = fox
-      .config({ ai: 'openai:gpt-4o-mini', cache: testCache() })
+      .config({ ai: 'openrouter:openai/gpt-4o-mini', cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions:  {
@@ -81,7 +81,7 @@ describe('examples', function() {
 
   it('should filter by type @fast', async () => {
     const stream = fox
-      .config({ ai: 'openai:gpt-4o-mini', cache: testCache() })
+      .config({ ai: 'openrouter:openai/gpt-4o-mini', cache: testCache() })
       .init('https://pokemondb.net/pokedex/national')
       .extract({
         questions:  {

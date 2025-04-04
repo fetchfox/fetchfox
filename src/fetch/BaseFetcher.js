@@ -371,6 +371,10 @@ export const BaseFetcher = class {
 }
 
 const isPdf = async (url, logger) => {
+  if (url.endsWith('.pdf')) {
+    return true;
+  }
+
   try {
     logger.debug(`Check if ${url} is PDF using HEAD`);
     const resp = await fetch(
@@ -383,7 +387,7 @@ const isPdf = async (url, logger) => {
 
     return contentType && contentType.startsWith('application/pdf');
   } catch (e) {
-    logger.warn(`Error while fetching content type for ${url}: ${e}`);
+    logger.debug(`Could not fetching content type, assume not a pdf`);
     return false;
   }
 }
