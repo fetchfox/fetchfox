@@ -132,6 +132,5 @@ export const getModelData = async (provider, model, cache) => {
       input: parseFloat(data.pricing?.prompt || 0),
       output: parseFloat(data.pricing?.completion || 0),
     },
-
   };
 }
