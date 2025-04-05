@@ -49,9 +49,6 @@ Combined item data:
 - All URLs should be full, absolute URLs
 - Do NOT give the same URL as the current page. Do NOT include it if the only URL you can think of is the current page.
 
-If you include ANY url_something fiel,ds you MUST follow these instructions:
-- If you include any "url_something" fields, you MUST include a final field just called "url" that is the MOST likely one to follow
-
 Follow these important rules:
 - Provide a SINGLE result for the multiple page samples you give. Look for COMMONALITIES between the pages.
 - Your response MUST be VALID JSONL
