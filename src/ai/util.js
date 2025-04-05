@@ -37,7 +37,7 @@ export const parseAnswer = (text, format) => {
 
     while (end < clean.length) {
       const part = clean.substring(start);
-      const index = part.indexOf('}');
+      const index = part.indexOf('}', end);
       if (index == -1) {
         break;
       }
