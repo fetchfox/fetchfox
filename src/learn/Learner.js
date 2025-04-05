@@ -15,6 +15,10 @@ export const Learner = class {
     // this.ai = getAI('openai:gpt-4o');
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async learn({ url, prompt, ...rest }, cb) {
     this.logger.info(`${this} Learn about url=${url} prompt=${prompt}`);
 

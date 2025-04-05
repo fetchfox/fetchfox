@@ -44,7 +44,7 @@ export const parseAnswer = (text, format) => {
       end = start + index + 1;
       const sub = clean.substring(start, end);
       try {
-        const obj = trimJson(JSON.parse(clean.substring(start, end)));
+        const obj = JSON.parse(clean.substring(start, end));
         result.push(obj);
         start = end;
       } catch (e) {
