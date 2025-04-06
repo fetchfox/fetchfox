@@ -26,16 +26,22 @@ export const parseAnswer = (text, format) => {
   if (!text) return;
 
   const clean = text
-        .replace(/```jsonl?/, '')
-        .replaceAll('```', '')
-        .replaceAll(/^`+|`+$/g, '');
+    .replace(/```jsonl?/, '')
+    .replaceAll('```', '')
+    .replaceAll(/^`+|`+$/g, '')
+    .trim();
 
   if (format == 'jsonl') {
     const result = [];
     let start = 0;
     let end = 0;
 
+    let i = 0;
     while (end < clean.length) {
+      if (i++ > 1000) {
+        throw new Error('Likely JSONL parse infinite loop');
+      }
+
       const part = clean.substring(start);
       const index = part.indexOf('}');
       if (index == -1) {
