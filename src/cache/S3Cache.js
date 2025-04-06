@@ -14,11 +14,12 @@ export const S3Cache = class extends BaseCache {
     this.ttls = options.ttls || { base: 2 * 3600 };
     this.readOnly = options?.readOnly;
     this.writeOnly = options?.writeOnly;
+    this.timeout = options?.timeout || 5000;
 
     this.s3 = new S3Client({
       region: options.region,
       requestHandler: new NodeHttpHandler({
-        requestTimeout: 10000,
+        requestTimeout: this.timeout,
         httpsAgent: { maxSockets: 200 },
       }),
     });
@@ -47,7 +48,7 @@ export const S3Cache = class extends BaseCache {
         Body: body,
         ACL: this.acl,
         ContentType: 'application/json',
-        AbortSignal: AbortSignal.timeout(5 * 1000),
+        AbortSignal: AbortSignal.timeout(this.timeout),
       }));
       this.logger.info(`${this} Successfully set cache for key: ${this.url(objectKey)}`);
     } catch (e) {
@@ -68,6 +69,7 @@ export const S3Cache = class extends BaseCache {
       const resp = await this.s3.send(new GetObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,
+        AbortSignal: AbortSignal.timeout(this.timeout),
       }));
       body = await this.streamToString(resp.Body);
     } catch (e) {
@@ -106,6 +108,7 @@ export const S3Cache = class extends BaseCache {
       await this.s3.send(new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: objectKey,
+        AbortSignal: AbortSignal.timeout(this.timeout),
       }));
       this.logger.debug(`${this} Successfully deleted cache for key: ${this.url(objectKey)}`);
     } catch (e) {

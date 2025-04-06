@@ -25,7 +25,7 @@ export const testCache = () => {
         ttls: { base: 10 * 365 * 24 * 3600 },
         ...rw,
       }),
-    new S3Cache(params),
+    // new S3Cache(params),
   ]);
 }
 

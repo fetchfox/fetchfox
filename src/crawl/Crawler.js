@@ -1,11 +1,38 @@
 import chalk from 'chalk';
 import { logger } from '../log/logger.js';
 import { BaseCrawler } from './BaseCrawler.js';
+import { PatternCrawler } from './PatternCrawler.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
+  usePattern(url, query) {
+    let urlPattern;
+    try {
+      url = new URL(url);
+      urlPattern = new URL(query);
+    } catch (e) {
+      return false;
+    }
+
+    if (url.origin != urlPattern.origin) {
+      return false;
+    }
+
+    return urlPattern.pathname.includes('*');
+  }
+
   async *run(url, query, options) {
+    if (this.usePattern(url, query)) {
+      this.logger.debug(`${this} Using pattern crawler for url=${url} query=${query}`);
+      const pc = new PatternCrawler(this);
+      const gen = pc.run(url, query, options);
+      for await (const r of gen) {
+        yield Promise.resolve(r);
+      }
+      return;
+    }
+
     this.usage.requests++;
     const maxPages = options?.maxPages;
     const fetchOptions = options?.fetchOptions || {};
@@ -26,7 +53,6 @@ export const Crawler = class extends BaseCrawler {
 
     // Start documents worker
 
-    // See https://github.com/fetchfox/fetchfox/issues/42
     /* eslint-disable no-async-promise-executor */
     const docsPromise = new Promise(async (ok, bad) => {
       logger.info(`${this} Started pagination docs worker`);
