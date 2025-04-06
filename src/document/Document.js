@@ -1,4 +1,5 @@
 import { logger } from '../log/logger.js';
+import { parse } from 'node-html-parser';
 
 export const Document = class {
   constructor() {}
@@ -120,6 +121,27 @@ export const Document = class {
 
     const took = (new Date()).getTime() - start;
     logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
+  }
+
+  links() {
+    const root = parse(this.html);
+    const links = [];
+    const seen = {};
+    for (const a of root.querySelectorAll('a')) {
+      const href = a.getAttribute('href');
+      if (!href) continue;
+      let url;
+      try {
+        url = new URL(href, this.url);
+      } catch (e) {
+        logger.debug(`${this} Invalid href ${href}, skip:  ${e}`)
+      }
+      const u = url.toString();
+      if (seen[u]) continue;
+      seen[u] = true;
+      links.push({ url: u });
+    }
+    return links;
   }
 }
 

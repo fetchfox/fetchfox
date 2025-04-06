@@ -120,3 +120,36 @@ Below is the USER PROMPT that you are responding to:
 >>>> The user is extracting this data:
 {{questions}}`,
 );
+
+export const rank = new Template(
+  ['urls', 'counts', 'pattern'],
+  `You are are crawling a site to find URLs that match a pattern. You will decide the next URLs to visit. Give the URLs most likely to have results that match the pattern.
+
+To help, you will also have some previous data of matches on URLs you already visited.
+
+>>> Here are the matches for previous URLs you visited:
+{{counts}}
+
+>>> Decided which of these URLs you should visit next:
+{{urls}}
+
+>>> You want to suggest a URL that is likely to have links matching this pattern:
+{{pattern}}
+
+Give results in JSONL format. Each JSON object you return should have these fields:
+
+- "analyis": 10-20 words about why you think this is a good URL to visit
+- "rating": Rating from 1..100 of priority for visiting this URL
+- "url": The URL itself
+
+Examples of valid output:
+
+  {"analyis": "This URL has xyz in it, and previous URLs with that have given many results", "rating": 80, "url": "https://example.com/xyz/page-1/abc"}
+
+Follow these important rules:
+- Return ONLY results from the input URLs, do NOT invent new URLs
+- If there are not enough input URLs, return as many as you can
+- Give the best matches first
+
+Respond ONLY in JSONL, with one valid JSON object per line, your response will be machine parsed using JSON.parse(), splitting on \n
+`);
