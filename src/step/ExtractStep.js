@@ -9,7 +9,7 @@ const authorWhitelist = [
 ];
 
 const transformWhitelist = [
-  'pokemon',
+  // 'pokemon',
   'finefettle',
   'bidspotter',
   'dmaar',
@@ -67,9 +67,9 @@ export const ExtractStep = class extends BaseStep {
   }
 
   useTransform(item) {
-    if (this.mode == 'multiple') {
-      return true;
-    }
+    // if (this.mode == 'multiple') {
+    //   return true;
+    // }
 
     if (process.env.USE_TRANSFORM) {
       return true;

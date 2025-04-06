@@ -47,6 +47,7 @@ export const S3Cache = class extends BaseCache {
         Body: body,
         ACL: this.acl,
         ContentType: 'application/json',
+        AbortSignal: AbortSignal.timeout(5 * 1000),
       }));
       this.logger.info(`${this} Successfully set cache for key: ${this.url(objectKey)}`);
     } catch (e) {
