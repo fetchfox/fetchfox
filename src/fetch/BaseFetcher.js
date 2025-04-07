@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
@@ -370,7 +369,7 @@ export const BaseFetcher = class {
   }
 }
 
-const isPdf = async (url, logger) => {
+const isPdf = async (url) => {
   if (url.endsWith('.pdf')) {
     return true;
   }

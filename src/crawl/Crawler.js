@@ -11,7 +11,7 @@ export const Crawler = class extends BaseCrawler {
     try {
       url = new URL(url);
       urlPattern = new URL(query);
-    } catch (e) {
+    } catch {
       return false;
     }
 

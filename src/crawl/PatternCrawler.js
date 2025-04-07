@@ -1,8 +1,5 @@
-import PQueue from 'p-queue';
-import chalk from 'chalk';
-import { logger } from '../log/logger.js';
 import { BaseCrawler } from './BaseCrawler.js';
-import { createChannel, shuffle } from '../util.js';
+import { createChannel } from '../util.js';
 import * as prompts from './prompts.js'
 
 const clean = url => url
@@ -67,7 +64,7 @@ export const PatternCrawler = class extends BaseCrawler {
             suggestions.push(delta);
             ratings[delta.url] = delta.rating;
             this.logger.debug(`${this} Got candidate to visit next: ${JSON.stringify(delta)}`);
-            if (suggestions.length > 10) {
+            if (suggestions.length > max) {
               break;
             }
           }
@@ -114,8 +111,6 @@ export const PatternCrawler = class extends BaseCrawler {
       }
     });
 
-    const q = new PQueue({ concurrency: 8 });
-
     const resultsPromise = new Promise(async (ok, bad) => {
       try {
 
@@ -155,7 +150,15 @@ export const PatternCrawler = class extends BaseCrawler {
           } else {
             p = Promise.resolve(val);
           }
-          p.then(it => resultsChan.send(it));
+          p
+            .then(it => resultsChan.send(it))
+            .catch((e) => {
+              if (process.env.STRICT_ERRORS) {
+                bad(e);
+              } else {
+                this.logger.error(`${this} Unexpected error: ${e}`);
+              }
+            });
           promises.push(p);
         }
 
