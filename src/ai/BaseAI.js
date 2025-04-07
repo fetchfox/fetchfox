@@ -20,18 +20,14 @@ export const BaseAI = class {
       advanced,
       code,
     } =
-    Object.assign(
-      {
-        maxRetries: 10,
-        retryMsec: 5000,
-        model: this.constructor.defaultModel,
-        apiKey: (apiKeyEnvVariable ? process.env[apiKeyEnvVariable] : null),
-      },
-      options);
-
-    if (!apiKey && !this.constructor.optionalApiKey) {
-      throw new Error(`FetchFox is missing API key for ${this.constructor.name}. Enter it using environment variable ${apiKeyEnvVariable} or pass it in to the constructor`);
-    }
+      Object.assign(
+        {
+          maxRetries: 10,
+          retryMsec: 5000,
+          model: this.constructor.defaultModel,
+          apiKey: (apiKeyEnvVariable ? process.env[apiKeyEnvVariable] : null),
+        },
+        options);
 
     if (cache) this.cache = cache;
     this.logger = logger || defaultLogger;
@@ -66,7 +62,7 @@ export const BaseAI = class {
       tokens: { input: 0, output: 0, total: 0 },
       cost: { input: 0, output: 0, total: 0 },
       runtime: { sec: 0, msec: 0 },
-      requests: { attempts: 0, errors: 0, failures: 0  },
+      requests: { attempts: 0, errors: 0, failures: 0 },
     }
 
     this.baseURL = options?.baseURL;
@@ -177,6 +173,10 @@ export const BaseAI = class {
   }
 
   async *stream(prompt, options) {
+    if (!this.apiKey && !this.constructor.optionalApiKey) {
+      throw new Error(`FetchFox is missing API key for ${this.constructor.name}. Enter it using environment variable ${this.constructor.apiKeyEnvVariable} or pass it in to the constructor`);
+    }
+
     await this.init();
 
     const tokens = await this.limitReady(prompt);
@@ -315,7 +315,7 @@ export const BaseAI = class {
           result = chunk;
         }
 
-      } catch(e) {
+      } catch (e) {
         this.logger.error(`Caught ${this} error: ${e}`);
 
         if (!e.status || --retries <= 0) {

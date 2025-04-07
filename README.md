@@ -36,11 +36,11 @@ const workflow = await fox
   .limit(3)
   .plan();
 
-const results = workflow
+const results = await workflow
   .run(null, (delta) => { console.log(delta.item) });
   
-for (const result of results) {
-  console.log('Item:', result.item);
+for (const item of results.items) {
+  console.log('Item:', item);
 }
 ```
 
@@ -80,11 +80,11 @@ const workflow = await fox
   .limit(3)
   .plan();
 
-const results = workflow
+const results = await workflow
   .run(null, (delta) => { console.log(delta.item) });
   
-for (const result of results) {
-  console.log('Item:', result.item);
+for (const item of results.items) {
+  console.log('Item:', item);
 }
 ```
 
@@ -106,7 +106,7 @@ Alternatively, you can pass in your API key in code, like this:
 import { fox } from 'fetchfox';
 
 const results = await fox
-  .config({ ai: { model: 'openai:gpt-4o-mini', apiKey: 'sk-your-key' }})
+  .config({ ai: ['openai:gpt-4o-mini', { apiKey: 'sk-your-key' }]})
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
@@ -117,7 +117,7 @@ This will use OpenAI's `gpt-4o-mini` model, and the API key you specify. You can
 
 ```javascript
 const results = await fox
-  .config({ ai: { model: 'openrouter:google/gemini-flash-1.5', apiKey: 'your-openrouter-key' }})
+  .config({ ai: ['openrouter:google/gemini-flash-1.5', { apiKey: 'your-openrouter-key' }]})
   .init('https://pokemondb.net/pokedex/national')
   .extract({ name: 'Pokemon name', number: 'Pokemon number' })
   .limit(3)
