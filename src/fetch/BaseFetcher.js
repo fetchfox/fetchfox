@@ -13,7 +13,7 @@ export const BaseFetcher = class {
     this.logger = options?.logger || defaultLogger;
     this.ai = options?.ai || getAI();
     this.queue = [];
-    this.usage = { goto: 0 };
+    this.usage = { goto: 0, bandwidth: 0 };
 
     this.q = new PQueue({
       concurrency: options?.concurrency || 4,

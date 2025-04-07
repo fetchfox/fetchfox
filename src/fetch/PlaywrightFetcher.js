@@ -37,9 +37,21 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     };
   }
 
+  _setupBandwidthTracking(ctx) {
+    const usage = this.usage;
+    ctx.page.on('requestfinished', async request => {
+      const sizes = await request.sizes();
+      usage.bandwidth += sizes.requestBodySize;
+      usage.bandwidth += sizes.requestHeadersSize;
+      usage.bandwidth += sizes.responseBodySize;
+      usage.bandwidth += sizes.responseHeadersSize;
+    })
+  }
+
   async _goto(url, ctx) {
     if (!ctx.page) {
       ctx.page = await ctx.browser.newPage();
+      this._setupBandwidthTracking(ctx);
     }
 
     try {
@@ -75,7 +87,6 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     return doc;
   }
-
 
   async _launch() {
     this.logger.debug(`Playwright launching...`);
@@ -130,6 +141,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
 
     this.logger.debug(`${this} Closing browser`);
+    await ctx.page.close();  // need this to HAR dump, maybe also for bandwidth tracking
     await ctx.browser.close();
     delete ctx.browser;
   }
