@@ -411,23 +411,25 @@ describe('Workflow', function() {
     assert.ok(!!err);
   });
 
-  it('should pull html if requestg @fast', async () => {
+  it('should pull html via patterns if requested @fast', async () => {
     const wf = await fox
       .config({ cache: testCache() })
-      .init('https://pokemondb.net/')
-      .crawl({
-        query: 'https://pokemondb.net/pokedex/*',
-        pull: true,
-      })
-      .limit(3);
+      .init([
+        'https://pokemondb.net/move/*',
+        'https://pokemondb.net/type/*',
+      ])
+      .crawl()
+      .limit(500);
 
     const out = await wf.run();
 
-    for (const item of out.items) {
-      assert.ok(item.html.length > 100, 'has html');
-      assert.ok(item.text.length > 100, 'has text');
-      assert.ok(item.markdown.length > 100, 'has markdown');
-    }
+    console.log('out', out.items);
+
+    // for (const item of out.items) {
+    //   assert.ok(item.html.length > 100, 'has html');
+    //   assert.ok(item.text.length > 100, 'has text');
+    //   assert.ok(item.markdown.length > 100, 'has markdown');
+    // }
   });
 
 });

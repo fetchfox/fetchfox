@@ -188,7 +188,7 @@ export const BaseFetcher = class {
             try {
               this.logger.debug(`${this} Starting at ${instr.url}`);
 
-              const hash = (doc) => shortObjHash({ data: doc?.selectHtml || doc?.text || doc?.html });
+              const hash = (doc) => shortObjHash({ data: doc?.html });
 
               let cacheKey;
               if (options?.instructionsCacheKey) {

@@ -9,7 +9,9 @@ describe('Crawler', function() {
 
   it('should use pattern crawler @fast', async () => {
     const c = new Crawler({ cache: testCache() });
-    const all = await c.all('https://pokemondb.net/', 'https://pokemondb.net/pokedex/*');
+    const all = await c.all([
+      'https://pokemondb.net/pokedex/*',
+    ]);
     assert.ok(all.length > 1000, 'at least 1000');
     assert.ok(all.map(it => it.url).includes('https://pokemondb.net/pokedex/pikachu'));
   });

@@ -9,12 +9,13 @@ export const CrawlStep = class extends BaseStep {
     if (typeof args == 'string') {
       this.query = args;
     } else {
-      query = args.query;
+      query = args?.query;
     }
-    if (!query) throw new Error('no query');
+
+    // if (!query) throw new Error('no query');
 
     this.query = query;
-    this.pull = args.pull;
+    this.pull = args?.pull;
   }
 
   async process({ cursor, item, index }, cb) {

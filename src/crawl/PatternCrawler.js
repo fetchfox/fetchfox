@@ -7,11 +7,47 @@ const clean = url => url
   .replace(/\/$/, '');
 
 export const PatternCrawler = class extends BaseCrawler {
-  async *run(startUrl, pattern, options) {
-    this.logger.info(`${this} Start at ${startUrl} and find matches for ${pattern}`);
+  async *run(patterns, options) {
+    this.logger.info(`${this} Start find matches for ${patterns.join(', ')}`);
+
+    const chan = createChannel()
+
+    const promises = [];
+    const handleResult = (result) => {
+      console.log('result', result);
+      chan.send({ result });
+    }
+
+    for (const pattern of patterns) {
+      console.log('push pattern', pattern);
+      const p = this.runSingle(pattern, options, handleResult);
+      promises.push(p);
+    }
+
+    const all = Promise.allSettled(promises).then(() => chan.end());
+
+    for await (const val of chan.receive()) {
+      console.log('OUTPUT', val);
+      if (val.end) {
+        break;
+      }
+
+      yield Promise.resolve(val.result);
+    }
+
+    await all;
+  }
+
+  async runSingle(pattern, options, onResult) {
+    this.logger.info(`${this} Find matches for ${pattern}`);
+
+    const url = new URL(pattern);
+    let candidates = [
+      url.origin,
+      pattern.replace(/\*$/, ''),
+    ];
 
     const state = {};
-    let candidates = [startUrl];
     const ratings = {};
 
     const yielded = {};
@@ -29,8 +65,9 @@ export const PatternCrawler = class extends BaseCrawler {
     }
 
     const linksPromise = new Promise(async (ok, bad) => {
+      console.log('linksPromise');
       try {
-        for (let i = 0 ; i < 10; i++) {
+        for (let i = 0 ; i < 20; i++) {
           if (done) break;
 
           this.logger.debug(`${this} Looking for URLs matching pattern ${pattern}, iteration ${i}`);
@@ -94,9 +131,11 @@ export const PatternCrawler = class extends BaseCrawler {
             }
           }
 
+          this.logger.debug(`${this} Number of new results was ${count} on i=${i}`);
+
           // If we didn't find new ones, exit
           if (count == 0 && i >= 3) {
-            break;
+            done = true;
           }
         }
 
@@ -117,12 +156,14 @@ export const PatternCrawler = class extends BaseCrawler {
         const promises = [];
 
         for await (const val of linksChan.receive()) {
+          console.log('===> links chan gave:', val);
+
           if (val.end || done || this.signal?.aborted) {
             break;
           }
 
           let p;
-          if (options.pull) {
+          if (options?.pull) {
             p = this.fetcher.first(val.url)
               .then((doc) => {
                 if (done || this.signal?.aborted) {
@@ -177,11 +218,13 @@ export const PatternCrawler = class extends BaseCrawler {
 
     try {
       for await (const val of resultsChan.receive()) {
+        console.log('??', val);
         if (val.end) {
           break;
         }
 
-        yield Promise.resolve(val);
+        // yield Promise.resolve(val);
+        onResult(val);
       }
 
       await linksPromise;
@@ -196,7 +239,7 @@ export const PatternCrawler = class extends BaseCrawler {
   }
 
   async process(url, pattern) {
-    this.logger.debug(`${this} Proecssing ${url}`);
+    this.logger.debug(`${this} Processing ${url}`);
 
     const re = new RegExp(pattern.replaceAll('*', '.*'));
     const result = {

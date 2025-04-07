@@ -95,9 +95,9 @@ export const stepDescriptionsMap = {
         required: false,
       },
       view: {
-        description: `Should we look at full HTML or the text of the page? Must be one of "html", "text", or "selectHtml"`,
+        description: `Should we look at full HTML or only the text of the page? Must be one of "html", or "text"`,
         format: 'choices',
-        choices: ['html', 'text', 'selectHtml'],
+        choices: ['html', 'text'],
         example: 'html',
         default: 'html',
         required: false,

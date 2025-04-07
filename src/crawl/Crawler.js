@@ -7,26 +7,26 @@ import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
   usePattern(url, query) {
-    let urlPattern;
+    if (query) {
+      return false;
+    }
+
     try {
-      url = new URL(url);
-      urlPattern = new URL(query);
+      if ((new URL(url)).pathname.includes('*')) {
+        return true;
+      }
     } catch {
-      return false;
+      // no-op
     }
 
-    if (url.origin != urlPattern.origin) {
-      return false;
-    }
-
-    return urlPattern.pathname.includes('*');
+    return false;
   }
 
   async *run(url, query, options) {
     if (this.usePattern(url, query)) {
       this.logger.debug(`${this} Using pattern crawler for url=${url} query=${query}`);
       const pc = new PatternCrawler(this);
-      const gen = pc.run(url, query, options);
+      const gen = pc.run([url], options);
       for await (const r of gen) {
         yield Promise.resolve(r);
       }
@@ -168,7 +168,7 @@ export const Crawler = class extends BaseCrawler {
     const context = {
       query,
       url: doc.url,
-      body: doc.selectHtml,
+      body: doc.html,
     };
     const prompts = await gather.renderMulti(context, 'body', this.ai);
 
