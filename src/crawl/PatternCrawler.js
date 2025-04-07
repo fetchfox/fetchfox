@@ -60,7 +60,7 @@ export const PatternCrawler = class extends BaseCrawler {
           const { prompt } = await prompts.rank.renderCapped(context, 'counts', this.ai);
           const gen = this.ai.stream(prompt, { format: 'jsonl' });
           const suggestions = [];
-          const max = 10;
+          const max = 8;
           for await (const { delta } of gen) {
             if (done) break;
 
@@ -73,23 +73,28 @@ export const PatternCrawler = class extends BaseCrawler {
           }
           if (done) break;
 
-          suggestions.sort((a, b) => parseInt(b.rating) - parseInt(a.rating));
-
-          const url = suggestions[0].url;
-          const result = await this.process(url, pattern);
-          state[url] = result;
-
-          candidates.push(...result.all.map(it => it.url));
+          const results = await Promise.allSettled(suggestions
+            .map(it => this.process(it.url, pattern)));
 
           let count = 0;
-          this.logger.debug(`${this} Yielding ${result.matches.length} pattern matches, first is ${JSON.stringify(result.matches[0])}`);
-          for (const link of result.matches) {
-            if (yielded[link.url]) {
+          for (let i = 0; i < suggestions.length; i++) {
+            const result = results[i];
+            if (result.status != 'fulfilled') {
               continue;
             }
-            yielded[link.url] = true;
-            linksChan.send(link);
-            count++;
+            const url = suggestions[i].url;
+            state[url] = result.value; 
+            candidates.push(...result.value.all.map(it => it.url));
+
+            this.logger.debug(`${this} Yielding ${result.value.matches.length} pattern matches, first is ${JSON.stringify(result.value.matches[0])}`);
+            for (const link of result.value.matches) {
+              if (yielded[link.url]) {
+                continue;
+              }
+              yielded[link.url] = true;
+              linksChan.send(link);
+              count++;
+            }
           }
 
           // If we didn't find new ones, exit

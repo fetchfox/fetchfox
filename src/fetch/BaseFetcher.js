@@ -375,19 +375,22 @@ const isPdf = async (url, logger) => {
     return true;
   }
 
-  try {
-    logger.debug(`Check if ${url} is PDF using HEAD`);
-    const resp = await fetch(
-      url,
-      {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(2000),
-      });
-    const contentType = resp.headers.get('Content-Type');
+  // HEAD based PDF Checker disabled for now
+  return false;
 
-    return contentType && contentType.startsWith('application/pdf');
-  } catch (e) {
-    logger.debug(`Could not fetching content type, assume not a pdf`);
-    return false;
-  }
+  // try {
+  //   logger.debug(`Check if ${url} is PDF using HEAD`);
+  //   const resp = await fetch(
+  //     url,
+  //     {
+  //       method: 'HEAD',
+  //       signal: AbortSignal.timeout(2000),
+  //     });
+  //   const contentType = resp.headers.get('Content-Type');
+
+  //   return contentType && contentType.startsWith('application/pdf');
+  // } catch (e) {
+  //   logger.debug(`Could not fetching content type, assume not a pdf`);
+  //   return false;
+  // }
 }
