@@ -39,8 +39,8 @@ export const Crawler = class extends BaseCrawler {
 
     const start = new Date().getTime();
 
-    const docsChannel = createChannel();
-    const resultsChannel = createChannel();
+    const docsChan = createChannel();
+    const resultsChan = createChannel();
     let done = false;
 
     let abortListener;
@@ -65,7 +65,7 @@ export const Crawler = class extends BaseCrawler {
           }
 
           logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
-          docsChannel.send({ doc });
+          docsChan.send({ doc });
         }
         ok();
       } catch (e) {
@@ -78,7 +78,7 @@ export const Crawler = class extends BaseCrawler {
 
         logger.debug(`${this} Done with docs worker`);
         gen.return();
-        docsChannel.end();
+        docsChan.end();
       }
     }); // end docsPromise
     /* eslint-enable no-async-promise-executor */
@@ -92,7 +92,7 @@ export const Crawler = class extends BaseCrawler {
 
       try {
         // Get documents from channel and start worker for each
-        for await (const val of docsChannel.receive()) {
+        for await (const val of docsChan.receive()) {
           if (done) {
             break;
           }
@@ -109,7 +109,7 @@ export const Crawler = class extends BaseCrawler {
             new Promise(async (ok, bad) => {
               try {
                 for await (const r of this._processDoc(doc, query)) {
-                  resultsChannel.send({ result: r });
+                  resultsChan.send({ result: r });
                 }
 
                 logger.debug(`${this} Link worker done ${myIndex} (${workerPromises.length})`);
@@ -131,7 +131,7 @@ export const Crawler = class extends BaseCrawler {
         bad(e);
       } finally {
         logger.debug(`${this} All link workers done ${done}`);
-        resultsChannel.end();
+        resultsChan.end();
       }
     }); // resultsPromise
     /* eslint-enable no-async-promise-executor */
@@ -139,7 +139,7 @@ export const Crawler = class extends BaseCrawler {
     // Receive and yield results
     let count = 0;
     try {
-      for await (const val of resultsChannel.receive()) {
+      for await (const val of resultsChan.receive()) {
         if (val.end) {
           break;
         }

@@ -389,7 +389,7 @@ describe('Workflow', function() {
   });
 
   it('should use api key @fast', async () => {
-    const f = await fox
+    const wf = await fox
       .config({
         cache: testCache(),
         ai: ['openai:gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 }],
@@ -409,6 +409,25 @@ describe('Workflow', function() {
     }
 
     assert.ok(!!err);
+  });
+
+  it('should pull html if requestg @fast', async () => {
+    const wf = await fox
+      .config({ cache: testCache() })
+      .init('https://pokemondb.net/')
+      .crawl({
+        query: 'https://pokemondb.net/pokedex/*',
+        pull: true,
+      })
+      .limit(3);
+
+    const out = await wf.run();
+
+    for (const item of out.items) {
+      assert.ok(item.html.length > 100, 'has html');
+      assert.ok(item.text.length > 100, 'has text');
+      assert.ok(item.markdown.length > 100, 'has markdown');
+    }
   });
 
 });

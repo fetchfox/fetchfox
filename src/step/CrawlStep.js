@@ -1,4 +1,5 @@
 import { BaseStep } from './BaseStep.js';
+import { clip } from '../util.js';
 
 export const CrawlStep = class extends BaseStep {
   constructor(args) {
@@ -13,6 +14,7 @@ export const CrawlStep = class extends BaseStep {
     if (!query) throw new Error('no query');
 
     this.query = query;
+    this.pull = args.pull;
   }
 
   async process({ cursor, item, index }, cb) {
@@ -20,6 +22,7 @@ export const CrawlStep = class extends BaseStep {
 
     const options = {
       maxPages: this.maxPages,
+      pull: this.pull,
       fetchOptions: {
         priority: index,
         instructionsCacheKey: `index-${index}`,
@@ -30,8 +33,8 @@ export const CrawlStep = class extends BaseStep {
 
     try {
       for await (const output of crawler.run(url, this.query, options)) {
-        if (!output._url) {
-          cursor.ctx.logger.error(`No URL found for item ${item}`);
+        if (!output._url && !output.url) {
+          cursor.ctx.logger.error(`No URL found for item ${item}: ${clip(JSON.stringify(output), 1000)}`);
           continue;
         }
 

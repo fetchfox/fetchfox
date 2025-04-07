@@ -38,7 +38,7 @@ export const parseAnswer = (text, format) => {
 
     let i = 0;
     while (end < clean.length) {
-      if (i++ > 1000) {
+      if (i++ > 10000) {
         throw new Error('Likely JSONL parse infinite loop');
       }
 

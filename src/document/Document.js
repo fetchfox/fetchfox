@@ -1,5 +1,7 @@
 import { logger } from '../log/logger.js';
 import { parse } from 'node-html-parser';
+import TurndownService from 'turndown';
+
 
 export const Document = class {
   constructor() {}
@@ -8,13 +10,56 @@ export const Document = class {
     return `[Document: ${this.url} ${(this.html || '').length} bytes]`;
   }
 
+  get text() {
+    if (!this._text) {
+      const root = parse(this.html);
+      this._text = root.text;
+    }
+
+    return this._text;
+  }
+
+  get markdown() {
+    if (!this._markdown) {
+      var td = new TurndownService();
+      this._markdown = td.turndown(this.html);
+    }
+
+    return this._markdown;
+  }
+
+  get links() {
+    if (!this._links) {
+      const root = parse(this.html);
+      const links = [];
+      const seen = {};
+      for (const a of root.querySelectorAll('a')) {
+        const href = a.getAttribute('href');
+        if (!href) continue;
+        let url;
+        try {
+          url = new URL(href, this.url);
+        } catch (e) {
+          logger.debug(`${this} Invalid href ${href}, skip:  ${e}`)
+        }
+        const u = url.toString();
+        if (seen[u]) continue;
+        seen[u] = true;
+        links.push({ url: u });
+      }
+      this._links = links;
+    }
+
+    return this._links;
+  }
+
   async dump(options) {
     const data = {
       url: this.url,
       body: this.body,
       html: this.html,
-      text: this.text,
-      selectHtml: this.selectHtml,
+      // text: this.text,
+      // selectHtml: this.selectHtml,
       htmlUrl: this.htmlUrl,
       screenshotUrl: this.screenshotUrl,
       resp: this.resp,
@@ -41,23 +86,12 @@ export const Document = class {
     return data;
   }
 
-  async uploadHtml(presignedUrl) {
-    await fetchRetry(presignedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      body: this.html,
-    });
-    this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
-    logger.debug(`${this} Uploaded HTML to ${this.htmlUrl}`);
-    return this.htmlUrl;
-  }
-
   async loadData(data) {
     this.url = data.url;
     this.body = data.body;
     this.html = data.html;
-    this.text = data.text;
-    this.selectHtml = data.selectHtml;
+    // this.text = data.text;
+    // this.selectHtml = data.selectHtml;
     this.htmlUrl = data.htmlUrl;
     this.screenshotUrl = data.screenshotUrl;
     this.resp = data.resp;
@@ -123,25 +157,15 @@ export const Document = class {
     logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
   }
 
-  links() {
-    const root = parse(this.html);
-    const links = [];
-    const seen = {};
-    for (const a of root.querySelectorAll('a')) {
-      const href = a.getAttribute('href');
-      if (!href) continue;
-      let url;
-      try {
-        url = new URL(href, this.url);
-      } catch (e) {
-        logger.debug(`${this} Invalid href ${href}, skip:  ${e}`)
-      }
-      const u = url.toString();
-      if (seen[u]) continue;
-      seen[u] = true;
-      links.push({ url: u });
-    }
-    return links;
+  async uploadHtml(presignedUrl) {
+    await fetchRetry(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      body: this.html,
+    });
+    this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
+    logger.debug(`${this} Uploaded HTML to ${this.htmlUrl}`);
+    return this.htmlUrl;
   }
 }
 

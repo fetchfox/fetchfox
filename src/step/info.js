@@ -49,6 +49,11 @@ export const stepDescriptionsMap = {
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
         required: true,
       },
+      pull: {
+        description: 'Pull HTML from crawled pages',
+        format: 'boolean',
+        required: false,
+      },
     },
   }),
 
