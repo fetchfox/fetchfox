@@ -17,7 +17,12 @@ const normalizeText = (text) => {
 
 const trimJson = (data) => {
   for (const key in data) {
-    data[key] = normalizeText('' + data[key]);
+    const val = data[key]
+    if (typeof val == 'string') {
+      data[key] = normalizeText(val);
+    } else {
+      data[key] = val;
+    }
   }
   return data;
 }
@@ -37,23 +42,25 @@ export const parseAnswer = (text, format) => {
     let end = 0;
 
     let i = 0;
+    let fromIndex = 0;
     while (end < clean.length) {
+      const part = clean.substring(start);
+      const index = part.indexOf('}', fromIndex);
+
       if (i++ > 1000) {
-        throw new Error('Likely JSONL parse infinite loop');
+        throw new Error(`Likely JSONL parse infinite loop: text=[${text}]`);
       }
 
-      const part = clean.substring(start);
-      const index = part.indexOf('}');
       if (index == -1) {
         break;
       }
       end = start + index + 1;
-      const sub = clean.substring(start, end);
       try {
         const obj = trimJson(JSON.parse(clean.substring(start, end)));
         result.push(obj);
         start = end;
-      } catch (e) {
+      } catch {
+        fromIndex = index + 1;
       }
     }
     const leftover = clean.substring(end);

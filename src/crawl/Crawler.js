@@ -7,26 +7,27 @@ import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
   usePattern(url, query) {
-    let urlPattern;
+    if (query) {
+      return false;
+    }
+
     try {
-      url = new URL(url);
-      urlPattern = new URL(query);
-    } catch (e) {
-      return false;
+      if ((new URL(url)).pathname.includes('*')) {
+        return true;
+      }
+    } catch {
+      // no-op
     }
 
-    if (url.origin != urlPattern.origin) {
-      return false;
-    }
-
-    return urlPattern.pathname.includes('*');
+    return false;
   }
 
   async *run(url, query, options) {
     if (this.usePattern(url, query)) {
       this.logger.debug(`${this} Using pattern crawler for url=${url} query=${query}`);
       const pc = new PatternCrawler(this);
-      const gen = pc.run(url, query, options);
+      const urls = Array.isArray(url) ? url : [url];
+      const gen = pc.run(urls, options);
       for await (const r of gen) {
         yield Promise.resolve(r);
       }
@@ -39,8 +40,8 @@ export const Crawler = class extends BaseCrawler {
 
     const start = new Date().getTime();
 
-    const docsChannel = createChannel();
-    const resultsChannel = createChannel();
+    const docsChan = createChannel();
+    const resultsChan = createChannel();
     let done = false;
 
     let abortListener;
@@ -65,7 +66,7 @@ export const Crawler = class extends BaseCrawler {
           }
 
           logger.debug(`${this} Sending doc ${doc} onto channel done=${done}`);
-          docsChannel.send({ doc });
+          docsChan.send({ doc });
         }
         ok();
       } catch (e) {
@@ -78,7 +79,7 @@ export const Crawler = class extends BaseCrawler {
 
         logger.debug(`${this} Done with docs worker`);
         gen.return();
-        docsChannel.end();
+        docsChan.end();
       }
     }); // end docsPromise
     /* eslint-enable no-async-promise-executor */
@@ -92,7 +93,7 @@ export const Crawler = class extends BaseCrawler {
 
       try {
         // Get documents from channel and start worker for each
-        for await (const val of docsChannel.receive()) {
+        for await (const val of docsChan.receive()) {
           if (done) {
             break;
           }
@@ -109,7 +110,7 @@ export const Crawler = class extends BaseCrawler {
             new Promise(async (ok, bad) => {
               try {
                 for await (const r of this._processDoc(doc, query)) {
-                  resultsChannel.send({ result: r });
+                  resultsChan.send({ result: r });
                 }
 
                 logger.debug(`${this} Link worker done ${myIndex} (${workerPromises.length})`);
@@ -131,7 +132,7 @@ export const Crawler = class extends BaseCrawler {
         bad(e);
       } finally {
         logger.debug(`${this} All link workers done ${done}`);
-        resultsChannel.end();
+        resultsChan.end();
       }
     }); // resultsPromise
     /* eslint-enable no-async-promise-executor */
@@ -139,7 +140,7 @@ export const Crawler = class extends BaseCrawler {
     // Receive and yield results
     let count = 0;
     try {
-      for await (const val of resultsChannel.receive()) {
+      for await (const val of resultsChan.receive()) {
         if (val.end) {
           break;
         }
@@ -168,13 +169,16 @@ export const Crawler = class extends BaseCrawler {
     const context = {
       query,
       url: doc.url,
-      body: doc.selectHtml,
+      body: doc.html,
     };
     const prompts = await gather.renderMulti(context, 'body', this.ai);
 
     for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
+        if (this.signal?.aborted) {
+          return;
+        }
         logger.info(`${chalk.yellow('\u{25CF}')} Found link ${delta.url} in response to "${query}"`);
         yield Promise.resolve({ _url: delta.url });
       }

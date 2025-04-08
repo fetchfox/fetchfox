@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { getAI } from '../ai/index.js';
@@ -189,7 +188,7 @@ export const BaseFetcher = class {
             try {
               this.logger.debug(`${this} Starting at ${instr.url}`);
 
-              const hash = (doc) => shortObjHash({ data: doc?.selectHtml || doc?.text || doc?.html });
+              const hash = (doc) => shortObjHash({ data: doc?.html });
 
               let cacheKey;
               if (options?.instructionsCacheKey) {
@@ -294,7 +293,7 @@ export const BaseFetcher = class {
     this.logger.debug(`${this} S3 config: ${JSON.stringify(this.s3)}`);
     const bucket = this.s3.bucket;
     const region = this.s3.region;
-    const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{doc.url}.html';
+    const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}';
     const acl = this.s3.acl || '';
     const id = srid(10);
     const cleanUrl = doc.url.replace(/[^A-Za-z0-9]/g, '-');
@@ -370,24 +369,27 @@ export const BaseFetcher = class {
   }
 }
 
-const isPdf = async (url, logger) => {
+const isPdf = async (url) => {
   if (url.endsWith('.pdf')) {
     return true;
   }
 
-  try {
-    logger.debug(`Check if ${url} is PDF using HEAD`);
-    const resp = await fetch(
-      url,
-      {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(2000),
-      });
-    const contentType = resp.headers.get('Content-Type');
+  // HEAD based PDF Checker disabled for now
+  return false;
 
-    return contentType && contentType.startsWith('application/pdf');
-  } catch (e) {
-    logger.debug(`Could not fetching content type, assume not a pdf`);
-    return false;
-  }
+  // try {
+  //   logger.debug(`Check if ${url} is PDF using HEAD`);
+  //   const resp = await fetch(
+  //     url,
+  //     {
+  //       method: 'HEAD',
+  //       signal: AbortSignal.timeout(2000),
+  //     });
+  //   const contentType = resp.headers.get('Content-Type');
+
+  //   return contentType && contentType.startsWith('application/pdf');
+  // } catch (e) {
+  //   logger.debug(`Could not fetching content type, assume not a pdf`);
+  //   return false;
+  // }
 }

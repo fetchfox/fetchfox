@@ -49,6 +49,11 @@ export const stepDescriptionsMap = {
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
         required: true,
       },
+      pull: {
+        description: 'Pull HTML from crawled pages',
+        format: 'boolean',
+        required: false,
+      },
     },
   }),
 
@@ -90,9 +95,9 @@ export const stepDescriptionsMap = {
         required: false,
       },
       view: {
-        description: `Should we look at full HTML or the text of the page? Must be one of "html", "text", or "selectHtml"`,
+        description: `Should we look at full HTML or only the text of the page? Must be one of "html", or "text"`,
         format: 'choices',
-        choices: ['html', 'text', 'selectHtml'],
+        choices: ['html', 'text'],
         example: 'html',
         default: 'html',
         required: false,

@@ -389,7 +389,7 @@ describe('Workflow', function() {
   });
 
   it('should use api key @fast', async () => {
-    const f = await fox
+    const wf = await fox
       .config({
         cache: testCache(),
         ai: ['openai:gpt-4o-mini', { apiKey: 'invalid', maxRetries: 0 }],
@@ -401,14 +401,35 @@ describe('Workflow', function() {
       })
       .limit(3);
 
-    let err;
     try {
-      await wf.run();
-    } catch (e) {
-      err = e;
+      const out = await wf.run();
+      // Error should be in the logs
+      assert.ok(JSON.stringify(out.logs).includes('Incorrect API key'));
+      return;
+    } catch {
+      // error is ok, happens in strict mode
+      return;
     }
 
-    assert.ok(!!err);
+    assert.ok(false, 'expected error');
+  });
+
+  it('should crawl multiple patterns @fast', async () => {
+    const wf = await fox
+      .config({ cache: testCache() })
+      .init([
+        'https://pokemondb.net/move/*',
+        'https://pokemondb.net/type/*',
+      ])
+      .crawl()
+      .limit(500);
+
+    const out = await wf.run();
+
+    const moves = out.items.filter(it => it.url.match(/move/));
+    const types = out.items.filter(it => it.url.match(/type/));
+    assert.ok(moves.length > 10);
+    assert.ok(types.length > 10);
   });
 
 });

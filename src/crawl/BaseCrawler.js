@@ -6,10 +6,10 @@ import { clip } from '../util.js';
 
 export const BaseCrawler = class {
   constructor(options) {
-    const { ai, fetcher, cache, logger } = options || {};
+    const { ai, fetcher, logger } = options || {};
     this.logger = logger || defaultLogger;
-    this.ai = ai || getAI(null, { cache });
-    this.fetcher = fetcher || getFetcher(null, { cache });
+    this.ai = ai || getAI(null, options);
+    this.fetcher = fetcher || getFetcher(null, options);
     this.usage = {
       requests: 0,
       count: 0,
