@@ -402,7 +402,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       try {
         const keyTemplate = this.s3.key || 'fetchfox-docs/ss/{id}/{url}.png';
         const id = srid(10);
-        const cleanUrl = url.replace(/[^A-Za-z0-9]/g, '-');
+        const cleanUrl = url.replace(/[^A-Za-z0-9]+/g, '-');
         const key = keyTemplate
           .replaceAll('{id}', id)
           .replaceAll('{url}', cleanUrl);
@@ -540,7 +540,17 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   }
 
   logger.debug(`Getting HTML from ${page.url()}`);
-  const html = await page.content();
+  const html = await page.page.evaluate(() => {
+    document.querySelectorAll('*').forEach(el => {
+      if (el.shadowRoot) {
+        const shadow = document.createElement('shadow');
+        shadow.innerHTML = el.shadowRoot.innerHTML;
+        el.appendChild(shadow);
+      }
+    });
+
+    return document.documentElement.outerHTML;
+  });
 
   return { html };
 }
