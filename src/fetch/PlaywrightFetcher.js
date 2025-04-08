@@ -153,6 +153,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
       return;
     }
 
+    if (ctx.promise) {
+      await pTimeout(ctx.promise, { milliseconds: this.timeout });
+    }
+
     this.logger.debug(`${this} Closing browser`);
     await ctx.browser.close();
     delete ctx.browser;
@@ -404,11 +408,14 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
         screenshotUrl = urlForKey(key, this.s3);
 
-        ctx.page.screenshot({ type: 'png' })
+        const promise = ctx.page.screenshot({ type: 'png' })
           .then((buf) => putS3(key, buf, this.s3))
           .catch((e) => {
             this.logger.warn(`${this} Error while getting or uploading screenshot, ignore: ${e}`);
           });
+
+        // This can be awaited before closing the browser
+        ctx.promise = promise;
 
       } finally {
         timer.pop();

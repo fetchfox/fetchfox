@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import PQueue from 'p-queue';
+import pTimeout from 'p-timeout';
 import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
 import { logger as defaultLogger } from '../log/logger.js';
