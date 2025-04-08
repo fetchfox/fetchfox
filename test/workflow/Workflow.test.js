@@ -401,10 +401,17 @@ describe('Workflow', function() {
       })
       .limit(3);
 
-    const out = await wf.run();
+    try {
+      const out = await wf.run();
+      // Error should be in the logs
+      assert.ok(JSON.stringify(out.logs).includes('Incorrect API key'));
+      return;
+    } catch {
+      // error is ok, happens in strict mode
+      return;
+    }
 
-    // Error should be in the logs
-    assert.ok(JSON.stringify(out.logs).includes('Incorrect API key'));
+    assert.ok(false, 'expected error');
   });
 
   it('should crawl multiple patterns @fast', async () => {

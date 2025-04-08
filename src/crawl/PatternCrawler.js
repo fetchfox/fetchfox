@@ -19,9 +19,6 @@ export const PatternCrawler = class extends BaseCrawler {
     }
 
     for (const pattern of patterns) {
-
-      console.log('pattern', pattern);
-
       const p = this.runSingle(pattern, options, handleResult);
       promises.push(p);
     }
@@ -41,9 +38,6 @@ export const PatternCrawler = class extends BaseCrawler {
 
   async runSingle(pattern, options, onResult) {
     this.logger.info(`${this} Find matches for ${pattern}`);
-
-    console.log('??', pattern);
-
     const url = new URL(pattern);
     let candidates = [
       url.origin,
