@@ -37,8 +37,17 @@ Important;
 * But don't be afraid to give multiple selectors, if necessary
 * If the data is not available, do not invent selectors, and do not give bad selectors. You may only be looking at a subset of the page HTML.
 
-Keep in mind these points about CSS selectors:
+Common mistakes: Keep in mind these points about CSS selectors:
 * :contains('text') is NOT a real CSS selector. Do NOT use this selector, ever. There is no way in CSS to match the text of an element. Do not try to do it
+* For attribute selectors, use ~= for substring match, like this:
+
+  // Corect: Do this
+  [attr~='search string']
+
+Do NOT use exact match, which will exclude nodes:
+
+  // Wrong: Do NOT do this
+  [attr='search string']
 
 Single selctor only:
 - Give a single selector that encapsulates all the data the user requests, or if that's not possible or realistic, then as much data as you can.

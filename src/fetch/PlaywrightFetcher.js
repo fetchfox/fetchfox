@@ -450,9 +450,10 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   let wait = loadWait;
 
   if (page.url().includes('https://www.finefettle.com/')) {
-    wait = 30 * 1000;
+    wait = 15 * 1000;
     logger.debug(`Extra wait for finefettle.com: ${wait}`);
   }
+
   if (page.url().includes('https://www.onthebeach.co.uk/')) {
     wait = 20 * 1000;
     logger.debug(`Extra wait for www.onthebeach.co.uk: ${wait}`);
@@ -540,7 +541,7 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   }
 
   logger.debug(`Getting HTML from ${page.url()}`);
-  const html = await page.page.evaluate(() => {
+  const html = await page.evaluate(() => {
     document.querySelectorAll('*').forEach(el => {
       if (el.shadowRoot) {
         const shadow = document.createElement('shadow');

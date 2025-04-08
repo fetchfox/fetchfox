@@ -19,6 +19,7 @@ Respond with JSON as follows:
       "playwrightSelectorType": "either 'text' or 'css' depending on the type of the selector. '' if no selector",
       "playwrightSelector": "If action is 'click' or 'click-scroll', give CSS selector or text for this step, preceded by css= or text=",
       "scrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
+      "semantics": "number in range 1..100",
       "relevance": "number in range 1..100",
       "confidence": "number in range 1..100",
       "score": "number in range 1..100"
@@ -31,6 +32,7 @@ Respond with JSON as follows:
       "playwrightSelectorType": "either 'text' or 'css' depending on the type of the selector. '' if no selector",
       "playwrightSelector": "If action is 'click' or 'click-scroll', give CSS selector or text for this step, preceded by css= or text=",
       "scrollType": "If action is 'scroll' or 'click-scroll', this is either 'page-down' or 'bottom'",
+      "semantics": "number in range 1..100",
       "relevance": "number in range 1..100",
       "confidence": "number in range 1..100",
       "score": "number in range 1..100"
@@ -38,25 +40,13 @@ Respond with JSON as follows:
   ]
 }
 
-<<<<<<< HEAD
-Field description:
+Field descriptions:
 - "overallAnalysis": List which actions you will do on the page, list which elements are present on the page that are relevant to your actions, and list the css selectors relevant to those elements. ~100 words
 
 Step field descriptions:
 - "analysis": A 30-150 word analysis of the approach. Brainstorm and evaluate relevant selectors and discuss which parts of the page may be relevant.
 
 - "action": One of "click", "scroll" or "click-scroll"
-=======
-Information on these fields:
-- "actionAnalysis": Describe the desired action or actions and your approach in 10-200 words
-- "actionMode": One of the following:
-  - "distinct": If we should click each distinct element. This is for situations like clicking each link to a profile page or each link to a detail page.
-  - "first": If we always execute this action exactly once on an element. This is for situations like accepting a cookie waiver, where you always click it once.
-  - "repeat": If we execute on the *same* element, but more and more times. For example, pagination repeats: to get to page 2, you repeat 2 times, to get to page 3 you repeat 3 times, and so on.
-- "candidates": A list of 0 or more possible ways to do this action
-- "candidateAnalysis": A 30-150 word analysis of the approach. Brainstorm and evaluate relevant selectors and discuss which parts of the page may be relevant.
-- "candidateAction": One of "click", "scroll" or "click-scroll"
->>>>>>> test/author-bench
   - "click" if you need to click an element
   - "scroll" if you need to scroll on the page
   - "click-scroll" if you need to focus on a specific element, and *then* scroll
@@ -76,9 +66,10 @@ Information on these fields:
   - "page-down" to scroll down a window height using the page down button
   - "bottom" to scroll all the way to the bottom using javascript
 
+- "semantics": A rating from 1-100 of whether the css selectors in this action are semantic. Random characters = low score, understandable english = high score
 - "relevance": A rating from 1-100 of how relevant and applicable this action is the the prompt
 - "confidence": A rating from 1-100 of how confident you are this action will work
-- "score": A rating from 1-100 for this action
+- "score": A rating from 1-100 for this action, combining semantics, relevance, and confidence
 
 >>>> Analyze this HTML:
 {{html}}
