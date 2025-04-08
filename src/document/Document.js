@@ -58,8 +58,6 @@ export const Document = class {
       url: this.url,
       body: this.body,
       html: this.html,
-      // text: this.text,
-      // selectHtml: this.selectHtml,
       htmlUrl: this.htmlUrl,
       screenshotUrl: this.screenshotUrl,
       resp: this.resp,
@@ -90,8 +88,6 @@ export const Document = class {
     this.url = data.url;
     this.body = data.body;
     this.html = data.html;
-    // this.text = data.text;
-    // this.selectHtml = data.selectHtml;
     this.htmlUrl = data.htmlUrl;
     this.screenshotUrl = data.screenshotUrl;
     this.resp = data.resp;

@@ -453,10 +453,7 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   logger.debug(`Load waiting ${(wait / 1000).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
   await new Promise(ok => setTimeout(ok, wait));
 
-  let iframeContents = '';
-
-  // if (pullIframes) {
-  if (false && pullIframes) {
+  if (pullIframes) {
     // Get all the iframes
     logger.debug(`Get iframes on ${page.url()}`);
     let frames;
@@ -537,7 +534,7 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   }
 
   logger.debug(`Getting HTML from ${page.url()}`);
-  const html = (await page.content()) + iframeContents;
+  const html = await page.content();
 
   return { html };
 }

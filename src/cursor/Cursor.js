@@ -24,10 +24,10 @@ export const Cursor = class {
 
   out(markDone) {
     const out = {
-      done: this.done,
-      items: this.items.filter(it => it._meta?.status != 'loading'),
-      full: this.full,
       logs: this.logs,
+      full: this.full,
+      items: this.items.filter(it => it._meta?.status != 'loading'),
+      done: this.done,
     };
 
     if (markDone) {

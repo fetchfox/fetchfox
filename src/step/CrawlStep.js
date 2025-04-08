@@ -12,8 +12,6 @@ export const CrawlStep = class extends BaseStep {
       query = args?.query;
     }
 
-    // if (!query) throw new Error('no query');
-
     this.query = query;
     this.pull = args?.pull;
   }

@@ -411,7 +411,7 @@ describe('Workflow', function() {
     assert.ok(!!err);
   });
 
-  it('should pull html via patterns if requested @fast', async () => {
+  it('should crawl multiple patterns @fast', async () => {
     const wf = await fox
       .config({ cache: testCache() })
       .init([
@@ -423,13 +423,12 @@ describe('Workflow', function() {
 
     const out = await wf.run();
 
-    console.log('out', out.items);
+    console.log(out);
 
-    // for (const item of out.items) {
-    //   assert.ok(item.html.length > 100, 'has html');
-    //   assert.ok(item.text.length > 100, 'has text');
-    //   assert.ok(item.markdown.length > 100, 'has markdown');
-    // }
+    const moves = out.items.filter(it => it.url.match(/move/));
+    const types = out.items.filter(it => it.url.match(/type/));
+    assert.ok(moves.length > 10);
+    assert.ok(types.length > 10);
   });
 
 });
