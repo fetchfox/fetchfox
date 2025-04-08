@@ -401,14 +401,10 @@ describe('Workflow', function() {
       })
       .limit(3);
 
-    let err;
-    try {
-      await wf.run();
-    } catch (e) {
-      err = e;
-    }
+    const out = await wf.run();
 
-    assert.ok(!!err);
+    // Error should be in the logs
+    assert.ok(JSON.stringify(out.logs).includes('Incorrect API key'));
   });
 
   it('should crawl multiple patterns @fast', async () => {
@@ -422,8 +418,6 @@ describe('Workflow', function() {
       .limit(500);
 
     const out = await wf.run();
-
-    console.log(out);
 
     const moves = out.items.filter(it => it.url.match(/move/));
     const types = out.items.filter(it => it.url.match(/type/));

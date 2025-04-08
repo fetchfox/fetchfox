@@ -1,3 +1,4 @@
+import pretty from 'pretty';
 import { logger } from '../log/logger.js';
 import { parse } from 'node-html-parser';
 import TurndownService from 'turndown';
@@ -10,13 +11,87 @@ export const Document = class {
     return `[Document: ${this.url} ${(this.html || '').length} bytes]`;
   }
 
+  get html() {
+    if (!this._html) {
+      return '';
+    }
+
+    if (!this._cleanHtml) {
+      const root = parse(this._html);
+
+      const visit = (node) => {
+        if (node.nodeType == 1) {
+          const tagName = (node.tagName || '').toLowerCase();
+
+          if (['script', 'style', 'svg'].includes(tagName)) {
+            return null;
+          }
+
+          if (node.attributes) {
+            Object.keys(node.attributes).forEach(attr => {
+              const max = 1000;
+              const val = node.attributes[attr] || '';
+              if (val.length > max) {
+                node.attributes[attr] = val.substring(0, max);
+              }
+            });
+          }
+
+          const children = node.childNodes || [];
+          if (children.length) {
+            node.childNodes = children
+              .map(visit)
+              .filter(Boolean);
+          }
+        }
+
+        return node;
+      };
+
+      this._cleanHtml = pretty(
+        visit(root).toString() || '',
+        { ocd: true }
+      );
+    }
+
+    return this._cleanHtml;
+  }
+
   get text() {
     if (!this._text) {
       const root = parse(this.html);
-      this._text = root.text;
+      this._text = trim(root.text);
     }
 
     return this._text;
+  }
+
+  get linksHtml() {
+    if (!this._linksHtml) {
+      const root = parse(this.html);
+
+      const visit = (node) => {
+        if (node.nodeType == 3) { // TEXT_NODE
+          return node.rawText;
+        }
+
+        const tagName = (node.tagName || '').toLowerCase();
+
+        const href = node.getAttribute('href');
+        const children = node.childNodes || [];
+        const inner = children.map(visit).join('');
+
+        if (tagName == 'a' && href) {
+          return `<a href="${href}">${inner}</a>`;
+        } else {
+          return inner;
+        }
+      };
+
+      this._linksHtml = trim(visit(root));
+    }
+
+    return this._linksHtml;
   }
 
   get markdown() {
@@ -57,7 +132,7 @@ export const Document = class {
     const data = {
       url: this.url,
       body: this.body,
-      html: this.html,
+      html: this._html,
       htmlUrl: this.htmlUrl,
       screenshotUrl: this.screenshotUrl,
       resp: this.resp,
@@ -74,8 +149,7 @@ export const Document = class {
       } catch (e) {
         logger.error(`${this} Error uploading HTML to presigned URL: ${e}`);
       }
-      delete data.body;
-      delete data.html;
+      delete data._html;
       delete data.text;
     }
     if (this.req) {
@@ -86,8 +160,10 @@ export const Document = class {
 
   async loadData(data) {
     this.url = data.url;
-    this.body = data.body;
-    this.html = data.html;
+
+    this._html = data.html;
+    this._cleanHtml = null;
+
     this.htmlUrl = data.htmlUrl;
     this.screenshotUrl = data.screenshotUrl;
     this.resp = data.resp;
@@ -118,13 +194,13 @@ export const Document = class {
     logger.info(`${this} Loading document from response ${this.url}`);
     const start = (new Date()).getTime();
     try {
-      this.body = await resp.text();
+      this._html = await resp.text();
     } catch (e) {
-      logger.error(`${this} Error reading body: ${e}`);
+      logger.error(`${this} Error reading html: ${e}`);
       throw e;
     }
     const tookRead = (new Date()).getTime() - start;
-    logger.debug(`${this} Done reading body for ${this.url}, took ${tookRead/1000} sec and got ${this.body.length} bytes`);
+    logger.debug(`${this} Done reading html for ${this.url}, took ${tookRead/1000} sec and got ${this._html.length} bytes`);
 
     let respHeaders = {};
     if (typeof resp.headers == 'function') {
@@ -150,14 +226,14 @@ export const Document = class {
     }
 
     const took = (new Date()).getTime() - start;
-    logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this.body.length} bytes`);
+    logger.info(`${this} Done loading for ${this.url}, took total of ${took/1000} sec, got ${this._html.length} bytes`);
   }
 
   async uploadHtml(presignedUrl) {
     await fetchRetry(presignedUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      body: this.html,
+      body: this._html,
     });
     this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
     logger.debug(`${this} Uploaded HTML to ${this.htmlUrl}`);
@@ -184,3 +260,7 @@ async function fetchRetry(url, options={}, retries=3, delay=4000) {
 
   throw new Error(`Failed after ${retries + 1} attempts: ${lastError.message}`);
 }
+
+const trim = (text) => text
+  .replace(/\n\s+\n/g, '\n')
+  .replace(/\n+/g, '\n');

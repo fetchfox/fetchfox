@@ -26,7 +26,8 @@ export const Crawler = class extends BaseCrawler {
     if (this.usePattern(url, query)) {
       this.logger.debug(`${this} Using pattern crawler for url=${url} query=${query}`);
       const pc = new PatternCrawler(this);
-      const gen = pc.run([url], options);
+      const urls = Array.isArray(url) ? url : [url];
+      const gen = pc.run(urls, options);
       for await (const r of gen) {
         yield Promise.resolve(r);
       }

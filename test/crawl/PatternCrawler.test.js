@@ -12,7 +12,7 @@ describe('PatternCrawler', function() {
     const all = await pc.all([
       'https://pokemondb.net/pokedex/*',
     ]);
-    console.log('all', all);
+
     assert.ok(all.length > 1000, 'at least 1000');
     assert.ok(all.map(it => it.url).includes('https://pokemondb.net/pokedex/pikachu'));
   });
@@ -23,7 +23,7 @@ describe('PatternCrawler', function() {
       'https://pokemondb.net/move/*',
       'https://pokemondb.net/type/*',
     ]);
-    console.log('all', all);
+
     assert.ok(all.length > 500, 'at least 500');
   });
 

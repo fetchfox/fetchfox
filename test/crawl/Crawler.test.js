@@ -12,6 +12,7 @@ describe('Crawler', function() {
     const all = await c.all([
       'https://pokemondb.net/pokedex/*',
     ]);
+
     assert.ok(all.length > 1000, 'at least 1000');
     assert.ok(all.map(it => it.url).includes('https://pokemondb.net/pokedex/pikachu'));
   });

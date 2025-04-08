@@ -216,7 +216,7 @@ describe('PlaywrightFetcher', function() {
           </script>
         </head>
         <body>
-          <h1>Static Content</h1>
+          <h1>Static Content</h1><div>xyz</div>
           <div style="color: white">Inline styled element</div>
           <a href="https://www.example.com" style="color: white">Keep A Tags</a>
         </body>
@@ -239,15 +239,41 @@ describe('PlaywrightFetcher', function() {
       const doc = (await gen.next()).value;
       gen.return();
 
+      assert.equal(doc.html, `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Minimization Test</title>
+  </head>
+  <body>
+    <h1>Static Content</h1>
+    <div>xyz</div>
+    <div style="color: white">Inline styled element</div>
+    <a href="https://www.example.com" style="color: white">Keep A Tags</a>
+  </body>
+</html>`, 'check html');
 
-      assert.equal(doc.html, `<html><head> <title>Minimization Test</title> </head> <body> <h1>Static Content</h1> <div>Inline styled element</div> <a href="https://www.example.com">Keep A Tags</a> </body></html>`);
-      assert.equal(doc.text, `Minimization Test Static Content Inline styled element Keep A Tags`);
-      assert.equal(doc.selectHtml, `Minimization Test Static Content Inline styled element <a href="https://www.example.com">Keep A Tags</a>`);
+
+      assert.equal(doc.text, `<!DOCTYPE html>
+    Minimization Test
+    Static Content
+    xyz
+    Inline styled element
+    Keep A Tags
+`, 'check text');
+
+      assert.equal(doc.linksHtml, `<!DOCTYPE html>
+    Minimization Test
+    Static Content
+    xyz
+    Inline styled element
+    <a href="https://www.example.com">Keep A Tags</a>
+`, 'check links html');
 
       assert.ok(!doc.html.includes('<style>'), 'style tags should be removed');
       assert.ok(!doc.html.includes('<script>'), 'script tags should be removed');
       assert.ok(doc.html.includes('<h1>Static Content</h1>'), 'static content should remain intact');
       assert.ok(!doc.html.includes('style="color: red;"'), 'Inline style attributes should be removed');
+
     } finally {
       server.close();
     }
