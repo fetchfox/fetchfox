@@ -63,6 +63,7 @@ export const PatternCrawler = class extends BaseCrawler {
       this.signal.addEventListener('abort', abortListener);
     }
 
+    /* eslint-disable no-async-promise-executor */
     const linksPromise = new Promise(async (ok, bad) => {
       try {
         for (let i = 0 ; i < 20; i++) {
@@ -209,8 +210,8 @@ export const PatternCrawler = class extends BaseCrawler {
       } finally {
         resultsChan.end();
       }
-
     });
+    /* eslint-enable no-async-promise-executor */
 
     try {
       for await (const val of resultsChan.receive()) {

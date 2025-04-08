@@ -19,7 +19,6 @@ export const AuthorExtractor = class extends BaseExtractor {
 
   async *_run(doc, questions, options) {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
-    this.logger.trace('??');
 
     const url = doc.url;
 

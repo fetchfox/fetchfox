@@ -574,7 +574,6 @@ ${this.hint}` : '',
       await fetcher.start(ctx);
       await goto();
 
-
       // This is an optimization for when the last action is a repeat. In
       // those cases, we don't need to goto the original URL on each iteration.
       // This is common for pagination and dramatically reduces runtime for

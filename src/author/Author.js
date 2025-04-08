@@ -360,6 +360,7 @@ const executeAICode = async (code, logger, fetcher, ctx, cb) => {
     messages: '',
   }
   const fn = toFn(code);
+  /* eslint-disable no-async-promise-executor */
   const run = new Promise(async (ok, bad) => {
     logger.debug(`Start execution of AI written scraping code`);
 
@@ -417,6 +418,7 @@ const executeAICode = async (code, logger, fetcher, ctx, cb) => {
       bad(e);
     }
   });
+  /* eslint-enable no-async-promise-executor */
 
   try {
     await run;

@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import PQueue from 'p-queue';
-import pTimeout from 'p-timeout';
 import { getAI } from '../ai/index.js';
 import { getKV } from '../kv/index.js';
 import { logger as defaultLogger } from '../log/logger.js';
@@ -297,7 +296,7 @@ export const BaseFetcher = class {
     const keyTemplate = this.s3.key || 'fetchfox-docs/{id}/{url}';
     const acl = this.s3.acl || '';
     const id = srid(10);
-    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]/g, '-');
+    const cleanUrl = doc.url.replace(/[^A-Za-z0-9]+/g, '-');
     const key = keyTemplate
       .replaceAll('{id}', id)
       .replaceAll('{url}', cleanUrl);

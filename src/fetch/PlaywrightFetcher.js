@@ -1,3 +1,4 @@
+import pTimeout from 'p-timeout';
 import { chromium } from 'playwright-extra';
 import { Timer } from '../log/timer.js';
 import { logger as defaultLogger } from '../log/logger.js';
@@ -499,8 +500,6 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
       } catch {
         content = '[iframe unavailable]';
       }
-
-      iframeContents += content;
 
       // Turn off linter for undefined variables because this code
       // runs in Playwright's browser context, and has document and
