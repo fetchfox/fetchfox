@@ -2,9 +2,10 @@ import { BaseCrawler } from './BaseCrawler.js';
 import { createChannel } from '../util.js';
 import * as prompts from './prompts.js'
 
-const clean = url => url
-  .replace(/#.*/, '')
-  .replace(/\/$/, '');
+const clean = url => {
+  const u = new URL(url);
+  return u.origin + u.pathname;
+}
 
 export const PatternCrawler = class extends BaseCrawler {
   async *run(patterns, options) {
@@ -14,12 +15,10 @@ export const PatternCrawler = class extends BaseCrawler {
 
     const promises = [];
     const handleResult = (result) => {
-      console.log('result', result);
       chan.send({ result });
     }
 
     for (const pattern of patterns) {
-      console.log('push pattern', pattern);
       const p = this.runSingle(pattern, options, handleResult);
       promises.push(p);
     }
@@ -27,7 +26,6 @@ export const PatternCrawler = class extends BaseCrawler {
     const all = Promise.allSettled(promises).then(() => chan.end());
 
     for await (const val of chan.receive()) {
-      console.log('OUTPUT', val);
       if (val.end) {
         break;
       }
@@ -65,7 +63,6 @@ export const PatternCrawler = class extends BaseCrawler {
     }
 
     const linksPromise = new Promise(async (ok, bad) => {
-      console.log('linksPromise');
       try {
         for (let i = 0 ; i < 20; i++) {
           if (done) break;
@@ -156,8 +153,6 @@ export const PatternCrawler = class extends BaseCrawler {
         const promises = [];
 
         for await (const val of linksChan.receive()) {
-          console.log('===> links chan gave:', val);
-
           if (val.end || done || this.signal?.aborted) {
             break;
           }
@@ -218,12 +213,10 @@ export const PatternCrawler = class extends BaseCrawler {
 
     try {
       for await (const val of resultsChan.receive()) {
-        console.log('??', val);
         if (val.end) {
           break;
         }
 
-        // yield Promise.resolve(val);
         onResult(val);
       }
 

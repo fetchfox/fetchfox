@@ -453,8 +453,10 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   logger.debug(`Load waiting ${(wait / 1000).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
   await new Promise(ok => setTimeout(ok, wait));
 
+  let iframeContents = '';
+
   // if (pullIframes) {
-  if (true || pullIframes) {
+  if (false && pullIframes) {
     // Get all the iframes
     logger.debug(`Get iframes on ${page.url()}`);
     let frames;
@@ -490,12 +492,11 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
       let content;
       try {
         content = await iframe.content({ timeout: 10 * 1000 });
-
-        console.log('iframe content:', content);
-
       } catch {
         content = '[iframe unavailable]';
       }
+
+      iframeContents += content;
 
       // Turn off linter for undefined variables because this code
       // runs in Playwright's browser context, and has document and
@@ -535,144 +536,10 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
     return;
   }
 
-  // Minimize the HTML before returning it
   logger.debug(`Getting HTML from ${page.url()}`);
+  const html = (await page.content()) + iframeContents;
 
-  // let outs;
-  // try {
-  //   /* eslint-disable no-undef */
-  //   outs = await page.evaluate(async () => {
-  //     // Attach the function to document to avoid errors in certain situations,
-  //     // eg. https://github.com/privatenumber/tsx/issues/113
-  //     document.toText = (min, node) => {
-  //       if (node.nodeType === Node.TEXT_NODE) {
-  //         return node.nodeValue;
-  //       }
-
-  //       let r = '';
-
-  //       for (const child of node.childNodes) {
-  //         const name = (child.tagName || '').toLowerCase();
-  //         const keep = (min.keep?.tags || []).includes(name);
-  //         if (keep) {
-  //           let str = ` <${name}`;
-  //           for (const attr of min.keep.attrs || []) {
-  //             str += ` ${attr}="${child.getAttribute(attr)}"`;
-  //           }
-  //           str += '>';
-
-  //           let ccText = '';
-  //           for (const cc of child.childNodes) {
-  //             ccText += ' ' + document.toText(min, cc) + ' ';
-  //           }
-  //           ccText = ccText.trim();
-
-  //           // Heuristic: if it's really short, use the inner HTML
-  //           if (ccText.length < 10) {
-  //             ccText = child.innerHTML;
-  //           }
-
-  //           str += ccText;
-
-  //           str += `</${name}> `;
-
-  //           r += str;
-  //         } else {
-  //           r += document.toText(min, child);
-  //         }
-  //       }
-
-  //       return r;
-  //     };
-
-  //     const remove = {
-  //       tags: ['script', 'style', 'svg', 'symbol', 'link', 'meta'],
-  //       attrs: ['style'],
-  //     };
-
-  //     const minimizers = [
-  //       // Default minimizer removes large junk tags and style attribute
-  //       {
-  //         name: 'html',
-  //         remove,
-  //         keep: {},
-  //       },
-
-  //       // Text only minimizer
-  //       {
-  //         name: 'text',
-  //         remove,
-  //         text: true,
-  //       },
-
-  //       // Links minimzer keeps only text and <a href="...">
-  //       {
-  //         name: 'selectHtml',
-  //         remove,
-  //         text: true,
-  //         keep: {
-  //           tags: ['a'],
-  //           attrs: ['href'],
-  //         },
-  //       },
-  //     ];
-
-  //     document.querySelectorAll('*').forEach(el => {
-  //       if (el.shadowRoot) {
-  //         const shadow = document.createElement('shadow');
-  //         shadow.innerHTML = el.shadowRoot.innerHTML;
-  //         el.appendChild(shadow);
-  //       }
-  //     });
-
-  //     const outs = {};
-  //     for (const min of minimizers) {
-  //       const clone = document.documentElement.cloneNode(true);
-
-  //       // Remove tags
-  //       (min.remove?.tags || []).forEach(tag => {
-  //         clone.querySelectorAll(tag).forEach(element => {
-  //           element.replaceWith('');
-  //         });
-  //       });
-
-  //       // Remove attributes
-  //       clone.querySelectorAll('*').forEach(el => {
-  //         (min.remove?.attrs || []).forEach(attr => {
-  //           el.removeAttribute(attr);
-  //         });
-  //       });
-
-  //       let result = clone.outerHTML;
-
-  //       // Text conversion
-  //       if (min.text) {
-  //         result = document.toText(min, clone);
-  //       }
-
-  //       outs[min.name] = result.replace(/[ \t\n]+/g, ' ').trim();
-  //     }
-
-  //     return outs;
-  //   });
-  //   /* eslint-enable no-undef */
-  // } catch (e) {
-  //   if (!signal?.aborted) {
-  //     logger.error(`Error while getting HTML: ${e}`);
-  //   }
-  // }
-
-  const html = await page.content();
-  const html2 = await await page.evaluate(() => document.documentElement.innerHTML);
-
-  console.log('html ', html.length);
-  console.log('html2', html2.length);
-
-  return {
-    html,
-    // text: outs.html,
-    // selectHtml: outs.html,
-  };
+  return { html };
 }
 
 const getHtmlFromError = async (page, { logger }) => {

@@ -38,12 +38,17 @@ export const parseAnswer = (text, format) => {
 
     let i = 0;
     while (end < clean.length) {
+      const part = clean.substring(start);
+      const index = part.indexOf('}');
+
+      const cap = 10000;
+      if (i > cap - 20) {
+        console.log('??', i, clean, start, end, part, index);
+      }
       if (i++ > 10000) {
         throw new Error('Likely JSONL parse infinite loop');
       }
 
-      const part = clean.substring(start);
-      const index = part.indexOf('}');
       if (index == -1) {
         break;
       }

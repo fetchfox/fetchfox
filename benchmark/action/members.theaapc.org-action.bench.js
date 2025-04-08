@@ -2,7 +2,7 @@ import { fox, DiskCache, DiskKV, S3KV } from '../../src/index.js';
 import { srid } from '../../src/util.js';
 import { itRunMatrix, runMatrix } from '../lib/index.js';
 import { standardMatrix } from '../lib/matrix.js';
-import { checkItemsAI } from '../lib/checks.js';
+import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
 describe('action members.theaapc.org', async function() {
@@ -10,18 +10,20 @@ describe('action members.theaapc.org', async function() {
 
   const cases = [];
 
+  const limit = 100;
+
   const wf = await fox
     .init('https://members.theaapc.org/search/custom.asp?id=7304')
     .action({
       commands: [
-        'click continue, and then wait 10 seconds, and then send html',
+        'click continue, and then wait 10 seconds, and then go through all pages, sending HTML for each page',
       ]
     })
     .extract({
       name: 'Company name',
       url: 'Profile Full Absolute URL',
     })
-    .limit(10)
+    .limit(limit)
     .plan();
 
   itRunMatrix(
@@ -30,11 +32,7 @@ describe('action members.theaapc.org', async function() {
     wf.dump(),
     matrix,
     [
-      (items) => {
-        console.log(items);
-        // return checkItemsAI(items, expected);
-        return [0, 1];
-      }
+      (items) => checkAtLeast(items, 100),
     ],
     { shouldSave: true, });
 

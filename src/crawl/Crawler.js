@@ -175,6 +175,9 @@ export const Crawler = class extends BaseCrawler {
     for (const prompt of prompts) {
       const stream = this.ai.stream(prompt, { format: 'jsonl' });
       for await (const { delta } of stream) {
+        if (this.signal?.aborted) {
+          return;
+        }
         logger.info(`${chalk.yellow('\u{25CF}')} Found link ${delta.url} in response to "${query}"`);
         yield Promise.resolve({ _url: delta.url });
       }
