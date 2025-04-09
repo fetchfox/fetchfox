@@ -22,11 +22,14 @@ export { OpenAI } from './ai/OpenAI.js';
 export { Anthropic } from './ai/Anthropic.js';
 export { Groq } from './ai/Groq.js';
 
+export { MemKV } from './kv/MemKV.js';
 export { DiskKV } from './kv/DiskKV.js';
 export { S3KV } from './kv/S3KV.js';
-export { MemKV } from './kv/MemKV.js';
 
 export { Workflow } from './workflow/Workflow.js';
+
+export { Learner } from './learn/Learner.js';
+export { KnowledgeBase } from './learn/KnowledgeBase.js';
 
 export { Planner } from './plan/Planner.js';
 

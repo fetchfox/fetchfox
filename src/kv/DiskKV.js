@@ -18,7 +18,9 @@ export const DiskKV = class extends BaseKV {
   async set(key, val) {
     const filepath = path.join(this.dirname, encodeURIComponent(key));
     try {
-      await fs.promises.writeFile(filepath, JSON.stringify(val), 'utf8');
+      const ser = JSON.stringify(val);
+      console.log('DISK KV SET', key, ser);
+      await fs.promises.writeFile(filepath, ser, 'utf8');
     } catch (e) {
       this.logger.error(`${this} Error writing key=${key}: ${e}`);
       throw e;
@@ -29,6 +31,7 @@ export const DiskKV = class extends BaseKV {
     const filepath = path.join(this.dirname, encodeURIComponent(key));
     try {
       const data = await fs.promises.readFile(filepath, 'utf8');
+      console.log('disk kv got data:', data);
       return JSON.parse(data);
     } catch (e) {
       if (e.code == 'ENOENT') {
@@ -48,6 +51,16 @@ export const DiskKV = class extends BaseKV {
         return
       }
       this.logger.error(`${this} Error deleting key=${key}: ${e}`);
+      throw e;
+    }
+  }
+
+  async keys() {
+    try {
+      const files = await fs.promises.readdir(this.dirname);
+      return files.map(file => decodeURIComponent(file));
+    } catch (e) {
+      this.logger.error(`${this} Error listing keys: ${e}`);
       throw e;
     }
   }

@@ -39,6 +39,10 @@ export const Template = class {
   }
 
   async renderMulti(context, flexField, ai, options) {
+    if (!context[flexField]) {
+      throw new Error(`could not find flex field ${flexField} in context`);
+    }
+
     const copy = { ...context };
     const prompts = [];
     while (true) {
@@ -54,6 +58,10 @@ export const Template = class {
   }
 
   async renderCapped(context, flexField, ai, options) {
+    if (!context[flexField]) {
+      throw new Error(`could not find flex field ${flexField} in context`);
+    }
+
     await ai.init();
 
     const timer = new Timer();

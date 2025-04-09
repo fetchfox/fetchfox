@@ -56,7 +56,7 @@ export const parseAnswer = (text, format) => {
       }
       end = start + index + 1;
       try {
-        const obj = trimJson(JSON.parse(clean.substring(start, end)));
+        const obj = JSON.parse(clean.substring(start, end));
         result.push(obj);
         start = end;
       } catch {
@@ -145,6 +145,5 @@ export const getModelData = async (provider, model, cache) => {
       input: parseFloat(data.pricing?.prompt || 0),
       output: parseFloat(data.pricing?.completion || 0),
     },
-
   };
 }
