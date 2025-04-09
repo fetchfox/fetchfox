@@ -7,10 +7,11 @@ import { storeScores } from '../lib/store.js';
 describe('rvtrader.com', async function() {
   const matrix = standardMatrix();
 
-  const limit = 100;
+  const limit = 200;
+  const maxPages = 10;
 
   const wf = await fox
-    .init('https://www.rvtrader.com/Used/rvs-for-sale?condition=U')
+    .init('https://www.rvtrader.com/rvs-for-sale')
     .extract({
       questions: {
         name: 'Name of the RV for sale',

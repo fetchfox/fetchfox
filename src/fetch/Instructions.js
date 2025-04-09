@@ -795,7 +795,7 @@ This excludes the following:
 
 In your analysis, list any prompts you see. If there are multiple prompts to accept, return one action for each.`;
 
-export const nextPagePrompt = `>>>> You must provide accurate instructions to get to the next page while following all rules given.
+export const nextPagePrompt = `>>> Your goal is to figure out accurate instructions to get to the next page while following all rules given.
 
 Note: 
 - If there are multiple pages linked and a next page button, make sure you click the next page button, not any specific page.
