@@ -58,6 +58,7 @@ export const PatternCrawler = class extends BaseCrawler {
     let abortListener;
     if (this.signal) {
       abortListener = () => {
+        console.log('abort signal');
         done = true;
       };
       this.signal.addEventListener('abort', abortListener);
@@ -67,19 +68,55 @@ export const PatternCrawler = class extends BaseCrawler {
     const linksPromise = new Promise(async (ok, bad) => {
       try {
         for (let i = 0 ; i < 20; i++) {
+          console.log('ITERATION', i, done);
           if (done) break;
+          console.log('x');
 
           this.logger.debug(`${this} Looking for URLs matching pattern ${pattern}, iteration ${i}`);
-          candidates = [...(new Set(
-            candidates
-              .map(clean)
-              .filter(it => !state[it])
-          ).values()
-          )];
+          console.log('y');
+          console.log('candidates', candidates);
+
+          const x = [];
+          const seen = {};
+          for (const c of candidates) {
+            let u;
+            try {
+              u = new URL(c);
+            } catch {
+              continue;
+            }
+            if (u.origin != url.origin) {
+              continue;
+            }
+            const y = clean(u.toString());
+            if (state[y]) {
+              continue;
+            }
+            if (seen[y]) {
+              continue;
+            }
+            seen[y] = true;
+            console.log('c', y);
+            x.push(y);
+          }
+          console.log('x', x);
+
+          candidates = [...x];
+          // candidates = [...(new Set(
+          //   candidates
+          //     .map(clean)
+          //     .filter(it => !state[it])
+          //   ).values()
+          // )];
+
+          console.log('z');
+
           candidates
             .sort((a, b) => (
               (ratings[b] || 0) - (ratings[a] || 0)
             ));
+
+          console.log('??');
 
           const counts = {};
           for (const [url, result] of Object.entries(state)) {
@@ -94,6 +131,9 @@ export const PatternCrawler = class extends BaseCrawler {
           const gen = this.ai.stream(prompt, { format: 'jsonl' });
           const suggestions = [];
           const max = 8;
+
+          console.log('2');
+
           for await (const { delta } of gen) {
             if (done) break;
 
@@ -104,6 +144,10 @@ export const PatternCrawler = class extends BaseCrawler {
               break;
             }
           }
+
+          console.log('3');
+
+          console.log('DONE?', done);
           if (done) break;
 
           const results = await Promise.allSettled(suggestions
@@ -134,6 +178,7 @@ export const PatternCrawler = class extends BaseCrawler {
 
           // If we didn't find new ones, exit
           if (count == 0 && i >= 3) {
+            console.log('Set DONE:', done);
             done = true;
           }
         }

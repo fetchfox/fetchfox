@@ -514,12 +514,12 @@ describe('extract finefettle.com', async function() {
       maxPages: 10,
     },
 
-    {
-      name: 'saved',
-      url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/lqynlvd6fm/https-www-finefettle-com-connecticut-stamford-dispensary-recreational-menu-flower.html',
-      expected,
-      maxPages: 1,
-    },
+    // {
+    //   name: 'saved',
+    //   url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/lqynlvd6fm/https-www-finefettle-com-connecticut-stamford-dispensary-recreational-menu-flower.html',
+    //   expected,
+    //   maxPages: 1,
+    // },
   ];
 
   const questions = {

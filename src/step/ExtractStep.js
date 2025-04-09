@@ -6,6 +6,7 @@ import { AuthorExtractor, TransformExtractor } from '../extract/index.js';
 
 const authorWhitelist = [
   'curaleaf',
+  'sketchfab',
 ];
 
 const transformWhitelist = [

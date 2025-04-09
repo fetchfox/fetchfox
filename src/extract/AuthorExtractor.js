@@ -35,12 +35,12 @@ export const AuthorExtractor = class extends BaseExtractor {
       timeout: this.timeout || 90 * 1000,
     });
 
-    const urls = [];
-    if (doc.htmlUrl) {
-      urls.push(doc.htmlUrl);
-    } else {
-      urls.push(doc.url);
-    }
+    const urls = [doc.url];
+    // if (doc.htmlUrl) {
+    //   urls.push(doc.htmlUrl);
+    // } else {
+    //   urls.push(doc.url);
+    // }
 
     // Sometimes the authored code references window.location.origin, so
     // replace it with the real one here
