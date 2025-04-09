@@ -206,7 +206,7 @@ export const BaseStep = class {
                       serialized = serialized.substring(0, 280) + '...'
                     }
 
-                    cursor.ctx.logger.info(`${chalk.bold.cyan('' + this +' (' + index + ')' + ' #' + this.results.length)} ${chalk.bold.cyan('\u{25B6}')} ${serialized}`);
+                    cursor.ctx.logger.info(`${chalk.bold.cyan('\u{25B6}')} ${chalk.bold.cyan('' + this +' (' + index + ')' + ' #' + this.results.length)} ${serialized}`);
 
                     cursor.publish(
                       firstId,
