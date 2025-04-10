@@ -39,6 +39,7 @@ Important;
 
 Keep in mind these points about CSS selectors:
 * :contains('text') is NOT a real CSS selector. Do NOT use this selector, ever. There is no way in CSS to match the text of an element. Do not try to do it
+* Do not use pseudo-selectors as they will not work.
 
 Single selctor only:
 - Give a single selector that encapsulates all the data the user requests, or if that's not possible or realistic, then as much data as you can.
