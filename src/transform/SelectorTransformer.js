@@ -93,11 +93,12 @@ export const SelectorTransformer = class extends BaseTransformer {
     const map = {};
     for (const answer of answers) {
       const group = [];
-      for (const it of (answer?.partial || [])) {
-        this.logger.debug(`${this} Got selector candidate: ${JSON.stringify(it, null, 2)}`);
-        if (!it.selector) {
+      const partial = Array.isArray(answer?.partial) ? answer?.partial : [answer?.partial];
+      for (const it of partial) {
+        if (!it || !it?.selector) {
           continue;
         }
+        this.logger.debug(`${this} Got selector candidate: ${JSON.stringify(it, null, 2)}`);
         group.push(it);
         map[it.selector] = it;
       }
@@ -153,7 +154,7 @@ export const SelectorTransformer = class extends BaseTransformer {
     // Pick the best one within the group
     const selectors = best.selectors[0];
     selectors.sort((a, b) => (
-      map[b].rating - map[b].rating
+      map[b].rating - map[a].rating
     ));
 
     // TODO: handle multiple selectors.
