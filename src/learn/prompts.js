@@ -9,7 +9,7 @@ You should return a list of JSON objects in JSONL format, where each object has 
 Additionally, focus on items relevant to the user prompt.
 
 - "item": 1-5 word description of the item that is available to scrape
-- "example": A JSON example of this item FROM THIS PAGE. Do NOT nest arrays or dictionaries. Do NOT include any data that is not available on this page
+- "example": A JSON example of this item FROM THIS PAGE. If the data is not available on this page, return "(not found)" in your result. Do NOT nest arrays or dictionaries. Do NOT include any data that is not available on this page
 - "template": A dictionary showing the template of this item. Do NOT nest arrays or dictionaries. All values must be strings. Must exactly match the example
 - "perPage": Either "single" if there is one of these item per page, or "multiple" if there is multiple of these items per page
 
@@ -48,6 +48,9 @@ Combined item data:
 - You may have 0, 1, 2, or more of these, as appropriate. For example a article submission on reddit might have "url_article", "url_comment_thread", and "url_submitter" for the various associated URLs
 - All URLs should be full, absolute URLs
 - Do NOT give the same URL as the current page. Do NOT include it if the only URL you can think of is the current page.
+
+Missing data:
+- If data is not available, do not include it. Do not suggest items that are not available, and give "(not found)" if you notice your mistake too late
 
 Follow these important rules:
 - Provide a SINGLE result for the multiple page samples you give. Look for COMMONALITIES between the pages.
