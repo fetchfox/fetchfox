@@ -149,7 +149,10 @@ export const Document = class {
         const u = url.toString();
         if (seen[u]) continue;
         seen[u] = true;
-        links.push({ url: u });
+        links.push({
+          url: u,
+          text: (a.innerText || '').substring(0, 200),
+        });
       }
       this._links = links;
     }

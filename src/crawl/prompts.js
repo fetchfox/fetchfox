@@ -133,13 +133,15 @@ To help, you will also have some previous data of matches on URLs you already vi
 >>> Decided which of these URLs you should visit next:
 {{urls}}
 
->>> You want to suggest a URL that is likely to have links matching this pattern:
+>>> The crawl is looking for URLs that match this pattern:
 {{pattern}}
 
 Give results in JSONL format. Each JSON object you return should have these fields:
 
 - "analyis": 10-20 words about why you think this is a good URL to visit
-- "rating": Rating from 1..100 of priority for visiting this URL
+- "ratingIndirectLinks": Rating from 1..100 of how likely this URL is to have an indirect path to the target pattern
+- "ratingDirectLinks": Rating from 1..100 of how likely this URL is to have a direct path to the target pattern
+- "rating": Rating from 1..100 of priority for visiting this URL, based on the likelihood of direct or indirect links
 - "url": The URL itself
 
 Examples of valid output:
@@ -150,6 +152,9 @@ Follow these important rules:
 - Return ONLY results from the input URLs, do NOT invent new URLs
 - If there are not enough input URLs, return as many as you can
 - Give the best matches first
+
+Tips:
+- Sitemap and listing pages have a good chance of providing indirect links.
 
 Respond ONLY in JSONL, with one valid JSON object per line, your response will be machine parsed using JSON.parse(), splitting on \n
 `);

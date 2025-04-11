@@ -1,3 +1,4 @@
+import { logger } from  '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
 import { clip } from '../util.js';
 
@@ -12,8 +13,12 @@ export const CrawlStep = class extends BaseStep {
       query = args?.query;
     }
 
+    console.log('args', args);
+    logger.trace('.');
+
     this.query = query;
     this.pull = args?.pull;
+    this.suggestions = args?.suggestions;
   }
 
   async process({ cursor, item, index }, cb) {
@@ -22,6 +27,7 @@ export const CrawlStep = class extends BaseStep {
     const options = {
       maxPages: this.maxPages,
       pull: this.pull,
+      suggestions: this.suggestions,
       fetchOptions: {
         priority: index,
         instructionsCacheKey: `index-${index}`,

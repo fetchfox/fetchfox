@@ -47,11 +47,17 @@ export const stepDescriptionsMap = {
         description: 'A description of links to look for. Should be specific, and should include exclusions.',
         format: 'string',
         example: 'Look for links to user profile pages. Ignore navigation links, links to posts, and advertisements.',
-        required: true,
+        required: false,
       },
       pull: {
         description: 'Pull HTML from crawled pages',
         format: 'boolean',
+        required: false,
+      },
+      suggestions: {
+        description: 'List of suggested started URLs for the crawl',
+        format: 'array',
+        example: ['https://example.com/category', 'https://example.com/sub/category'],
         required: false,
       },
     },

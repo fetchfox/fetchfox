@@ -1,5 +1,5 @@
 import { BaseCrawler } from './BaseCrawler.js';
-import { createChannel } from '../util.js';
+import { createChannel, promiseAllStrict } from '../util.js';
 import * as prompts from './prompts.js'
 
 const clean = url => {
@@ -23,7 +23,7 @@ export const PatternCrawler = class extends BaseCrawler {
       promises.push(p);
     }
 
-    const all = Promise.allSettled(promises).then(() => chan.end());
+    const all = promiseAllStrict(promises).then(() => chan.end());
 
     for await (const val of chan.receive()) {
       if (val.end) {
@@ -40,11 +40,16 @@ export const PatternCrawler = class extends BaseCrawler {
     this.logger.info(`${this} Find matches for ${pattern}`);
     const url = new URL(pattern);
     let candidates = [
-      url.origin,
-      pattern.replace(/\*$/, ''),
+      { url: url.origin },
+      { url: pattern.replace(/\*.*$/, '') },
     ];
+    if (options?.suggestions) {
+      for (const url of options?.suggestions) {
+        candidates.push({ url });
+      }
+    }
 
-    this.logger.debug(`${this} Initial candidates: ${JSON.stringify(candidates)}`)
+    this.logger.debug(`${this} Initial candidates: ${JSON.stringify(candidates)}`);
 
     const state = {};
     const ratings = {};
@@ -74,63 +79,43 @@ export const PatternCrawler = class extends BaseCrawler {
 
           this.logger.debug(`${this} Looking for URLs matching pattern ${pattern}, iteration ${i}`);
           console.log('y');
-          console.log('candidates', candidates);
 
-          const x = [];
-          const seen = {};
-          for (const c of candidates) {
-            let u;
-            try {
-              u = new URL(c);
-            } catch {
-              continue;
-            }
-            if (u.origin != url.origin) {
-              continue;
-            }
-            const y = clean(u.toString());
-            if (state[y]) {
-              continue;
-            }
-            if (seen[y]) {
-              continue;
-            }
-            seen[y] = true;
-            console.log('c', y);
-            x.push(y);
-          }
-          console.log('x', x);
+          console.log('candidates ==>', candidates);
+          candidates = sift(candidates, url, state);
 
-          candidates = [...x];
-          // candidates = [...(new Set(
-          //   candidates
-          //     .map(clean)
-          //     .filter(it => !state[it])
-          //   ).values()
-          // )];
-
+          // console.log('candidates -->', candidates);
           console.log('z');
 
           candidates
             .sort((a, b) => (
-              (ratings[b] || 0) - (ratings[a] || 0)
+              (ratings[b.url] || 0) - (ratings[a.url] || 0)
             ));
 
           console.log('??');
 
+          let c = 0;
           const counts = {};
           for (const [url, result] of Object.entries(state)) {
-            counts[url] = result.matches.length;
+            if (result.matches.length) {
+              c++
+              counts[url] = result.matches.length;
+            }
           }
+
+          // console.log(JSON.stringify(state, null, 2));
+          console.log(JSON.stringify(counts, null, 2));
+          console.log('^-- COUNTS');
+          if (c > 10) throw 'yyyyyy';
+
           const context = {
-            urls: candidates.slice(0, 200).join('\n'),
+            urls: JSON.stringify(candidates.slice(0, 1000), null, 2),
             counts: JSON.stringify(counts, null, 2),
             pattern,
           }
           const { prompt } = await prompts.rank.renderCapped(context, 'counts', this.ai);
           const gen = this.ai.stream(prompt, { format: 'jsonl' });
           const suggestions = [];
-          const max = 8;
+          const max = 32;
 
           console.log('2');
 
@@ -138,20 +123,24 @@ export const PatternCrawler = class extends BaseCrawler {
             if (done) break;
 
             suggestions.push(delta);
+
+            console.log('delta', suggestions.length, delta);
+
             ratings[delta.url] = delta.rating;
             this.logger.debug(`${this} Got candidate to visit next: ${JSON.stringify(delta)}`);
+            
             if (suggestions.length > max) {
               break;
             }
           }
 
-          console.log('3');
-
-          console.log('DONE?', done);
+          console.log('Got suggestions:', suggestions.length);
           if (done) break;
 
           const results = await Promise.allSettled(suggestions
             .map(it => this.process(it.url, pattern)));
+
+          // console.log('RESULTS', results.map(it => it.value.all));
 
           let count = 0;
           for (let i = 0; i < suggestions.length; i++) {
@@ -160,8 +149,12 @@ export const PatternCrawler = class extends BaseCrawler {
               continue;
             }
             const url = suggestions[i].url;
-            state[url] = result.value; 
-            candidates.push(...result.value.all.map(it => it.url));
+            // console.log('result.value', result.value);
+            // console.log('^-- rv');
+
+            state[url] = result.value;
+            candidates.push(...result.value.all.map(
+              it => ({ url: it.url, text: it.text })));
 
             this.logger.debug(`${this} Yielding ${result.value.matches.length} pattern matches, first is ${JSON.stringify(result.value.matches[0])}`);
             for (const link of result.value.matches) {
@@ -176,16 +169,24 @@ export const PatternCrawler = class extends BaseCrawler {
 
           this.logger.debug(`${this} Number of new results was ${count} on i=${i}`);
 
-          // If we didn't find new ones, exit
-          if (count == 0 && i >= 3) {
-            console.log('Set DONE:', done);
-            done = true;
+          console.log('found', count);
+
+          if (i == 10) {
+            // console.log(JSON.stringify(state, null, 2));
+            throw 'STOP 3333';
           }
+
+          // If we didn't find new ones, exit
+          // if (count == 0 && i >= 3) {
+          //   console.log('Set DONE:', done);
+          //   done = true;
+          // }
         }
 
         ok();
 
       } catch (e) {
+        console.log('!!! e', e);
         bad(e);
         return;
 
@@ -228,7 +229,6 @@ export const PatternCrawler = class extends BaseCrawler {
                   }
                 }
                 return val;
-                ;
               });
 
           } else {
@@ -271,6 +271,10 @@ export const PatternCrawler = class extends BaseCrawler {
       await linksPromise;
       await resultsPromise;
 
+    } catch (e) {
+      console.log('?? e', e);
+      throw e;
+
     } finally {
       if (abortListener) {
         this.signal.removeEventListener('abort', abortListener);
@@ -289,6 +293,13 @@ export const PatternCrawler = class extends BaseCrawler {
     }
     for await (const doc of this.getDocs(url)) {
       const links = doc.links.map(it => ({ ...it, url: clean(it.url) }));
+
+      // for (const link of links) {
+      //   console.log('link url', link.url);
+      // }
+      // throw 'STOP links';
+      // console.log('links', links);
+
       result.all.push(...links);
       for (const link of links) {
         if (link.url.match(re)) {
@@ -302,3 +313,35 @@ export const PatternCrawler = class extends BaseCrawler {
     return result;
   }
 };
+
+const sift = (urls, startUrl, state) => {
+  const x = [];
+  const seen = {};
+  for (const c of urls) {
+    let u;
+    try {
+      u = new URL(c.url);
+    } catch {
+      continue;
+    }
+
+    // TODO: allow off-domain with restritions/limitations
+    if (u.origin != startUrl.origin) {
+      continue;
+    }
+
+    const y = clean(u.toString());
+    if (state[y]) {
+      continue;
+    }
+    if (seen[y]) {
+      continue;
+    }
+    seen[y] = true;
+    // console.log('c', y);
+    x.push({ ...c });
+  }
+  // console.log('x', x);
+
+  return [...x];
+}

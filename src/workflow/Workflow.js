@@ -170,6 +170,8 @@ for (const stepName of stepNames) {
     const name = stepName;
     const cls = classMap[name];
 
+    console.log('!!!!!!', name);
+
     if (name == 'extract') {
       // TODO: generalize + test this
       // TODO: This is a major tech debt, FIXME
@@ -202,6 +204,8 @@ for (const stepName of stepNames) {
       }
 
     } else if (name == 'crawl') {
+      console.log('???');
+
       if (typeof prompt == 'string') {
         return this.step(new cls({ query: prompt }));
       }
