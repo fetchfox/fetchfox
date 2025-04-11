@@ -59,7 +59,7 @@ export const Document = class {
 
   get text() {
     if (!this._text) {
-      const root = parse(this.html);
+      const root = parse(this._html);
       this._text = trim(root.text);
     }
 
@@ -68,7 +68,7 @@ export const Document = class {
 
   get linksHtml() {
     if (!this._linksHtml) {
-      const root = parse(this.html);
+      const root = parse(this._html);
 
       const visit = (node) => {
         if (node.nodeType == 3) { // TEXT_NODE
@@ -103,9 +103,38 @@ export const Document = class {
     return this._markdown;
   }
 
+  get metadata() {
+    if (!this._metadata) {
+      const root = parse(this._html);
+
+      this._metadata = {};
+
+      const meta = root.querySelectorAll('meta');
+
+      for (const tag of meta) {
+        const name = tag.getAttribute('name');
+        const content = tag.getAttribute('content');
+        const property = tag.getAttribute('property');
+        const key = name || property;
+        if (key && content) {
+          this._metadata[key] = content;
+        }
+      }
+
+      for (const tag of ['title', 'h1']) {
+        const el = root.querySelector(tag);
+        if (el) {
+          this._metadata[tag] = el.text;
+        }
+      }
+    }
+
+    return this._metadata;
+  }
+
   get links() {
     if (!this._links) {
-      const root = parse(this.html);
+      const root = parse(this._html);
       const links = [];
       const seen = {};
       for (const a of root.querySelectorAll('a')) {

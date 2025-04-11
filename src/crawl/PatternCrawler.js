@@ -216,6 +216,7 @@ export const PatternCrawler = class extends BaseCrawler {
                   'html',
                   'text',
                   'markdown',
+                  'metadata',
                   'htmlUrl',
                   'textUrl',
                   'markdownUrl',
