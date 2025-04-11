@@ -4,20 +4,20 @@ import { standardMatrix } from '../lib/matrix.js';
 import { checkAtLeast } from '../lib/checks.js';
 import { storeScores } from '../lib/store.js';
 
-describe('crawl facebook.com/legal/*', async function() {
+describe('crawl medium.com/*/*', async function() {
   const matrix = standardMatrix();
 
   const limit = 20;
 
   const wf = await fox
-    .init('https://www.facebook.com/legal/*')
-    .crawl({ pull: true })
+    .init('https://medium.com/*/*')
+    .crawl({ prompt: 'look for blog posts', pull: true })
     .limit(limit)
     .plan();
 
   itRunMatrix(
     it,
-    'crawl facebook.com/legal/*',
+    'crawl medium.com/*/*',
     wf.dump(),
     matrix,
     [
