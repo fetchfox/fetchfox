@@ -23,7 +23,6 @@ export const KnowledgeBase = class {
   async update(url, type, fact) {
     return this.lock.acquire(url, async (done) => {
       try {
-        console.log('KB got ->', url, type, fact);
         const facts = await this.get(url) || {
           items: [],
           links: [],

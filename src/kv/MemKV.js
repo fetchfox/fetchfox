@@ -14,11 +14,9 @@ export const MemKV = class extends BaseKV {
 
   async set(key, val) {
     this.store[key] = val;
-    console.log('>> store after set:', this.store);
   }
 
   async get(key) {
-    console.log('>>>> Get from Store:', key, this.store);
     return this.store[key];
   }
 

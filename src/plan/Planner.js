@@ -137,8 +137,6 @@ export const Planner = class {
       throw new Error(`Planner got invalid JSON: ${JSON.stringify(json)}`);
     }
 
-    console.log('json.args', json.args);
-
     return new cls(json.args);
   }
 

@@ -13,9 +13,6 @@ export const CrawlStep = class extends BaseStep {
       query = args?.query;
     }
 
-    console.log('args', args);
-    logger.trace('.');
-
     this.query = query;
     this.pull = args?.pull;
     this.suggestions = args?.suggestions;

@@ -19,7 +19,6 @@ export const DiskKV = class extends BaseKV {
     const filepath = path.join(this.dirname, encodeURIComponent(key));
     try {
       const ser = JSON.stringify(val);
-      console.log('DISK KV SET', key, ser);
       await fs.promises.writeFile(filepath, ser, 'utf8');
     } catch (e) {
       this.logger.error(`${this} Error writing key=${key}: ${e}`);
@@ -31,7 +30,6 @@ export const DiskKV = class extends BaseKV {
     const filepath = path.join(this.dirname, encodeURIComponent(key));
     try {
       const data = await fs.promises.readFile(filepath, 'utf8');
-      console.log('disk kv got data:', data);
       return JSON.parse(data);
     } catch (e) {
       if (e.code == 'ENOENT') {

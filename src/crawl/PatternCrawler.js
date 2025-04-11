@@ -63,7 +63,6 @@ export const PatternCrawler = class extends BaseCrawler {
     let abortListener;
     if (this.signal) {
       abortListener = () => {
-        console.log('abort signal');
         done = true;
       };
       this.signal.addEventListener('abort', abortListener);
@@ -73,25 +72,15 @@ export const PatternCrawler = class extends BaseCrawler {
     const linksPromise = new Promise(async (ok, bad) => {
       try {
         for (let i = 0 ; i < 20; i++) {
-          console.log('ITERATION', i, done);
           if (done) break;
-          console.log('x');
 
           this.logger.debug(`${this} Looking for URLs matching pattern ${pattern}, iteration ${i}`);
-          console.log('y');
 
-          console.log('candidates ==>', candidates);
           candidates = sift(candidates, url, state);
-
-          // console.log('candidates -->', candidates);
-          console.log('z');
-
           candidates
             .sort((a, b) => (
               (ratings[b.url] || 0) - (ratings[a.url] || 0)
             ));
-
-          console.log('??');
 
           let c = 0;
           const counts = {};
@@ -101,11 +90,6 @@ export const PatternCrawler = class extends BaseCrawler {
               counts[url] = result.matches.length;
             }
           }
-
-          // console.log(JSON.stringify(state, null, 2));
-          console.log(JSON.stringify(counts, null, 2));
-          console.log('^-- COUNTS');
-          if (c > 10) throw 'yyyyyy';
 
           const context = {
             urls: JSON.stringify(candidates.slice(0, 1000), null, 2),
@@ -117,15 +101,9 @@ export const PatternCrawler = class extends BaseCrawler {
           const suggestions = [];
           const max = 32;
 
-          console.log('2');
-
           for await (const { delta } of gen) {
             if (done) break;
-
             suggestions.push(delta);
-
-            console.log('delta', suggestions.length, delta);
-
             ratings[delta.url] = delta.rating;
             this.logger.debug(`${this} Got candidate to visit next: ${JSON.stringify(delta)}`);
             
@@ -134,13 +112,10 @@ export const PatternCrawler = class extends BaseCrawler {
             }
           }
 
-          console.log('Got suggestions:', suggestions.length);
           if (done) break;
 
           const results = await Promise.allSettled(suggestions
             .map(it => this.process(it.url, pattern)));
-
-          // console.log('RESULTS', results.map(it => it.value.all));
 
           let count = 0;
           for (let i = 0; i < suggestions.length; i++) {
@@ -149,8 +124,6 @@ export const PatternCrawler = class extends BaseCrawler {
               continue;
             }
             const url = suggestions[i].url;
-            // console.log('result.value', result.value);
-            // console.log('^-- rv');
 
             state[url] = result.value;
             candidates.push(...result.value.all.map(
@@ -169,24 +142,16 @@ export const PatternCrawler = class extends BaseCrawler {
 
           this.logger.debug(`${this} Number of new results was ${count} on i=${i}`);
 
-          console.log('found', count);
-
-          if (i == 10) {
-            // console.log(JSON.stringify(state, null, 2));
-            throw 'STOP 3333';
-          }
 
           // If we didn't find new ones, exit
-          // if (count == 0 && i >= 3) {
-          //   console.log('Set DONE:', done);
-          //   done = true;
-          // }
+          if (count == 0 && i >= 5) {
+            done = true;
+          }
         }
 
         ok();
 
       } catch (e) {
-        console.log('!!! e', e);
         bad(e);
         return;
 
@@ -272,7 +237,6 @@ export const PatternCrawler = class extends BaseCrawler {
       await resultsPromise;
 
     } catch (e) {
-      console.log('?? e', e);
       throw e;
 
     } finally {
@@ -293,13 +257,6 @@ export const PatternCrawler = class extends BaseCrawler {
     }
     for await (const doc of this.getDocs(url)) {
       const links = doc.links.map(it => ({ ...it, url: clean(it.url) }));
-
-      // for (const link of links) {
-      //   console.log('link url', link.url);
-      // }
-      // throw 'STOP links';
-      // console.log('links', links);
-
       result.all.push(...links);
       for (const link of links) {
         if (link.url.match(re)) {
@@ -314,13 +271,13 @@ export const PatternCrawler = class extends BaseCrawler {
   }
 };
 
-const sift = (urls, startUrl, state) => {
-  const x = [];
+const sift = (links, startUrl, state) => {
+  const out = [];
   const seen = {};
-  for (const c of urls) {
+  for (const link of links) {
     let u;
     try {
-      u = new URL(c.url);
+      u = new URL(link.url);
     } catch {
       continue;
     }
@@ -338,10 +295,8 @@ const sift = (urls, startUrl, state) => {
       continue;
     }
     seen[y] = true;
-    // console.log('c', y);
-    x.push({ ...c });
+    out.push({ ...link });
   }
-  // console.log('x', x);
 
-  return [...x];
+  return out;
 }
