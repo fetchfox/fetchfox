@@ -20,45 +20,33 @@ export const Learner = class {
   }
 
   async learn({ url, prompt, ...rest }, cb) {
-    this.logger.info(`${this} Learn about url=${url} prompt=${prompt}`);
+    this.logger.info(`${this} X Learn about url=${url} prompt=${prompt}`);
 
     url = new URL(url).toString();
 
     console.log('url, prompt', url, prompt);
     const urls = [url];
-    console.log('urls', urls);
     const docs = await Promise.all(urls.map(url => this.fetcher.first(url)));
 
-    // const update = async (url, type, fact) => {
-    //   await this.kb.update(url, type, fact);
-    //   cb && cb();
-    // }
+    let facts = [];
+    const update = (delta) => {
+      facts.push(delta);
+      cb && cb({ facts, delta });
+    }
 
-    let results = [];
     await Promise.allSettled([
       this.analyzeLinks(
         { docs, prompt, ...rest },
-        (fact) => {
-          // update(url, 'links', fact)
-          results.push({
-            type: 'link',
-            fact
-          });
-        }
+        (fact) => update({ ...fact, type: 'link' }),
       ),
 
       this.analyzeItems(
         { docs, prompt, ...rest },
-        (fact) => {
-          results.push({
-            type: 'item',
-            fact
-          });
-          // update(url, 'items', fact)
-        }
+        (fact) => update({ ...fact, type: 'item' }),
       ),
     ]);
-    return results;
+
+    return { facts };
   }
 
   async analyzeItems({ docs, prompt }, cb) {
@@ -133,6 +121,7 @@ export const Learner = class {
       delta.pattern = cleanPattern(delta.pattern);
       console.log('found ->', delta);
       results.push(delta);
+      console.log('call cb?', cb);
       cb && cb(delta);
     }
 

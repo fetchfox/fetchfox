@@ -66,24 +66,38 @@ export const availableLinks = new Template(
 Additionally, try to focus on URLs relevant to the user prompt. Relevant URLs are ones that directly relate to the user prompt, or they can contain indirectly link to the user prompt.
 
 Each JSONL object contains these fields:
+- "examples": An array of a few representative examples from the given data
 - "description": A description of the URL pattern, 4-10 words, plain English
 - "relevancy": Describe if and how the URL pattern relates to the user scraping prompt, 4-10 words, plain English
 - "noun": A noun that fits into the pharse: "Go to X", for example "Go to listing pages" or "Go to user profiles". Do not include "Go to", only give the X part
-- "category": A category name for the URL pattern, 1-4 words, dash-case
 - "pattern": The URL pattern itself, full absolute matcher starting with http:// or https://
-- "regex": A regex to match URLs to this pattern, full absolute matcher starting with http:// or https://
-- "examples": An array of a few representative examples from the given data
-
-Follow these important rules and guidelines:
-- Return ONLY JSONL. Your response will be machine parsed using JSON.parse() on a line-by-line basis, splitting in \\n
-- Avoid long, overly specific matchers
-- Pattern variable names must have ONLY alphabetical characters
-- Find ALL the URL patterns you notice. Use contextual and domain knowledge that you have.
 
 Example of valid output:
 
-{"description": "an individual article page", "relevancy": "articles may contain data about gold market", "noun": "articles" "category": "article", "pattern": "https://example.com/article/:date/:id", "regex": "...", "examples": ["https://example.com/article/2024-01-05/4444", "https://example.com/article/2022-05-11/5555"]}
-{"description": "an author's profile page", "relevancy": "low relevance, but authors may be experts in gold market", "noun": "author profiles", "category": "author-profile", "pattern": "https://example.com/author/:name", "regex": "...",, "examples": ["https://example.com/author/john-smith", "https://example.com/author/sally-green"] }
+{
+  "examples": [
+    "https://example.com/article/2024-01-05/4444",
+    "https://example.com/article/2022-05-11/5555",
+    "https://example.com/article/2022-04-12/7777"
+  ],
+  "description": "an individual article page",
+  "relevancy": "articles may contain data about gold market",
+  "noun": "articles",
+  "category": "article",
+  "pattern": "https://example.com/article/:date/:id"
+}
+{
+  "examples": [
+    "https://example.com/author/john-smith",
+    "https://example.com/author/sally-green",
+    "https://example.com/author/alex-jackson"
+  ],
+  "description": "an author's profile page",
+  "relevancy": "low relevance, but authors may be experts in gold market",
+  "noun": "author profiles",
+  "category": "author-profile",
+  "pattern": "https://example.com/author/:name"
+}
 
 
 Below are all the links for this page:
@@ -95,6 +109,13 @@ The base URL from which you start is:
 Focus on URLs relevant the user prompt below:
 {{prompt}}
 
+Follow these important rules and guidelines:
+- Return ONLY JSONL. Your response will be machine parsed using JSON.parse() on a line-by-line basis, splitting in \\n
+- Avoid long, overly specific matchers
+- Pattern variable names must have ONLY alphabetical characters
+- Find ALL the URL patterns you notice. Use contextual and domain knowledge that you have
+
+Remember:
 * Give the most salient and most relevant results FIRST
 * Focus on content, not navigation or interaction links
 * Avoid duplicates
