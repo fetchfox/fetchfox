@@ -434,7 +434,7 @@ process.on('unhandledRejection', (e) => {
     return;
   }
 
-  if (e.stack.includes(executeAICode.name)) {
+  if ((e.stack || '').includes(executeAICode.name)) {
     defaultLogger.error(`Ignore unhandled rejection in AI code: ${e}`);
     e.ignore = true;
   } else {
