@@ -802,6 +802,7 @@ Note:
 - The next button may have the word next, or some sort of right-arrow like character.
 - If you're less confident you may scroll or click a button to Load More data or Show More data.
 - The page may be in a foreign language, handle that also
+- The selector should select only the next page button, and nothing else
 
 You will know pagination was successful if you see relevant new results on each iteration.
 

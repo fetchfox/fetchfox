@@ -16,6 +16,7 @@ export const CrawlStep = class extends BaseStep {
     this.query = query;
     this.pull = args?.pull;
     this.suggestions = args?.suggestions;
+    this.maxIterations = args?.maxIterations || 20;
   }
 
   async process({ cursor, item, index }, cb) {
@@ -25,6 +26,7 @@ export const CrawlStep = class extends BaseStep {
       maxPages: this.maxPages,
       pull: this.pull,
       suggestions: this.suggestions,
+      maxIterations: this.maxIterations,
       fetchOptions: {
         priority: index,
         instructionsCacheKey: `index-${index}`,

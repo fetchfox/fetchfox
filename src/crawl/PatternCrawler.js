@@ -8,6 +8,11 @@ const clean = url => {
 }
 
 export const PatternCrawler = class extends BaseCrawler {
+  constructor() {
+    super(this);
+    this.maxPerIteration = 64;
+  }
+
   async *run(patterns, options) {
     this.logger.info(`${this} Start find matches for ${patterns.join(', ')}`);
 
@@ -38,6 +43,7 @@ export const PatternCrawler = class extends BaseCrawler {
 
   async runSingle(pattern, options, onResult) {
     this.logger.info(`${this} Find matches for ${pattern}`);
+    const maxPages = options?.maxPages || 1;
     const url = new URL(pattern);
     let candidates = [
       { url: url.origin },
@@ -49,7 +55,7 @@ export const PatternCrawler = class extends BaseCrawler {
       }
     }
 
-    this.logger.debug(`${this} Initial candidates: ${JSON.stringify(candidates)}`);
+    this.logger.debug(`${this} Initial candidates: ${JSON.stringify(candidates, null, 2)}`);
 
     const state = {};
     const ratings = {};
@@ -71,7 +77,7 @@ export const PatternCrawler = class extends BaseCrawler {
     /* eslint-disable no-async-promise-executor */
     const linksPromise = new Promise(async (ok, bad) => {
       try {
-        for (let i = 0 ; i < 20; i++) {
+        for (let i = 0 ; i < (this.maxIterations || 20); i++) {
           if (done) break;
 
           this.logger.debug(`${this} Looking for URLs matching pattern ${pattern}, iteration ${i}`);
@@ -99,7 +105,7 @@ export const PatternCrawler = class extends BaseCrawler {
           const { prompt } = await prompts.rank.renderCapped(context, 'counts', this.ai);
           const gen = this.ai.stream(prompt, { format: 'jsonl' });
           const suggestions = [];
-          const max = 32;
+          const max = this.maxPerIteration;
 
           for await (const { delta } of gen) {
             if (done) break;
@@ -114,37 +120,34 @@ export const PatternCrawler = class extends BaseCrawler {
 
           if (done) break;
 
-          const results = await Promise.allSettled(suggestions
-            .map(it => this.process(it.url, pattern)));
-
           let count = 0;
+          const onMatch = (link) => {
+            if (yielded[link.url]) {
+              return;
+            }
+            yielded[link.url] = true;
+            linksChan.send(link);
+            count++;
+          }
+
+          const results = await Promise.allSettled(suggestions
+            .map(it => this.process(it.url, pattern, maxPages, onMatch)));
+
           for (let i = 0; i < suggestions.length; i++) {
             const result = results[i];
             if (result.status != 'fulfilled') {
               continue;
             }
             const url = suggestions[i].url;
-
             state[url] = result.value;
             candidates.push(...result.value.all.map(
               it => ({ url: it.url, text: it.text })));
-
-            this.logger.debug(`${this} Yielding ${result.value.matches.length} pattern matches, first is ${JSON.stringify(result.value.matches[0])}`);
-            for (const link of result.value.matches) {
-              if (yielded[link.url]) {
-                continue;
-              }
-              yielded[link.url] = true;
-              linksChan.send(link);
-              count++;
-            }
           }
 
           this.logger.debug(`${this} Number of new results was ${count} on i=${i}`);
 
-
           // If we didn't find new ones, exit
-          if (count == 0 && i >= 5) {
+          if (count == 0 && i >= 10) {
             done = true;
           }
         }
@@ -212,7 +215,6 @@ export const PatternCrawler = class extends BaseCrawler {
         }
 
         await Promise.allSettled(promises);
-
         ok();
 
       } catch (e) {
@@ -247,7 +249,7 @@ export const PatternCrawler = class extends BaseCrawler {
     }
   }
 
-  async process(url, pattern) {
+  async process(url, pattern, maxPages, onMatch) {
     this.logger.debug(`${this} Processing ${url}`);
 
     const re = new RegExp(pattern.replaceAll('*', '.*'));
@@ -255,15 +257,19 @@ export const PatternCrawler = class extends BaseCrawler {
       matches: [],
       all: [],
     }
-    for await (const doc of this.getDocs(url)) {
+    for await (const doc of this.getDocs(url, { maxPages })) {
       const links = doc.links.map(it => ({ ...it, url: clean(it.url) }));
       result.all.push(...links);
+
       for (const link of links) {
         if (link.url.match(re)) {
+          this.logger.debug(`${this} Found URL matching pattern: ${link.url}`);
           result.matches.push(link);
+          onMatch(link);
         }
       }
     }
+
 
     this.logger.debug(`${this} Found ${result.matches.length} matches for ${pattern} on ${url}`);
 

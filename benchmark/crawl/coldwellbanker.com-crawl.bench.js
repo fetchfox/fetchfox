@@ -10,7 +10,7 @@ describe('crawl coldwellbanker.com', async function() {
   const limit = 100;
 
   const wf = await fox
-    .init('https://www.coldwellbanker.com/*/*/agents/*')
+    .init('https://www.coldwellbanker.com/*/*/agents/*/aid-*')
     .crawl({
       suggestions: ['https://www.coldwellbanker.com/sitemap/agents'],
     })

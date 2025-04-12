@@ -54,6 +54,14 @@ export const stepDescriptionsMap = {
         format: 'boolean',
         required: false,
       },
+
+      // TODO: replace this with maxDepth
+      maxIterations: {
+        description: 'Max iterations of the crawl process away from the starting URLs',
+        format: 'number',
+        default: 20,
+        required: false,
+      },
       suggestions: {
         description: 'List of suggested started URLs for the crawl',
         format: 'array',

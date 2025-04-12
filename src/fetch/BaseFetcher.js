@@ -19,7 +19,7 @@ export const BaseFetcher = class {
 
     this.q = new PQueue({
       concurrency: options?.concurrency || 64,
-      intervalCap: options?.intervalCap || 4,
+      intervalCap: options?.intervalCap || 16,
       interval: options?.interval || 1000,
     });
 

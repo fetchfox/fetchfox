@@ -71,13 +71,13 @@ export const createMatrix = (configs, options) => {
         }
 
         if (process.env.BENCH_USE_CACHE) {
-          val[1].cache = new DiskCache('/tmp/ffbenchcache-4');
+          val[1].cache = new DiskCache('/tmp/ffbenchcache-5');
         }
 
         if (process.env.BENCH_USE_KV) {
           val[1].kv = new S3KV({
             bucket: 'ffcloud',
-            prefix: process.env.BENCH_KV_PREFIX || 'benchkv/fixed-4/',
+            prefix: process.env.BENCH_KV_PREFIX || 'benchkv/fixed-5/',
             acl: 'public-read',
           });
         }
