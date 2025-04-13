@@ -158,3 +158,43 @@ Tips:
 
 Respond ONLY in JSONL, with one valid JSON object per line, your response will be machine parsed using JSON.parse(), splitting on \n
 `);
+
+export const urlPatterns = new Template(
+  ['layout'],
+  `Given the following site layout, return a list of URL matchers.
+
+The site layout shows the parent URL and the sub URLs it links to, with indentation indicating the depth.
+
+You should return URL matchers as JSONL, with each JSON object having two fields:
+
+- "name": name of the pattern, in dash-case, typically 2-30 characters
+- "pattern": url pattern, in a format like https://www.example.com/category/:id/sub/:sub-id
+- "regex": a regex to match this pattern. must be compatible with Javascript's new RegExp();
+
+They layout is below:
+
+{{layout}}
+
+This layout already includes some patterns, which are collapsed. Use these existing patterns, or improve upon them, or consolidate into them, as you see fit.
+
+Keep in mind these guidlines:
+
+- Generally group similar content to one matcher
+- One-off urls can be ignored
+- Prefer to give patterns + regexes
+- Give a matcher for the root URL as 'root'
+
+IMPORANT point on ordering:
+- Give more specific matchers BEFORE more general ones, for example https://example.com/a/:id/:sub-id goes BEFORE https://example.com/a/:id
+
+- Give as many matchers a necessary to cover all groupable URLs
+- Make sure to repeat any matchers you want to keep from the original layout
+
+WARNING top level catch-all matchers:
+- Sometimes, you may need to give a generic top level matcher like https://example.com/:id or https://example.com/:username/:id
+- These will often overmatch, so always place them last
+- And if you include these, first pull out content pages like https://example.com/something or https://example.com/other-thing that likely override the generic matcher
+- Generally, if https://example.com/something/:id exists, there is usually also a matcher for https://example.com/something that should override the catch-all of https://example.com/:id
+
+Your response will be machine parsed using JSON.parse(), splitting on '\n'. Therefore, respond ONLY with valid JSONL
+`);

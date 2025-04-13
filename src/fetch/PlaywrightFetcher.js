@@ -32,6 +32,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     }
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
+
+    console.log('cdp?', this.cdp);
+    this.logger.trace('.');
+
     this.pullIframes = options?.pullIframes;
     this.logger = options?.logger || defaultLogger;
     this.kv = options?.kv || getKV();
@@ -58,6 +62,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
           this.logger.debug(`Playwright using CDP endpoint, attempt=${i}`);
           promise = chromium.connectOverCDP(this.cdp);
         } else {
+          this.logger.trace('.');
           this.logger.debug(`Playwright using local Chromium, attempt=${i}`);
           promise = chromium.launch({ headless: this.headless });
         }

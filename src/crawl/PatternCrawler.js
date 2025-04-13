@@ -1,4 +1,6 @@
 import { BaseCrawler } from './BaseCrawler.js';
+import { Mapper } from './Mapper.js'
+import { PriorityQueue } from './PriorityQueue.js'
 import { createChannel, promiseAllStrict } from '../util.js';
 import * as prompts from './prompts.js'
 
@@ -8,12 +10,61 @@ const clean = url => {
 }
 
 export const PatternCrawler = class extends BaseCrawler {
-  constructor() {
-    super(this);
-    this.maxPerIteration = 64;
+  constructor(options) {
+    super(options);
   }
 
   async *run(patterns, options) {
+    console.log('pc run', patterns);
+
+    const mapper = new Mapper(this);
+    const pq = new PriorityQueue();
+
+    for (const pattern of patterns) {
+      console.log('pattern', pattern);
+      const url = new URL(pattern);
+      pq.add(url.origin);
+      pq.add(pattern.replace(/\*.*$/, ''));
+    }
+    (options?.suggestions || []).map(it => pq.add(it));
+
+    const rootUrl = new URL(patterns[0]).origin;
+
+    console.log('rootUrl', rootUrl);
+
+    let i = 0;
+    while (!pq.empty) {
+      const link = pq.shift();
+      console.log('process ->', link);
+      await this.visit(mapper, pq, link.url);
+
+      console.log('== learn ==');
+      await mapper.learn(rootUrl);
+
+      console.log('== pprint ==');
+      console.log(mapper.layoutString(rootUrl));
+
+      if (i++ > 4) {
+        break;
+      }
+    }
+
+    // console.log('== final pprint ==');
+    // console.log(mapper.layoutString(rootUrl));
+  }
+
+  async visit(mapper, pq, url) {
+    const doc = await this.fetcher.first(url);
+    console.log('doc: ' + doc);
+    for (const link of doc.links) {
+      mapper.connect(url, link.url);
+      pq.add(link.url);
+    }
+  }
+
+  async *run_x(patterns, options) {
+    this.maxPerIteration = 64;
+
     this.logger.info(`${this} Start find matches for ${patterns.join(', ')}`);
 
     const chan = createChannel()
@@ -46,8 +97,8 @@ export const PatternCrawler = class extends BaseCrawler {
     const maxPages = options?.maxPages || 1;
     const url = new URL(pattern);
     let candidates = [
-      { url: url.origin },
-      { url: pattern.replace(/\*.*$/, '') },
+      // { url: url.origin },
+      // { url: pattern.replace(/\*.*$/, '') },
     ];
     if (options?.suggestions) {
       for (const url of options?.suggestions) {
@@ -263,7 +314,7 @@ export const PatternCrawler = class extends BaseCrawler {
 
       for (const link of links) {
         if (link.url.match(re)) {
-          this.logger.debug(`${this} Found URL matching pattern: ${link.url}`);
+          this.logger.debug(`${this} Found URL matching pattern: ${link.url} (source=${url})`);
           result.matches.push(link);
           onMatch(link);
         }

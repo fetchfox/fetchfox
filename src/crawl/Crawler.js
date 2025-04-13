@@ -7,12 +7,16 @@ import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
   usePattern(url, query) {
-    if (query) {
-      return false;
+    try {
+      if ((new URL(url)).pathname.includes('*')) {
+        return true;
+      }
+    } catch {
+      // no-op
     }
 
     try {
-      if ((new URL(url)).pathname.includes('*')) {
+      if ((new URL(query)).pathname.includes('*')) {
         return true;
       }
     } catch {
@@ -25,6 +29,7 @@ export const Crawler = class extends BaseCrawler {
   async *run(url, query, options) {
     if (this.usePattern(url, query)) {
       this.logger.debug(`${this} Using pattern crawler for url=${url} query=${query}`);
+
       const pc = new PatternCrawler(this);
       const urls = Array.isArray(url) ? url : [url];
       const gen = pc.run(urls, options);
@@ -33,6 +38,8 @@ export const Crawler = class extends BaseCrawler {
       }
       return;
     }
+
+    throw 'STOP!';
 
     this.usage.requests++;
     const maxPages = options?.maxPages;
