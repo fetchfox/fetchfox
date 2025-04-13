@@ -9,8 +9,12 @@ export const Mapper = class {
     this.ai = options?.ai || getAI();
     this.fetcher = options?.fetcher || getFetcher();
 
-    this.urls = {};
+    this._urls = {};
     this.patterns = [];
+  }
+
+  get urls() {
+    return Object.keys(this._urls);
   }
 
   async map(rootUrl, options) {
@@ -18,21 +22,16 @@ export const Mapper = class {
     const onIteration = options?.onIteration ? options?.onIteration : () => {};
 
     const pq = new PriorityQueue((url) => this.score(url));
-    // urls.forEach(it => pq.add(it));
     pq.add(rootUrl);
 
     for (let i = 0; i < maxIterations && !pq.empty; i++) {
       const link = pq.shift();
       const doc = await this.fetcher.first(link.url);
-      console.log('got doc:' + doc);
 
       for (const found of doc.links) {
-        // console.log('found', found.url, link.url);
         if (!check(found.url, link.url)) {
           continue;
         }
-        // console.log('connect', found.url, link.url);
-
         this.connect(link.url, found.url);
         pq.add(found.url);
       }
@@ -43,7 +42,6 @@ export const Mapper = class {
   }
 
   score(url) {
-    // console.log('mapper score', url);
     const path = this.toPath(url);
     if (path.pattern) {
       return 1;
@@ -59,14 +57,8 @@ export const Mapper = class {
     }
     seen[path.name] = true;
 
-    console.log('url', url);
-    console.log('to example', targetPattern);
     const example = toExample(targetPattern);
     const target = this.toPath(example);
-    console.log('example', example);
-    console.log('target', target);
-    console.log('target regex', target.regex);
-
     let result = 999;
 
     if (!target.regex) {
@@ -74,7 +66,6 @@ export const Mapper = class {
     }
 
     if (url.match(new RegExp(target.regex))) {
-      console.log('direct match');
       return n;
     }
 
@@ -87,9 +78,7 @@ export const Mapper = class {
         d = this.distance(to.url, targetPattern, n + 1, seen);
       }
 
-      console.log('CHECK to:', d, to);
       result = d ? Math.min(d, result) : result;
-      console.log('result', result);
     }
 
     return result;
@@ -99,7 +88,6 @@ export const Mapper = class {
     url = norm(url);
 
     for (const pattern of this.patterns) {
-      // console.log('-->', url);
       if (url.match(new RegExp(pattern.regex))) {
         return pattern;
       }
@@ -109,7 +97,7 @@ export const Mapper = class {
 
   get paths() {
     const out = {};
-    const urls = Object.keys(this.urls);
+    const urls = Object.keys(this._urls);
     for (const url of urls) {
       const path = this.toPath(url);
 
@@ -118,7 +106,7 @@ export const Mapper = class {
       }
 
       const seen = {};
-      for (const to of (this.urls[url]?.to || [])) {
+      for (const to of (this._urls[url]?.to || [])) {
         const pathTo = this.toPath(to);
         const exists = out[path.name].to.filter(it => it.name == pathTo.name).length
         if (exists) {
@@ -133,7 +121,7 @@ export const Mapper = class {
   layoutString(urls, depth = 0, depths) {
     const paths = this.paths;
     if (!urls) {
-      urls = Object.keys(this.urls).filter(it => Boolean(this.urls[it].to?.length));
+      urls = Object.keys(this._urls).filter(it => Boolean(this._urls[it].to?.length));
     }
 
     if (!depths) {
@@ -185,13 +173,13 @@ export const Mapper = class {
     dst = norm(dst);
 
     [src, dst].map(it => {
-      this.urls[it] ||= {
+      this._urls[it] ||= {
         to: [],
         from: [],
       };
     });
 
-    this.urls[src].to.push(dst);
+    this._urls[src].to.push(dst);
   }
 
   async learn(url) {
