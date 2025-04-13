@@ -38,7 +38,7 @@ export const Mapper = class {
       }
 
       await this.learn(rootUrl);
-      onIteration();
+      await onIteration();
     }
   }
 
@@ -50,6 +50,49 @@ export const Mapper = class {
     } else {
       return 2;
     }
+  }
+  
+  distance(url, targetPattern, n = 0, seen = {}) {
+    const path = this.toPath(url);
+    if (seen[path.name]) {
+      return;
+    }
+    seen[path.name] = true;
+
+    console.log('url', url);
+    console.log('to example', targetPattern);
+    const example = toExample(targetPattern);
+    const target = this.toPath(example);
+    console.log('example', example);
+    console.log('target', target);
+    console.log('target regex', target.regex);
+
+    let result = 999;
+
+    if (!target.regex) {
+      return result;
+    }
+
+    if (url.match(new RegExp(target.regex))) {
+      console.log('direct match');
+      return n;
+    }
+
+    const tos = [...(this.paths[path.name]?.to || [])];
+    for (const to of tos) {
+      let d;
+      if (to.pattern) {
+        d = this.distance(toExample(to.pattern), targetPattern, n + 1, seen);
+      } else {
+        d = this.distance(to.url, targetPattern, n + 1, seen);
+      }
+
+      console.log('CHECK to:', d, to);
+      result = d ? Math.min(d, result) : result;
+      console.log('result', result);
+    }
+
+    return result;
   }
 
   toPath(url) {
@@ -217,4 +260,21 @@ const check = (url, startUrl) => {
   }
 
   return true;
+}
+
+export const toExample = (pattern) => {
+  const url = new URL(pattern);
+  const parts = url.pathname.split('/');
+  const exampleParts = [];
+  let i = 1;
+  for (const p of parts) {
+    if (p == '*' || p.startsWith(':')) {
+      exampleParts.push('val' + (i++));
+    } else {
+      exampleParts.push(p);
+    }
+  }
+
+  url.pathname = exampleParts.join('/');
+  return norm(url.toString());
 }

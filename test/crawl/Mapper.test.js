@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { comparePatterns } from '../../src/crawl/Mapper.js';
+import { comparePatterns, toExample } from '../../src/crawl/Mapper.js';
 
 describe('Mapper', function() {
 
@@ -79,6 +79,21 @@ describe('Mapper', function() {
     );
   });
 
+  it('should convert to exampl @fast', async () => {
+    const cases = [
+      {
+        pattern: 'https://www.example.com/path/*',
+        expected: 'https://www.example.com/path/val1',
+      },
+      {
+        pattern: 'https://www.example.com/path/:id/:sub-id',
+        expected: 'https://www.example.com/path/val1/val2',
+      },
+    ];
+
+    for (const { pattern, expected } of cases) {
+      assert.equal(toExample(pattern), expected);
+    }
+  });
+
 });
-
-

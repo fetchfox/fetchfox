@@ -29,15 +29,23 @@ export const PatternCrawler = class extends BaseCrawler {
     // }
     // (options?.suggestions || []).map(it => urls.push(it));
 
-    const onIteration = () => {
+    const onIteration = async () => {
       console.log('handleIteration');
       console.log('== pprint ==');
       console.log(mapper.layoutString([rootUrl]));
+
+      const distance = mapper.distance(
+        rootUrl,
+        'https://pokemondb.net/pokebase/*');
+      //https://pokemondb.net/ability/*
+      console.log('distance', distance);
+      // throw 'STOP distance';
+      // await new Promise(ok => setTimeout(ok, 4000));
     }
 
     await mapper.map(
       rootUrl,
-      { maxIterations: 5, onIteration });
+      { maxIterations: 3, onIteration });
 
     // const rootUrl = new URL(patterns[0]).origin;
     // console.log('rootUrl', rootUrl);
