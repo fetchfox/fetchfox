@@ -183,10 +183,10 @@ Keep in mind these guidlines:
 - One-off urls can be ignored
 - Prefer to give patterns + regexes
 - Give a matcher for the root URL as 'root'
+- If you see many repeated similar URLs with a common path component, those are a good candidate for a matcher
 
 IMPORANT point on ordering:
 - Give more specific matchers BEFORE more general ones, for example https://example.com/a/:id/:sub-id goes BEFORE https://example.com/a/:id
-
 - Give as many matchers a necessary to cover all groupable URLs
 - Make sure to repeat any matchers you want to keep from the original layout
 
@@ -195,6 +195,8 @@ WARNING top level catch-all matchers:
 - These will often overmatch, so always place them last
 - And if you include these, first pull out content pages like https://example.com/something or https://example.com/other-thing that likely override the generic matcher
 - Generally, if https://example.com/something/:id exists, there is usually also a matcher for https://example.com/something that should override the catch-all of https://example.com/:id
+
+Repeated similar URLs:
 
 Your response will be machine parsed using JSON.parse(), splitting on '\n'. Therefore, respond ONLY with valid JSONL
 `);

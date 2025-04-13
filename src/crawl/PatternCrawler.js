@@ -18,45 +18,61 @@ export const PatternCrawler = class extends BaseCrawler {
     console.log('pc run', patterns);
 
     const mapper = new Mapper(this);
-    const pq = new PriorityQueue();
-
-    for (const pattern of patterns) {
-      console.log('pattern', pattern);
-      const url = new URL(pattern);
-      pq.add(url.origin);
-      pq.add(pattern.replace(/\*.*$/, ''));
-    }
-    (options?.suggestions || []).map(it => pq.add(it));
-
     const rootUrl = new URL(patterns[0]).origin;
 
-    console.log('rootUrl', rootUrl);
+    // const urls = [];
+    // for (const pattern of patterns) {
+    //   console.log('pattern', pattern);
+    //   const url = new URL(pattern);
+    //   urls.push(url.origin);
+    //   // urls.push(pattern.replace(/\*.*$/, ''));
+    // }
+    // (options?.suggestions || []).map(it => urls.push(it));
 
-    let i = 0;
-    while (!pq.empty) {
-      const link = pq.shift();
-      console.log('process ->', link);
-      await this.visit(mapper, pq, link.url);
-
-      console.log('== learn ==');
-      await mapper.learn(rootUrl);
-
+    const onIteration = () => {
+      console.log('handleIteration');
       console.log('== pprint ==');
-      console.log(mapper.layoutString(rootUrl));
-
-      if (i++ > 4) {
-        break;
-      }
+      console.log(mapper.layoutString([rootUrl]));
     }
 
+    await mapper.map(
+      rootUrl,
+      { maxIterations: 5, onIteration });
+
+    // const rootUrl = new URL(patterns[0]).origin;
+    // console.log('rootUrl', rootUrl);
+    // let i = 0;
+    // while (!pq.empty) {
+    //   const link = pq.shift();
+    //   console.log('process ->', link);
+    //   await this.visit(mapper, pq, link.url);
+
+    //   console.log('== learn ==');
+    //   await mapper.learn(rootUrl);
+
+    //   console.log('== pprint ==');
+    //   console.log(mapper.layoutString());
+
+    //   if (i++ > 1) {
+    //     break;
+    //   }
+    // }
     // console.log('== final pprint ==');
     // console.log(mapper.layoutString(rootUrl));
   }
 
   async visit(mapper, pq, url) {
     const doc = await this.fetcher.first(url);
+    console.log('got doc for url', url);
     console.log('doc: ' + doc);
     for (const link of doc.links) {
+      if (!check(link.url, url)) {
+        // console.log('skip', link.url);
+        continue;
+      }
+
+      console.log('connect', url, link.url);
+
       mapper.connect(url, link.url);
       pq.add(link.url);
     }
@@ -327,6 +343,21 @@ export const PatternCrawler = class extends BaseCrawler {
     return result;
   }
 };
+
+const check = (url, startUrl) => {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+
+  if (u.origin != new URL(startUrl).origin) {
+    return false;
+  }
+
+  return true;
+}
 
 const sift = (links, startUrl, state) => {
   const out = [];

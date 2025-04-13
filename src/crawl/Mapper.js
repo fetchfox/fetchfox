@@ -1,19 +1,62 @@
 import { getAI } from '../ai/index.js'
+import { getFetcher } from '../fetch/index.js'
+import { PriorityQueue } from './PriorityQueue.js'
 import { norm } from './shared.js ';
 import * as prompts from './prompts.js';
 
 export const Mapper = class {
   constructor(options) {
     this.ai = options?.ai || getAI();
+    this.fetcher = options?.fetcher || getFetcher();
 
     this.urls = {};
     this.patterns = [];
+  }
+
+  async map(rootUrl, options) {
+    const maxIterations = options?.maxIterations || 10;
+    const onIteration = options?.onIteration ? options?.onIteration : () => {};
+
+    const pq = new PriorityQueue((url) => this.score(url));
+    // urls.forEach(it => pq.add(it));
+    pq.add(rootUrl);
+
+    for (let i = 0; i < maxIterations && !pq.empty; i++) {
+      const link = pq.shift();
+      const doc = await this.fetcher.first(link.url);
+      console.log('got doc:' + doc);
+
+      for (const found of doc.links) {
+        // console.log('found', found.url, link.url);
+        if (!check(found.url, link.url)) {
+          continue;
+        }
+        // console.log('connect', found.url, link.url);
+
+        this.connect(link.url, found.url);
+        pq.add(found.url);
+      }
+
+      await this.learn(rootUrl);
+      onIteration();
+    }
+  }
+
+  score(url) {
+    // console.log('mapper score', url);
+    const path = this.toPath(url);
+    if (path.pattern) {
+      return 1;
+    } else {
+      return 2;
+    }
   }
 
   toPath(url) {
     url = norm(url);
 
     for (const pattern of this.patterns) {
+      // console.log('-->', url);
       if (url.match(new RegExp(pattern.regex))) {
         return pattern;
       }
@@ -23,7 +66,8 @@ export const Mapper = class {
 
   get paths() {
     const out = {};
-    for (const url of Object.keys(this.urls)) {
+    const urls = Object.keys(this.urls);
+    for (const url of urls) {
       const path = this.toPath(url);
 
       if (!out[path.name]) {
@@ -43,9 +87,11 @@ export const Mapper = class {
     return out;
   }
 
-  layoutString(url, depth = 0, depths) {
-    const path = this.toPath(norm(url));
+  layoutString(urls, depth = 0, depths) {
     const paths = this.paths;
+    if (!urls) {
+      urls = Object.keys(this.urls).filter(it => Boolean(this.urls[it].to?.length));
+    }
 
     if (!depths) {
       depths = {};
@@ -57,50 +103,34 @@ export const Mapper = class {
         );
 
         for (const to of (paths[path.name]?.to || [])) {
-          // console.log('to', to);
           if (depths[to.name] === undefined || depths[to.name] > depth) {
             measure(to, depth + 1);
           }
         }
       }
 
-      measure(path, 0);
+      for (const url of urls) {
+        const path = this.toPath(norm(url));
+        measure(path, 0);
+      }
     }
 
     const indent = (n) => '\t'.repeat(n);
-    let s = indent(depth) + path.name + '\n';
 
-    const tos = [...(paths[path.name]?.to || [])].sort(comparePaths);
+    let s = '';
 
-    // console.log('paths', paths);
-    // console.log('[root:\thttps://pokemondb.net/]', paths['[root:\thttps://pokemondb.net/]']?.to);
-    // console.log('urls[root:\thttps://pokemondb.net/]',
-    //             this.urls['[root:\thttps://pokemondb.net/]']?.to);
-    // console.log('patterns', this.patterns);
+    for (const url of urls) {
+      const path = this.toPath(norm(url));
 
-    // console.log(
-    //   'ABILITY paths[root:\thttps://pokemondb.net/]',
-    //   this.paths['[root:\thttps://pokemondb.net/]']?.to.filter(it => it.name.includes('ability')));
+      s += indent(depth) + path.name + '\n';
 
-    // console.log(
-    //   'ABILITY urls[root:\thttps://pokemondb.net/]',
-    //   this.urls['https://pokemondb.net/']?.to.filter(it => it.includes('ability')));
-
-    // const p1 = this.toPath('https://pokemondb.net/ability');
-    // const p2 = this.toPath('https://pokemondb.net/ability/poison-puppeteer ');
-    // const p3 = this.toPath('https://pokemondb.net/ability/supersweet-syrup');
-
-    // console.log('p1', p1);
-    // console.log('p2', p2);
-    // console.log('p3', p3);
-
-    for (const to of tos) {
-      // console.log('to:', path.name, '->', to.name);
-
-      if (depths[to.name] == depth + 1) {
-        s += this.layoutString(to.name, depth + 1, depths);
-      } else if (to.pattern) {
-        s += indent(depth + 1) + to.name + '\n';
+      const tos = [...(paths[path.name]?.to || [])].sort(comparePaths);
+      for (const to of tos) {
+        if (depths[to.name] == depth + 1) {
+          s += this.layoutString([to.name], depth + 1, depths);
+        } else if (to.pattern) {
+          s += indent(depth + 1) + to.name + '\n';
+        }
       }
     }
 
@@ -122,7 +152,7 @@ export const Mapper = class {
   }
 
   async learn(url) {
-    const context = { layout: this.layoutString(url) };
+    const context = { layout: this.layoutString([url]) };
     const { prompt } = await prompts.urlPatterns.renderCapped(
       context, 'layout', this.ai);
 
@@ -172,4 +202,19 @@ export const comparePatterns = (a, b) => {
   }
 
   return a.localeCompare(b);
+}
+
+const check = (url, startUrl) => {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+
+  if (u.origin != new URL(startUrl).origin) {
+    return false;
+  }
+
+  return true;
 }
