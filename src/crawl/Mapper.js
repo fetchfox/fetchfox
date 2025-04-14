@@ -11,13 +11,15 @@ export const Mapper = class {
 
     this._urls = {};
     this.patterns = [];
+
+    this._memo = {};
   }
 
   get urls() {
     return Object.keys(this._urls);
   }
 
-  async map(rootUrl, options) {
+  async run(rootUrl, options) {
     const maxIterations = options?.maxIterations || 10;
     const onIteration = options?.onIteration ? options?.onIteration : () => {};
 
@@ -51,6 +53,11 @@ export const Mapper = class {
   }
   
   distance(url, targetPattern, n = 0, seen = {}) {
+    const key = `${url}->${targetPattern}`;
+    if (this._memo[key]) {
+      return this._memo[key];
+    }
+
     const path = this.toPath(url);
     if (seen[path.name]) {
       return;
@@ -81,6 +88,7 @@ export const Mapper = class {
       result = d ? Math.min(d, result) : result;
     }
 
+    this._memo[key] = result;
     return result;
   }
 
@@ -196,6 +204,7 @@ export const Mapper = class {
     }
 
     this.patterns.sort((a, b) => comparePatterns(a.pattern, b.pattern));
+    this._memo = {};
   }
 }
 

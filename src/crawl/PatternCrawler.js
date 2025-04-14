@@ -1,5 +1,6 @@
 import { BaseCrawler } from './BaseCrawler.js';
-import { Mapper } from './Mapper.js'
+import { Mapper } from './Mapper.js';
+import { Finder } from './Finder.js';
 import { PriorityQueue } from './PriorityQueue.js'
 import { createChannel, promiseAllStrict } from '../util.js';
 import * as prompts from './prompts.js'
@@ -15,24 +16,25 @@ export const PatternCrawler = class extends BaseCrawler {
   }
 
   async *run(patterns, options) {
-    console.log('pc run', patterns);
-
     const rootUrl = new URL(patterns[0]).origin;
 
-    const mapper = new Mapper(this);
-
+    // Run mapper
     const onIteration = async () => {
       console.log(mapper.layoutString([rootUrl]));
     }
-
-    await mapper.map(
+    const mapper = new Mapper(this);
+    await mapper.run(
       rootUrl,
       { maxIterations: 3, onIteration });
 
-    console.log('mapper found these urls', mapper.urls);
-
-    // const finder = new Finder(this);
-
+    // Run finder
+    const onFind = async (link) => {
+      console.log('=> found link', link);
+    }
+    const finder = new Finder(mapper, this);
+    await finder.run(
+      patterns,
+      { maxIterations: 200, onFind });
   }
 };
 

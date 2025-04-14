@@ -31,13 +31,19 @@ export const PriorityQueue = class {
       .update(JSON.stringify(v))
       .digest('hex');
 
+    for (const x of this.list) {
+      x.score = this.score(x.url);
+    }
+
     this.list.sort((b, a) => {
+      return a.score - b.score;
+
       const scoreA = this.score(a.url);
       const scoreB = this.score(b.url);
 
       // If they are the same, do deterministic random order
       if (scoreA == scoreA) {
-        return h(a).localeCompare(h(b));
+        return h(a.url).localeCompare(h(b.url));
       }
 
       return scoreA - scoreB;
