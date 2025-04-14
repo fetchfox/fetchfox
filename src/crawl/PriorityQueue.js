@@ -99,18 +99,16 @@ export const PriorityQueue = class {
       goal,
     };
     const { prompt } = await prompts.pqShift.renderCapped(context, 'urls', this.ai);
-    // console.log('pq prompt', prompt);
-    // throw 'STOP pq prompt';
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
-
-    console.log('pq find', remaining);
-
     for await (const { delta } of gen) {
-      // console.log('pq delta', delta);
+      if (this.list.filter(it => it.url == delta.url).length) {
+        continue;
+      }
       results.push(delta);
       onLink(delta);
     }
 
+    // TODO: remove this filter
     this.list = this.list.filter(it => {
       return !results.some(jt => jt.url == it.url)
     });

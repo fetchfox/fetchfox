@@ -1,3 +1,4 @@
+import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js'
 import { getFetcher } from '../fetch/index.js'
 import { PriorityQueue } from './PriorityQueue.js'
@@ -6,6 +7,7 @@ import * as prompts from './prompts.js';
 
 export const Finder = class {
   constructor(mapper, options) {
+    this.logger = options?.logger || defaultLogger;
     this.ai = options?.ai || getAI();
     this.fetcher = options?.fetcher || getFetcher();
     this.signal = options?.signal;
@@ -13,7 +15,13 @@ export const Finder = class {
     this.mapper = mapper;
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   async run(patterns, options) {
+    this.logger.info(`${this} Find ${patterns.join(', ')}`);
+
     const maxIterations = options?.maxIterations || 10;
     const onFind = options?.onFind ? options?.onFind : () => {};
 
@@ -68,7 +76,8 @@ export const Finder = class {
         break;
       }
 
-      console.log('Iteration', i);
+      this.logger.debug(`${this} Finder iteration #${i} for ${patterns.join(', ')}`);
+
       const links = await pq.shiftMany(
         64,
         -5,
@@ -82,18 +91,18 @@ ${this.mapper.layoutString()}
       const promises = [];
 
       for (const link of links) {
-        // console.log('Finder visit: link ->', link.url, score(link.url));
         await handleUrl(link.url);
 
         const p = new Promise(async (ok) => {
           if (this.signal?.aborted) {
             return;
           }
-          console.log('Finder Fetch', link.url);
-          const doc = await this.fetcher.first(link.url);
-          console.log('Finder got: ' + doc);
 
-          for (const found of doc.links) {
+          this.logger.debug(`${this} Fetch ${link.url}`);
+          const doc = await this.fetcher.first(link.url);
+          this.logger.debug(`${this} Got ${doc}`);
+
+          for (const found of (doc?.links || [])) {
             handleUrl(found.url);
           }
           ok();

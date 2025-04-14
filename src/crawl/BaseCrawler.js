@@ -12,10 +12,6 @@ export const BaseCrawler = class {
     this.fetcher = fetcher || getFetcher(null, options);
     this.cache = cache;
 
-    console.log('BC cache', cache);
-    // this.logger.trace('!!');
-    // throw 'STOP';
-
     this.usage = {
       requests: 0,
       count: 0,

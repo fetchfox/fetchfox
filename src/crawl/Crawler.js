@@ -30,10 +30,6 @@ export const Crawler = class extends BaseCrawler {
     if (this.usePattern(url, query)) {
       this.logger.debug(`${this} Using pattern crawler for url=${url} query=${query}`);
 
-      console.log('CC this.cache', this.cache);
-      this.logger.trace('....');
-      // throw 'STOP cc';
-
       const pc = new PatternCrawler(this);
       const urls = Array.isArray(url) ? url : [url];
       const gen = pc.run(urls, options);

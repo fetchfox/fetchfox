@@ -145,16 +145,10 @@ export const BaseAI = class {
   }
 
   async getCache(prompt, options) {
-    if (!this.cache) {
-      this.logger.trace('??');
-      throw 'no cache';
-      return;
-    }
+    if (!this.cache) return;
 
     const { systemPrompt, format, cacheHint } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
-
-    console.log('key:', key);
 
     let result;
     try {

@@ -1,4 +1,3 @@
-import { Timer } from '../log/timer.js';
 import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js'
 import { getFetcher } from '../fetch/index.js'
@@ -10,14 +9,18 @@ import * as prompts from './prompts.js';
 export const Mapper = class {
   constructor(options) {
     this.logger = options?.logger || defaultLogger;
-    this.timer = new Timer();
     this.ai = options?.ai || getAI();
     this.fetcher = options?.fetcher || getFetcher();
     this.cache = options?.cache;
+    this.signal = options?.signal;
 
     this.patterns = [];
     this._urls = {};
     this._memo = {};
+  }
+
+  toString() {
+    return `[${this.constructor.name}]`;
   }
 
   get urls() {
@@ -25,26 +28,20 @@ export const Mapper = class {
   }
 
   async getCache(vals) {
-    console.log('mapper this.cache', this.cache);
-    if (!this.cache) {
-      return;
-    }
+    if (!this.cache) return;
 
     const key = 'mapper-' + shortObjHash(vals);
-    console.log('check mapper cache', key);
-
+    this.logger.debug(`${this} Check for cached map ${key}`);
     const cached = await this.cache.get(key);
     if (!cached) {
+      this.logger.debug(`${this} No cached map ${key}`);
       return false;
     }
 
+    this.logger.debug(`${this} Found cached map ${key}`);
     this.patterns = cached.patterns;
     this._urls = cached._urls;
     this._memo = {};
-
-    // console.log('mapper cached', cached);
-    // console.log('this.layoutString()', this.layoutString());
-    // throw 'STOP cached';
 
     return true;
   }
@@ -52,7 +49,7 @@ export const Mapper = class {
   async setCache(vals) {
     if (!this.cache) return;
     const key = 'mapper-' + shortObjHash(vals);
-    console.log('set mapper cache', key);
+    this.logger.debug(`${this} Set cached map ${key}`);
 
     return this.cache.set(key, {
       patterns: this.patterns,
@@ -61,6 +58,8 @@ export const Mapper = class {
   }
 
   async run(urls, options) {
+    this.logger.info(`${this} Map ${urls.join(', ')}`);
+
     const maxIterations = options?.maxIterations ?? 10;
     const onIteration = options?.onIteration ? options?.onIteration : () => {};
     const hint = options?.hint || '';
@@ -72,10 +71,16 @@ export const Mapper = class {
 
     const pq = new PriorityQueue((url) => this.score(url), this);
     urls.forEach(it => pq.add(it));
-    // pq.add(rootUrl);
 
     for (let i = 0; i < maxIterations && !pq.empty; i++) {
+      this.logger.debug(`${this} Mapper iteration #${i} for ${urls.join(', ')}`);
+
+      if (this.signal?.aborted) {
+        break;
+      }
+
       const promises = [];
+      this.logger.debug(`${this} Pulling links from priority queue`);
       const links = await pq.shiftMany(
         Math.min(4**(i+1), 32), // Grab more on each iteration
         9999,
@@ -86,24 +91,20 @@ export const Mapper = class {
           }
         });
 
-      // console.log('Links for this iteration:', links);
-      // await new Promise(ok => setTimeout(ok, 4000));
-
-      console.log('wait for promises to settle:', promises.length);
+      this.logger.debug(`${this} Wait for ${promises.length} visits to finish`);
       await Promise.allSettled(promises);
-      console.log('wait for learn');
       await this.learn(urls, hint);
-      console.log('wait for on iter');
-      await onIteration();
+      await onIteration(i);
     }
 
     await this.setCache(cacheKeys);
   }
 
   async visit(url, pq) {
-    // console.log('fetch -->', url);
+    this.logger.debug(`${this} Visiting ${url}`);
     const doc = await this.fetcher.first(url);
-    // console.log('doc --> ' + doc);
+    this.logger.debug(`${this} Got doc: ${doc}`);
+
     for (const found of doc.links) {
       if (!check(found.url, url)) {
         continue;
@@ -125,7 +126,6 @@ export const Mapper = class {
   distance(url, targetPattern, n = 0, seen = {}) {
     const key = `url=${url}:tp=${targetPattern}:n=${n}`;
     if (this._memo[key]) {
-      // console.log('return memoed', key);
       return this._memo[key];
     }
 
@@ -143,16 +143,9 @@ export const Mapper = class {
       }
     }
 
-    // const example = examplesForPattern() || toExample(targetPattern);
     const re = new RegExp('^' + targetPattern.replaceAll('*', '.*') + '$');
     const example = findRegex(re) || toExample(targetPattern);
-
-    // console.log('tp        ', targetPattern);
-    // console.log('as example', example);
-
     const target = this.toPath(example);
-
-    // console.log('target', target);
 
     let result = 999;
 
@@ -160,23 +153,15 @@ export const Mapper = class {
       return result;
     }
 
-    // console.log('direct match?');
     if (url.match(new RegExp(target.regex))) {
       return n;
     }
 
-    // console.log('no match, check children...');
     const tos = [...(this.paths[path.name]?.to || [])];
     for (const to of tos) {
-      // console.log('check to:', to);
-
       let d;
       if (to.pattern) {
-        // console.log('get example for:', to);
         const url = findRegex(to.regex) || toExample(to.pattern);
-        // console.log(this.paths[path.name]);
-        // console.log('example url', url, path.name);
-        // throw 'STOP132';
         d = this.distance(url, targetPattern, n + 1, seen);
       } else {
         d = this.distance(to.url, targetPattern, n + 1, seen);
@@ -191,13 +176,10 @@ export const Mapper = class {
 
   toPath(url) {
     url = norm(url);
-
     for (const pattern of this.patterns) {
       if (pattern.name == url) {
         return pattern;
       }
-
-      // console.log('check', pattern.regex);
 
       if (url.match(new RegExp(pattern.regex))) {
         return pattern;
@@ -338,8 +320,9 @@ export const Mapper = class {
   }
 
   async learn(urls, hint) {
-    const layout = this.layoutString(urls);
+    this.logger.debug(`${this} Learn patterns for ${urls.join(', ')}`);
 
+    const layout = this.layoutString(urls);
     const context = {
       layout,
       examples: this.examplesString(5),
@@ -348,32 +331,27 @@ export const Mapper = class {
     const { prompt } = await prompts.urlPatterns.renderCapped(
       context, 'examples', this.ai);
 
-    // console.log('prompt ==>', prompt);
-    // console.log('this.ai.cache', this.ai.cache);
-    // if (!this.ai.cache) throw 'stop no cache';
-
     let patterns = [...this.patterns];
-    // this.patterns = [];
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
       patterns = patterns.filter(it => it.name != delta.name);
 
       if (delta.delete) {
-        // console.log('DELETE pattern', delta);
-        // // throw 'STOP delete pattern';
-        // this.logger.trace('!!');
+        this.logger.debug(`${this} Delete pattern ${delta.name}`);
         continue;
       }
 
       const pattern = delta.pattern.replace(/\/$/, '');
-      console.log('delta pattern ->', pattern, delta.regex);
-      patterns.push({ ...delta, pattern, pretty: `[${delta.name}: ${pattern} regex=${delta.regex}]` });
+      this.logger.debug(`${this} Found pattern ${pattern} regex=${delta.regex}`);
+      patterns.push({
+        ...delta,
+        pattern,
+        pretty: `[${delta.name}: ${pattern} regex=${delta.regex}]`,
+      });
     }
 
     patterns.sort((a, b) => comparePatterns(a.pattern, b.pattern));
     this.patterns = patterns;
-    // console.log('this.patterns', this.patterns);
-
     this._memo = {};
   }
 }

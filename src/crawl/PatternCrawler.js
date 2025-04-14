@@ -14,57 +14,56 @@ const clean = url => {
 export const PatternCrawler = class extends BaseCrawler {
   constructor(options) {
     super(options);
-
-    // console.log('this.ai.cache PC', this.ai.cache);
-    // throw 'STOP1';
   }
 
   async *run(patterns, options) {
-    console.log('PC cache', this.cache);
-    this.logger.trace('!!');
-    // throw 'STOP';
-
     const suggestions = options?.suggestions || [];
 
     const mapperHint = `The user is crawling for URLs that fit these patterns: ${patterns.join('\n')}. Try to map out areas of the site that will help find these patterns.`;
 
     const rootUrl = new URL(patterns[0]).origin;
     const urls = [rootUrl, ...suggestions];
-    console.log('options', options);
 
     // Start mapper
-    const onIteration = async () => {
-      console.log('');
-      console.log('== latest map ==');
-      console.log(mapper.layoutString(urls));
-      console.log('== latest examples ==');
-      console.log(mapper.examplesString(5));
-      // throw 'STOP on inter';
+    const onIteration = async (i) => {
+      this.logger.debug(`${this} Layout on iteration ${i}:\n${mapper.layoutString(urls)}`);
     }
     const mapper = new Mapper(this);
     const mapPromise = mapper.run(
       urls,
       { maxIterations: 4, hint: mapperHint, onIteration });
 
-    // await mapPromise;
-    // console.log('== FINAL map ==');
-    // console.log(mapper.layoutString(urls));
-
-    // throw 'STOP map done';
-
     // Run finder concurrently with mapper
+    const urlsChan = createChannel();
+
     const found = [];
     const onFind = async (url) => {
       found.push(url);
       this.logger.info(`${chalk.green('\u{25CF}')} Found url (${found.length}): ${url}`);
+      urlsChan.send({ url });
     }
     const finder = new Finder(mapper, this);
-    await finder.run(
-      patterns,
-      { maxIterations: 10, onFind });
+    const findPromise = finder
+      .run(
+        patterns,
+        { maxIterations: 10, onFind })
+      .then(() => urlsChan.end())
+      .catch((e) => {
+        urlsChan.end();
+        throw e;
+      });
+
+    // Read from channel
+    for await (const val of urlsChan.receive()) {
+      if (val.end) {
+        break;
+      }
+
+      yield Promise.resolve(val);
+    }
+
+    await findPromise;
     await mapPromise;
-    console.log('found:', found);
-    console.log('found len', found.length);
   }
 };
 
