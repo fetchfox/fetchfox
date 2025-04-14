@@ -25,7 +25,7 @@ export const PatternCrawler = class extends BaseCrawler {
     const mapper = new Mapper(this);
     await mapper.run(
       rootUrl,
-      { maxIterations: 3, onIteration });
+      { maxIterations: 0, onIteration });
 
     // Run finder
     const onFind = async (link) => {

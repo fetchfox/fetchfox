@@ -36,23 +36,48 @@ export const Finder = class {
 
     const urls = this.mapper.urls;
 
-    const pq = new PriorityQueue(score);
+    const pq = new PriorityQueue(score, this);
     urls.forEach(it => pq.add(it));
+    for (const pattern of patterns) {
+      const url = new URL(pattern);
+      pq.add(url.origin);
+    }
 
     for (let i = 0; i < maxIterations && !pq.empty; i++) {
-      // console.log('iter', i);
+      console.log('Iteration', i);
 
-      const link = pq.shift();
-      handleUrl(link.url);
+      // const link = pq.shift();
+      const links = await pq.shiftMany(
+        10,
+        -5,
+        `Find urls matching any of these URL patterns:\n${patterns.join('\n')}`);
 
       // for (const x of pq.list) {
       //   console.log('x=>', score(x.url), x);
       // }
+      console.log('links', links);
 
-      const doc = await this.fetcher.first(link.url);
-      for (const found of doc.links) {
-        handleUrl(found.url);
+      const promises = [];
+
+      for (const link of links) {
+        console.log('link ->', link.url, score(link.url));
+        handleUrl(link.url);
+
+        const p = new Promise(async (ok) => {
+          console.log('Fetch', link.url);
+          const doc = await this.fetcher.first(link.url);
+          console.log('Fetch got: ' + doc);
+          for (const found of doc.links) {
+            // console.log('found url:', found.url);
+            handleUrl(found.url);
+          }
+          ok();
+        });
+
+        promises.push(p);
       }
+
+      await Promise.allSettled(promises);
     }
   }
 }

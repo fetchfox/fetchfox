@@ -20,7 +20,7 @@ export const Mapper = class {
   }
 
   async run(rootUrl, options) {
-    const maxIterations = options?.maxIterations || 10;
+    const maxIterations = options?.maxIterations ?? 10;
     const onIteration = options?.onIteration ? options?.onIteration : () => {};
 
     const pq = new PriorityQueue((url) => this.score(url));

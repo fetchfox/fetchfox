@@ -196,7 +196,31 @@ WARNING top level catch-all matchers:
 - And if you include these, first pull out content pages like https://example.com/something or https://example.com/other-thing that likely override the generic matcher
 - Generally, if https://example.com/something/:id exists, there is usually also a matcher for https://example.com/something that should override the catch-all of https://example.com/:id
 
-Repeated similar URLs:
+Your response will be machine parsed using JSON.parse(), splitting on '\n'. Therefore, respond ONLY with valid JSONL
+`);
+
+export const pqShift = new Template(
+  ['num', 'urls', 'goal'],
+  `You are crawling a website. Given a list of URLs and a goal, find the URLs that best match that goal.
+
+Return your results in JSONL format, with one JSON object per line. Include the following fields in each JSON object
+
+- "why": Explain why you are including this url, in 4-12 words
+- "url": The URL to crawl, pulled from the list below
+
+The goal is:
+{{goal}}
+
+The list of candidate URLs is below. Pull from this list.
+{{urls}}
+
+Return at most this many results:
+{{num}}
+
+Return ONLY urls from the list of candidates
+
+Tips:
+- Think about which urls are likely to list many many links going to the patterns
 
 Your response will be machine parsed using JSON.parse(), splitting on '\n'. Therefore, respond ONLY with valid JSONL
 `);
