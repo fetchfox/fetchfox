@@ -27,19 +27,38 @@ export const Mapper = class {
     pq.add(rootUrl);
 
     for (let i = 0; i < maxIterations && !pq.empty; i++) {
-      const link = pq.shift();
-      const doc = await this.fetcher.first(link.url);
+      const promises = [];
+      const links = await pq.shiftMany(
+        Math.min(4**i, 32), // Grab more on each iteration
+        9999,
+        goalPrompt(this.layoutString([rootUrl])),
+        {
+          onLink: (link) => {
+            // console.log('onlink', link);
+            promises.push(this.visit(link.url, pq))
+          }
+        });
 
-      for (const found of doc.links) {
-        if (!check(found.url, link.url)) {
-          continue;
-        }
-        this.connect(link.url, found.url);
-        pq.add(found.url);
-      }
+      // console.log('links', links);
+      // console.log('promises', promises);
+      const outcomes = await Promise.allSettled(promises);
+      // console.log('outcomes', outcomes);
 
       await this.learn(rootUrl);
       await onIteration();
+    }
+  }
+
+  async visit(url, pq) {
+    // console.log('fetch -->', url);
+    const doc = await this.fetcher.first(url);
+    // console.log('doc --> ' + doc);
+    for (const found of doc.links) {
+      if (!check(found.url, url)) {
+        continue;
+      }
+      this.connect(url, found.url);
+      pq.add(found.url);
     }
   }
 
@@ -48,7 +67,7 @@ export const Mapper = class {
     if (path.pattern) {
       return 1;
     } else {
-      return 2;
+      return 10;
     }
   }
   
@@ -275,3 +294,9 @@ export const toExample = (pattern) => {
   url.pathname = exampleParts.join('/');
   return norm(url.toString());
 }
+
+const goalPrompt = (layoutString) => `Establish a general map of the site layout. Explore new areas that are likely to contain rich data and content.
+
+Here is the sitemap so far: ${layoutString}
+
+Focus on areas that are unexplored.`

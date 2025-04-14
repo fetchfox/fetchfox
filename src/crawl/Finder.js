@@ -10,7 +10,7 @@ export const Finder = class {
   }
 
   async run(patterns, options) {
-    console.log('*find', patterns);
+    console.log('* run find:', patterns);
     const maxIterations = options?.maxIterations || 10;
     const onFind = options?.onFind ? options?.onFind : () => {};
 
@@ -19,15 +19,23 @@ export const Finder = class {
       return -Math.min(...distances);
     }
 
+    const matches = (url) => {
+      for (const pattern of patterns) {
+        const re = new RegExp('^' + pattern.replaceAll('*', '.*') + '/?$');
+        if (url.match(re)) {
+          return true
+        }
+      }
+      return false;
+    }
+
     const sent = {};
     const handleUrl = (url) => {
       const n = norm(url);
+      // console.log('Finder handle:', n, matches(n));
       pq.add(n);
 
-      if (Math.abs(score(n)) != 0) {
-        return;
-      }
-      if (sent[n]) {
+      if (!matches(n) || sent[n]) {
         return;
       }
       sent[n] = true;
@@ -45,30 +53,27 @@ export const Finder = class {
 
     for (let i = 0; i < maxIterations && !pq.empty; i++) {
       console.log('Iteration', i);
-
-      // const link = pq.shift();
       const links = await pq.shiftMany(
-        10,
+        9999,
         -5,
-        `Find urls matching any of these URL patterns:\n${patterns.join('\n')}`);
+        `Find urls matching any of these URL patterns:
+${patterns.join('\n')}
 
-      // for (const x of pq.list) {
-      //   console.log('x=>', score(x.url), x);
-      // }
-      console.log('links', links);
+To help with your search, reference this sitemap. Indentation shows the page layout hierarchy, and URL patterns and speicfic URLs are both shown:
+${this.mapper.layoutString()}
+`);
 
       const promises = [];
 
       for (const link of links) {
-        console.log('link ->', link.url, score(link.url));
+        console.log('Finder visit: link ->', link.url, score(link.url));
         handleUrl(link.url);
 
         const p = new Promise(async (ok) => {
-          console.log('Fetch', link.url);
+          console.log('Finder Fetch', link.url);
           const doc = await this.fetcher.first(link.url);
-          console.log('Fetch got: ' + doc);
+          console.log('Finder got: ' + doc);
           for (const found of doc.links) {
-            // console.log('found url:', found.url);
             handleUrl(found.url);
           }
           ok();

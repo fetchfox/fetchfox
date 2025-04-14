@@ -60,10 +60,10 @@ export const PriorityQueue = class {
     return this.list.shift();
   }
 
-  async shiftMany(num, cutoff, goal) {
+  async shiftMany(num, cutoff, goal, options) {
     this.sort();
 
-    // const onResult = options?.onResult ? options?.onResult : () => {};
+    const onLink = options?.onLink ? options?.onLink : () => {};
 
     const results = [];
     while (results.length < num && this.list[0].score > cutoff) {
@@ -85,21 +85,18 @@ export const PriorityQueue = class {
       goal,
     };
     const { prompt } = await prompts.pqShift.renderCapped(context, 'urls', this.ai);
-
-    console.log('prompt', prompt);
-
+    // console.log('prompt', prompt);
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
 
     for await (const { delta } of gen) {
       console.log('pq delta', delta);
       results.push(delta);
+      onLink(delta);
     }
 
-    console.log('list before', this.list);
     this.list = this.list.filter(it => {
       return !results.some(jt => jt.url == it.url)
     });
-    console.log('list after ', this.list);
 
     return results;
   }

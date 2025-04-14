@@ -18,16 +18,18 @@ export const PatternCrawler = class extends BaseCrawler {
   async *run(patterns, options) {
     const rootUrl = new URL(patterns[0]).origin;
 
-    // Run mapper
+    // Start mapper
     const onIteration = async () => {
+      console.log('');
+      console.log('== latest map ==');
       console.log(mapper.layoutString([rootUrl]));
     }
     const mapper = new Mapper(this);
-    await mapper.run(
+    const mapPromise = mapper.run(
       rootUrl,
-      { maxIterations: 0, onIteration });
+      { maxIterations: 4, onIteration });
 
-    // Run finder
+    // Run finder concurrently with mapper
     const onFind = async (link) => {
       console.log('=> found link', link);
     }
@@ -35,6 +37,8 @@ export const PatternCrawler = class extends BaseCrawler {
     await finder.run(
       patterns,
       { maxIterations: 200, onFind });
+
+    await mapPromise;
   }
 };
 
