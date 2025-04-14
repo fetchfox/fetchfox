@@ -28,6 +28,7 @@ export const PriorityQueue = class {
     const n = norm(url);
     this._seen[n] = true;
     this.list.push({ url });
+    this._sorted = false;
   }
 
   sort() {
@@ -53,11 +54,20 @@ export const PriorityQueue = class {
 
       return scoreA - scoreB;
     });
+
+    this._sorted = true;
   }
 
   shift() {
     this.sort();
     return this.list.shift();
+  }
+
+  get top() {
+    if (!this._sorted) {
+      this.sort();
+    }
+    return this.list[0];
   }
 
   async shiftMany(num, cutoff, goal, options) {
@@ -66,9 +76,13 @@ export const PriorityQueue = class {
     const onLink = options?.onLink ? options?.onLink : () => {};
 
     const results = [];
-    while (results.length < num && this.list[0].score > cutoff) {
+    // console.log('top score:', this.top?.score);
+    while (results.length < num && this.top?.score > cutoff) {
+      // console.log('-> top score:', this.top?.score);
       results.push(this.list.shift());
     }
+
+    await new Promise(ok => setTimeout(ok, 3000));
 
     if (results.length == num) {
       return results;
@@ -85,11 +99,14 @@ export const PriorityQueue = class {
       goal,
     };
     const { prompt } = await prompts.pqShift.renderCapped(context, 'urls', this.ai);
-    // console.log('prompt', prompt);
+    // console.log('pq prompt', prompt);
+    // throw 'STOP pq prompt';
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
 
+    console.log('pq find', remaining);
+
     for await (const { delta } of gen) {
-      console.log('pq delta', delta);
+      // console.log('pq delta', delta);
       results.push(delta);
       onLink(delta);
     }

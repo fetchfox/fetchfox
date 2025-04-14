@@ -1,17 +1,22 @@
+import { Timer } from '../log/timer.js';
+import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js'
 import { getFetcher } from '../fetch/index.js'
 import { PriorityQueue } from './PriorityQueue.js'
 import { norm } from './shared.js ';
+import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
 export const Mapper = class {
   constructor(options) {
+    this.logger = options?.logger || defaultLogger;
+    this.timer = new Timer();
     this.ai = options?.ai || getAI();
     this.fetcher = options?.fetcher || getFetcher();
+    this.cache = options?.cache;
 
-    this._urls = {};
     this.patterns = [];
-
+    this._urls = {};
     this._memo = {};
   }
 
@@ -19,34 +24,80 @@ export const Mapper = class {
     return Object.keys(this._urls);
   }
 
-  async run(rootUrl, options) {
+  async getCache(vals) {
+    console.log('mapper this.cache', this.cache);
+    if (!this.cache) {
+      return;
+    }
+
+    const key = 'mapper-' + shortObjHash(vals);
+    console.log('check mapper cache', key);
+
+    const cached = await this.cache.get(key);
+    if (!cached) {
+      return false;
+    }
+
+    this.patterns = cached.patterns;
+    this._urls = cached._urls;
+    this._memo = {};
+
+    // console.log('mapper cached', cached);
+    // console.log('this.layoutString()', this.layoutString());
+    // throw 'STOP cached';
+
+    return true;
+  }
+
+  async setCache(vals) {
+    if (!this.cache) return;
+    const key = 'mapper-' + shortObjHash(vals);
+    console.log('set mapper cache', key);
+
+    return this.cache.set(key, {
+      patterns: this.patterns,
+      _urls: this._urls,
+    });
+  }
+
+  async run(urls, options) {
     const maxIterations = options?.maxIterations ?? 10;
     const onIteration = options?.onIteration ? options?.onIteration : () => {};
+    const hint = options?.hint || '';
 
-    const pq = new PriorityQueue((url) => this.score(url));
-    pq.add(rootUrl);
+    const cacheKeys = { urls, maxIterations, hint };
+    if (await this.getCache(cacheKeys)) {
+      return;
+    }
+
+    const pq = new PriorityQueue((url) => this.score(url), this);
+    urls.forEach(it => pq.add(it));
+    // pq.add(rootUrl);
 
     for (let i = 0; i < maxIterations && !pq.empty; i++) {
       const promises = [];
       const links = await pq.shiftMany(
-        Math.min(4**i, 32), // Grab more on each iteration
+        Math.min(4**(i+1), 32), // Grab more on each iteration
         9999,
-        goalPrompt(this.layoutString([rootUrl])),
+        goalPrompt(this.layoutString(urls), hint),
         {
           onLink: (link) => {
-            // console.log('onlink', link);
             promises.push(this.visit(link.url, pq))
           }
         });
 
-      // console.log('links', links);
-      // console.log('promises', promises);
-      const outcomes = await Promise.allSettled(promises);
-      // console.log('outcomes', outcomes);
+      // console.log('Links for this iteration:', links);
+      // await new Promise(ok => setTimeout(ok, 4000));
 
-      await this.learn(rootUrl);
+      console.log('wait for promises to settle:', promises.length);
+      await Promise.allSettled(promises);
+      console.log('wait for learn');
+      await this.learn(urls, hint);
+      console.log('wait for on iter');
       await onIteration();
     }
+
+    await this.setCache(cacheKeys);
   }
 
   async visit(url, pq) {
@@ -72,8 +123,9 @@ export const Mapper = class {
   }
   
   distance(url, targetPattern, n = 0, seen = {}) {
-    const key = `${url}->${targetPattern}`;
+    const key = `url=${url}:tp=${targetPattern}:n=${n}`;
     if (this._memo[key]) {
+      // console.log('return memoed', key);
       return this._memo[key];
     }
 
@@ -83,23 +135,49 @@ export const Mapper = class {
     }
     seen[path.name] = true;
 
-    const example = toExample(targetPattern);
+    const findRegex = (re) => {
+      for (const url of this.urls) {
+        if (url.match(re)) {
+          return url;
+        }
+      }
+    }
+
+    // const example = examplesForPattern() || toExample(targetPattern);
+    const re = new RegExp('^' + targetPattern.replaceAll('*', '.*') + '$');
+    const example = findRegex(re) || toExample(targetPattern);
+
+    // console.log('tp        ', targetPattern);
+    // console.log('as example', example);
+
     const target = this.toPath(example);
+
+    // console.log('target', target);
+
     let result = 999;
 
     if (!target.regex) {
       return result;
     }
 
+    // console.log('direct match?');
     if (url.match(new RegExp(target.regex))) {
       return n;
     }
 
+    // console.log('no match, check children...');
     const tos = [...(this.paths[path.name]?.to || [])];
     for (const to of tos) {
+      // console.log('check to:', to);
+
       let d;
       if (to.pattern) {
-        d = this.distance(toExample(to.pattern), targetPattern, n + 1, seen);
+        // console.log('get example for:', to);
+        const url = findRegex(to.regex) || toExample(to.pattern);
+        // console.log(this.paths[path.name]);
+        // console.log('example url', url, path.name);
+        // throw 'STOP132';
+        d = this.distance(url, targetPattern, n + 1, seen);
       } else {
         d = this.distance(to.url, targetPattern, n + 1, seen);
       }
@@ -115,36 +193,87 @@ export const Mapper = class {
     url = norm(url);
 
     for (const pattern of this.patterns) {
+      if (pattern.name == url) {
+        return pattern;
+      }
+
+      // console.log('check', pattern.regex);
+
       if (url.match(new RegExp(pattern.regex))) {
         return pattern;
       }
     }
-    return { url, name: url };
+
+    return { url, name: url, pretty: url };
   }
 
   get paths() {
-    const out = {};
-    const urls = Object.keys(this._urls);
-    for (const url of urls) {
-      const path = this.toPath(url);
+    if (!this._memo['_paths']) {
+      const out = {};
+      const urls = Object.keys(this._urls);
+      for (const url of urls) {
+        const path = this.toPath(url);
 
-      if (!out[path.name]) {
-        out[path.name] = { to: [] };
-      }
-
-      const seen = {};
-      for (const to of (this._urls[url]?.to || [])) {
-        const pathTo = this.toPath(to);
-        const exists = out[path.name].to.filter(it => it.name == pathTo.name).length
-        if (exists) {
-          continue;
+        if (!out[path.name]) {
+          out[path.name] = { to: [] };
         }
-        out[path.name].to.push(pathTo);
+
+        const seen = {};
+        for (const to of (this._urls[url]?.to || [])) {
+          const pathTo = this.toPath(to);
+          const exists = out[path.name].to.filter(it => it.name == pathTo.name).length
+          if (exists) {
+            continue;
+          }
+          out[path.name].to.push(pathTo);
+        }
       }
+      this._memo['_paths'] = out;
     }
-    return out;
+
+    return this._memo['_paths'];
   }
 
+  examplesForPattern(pattern, num) {
+    const l = [];
+    const re = new RegExp(pattern.regex);
+    for (const url of this.urls) {
+      if (url.match(re)) {
+        l.push(url);
+        if (num && l.length >= num) {
+          break;
+        }
+      }
+    }
+    return l;
+  }
+
+  examples(numPer) {
+    const examples = {};
+    for (const pattern of this.patterns) {
+      examples[pattern.pretty] = this.examplesForPattern(pattern, numPer);
+    }
+
+    return examples;
+  }
+
+  examplesString(numPer) {
+    const examples = this.examples(numPer);
+    let s = '\n';
+    for (const key of Object.keys(examples)) {
+      if (!examples[key]?.length) {
+        continue;
+      }
+
+      s += `${key}\n`;
+      for (const url of examples[key]) {
+        s += `\t${url}\n`;
+      }
+    }
+    return s;
+  }
+
+  // layoutString returns a string representing the site layout hierarchy
   layoutString(urls, depth = 0, depths) {
     const paths = this.paths;
     if (!urls) {
@@ -176,18 +305,17 @@ export const Mapper = class {
     const indent = (n) => '\t'.repeat(n);
 
     let s = '';
-
     for (const url of urls) {
       const path = this.toPath(norm(url));
 
-      s += indent(depth) + path.name + '\n';
+      s += indent(depth) + path.pretty + '\n';
 
       const tos = [...(paths[path.name]?.to || [])].sort(comparePaths);
       for (const to of tos) {
         if (depths[to.name] == depth + 1) {
           s += this.layoutString([to.name], depth + 1, depths);
         } else if (to.pattern) {
-          s += indent(depth + 1) + to.name + '\n';
+          s += indent(depth + 1) + to.pretty + '\n';
         }
       }
     }
@@ -209,20 +337,43 @@ export const Mapper = class {
     this._urls[src].to.push(dst);
   }
 
-  async learn(url) {
-    const context = { layout: this.layoutString([url]) };
-    const { prompt } = await prompts.urlPatterns.renderCapped(
-      context, 'layout', this.ai);
+  async learn(urls, hint) {
+    const layout = this.layoutString(urls);
 
-    this.patterns = [];
+    const context = {
+      layout,
+      examples: this.examplesString(5),
+      hint,
+    };
+    const { prompt } = await prompts.urlPatterns.renderCapped(
+      context, 'examples', this.ai);
+
+    // console.log('prompt ==>', prompt);
+    // console.log('this.ai.cache', this.ai.cache);
+    // if (!this.ai.cache) throw 'stop no cache';
+
+    let patterns = [...this.patterns];
+    // this.patterns = [];
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
+      patterns = patterns.filter(it => it.name != delta.name);
+
+      if (delta.delete) {
+        // console.log('DELETE pattern', delta);
+        // // throw 'STOP delete pattern';
+        // this.logger.trace('!!');
+        continue;
+      }
+
       const pattern = delta.pattern.replace(/\/$/, '');
-      console.log('delta pattern ->', pattern);
-      this.patterns.push({ ...delta, pattern, name: `[${delta.name}:\t${pattern}]` });
+      console.log('delta pattern ->', pattern, delta.regex);
+      patterns.push({ ...delta, pattern, pretty: `[${delta.name}: ${pattern} regex=${delta.regex}]` });
     }
 
-    this.patterns.sort((a, b) => comparePatterns(a.pattern, b.pattern));
+    patterns.sort((a, b) => comparePatterns(a.pattern, b.pattern));
+    this.patterns = patterns;
+    // console.log('this.patterns', this.patterns);
+
     this._memo = {};
   }
 }
@@ -283,9 +434,10 @@ export const toExample = (pattern) => {
   const parts = url.pathname.split('/');
   const exampleParts = [];
   let i = 1;
+  const alpha = 'abcdefghijklmnopqrstuvwxyz'.split('');
   for (const p of parts) {
     if (p == '*' || p.startsWith(':')) {
-      exampleParts.push('val' + (i++));
+      exampleParts.push('val' + alpha[i++]);
     } else {
       exampleParts.push(p);
     }
@@ -295,8 +447,15 @@ export const toExample = (pattern) => {
   return norm(url.toString());
 }
 
-const goalPrompt = (layoutString) => `Establish a general map of the site layout. Explore new areas that are likely to contain rich data and content.
+const goalPrompt = (layoutString, hint) => `Establish a general map of the site layout. Explore new areas that are likely to contain rich data and content.
 
-Here is the sitemap so far: ${layoutString}
+Here is the sitemap so far:
 
-Focus on areas that are unexplored.`
+== Site Map ==
+${layoutString}
+== End Site Map ==
+
+Focus on areas that are unexplored.
+
+${hint ? 'Also, take into consideration this hint from the user: ' + hint : ''}
+`;

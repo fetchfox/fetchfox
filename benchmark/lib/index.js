@@ -1,6 +1,7 @@
 import { logger } from '../../src/log/logger.js';
 import { fox } from '../../src/index.js';
 import { S3Cache } from '../../src/cache/S3Cache.js';
+import { DiskCache } from '../../src/cache/DiskCache.js';
 import { storeScores } from './store.js';
 
 const populate = (json, config) => {
@@ -75,7 +76,10 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
 
     if (options.cache) {
       fullConfig.cache = options.cache;
+    } else if (process.env.BENCH_USE_CACHE) {
+      fullConfig.cache = new DiskCache('/tmp/ffbenchcache-5');
     }
+
     if (options.kv) {
       fullConfig.kv = options.kv;
     }

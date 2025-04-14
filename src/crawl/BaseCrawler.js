@@ -6,10 +6,16 @@ import { clip } from '../util.js';
 
 export const BaseCrawler = class {
   constructor(options) {
-    const { ai, fetcher, logger } = options || {};
+    const { ai, fetcher, logger, cache } = options || {};
     this.logger = logger || defaultLogger;
     this.ai = ai || getAI(null, options);
     this.fetcher = fetcher || getFetcher(null, options);
+    this.cache = cache;
+
+    console.log('BC cache', cache);
+    // this.logger.trace('!!');
+    // throw 'STOP';
+
     this.usage = {
       requests: 0,
       count: 0,

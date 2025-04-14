@@ -41,8 +41,6 @@ export const BaseFetcher = class {
   }
 
   async first(target, options) {
-    console.log('??', target);
-
     try {
       for await (const doc of this.fetch(target, options)) {
         return doc;

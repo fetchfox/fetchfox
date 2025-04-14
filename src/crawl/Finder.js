@@ -1,3 +1,4 @@
+import { getAI } from '../ai/index.js'
 import { getFetcher } from '../fetch/index.js'
 import { PriorityQueue } from './PriorityQueue.js'
 import { norm } from './shared.js ';
@@ -5,12 +6,14 @@ import * as prompts from './prompts.js';
 
 export const Finder = class {
   constructor(mapper, options) {
-    this.mapper = mapper;
+    this.ai = options?.ai || getAI();
     this.fetcher = options?.fetcher || getFetcher();
+    this.signal = options?.signal;
+
+    this.mapper = mapper;
   }
 
   async run(patterns, options) {
-    console.log('* run find:', patterns);
     const maxIterations = options?.maxIterations || 10;
     const onFind = options?.onFind ? options?.onFind : () => {};
 
@@ -30,16 +33,25 @@ export const Finder = class {
     }
 
     const sent = {};
-    const handleUrl = (url) => {
+    const seen = {};
+    const handleUrl = async (url) => {
+      if (seen[url]) {
+        return;
+      }
+      seen[url] = true;
+
       const n = norm(url);
-      // console.log('Finder handle:', n, matches(n));
       pq.add(n);
 
-      if (!matches(n) || sent[n]) {
+      if (!matches(n)) {
+        return;
+      }
+      if (sent[n]) {
         return;
       }
       sent[n] = true;
-      onFind(n);
+
+      await onFind(n);
     }
 
     const urls = this.mapper.urls;
@@ -52,9 +64,13 @@ export const Finder = class {
     }
 
     for (let i = 0; i < maxIterations && !pq.empty; i++) {
+      if (this.signal?.aborted) {
+        break;
+      }
+
       console.log('Iteration', i);
       const links = await pq.shiftMany(
-        9999,
+        64,
         -5,
         `Find urls matching any of these URL patterns:
 ${patterns.join('\n')}
@@ -66,13 +82,17 @@ ${this.mapper.layoutString()}
       const promises = [];
 
       for (const link of links) {
-        console.log('Finder visit: link ->', link.url, score(link.url));
-        handleUrl(link.url);
+        // console.log('Finder visit: link ->', link.url, score(link.url));
+        await handleUrl(link.url);
 
         const p = new Promise(async (ok) => {
+          if (this.signal?.aborted) {
+            return;
+          }
           console.log('Finder Fetch', link.url);
           const doc = await this.fetcher.first(link.url);
           console.log('Finder got: ' + doc);
+
           for (const found of doc.links) {
             handleUrl(found.url);
           }

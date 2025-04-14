@@ -145,10 +145,17 @@ export const BaseAI = class {
   }
 
   async getCache(prompt, options) {
-    if (!this.cache) return;
+    if (!this.cache) {
+      this.logger.trace('??');
+      throw 'no cache';
+      return;
+    }
 
     const { systemPrompt, format, cacheHint } = options || {};
     const key = this.cacheKey(prompt, { systemPrompt, format, cacheHint });
+
+    console.log('key:', key);
+
     let result;
     try {
       result = await this.cache.get(key);
@@ -186,6 +193,7 @@ export const BaseAI = class {
     let cached;
     try {
       cached = await this.getCache(prompt, options);
+      // console.log('got cache for prompt:', cached);
     } catch (e) {
       this.logger.error(`${this} Error while getting cache: ${e}`);
     }

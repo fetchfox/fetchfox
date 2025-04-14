@@ -33,8 +33,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.browser = options?.browser || 'chromium';
     this.cdp = options?.cdp;
 
-    console.log('cdp?', this.cdp);
-    this.logger.trace('.');
+    // console.log('cdp?', this.cdp);
+    // this.logger.trace('.');
 
     this.pullIframes = options?.pullIframes;
     this.logger = options?.logger || defaultLogger;

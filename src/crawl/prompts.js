@@ -160,22 +160,27 @@ Respond ONLY in JSONL, with one valid JSON object per line, your response will b
 `);
 
 export const urlPatterns = new Template(
-  ['layout'],
+  ['layout', 'examples', 'hint'],
   `Given the following site layout, return a list of URL matchers.
 
 The site layout shows the parent URL and the sub URLs it links to, with indentation indicating the depth.
 
-You should return URL matchers as JSONL, with each JSON object having two fields:
+You should return URL matchers as JSONL, with each JSON object having three fields:
 
-- "name": name of the pattern, in dash-case, typically 2-30 characters
-- "pattern": url pattern, in a format like https://www.example.com/category/:id/sub/:sub-id
-- "regex": a regex to match this pattern. must be compatible with Javascript's new RegExp();
+  - "name": name of the pattern, in dash-case, typically 2-30 characters
+  - "pattern": url pattern, in a format like https://www.example.com/category/:id/sub/:sub_id. Use ONLY :id format, not * matchers
+  - "regex": a regex to match this pattern. must be compatible with Javascript's new RegExp();
 
-They layout is below:
-
+The layout is below:
 {{layout}}
 
-This layout already includes some patterns, which are collapsed. Use these existing patterns, or improve upon them, or consolidate into them, as you see fit.
+A few examples of existing pattern matches:
+{{examples}}
+
+Consider these examples when deciding if any existing patterns need to be deleted.
+
+Existing layout and patterns: 
+- This layout already includes some patterns. Focus on returning new patterns.
 
 Keep in mind these guidlines:
 
@@ -195,6 +200,26 @@ WARNING top level catch-all matchers:
 - These will often overmatch, so always place them last
 - And if you include these, first pull out content pages like https://example.com/something or https://example.com/other-thing that likely override the generic matcher
 - Generally, if https://example.com/something/:id exists, there is usually also a matcher for https://example.com/something that should override the catch-all of https://example.com/:id
+
+Thoroughness:
+- Be thorough, and find all patterns
+
+Deleting: 
+- You may also return JSON objects with the following format, if you think an existing pattern should be deleted:
+
+  - "why": why you want to delete the existing pattern, in 5-15 words. Typically this will be because it was overly general, or incorrectly matched, and a new pattern(s) does a better job
+  - "delete": equal to true for deletion
+  - "name": name of the pattern you are deleting
+
+Overwriting:
+- To overwrite an existing pattern with a new one, simply give the same name as the one you are replacing
+
+Hint from the user:
+- The user has given the following hint to help direct your mapping:
+
+  {{hint}}
+
+- Take this hint into consideration, but also develop a general site map
 
 Your response will be machine parsed using JSON.parse(), splitting on '\n'. Therefore, respond ONLY with valid JSONL
 `);

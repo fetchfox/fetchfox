@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { BaseCrawler } from './BaseCrawler.js';
 import { Mapper } from './Mapper.js';
 import { Finder } from './Finder.js';
@@ -13,32 +14,57 @@ const clean = url => {
 export const PatternCrawler = class extends BaseCrawler {
   constructor(options) {
     super(options);
+
+    // console.log('this.ai.cache PC', this.ai.cache);
+    // throw 'STOP1';
   }
 
   async *run(patterns, options) {
+    console.log('PC cache', this.cache);
+    this.logger.trace('!!');
+    // throw 'STOP';
+
+    const suggestions = options?.suggestions || [];
+
+    const mapperHint = `The user is crawling for URLs that fit these patterns: ${patterns.join('\n')}. Try to map out areas of the site that will help find these patterns.`;
+
     const rootUrl = new URL(patterns[0]).origin;
+    const urls = [rootUrl, ...suggestions];
+    console.log('options', options);
 
     // Start mapper
     const onIteration = async () => {
       console.log('');
       console.log('== latest map ==');
-      console.log(mapper.layoutString([rootUrl]));
+      console.log(mapper.layoutString(urls));
+      console.log('== latest examples ==');
+      console.log(mapper.examplesString(5));
+      // throw 'STOP on inter';
     }
     const mapper = new Mapper(this);
     const mapPromise = mapper.run(
-      rootUrl,
-      { maxIterations: 4, onIteration });
+      urls,
+      { maxIterations: 4, hint: mapperHint, onIteration });
+
+    // await mapPromise;
+    // console.log('== FINAL map ==');
+    // console.log(mapper.layoutString(urls));
+
+    // throw 'STOP map done';
 
     // Run finder concurrently with mapper
-    const onFind = async (link) => {
-      console.log('=> found link', link);
+    const found = [];
+    const onFind = async (url) => {
+      found.push(url);
+      this.logger.info(`${chalk.green('\u{25CF}')} Found url (${found.length}): ${url}`);
     }
     const finder = new Finder(mapper, this);
     await finder.run(
       patterns,
-      { maxIterations: 200, onFind });
-
+      { maxIterations: 10, onFind });
     await mapPromise;
+    console.log('found:', found);
+    console.log('found len', found.length);
   }
 };
 
