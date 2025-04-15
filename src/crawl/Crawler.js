@@ -7,32 +7,42 @@ import { createChannel } from '../util.js';
 
 export const Crawler = class extends BaseCrawler {
   usePattern(url, query) {
-    try {
-      if ((new URL(url)).pathname.includes('*')) {
-        return true;
+    const urls = [];
+
+    for (const it of [url, query]) {
+      try {
+        const u = new URL(it);
+        urls.push(u.toString());
+      } catch {
+        // no-op
       }
-    } catch {
-      // no-op
     }
 
-    try {
-      if ((new URL(query)).pathname.includes('*')) {
-        return true;
-      }
-    } catch {
-      // no-op
+    if (urls.length == 0) {
+      return false;
     }
 
-    return false;
+    const patterns = [];
+    for (const it of urls) {
+      if (new URL(it).pathname.includes('*')) {
+        patterns.push(it);
+      }
+    }
+
+    if (patterns.length == 0) {
+      return false;
+    }
+
+    return patterns;
   }
 
   async *run(url, query, options) {
-    if (this.usePattern(url, query)) {
-      this.logger.debug(`${this} Using pattern crawler for url=${url} query=${query}`);
+    const patterns = this.usePattern(url, query);
+    if (patterns) {
+      this.logger.debug(`${this} Using pattern crawler for patterns=${patterns.join(', ')}`);
 
       const pc = new PatternCrawler(this);
-      const urls = Array.isArray(url) ? url : [url];
-      const gen = pc.run(urls, options);
+      const gen = pc.run(patterns, options);
       for await (const r of gen) {
         yield Promise.resolve(r);
       }
