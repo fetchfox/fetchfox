@@ -39,8 +39,6 @@ export const Crawler = class extends BaseCrawler {
       return;
     }
 
-    throw 'STOP!';
-
     this.usage.requests++;
     const maxPages = options?.maxPages;
     const fetchOptions = options?.fetchOptions || {};

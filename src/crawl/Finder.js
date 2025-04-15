@@ -2,7 +2,7 @@ import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js'
 import { getFetcher } from '../fetch/index.js'
 import { PriorityQueue } from './PriorityQueue.js'
-import { norm } from './shared.js ';
+import { norm } from './shared.js';
 import * as prompts from './prompts.js';
 
 export const Finder = class {

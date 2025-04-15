@@ -2,7 +2,7 @@ import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js'
 import { getFetcher } from '../fetch/index.js'
 import { PriorityQueue } from './PriorityQueue.js'
-import { norm } from './shared.js ';
+import { norm } from './shared.js';
 import { shortObjHash } from '../util.js';
 import * as prompts from './prompts.js';
 
@@ -58,7 +58,10 @@ export const Mapper = class {
   }
 
   async run(urls, options) {
-    this.logger.info(`${this} Map ${urls.join(', ')}`);
+    urls = urls.map(norm);
+    // console.log('run urls==>', urls);
+
+    this.logger.info(`${this} Mapper start on these urls: ${urls.join(', ')}`);
 
     const maxIterations = options?.maxIterations ?? 10;
     const onIteration = options?.onIteration ? options?.onIteration : () => {};
@@ -87,9 +90,12 @@ export const Mapper = class {
         goalPrompt(this.layoutString(urls), hint),
         {
           onLink: (link) => {
-            promises.push(this.visit(link.url, pq))
+            console.log('call visit for link:', link);
+            promises.push(this.visit(link.url, pq));
           }
         });
+
+      // console.log('links', links);
 
       this.logger.debug(`${this} Wait for ${promises.length} visits to finish`);
       await Promise.allSettled(promises);
@@ -101,14 +107,19 @@ export const Mapper = class {
   }
 
   async visit(url, pq) {
+    // console.log('VISIT', url);
     this.logger.debug(`${this} Visiting ${url}`);
     const doc = await this.fetcher.first(url);
+    // console.log('VISIT GOT:' + doc);
     this.logger.debug(`${this} Got doc: ${doc}`);
 
     for (const found of doc.links) {
+      // console.log('found', found.url);
+
       if (!check(found.url, url)) {
         continue;
       }
+
       this.connect(url, found.url);
       pq.add(found.url);
     }
@@ -258,6 +269,11 @@ export const Mapper = class {
   // layoutString returns a string representing the site layout hierarchy
   layoutString(urls, depth = 0, depths) {
     const paths = this.paths;
+
+    // console.log('_urls', this._urls);
+    // console.log('urls', this.urls);
+    // console.log('paths', paths);
+
     if (!urls) {
       urls = Object.keys(this._urls).filter(it => Boolean(this._urls[it].to?.length));
     }
@@ -286,16 +302,21 @@ export const Mapper = class {
 
     const indent = (n) => '\t'.repeat(n);
 
+    const maxUrlsToAppend = 40;
+    let urlsAppended = 0;
+
     let s = '';
     for (const url of urls) {
       const path = this.toPath(norm(url));
-
       s += indent(depth) + path.pretty + '\n';
 
       const tos = [...(paths[path.name]?.to || [])].sort(comparePaths);
       for (const to of tos) {
         if (depths[to.name] == depth + 1) {
-          s += this.layoutString([to.name], depth + 1, depths);
+          // Don't append too many urls, it gunks up string and likely collapsable
+          if (to.pattern || (urlsAppended++ < maxUrlsToAppend)) {
+            s += this.layoutString([to.name], depth + 1, depths);
+          }
         } else if (to.pattern) {
           s += indent(depth + 1) + to.pretty + '\n';
         }
@@ -306,6 +327,8 @@ export const Mapper = class {
   }
 
   connect(src, dst) {
+    // console.log('connect', src, dst);
+
     src = norm(src);
     dst = norm(dst);
 
@@ -352,6 +375,10 @@ export const Mapper = class {
 
     patterns.sort((a, b) => comparePatterns(a.pattern, b.pattern));
     this.patterns = patterns;
+
+    // console.log('this.patterns', this.patterns);
+    // console.log('===> this._urls', this._urls);
+
     this._memo = {};
   }
 }

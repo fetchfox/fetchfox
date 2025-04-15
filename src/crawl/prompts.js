@@ -239,7 +239,7 @@ The goal is:
 The list of candidate URLs is below. Pull from this list.
 {{urls}}
 
-Return at most this many results:
+Return this many results:
 {{num}}
 
 Return ONLY urls from the list of candidates

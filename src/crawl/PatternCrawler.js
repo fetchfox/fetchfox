@@ -2,9 +2,10 @@ import chalk from 'chalk';
 import { BaseCrawler } from './BaseCrawler.js';
 import { Mapper } from './Mapper.js';
 import { Finder } from './Finder.js';
-import { PriorityQueue } from './PriorityQueue.js'
+import { PriorityQueue } from './PriorityQueue.js';
 import { createChannel, promiseAllStrict } from '../util.js';
-import * as prompts from './prompts.js'
+import { norm } from './shared.js';
+import * as prompts from './prompts.js';
 
 const clean = url => {
   const u = new URL(url);
@@ -17,12 +18,14 @@ export const PatternCrawler = class extends BaseCrawler {
   }
 
   async *run(patterns, options) {
+    this.logger.info(`${this} Look for patterns: ${patterns.join(', ')}`);
+
     const suggestions = options?.suggestions || [];
 
     const mapperHint = `The user is crawling for URLs that fit these patterns: ${patterns.join('\n')}. Try to map out areas of the site that will help find these patterns.`;
 
     const rootUrl = new URL(patterns[0]).origin;
-    const urls = [rootUrl, ...suggestions];
+    const urls = [rootUrl, ...suggestions].map(norm).filter(Boolean);
 
     // Start mapper
     const onIteration = async (i) => {
@@ -32,6 +35,9 @@ export const PatternCrawler = class extends BaseCrawler {
     const mapPromise = mapper.run(
       urls,
       { maxIterations: 4, hint: mapperHint, onIteration });
+
+    // await mapPromise;
+    // throw 'STOP';
 
     // Run finder concurrently with mapper
     const urlsChan = createChannel();
