@@ -13,9 +13,23 @@ export const DirectExtractor = class extends BaseExtractor {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
     const extraRules = modeRules(options?.mode || 'auto');
+
+    const preQuestions = {
+      _captcha: 'Is there a captcha on this page? "yes" or "no"',
+      _login: 'Is the main content on this page blocked due to a login form? Answer "yes" ONLY if there is not much content aside from a login form. Otherwise answer "no"',
+      _error: 'Are there any other errors or issues that prevent data from being scraped? answer "yes" or "no"',
+      _reasoning: 'In ~5-15 words, explaining your reasoning for how you will get data from this page. If there are issues like captchas, login blocks, or errors, raise those. Otherwise, explain where and how you will get the data. Be succint and specific, reference css selectors etc. if appropriate.',
+    };
+
+    const postQuestions = {
+      _confidence: 'Rate your confidence in this result, on a scale of 1..100',
+    };
+
+    const fullQuestions = { ...preQuestions, ...questions, ...postQuestions };
+
     const context = {
       url: doc.url,
-      questions: JSON.stringify(questions, null, 2),
+      questions: JSON.stringify(fullQuestions, null, 2),
       body: doc.html,
       extraRules,
     };
