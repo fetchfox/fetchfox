@@ -37,10 +37,9 @@ export const PatternCrawler = class extends BaseCrawler {
       urls,
       { maxIterations: 3, hint: mapperHint, onIteration });
 
-    await mapPromise;
-    console.log(mapper.layoutString(urls));
-
-    throw 'STOP';
+    // await mapPromise;
+    // console.log(mapper.layoutString(urls));
+    // throw 'STOP';
 
     // Run finder concurrently with mapper
     const urlsChan = createChannel();
