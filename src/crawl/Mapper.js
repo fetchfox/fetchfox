@@ -63,7 +63,6 @@ export const Mapper = class {
     this._roots = urls;
 
     urls = urls.map(norm);
-    // console.log('run urls==>', urls);
 
     this.logger.info(`${this} Mapper start on these urls: ${urls.join(', ')}`);
 
@@ -89,22 +88,15 @@ export const Mapper = class {
       const promises = [];
       this.logger.debug(`${this} Pulling links from priority queue`);
 
-      console.log('pq list:', pq.list);
-
       const links = await pq.shiftMany(
         Math.min(4**(i+1), 32), // Grab more on each iteration
         0,
         goalPrompt(this.layoutString(urls), this.visited, hint),
         {
           onLink: (link) => {
-            console.log('call visit for link:', link);
             promises.push(this.visit(link.url, pq));
           }
         });
-
-      console.log('Mapper processing these links', i, links);
-
-      // throw 'STOP111';
 
       this.logger.debug(`${this} Wait for ${promises.length} visits to finish`);
       await Promise.allSettled(promises);
@@ -116,15 +108,11 @@ export const Mapper = class {
   }
 
   async visit(url, pq) {
-    // console.log('VISIT', url);
     this.logger.debug(`${this} Visiting ${url}`);
     const doc = await this.fetcher.first(url);
-    // console.log('VISIT GOT:' + doc);
     this.logger.debug(`${this} Got doc: ${doc}`);
 
     for (const found of doc.links) {
-      // console.log('visit found', found.url, 'on', url); 
-
       if (!check(found.url, url)) {
         continue;
       }
@@ -139,14 +127,7 @@ export const Mapper = class {
   }
 
   score(url) {
-    return 10;
-
-    // const path = this.toPath(url);
-    // if (path.pattern) {
-    //   return 1;
-    // } else {
-    //   return 10;
-    // }
+    return 10;  // TODO
   }
   
   distance(url, targetPattern, n = 0, seen = {}) {
@@ -281,13 +262,8 @@ export const Mapper = class {
     return s;
   }
 
-  // layoutString returns a string representing the site layout hierarchy
   layoutString(urls, depth = 0, depths) {
     const paths = this.paths;
-
-    // console.log('_urls', this._urls);
-    // console.log('urls', this.urls);
-    // console.log('paths', paths);
 
     if (!urls) {
       urls = (
@@ -318,38 +294,17 @@ export const Mapper = class {
       }
     }
 
-    // console.log('depths', JSON.stringify(depths, null, 2));
-
     const indent = (n) => '\t'.repeat(n);
 
     let s = '';
     for (const url of urls) {
-      // Cap number of sub-urls we include
-      const maxUrlsToAppend = 280;
-      let urlsAppended = 0;
-
-      // console.log('layout string ==> ', depth, url);
-
       const path = this.toPath(norm(url));
-
-      // console.log('has path:', path);
 
       s += indent(depth) + path.pretty + '\n';
       const tos = [...(paths[path.name]?.to || [])].sort(comparePaths);
 
-      // console.log('tos', depth, url, tos);
-
       for (const to of tos) {
-        // if (url == 'https://www.coldwellbanker.com/sitemap/agents') {
-        //   console.log('proc to -->', to.name, urlsAppended);
-        // }
-
         if (depths[to.name] == depth + 1) {
-          // Don't append too many urls, it gunks up string and likely collapsable
-          // if (to.pattern || (urlsAppended++ < maxUrlsToAppend)) {
-          // if (to.pattern) {
-          // }
-
           s += this.layoutString([to.name], depth + 1, depths);
         } else if (to.pattern) {
           s += indent(depth + 1) + to.pretty + '\n';
@@ -361,8 +316,6 @@ export const Mapper = class {
   }
 
   connect(src, dst) {
-    // console.log('connect', src, dst);
-
     src = norm(src);
     dst = norm(dst);
 
@@ -381,10 +334,6 @@ export const Mapper = class {
 
     this._memo = {};
 
-    // // learn twice
-    // for (let i = 0; i < 1; i++) {
-    // console.log('learn i', i);
-
     const layout = this.layoutString(urls);
     const context = {
       layout,
@@ -393,18 +342,6 @@ export const Mapper = class {
     };
     const { prompt } = await prompts.urlPatterns.renderCapped(
       context, 'examples', this.ai);
-
-    // console.log('===> this._urls', this._urls);
-
-    console.log('');
-    console.log('\tPROMPT');
-    console.log('');
-    console.log(prompt);
-    console.log('');
-    console.log('');
-    console.log('');
-
-    // throw 'STOP prompt';
 
     let patterns = [...this.patterns];
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
@@ -441,10 +378,6 @@ export const Mapper = class {
     this.patterns = patterns;
 
     this._memo = {};
-
-    // console.log('this.patterns',this.patterns);
-    // console.log('===> this._urls', this._urls);
-    // console.log('this.layoutString()', this.layoutString());
   }
 }
 

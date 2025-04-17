@@ -1,3 +1,4 @@
+import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js'
 import crypto from 'crypto';
 import { norm, domain } from './shared.js';
@@ -6,6 +7,7 @@ import * as prompts from './prompts.js';
 
 export const PriorityQueue = class {
   constructor(scoreFn, options) {
+    this.logger = options?.logger || defaultLogger;
     this.ai = options?.ai || getAI();
     this.domain = options?.domain;
 
@@ -82,14 +84,13 @@ export const PriorityQueue = class {
 
   async shiftMany(num, cutoff, goal, options) {
 
+    this.logger.debug(`${this} Shift many: num=${num}, cutoff=${cutoff}`);
+
     this.sort();
-    // console.log('shiftMany links:', this.list);
-    console.log('shiftMany', num, cutoff);
 
     const onLink = options?.onLink ? options?.onLink : () => {};
 
     const results = [];
-    // console.log('top score:', this.top?.score);
 
     const pushLink = (link) => {
       results.push(link);
@@ -98,8 +99,6 @@ export const PriorityQueue = class {
 
     // TODO: config max deterministic
     while (results.length < Math.ceil(num * .5) && this.top?.score > cutoff) {
-    // while (results.length < num && this.top?.score > cutoff) {
-      // console.log('-> top score:', this.top?.score);
       pushLink(this.list.shift());
     }
 
@@ -121,8 +120,6 @@ export const PriorityQueue = class {
     };
     const { prompt } = await prompts.pqShift.renderCapped(context, 'urls', this.ai);
 
-    // console.log('pq prompt', prompt);
-
     this.logger.debug(`${this} Calling AI to get ${remaining} items from list of ${this.list.length}`);
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
@@ -131,8 +128,6 @@ export const PriorityQueue = class {
       }
       pushLink(delta);
     }
-
-    // console.log('PQ results are:', results);
 
     // Backfill if we are still short
     while (results.length < num && !this.empty) {
@@ -143,8 +138,6 @@ export const PriorityQueue = class {
     this.list = this.list.filter(it => {
       return !results.some(jt => jt.url == it.url)
     });
-
-    // console.log('PQ returning:', results);
 
     return results;
   }

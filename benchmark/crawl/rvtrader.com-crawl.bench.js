@@ -7,7 +7,7 @@ import { storeScores } from '../lib/store.js';
 describe('crawl rvtrader.com/listing/*', async function() {
   const matrix = standardMatrix();
 
-  const limit = 1000;
+  const limit = 200;
 
   const wf = await fox
     .init('https://www.rvtrader.com/listing/*')

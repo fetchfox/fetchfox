@@ -187,7 +187,6 @@ export const BaseAI = class {
     let cached;
     try {
       cached = await this.getCache(prompt, options);
-      // console.log('got cache for prompt:', cached);
     } catch (e) {
       this.logger.error(`${this} Error while getting cache: ${e}`);
     }

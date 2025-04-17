@@ -83,15 +83,7 @@ export const Finder = class {
 
       this.logger.debug(`${this} Finder iteration #${i} for ${patterns.join(', ')}`);
 
-      console.log(this.mapper.layoutString());
-
       pq.sort();
-
-      for (let i = 0; i < pq.list.length && i < 50; i++) {
-        const item = pq.list[i];
-      // for (const item of pq.list) {
-        console.log('pq item:', item.score, item.url);
-      }
 
       const links = await pq.shiftMany(
         64,
