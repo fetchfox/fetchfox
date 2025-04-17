@@ -1,5 +1,9 @@
 import assert from 'assert';
-import { comparePatterns, toExample } from '../../src/crawl/Mapper.js';
+import { getAI } from '../../src/ai/index.js';
+import { getFetcher } from '../../src/fetch/index.js';
+import { Mapper, comparePatterns, toExample } from '../../src/crawl/Mapper.js';
+import { testCache } from '../lib/util.js';
+
 
 describe('Mapper', function() {
 
@@ -79,7 +83,7 @@ describe('Mapper', function() {
     );
   });
 
-  it('should convert to exampl @fast', async () => {
+  it('should convert to example @fast', async () => {
     const cases = [
       {
         pattern: 'https://www.example.com/path/*',
@@ -94,6 +98,45 @@ describe('Mapper', function() {
     for (const { pattern, expected } of cases) {
       assert.equal(toExample(pattern), expected);
     }
+  });
+
+  it('should map multiple levels', async () => {
+    // const mapper = new Mapper({ cache: testCache() });
+    const cdp = process.env.CDP_URL;
+    console.log('use cdp', cdp);
+
+    const mapper = new Mapper({
+      // cache: testCache(),
+      ai: getAI('openai:gpt-4o', { cache: testCache() }),
+      fetcher: getFetcher('playwright', { cdp, cache: testCache() })
+    });
+    console.log('mapper', mapper);
+
+    const urls = ['https://www.coldwellbanker.com/sitemap/agents'];
+
+    // await mapper.run(urls, { maxIterations: 1 });
+    // console.log('OUT:', mapper.layoutString(urls));
+
+    // await mapper.run(urls, { maxIterations: 2 });
+    // console.log('OUT:', mapper.layoutString(urls));
+
+    // await mapper.run(urls, { maxIterations: 3 });
+    // console.log('OUT:', mapper.layoutString(urls));
+
+    await mapper.run(urls, { maxIterations: 4 });
+    console.log('OUT:', mapper.layoutString(urls));
+
+    console.log('d1', mapper.distance(
+      'https://www.coldwellbanker.com/city/nh/grantham/agents',
+      'https://www.coldwellbanker.com/*/*/agents/*/aid-*'
+    ));
+
+    assert.equal(
+      mapper.distance(
+        'https://www.coldwellbanker.com/city/nh/grantham/agents',
+        'https://www.coldwellbanker.com/*/*/agents/*/aid-*'
+      ),
+      1);
   });
 
 });

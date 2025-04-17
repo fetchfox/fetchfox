@@ -1,12 +1,13 @@
 import { getAI } from '../ai/index.js'
 import crypto from 'crypto';
-import { norm } from './shared.js';
+import { norm, domain } from './shared.js';
 import { shuffle } from '../util.js';
 import * as prompts from './prompts.js';
 
 export const PriorityQueue = class {
   constructor(scoreFn, options) {
     this.ai = options?.ai || getAI();
+    this.domain = options?.domain;
 
     this.list = [];
     this._seen = {};
@@ -27,6 +28,11 @@ export const PriorityQueue = class {
     }
     const n = norm(url);
     this._seen[n] = true;
+
+    if (this.domain && this.domain != domain(n)) {
+      return;
+    }
+
     this.list.push({ url });
     this._sorted = false;
   }
@@ -74,7 +80,7 @@ export const PriorityQueue = class {
 
     this.sort();
     // console.log('shiftMany links:', this.list);
-    // console.log('shiftMany', num, cutoff);
+    console.log('shiftMany', num, cutoff);
 
     const onLink = options?.onLink ? options?.onLink : () => {};
 
@@ -86,7 +92,9 @@ export const PriorityQueue = class {
       onLink(link);
     }
 
-    while (results.length < Math.ceil(num * .75) && this.top?.score > cutoff) {
+    // TODO: config max deterministic
+    while (results.length < Math.ceil(num * .5) && this.top?.score > cutoff) {
+    // while (results.length < num && this.top?.score > cutoff) {
       // console.log('-> top score:', this.top?.score);
       pushLink(this.list.shift());
     }
@@ -104,7 +112,7 @@ export const PriorityQueue = class {
     const remaining = num - results.length;
     const context = {
       num: remaining,
-      urls: shuffle(this.list.map(it => it.url)).join('\n'),
+      urls: shuffle(this.list.map(it => it.url)).join('\n') || '(no urls available)',
       goal,
     };
     const { prompt } = await prompts.pqShift.renderCapped(context, 'urls', this.ai);

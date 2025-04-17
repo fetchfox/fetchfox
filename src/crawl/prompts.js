@@ -230,7 +230,7 @@ export const pqShift = new Template(
 
 Return your results in JSONL format, with one JSON object per line. Include the following fields in each JSON object
 
-- "why": Explain why you are including this url, in 4-12 words
+- "why": Explain why you are including this url, in 4-12 words, for example why this might give new information
 - "url": The URL to crawl, pulled from the list below
 
 The goal is:

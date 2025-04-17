@@ -15,6 +15,8 @@ export const Mapper = class {
     this.signal = options?.signal;
 
     this.patterns = [];
+    this.visited = [];
+
     this._urls = {};
     this._memo = {};
   }
@@ -84,10 +86,13 @@ export const Mapper = class {
 
       const promises = [];
       this.logger.debug(`${this} Pulling links from priority queue`);
+
+      console.log('pq list:', pq.list);
+
       const links = await pq.shiftMany(
         Math.min(4**(i+1), 32), // Grab more on each iteration
-        9999,
-        goalPrompt(this.layoutString(urls), hint),
+        0,
+        goalPrompt(this.layoutString(urls), this.visited, hint),
         {
           onLink: (link) => {
             console.log('call visit for link:', link);
@@ -95,7 +100,9 @@ export const Mapper = class {
           }
         });
 
-      // console.log('links', links);
+      console.log('Mapper processing these links', i, links);
+
+      // throw 'STOP111';
 
       this.logger.debug(`${this} Wait for ${promises.length} visits to finish`);
       await Promise.allSettled(promises);
@@ -107,14 +114,14 @@ export const Mapper = class {
   }
 
   async visit(url, pq) {
-    // console.log('VISIT', url);
+    console.log('VISIT', url);
     this.logger.debug(`${this} Visiting ${url}`);
     const doc = await this.fetcher.first(url);
     // console.log('VISIT GOT:' + doc);
     this.logger.debug(`${this} Got doc: ${doc}`);
 
     for (const found of doc.links) {
-      // console.log('found', found.url);
+      console.log('visit found', found.url, 'on', url); 
 
       if (!check(found.url, url)) {
         continue;
@@ -123,15 +130,21 @@ export const Mapper = class {
       this.connect(url, found.url);
       pq.add(found.url);
     }
+
+    if (!this.visited.includes(norm(url))) {
+      this.visited.push(norm(url));
+    }
   }
 
   score(url) {
-    const path = this.toPath(url);
-    if (path.pattern) {
-      return 1;
-    } else {
-      return 10;
-    }
+    return 10;
+
+    // const path = this.toPath(url);
+    // if (path.pattern) {
+    //   return 1;
+    // } else {
+    //   return 10;
+    // }
   }
   
   distance(url, targetPattern, n = 0, seen = {}) {
@@ -300,23 +313,39 @@ export const Mapper = class {
       }
     }
 
-    const indent = (n) => '\t'.repeat(n);
+    // console.log('depths', JSON.stringify(depths, null, 2));
 
-    const maxUrlsToAppend = 40;
-    let urlsAppended = 0;
+    const indent = (n) => '\t'.repeat(n);
 
     let s = '';
     for (const url of urls) {
-      const path = this.toPath(norm(url));
-      s += indent(depth) + path.pretty + '\n';
+      // Cap number of sub-urls we include
+      const maxUrlsToAppend = 280;
+      let urlsAppended = 0;
 
+      // console.log('layout string ==> ', depth, url);
+
+      const path = this.toPath(norm(url));
+
+      // console.log('has path:', path);
+
+      s += indent(depth) + path.pretty + '\n';
       const tos = [...(paths[path.name]?.to || [])].sort(comparePaths);
+
+      // console.log('tos', depth, url, tos);
+
       for (const to of tos) {
+        // if (url == 'https://www.coldwellbanker.com/sitemap/agents') {
+        //   console.log('proc to -->', to.name, urlsAppended);
+        // }
+
         if (depths[to.name] == depth + 1) {
           // Don't append too many urls, it gunks up string and likely collapsable
-          if (to.pattern || (urlsAppended++ < maxUrlsToAppend)) {
-            s += this.layoutString([to.name], depth + 1, depths);
-          }
+          // if (to.pattern || (urlsAppended++ < maxUrlsToAppend)) {
+          // if (to.pattern) {
+          // }
+
+          s += this.layoutString([to.name], depth + 1, depths);
         } else if (to.pattern) {
           s += indent(depth + 1) + to.pretty + '\n';
         }
@@ -345,6 +374,12 @@ export const Mapper = class {
   async learn(urls, hint) {
     this.logger.debug(`${this} Learn patterns for ${urls.join(', ')}`);
 
+    this._memo = {};
+
+    // // learn twice
+    // for (let i = 0; i < 1; i++) {
+    // console.log('learn i', i);
+
     const layout = this.layoutString(urls);
     const context = {
       layout,
@@ -354,6 +389,18 @@ export const Mapper = class {
     const { prompt } = await prompts.urlPatterns.renderCapped(
       context, 'examples', this.ai);
 
+    // console.log('===> this._urls', this._urls);
+
+    console.log('');
+    console.log('\tPROMPT');
+    console.log('');
+    console.log(prompt);
+    console.log('');
+    console.log('');
+    console.log('');
+
+    // throw 'STOP prompt';
+
     let patterns = [...this.patterns];
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
@@ -361,6 +408,18 @@ export const Mapper = class {
 
       if (delta.delete) {
         this.logger.debug(`${this} Delete pattern ${delta.name}`);
+        continue;
+      }
+
+      if (!delta.pattern || !delta.name || !delta.regex) {
+        this.logger.warn(`${this} Unexpected format ${JSON.stringify(delta)}`);
+        continue;
+      }
+
+      try {
+        new RegExp(delta.regex);
+      } catch {
+        this.logger.warn(`${this} Invalid regex ${JSON.stringify(delta)}`);
         continue;
       }
 
@@ -376,10 +435,11 @@ export const Mapper = class {
     patterns.sort((a, b) => comparePatterns(a.pattern, b.pattern));
     this.patterns = patterns;
 
-    // console.log('this.patterns', this.patterns);
-    // console.log('===> this._urls', this._urls);
-
     this._memo = {};
+
+    // console.log('this.patterns',this.patterns);
+    // console.log('===> this._urls', this._urls);
+    // console.log('this.layoutString()', this.layoutString());
   }
 }
 
@@ -452,13 +512,15 @@ export const toExample = (pattern) => {
   return norm(url.toString());
 }
 
-const goalPrompt = (layoutString, hint) => `Establish a general map of the site layout. Explore new areas that are likely to contain rich data and content.
+const goalPrompt = (layoutString, visited, hint) => `Establish a general map of the site layout. Explore new areas that are likely to contain rich data and content.
 
 Here is the sitemap so far:
 
 == Site Map ==
 ${layoutString}
 == End Site Map ==
+
+You have already visited these links: ${visited.slice(-1000).join('\n')}
 
 Focus on areas that are unexplored.
 

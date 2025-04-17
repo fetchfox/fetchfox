@@ -2,7 +2,7 @@ import { logger as defaultLogger } from '../log/logger.js';
 import { getAI } from '../ai/index.js'
 import { getFetcher } from '../fetch/index.js'
 import { PriorityQueue } from './PriorityQueue.js'
-import { norm } from './shared.js';
+import { norm, domain } from './shared.js';
 import * as prompts from './prompts.js';
 
 export const Finder = class {
@@ -64,7 +64,7 @@ export const Finder = class {
 
     const urls = this.mapper.urls;
 
-    const pq = new PriorityQueue(score, this);
+    const pq = new PriorityQueue(score, this, { domain: domain(urls[0]) });
     urls.forEach(it => pq.add(it));
     for (const pattern of patterns) {
       const url = new URL(pattern);
@@ -78,8 +78,17 @@ export const Finder = class {
 
       this.logger.debug(`${this} Finder iteration #${i} for ${patterns.join(', ')}`);
 
+      console.log(this.mapper.layoutString());
+
+      pq.sort();
+
+      for (let i = 0; i < pq.list.length && i < 50; i++) {
+      // for (const item of pq.list) {
+        console.log('pq item:', item.score, item.url);
+      }
+
       const links = await pq.shiftMany(
-        64,
+        16,
         -5,
         `Find urls matching any of these URL patterns:
 ${patterns.join('\n')}

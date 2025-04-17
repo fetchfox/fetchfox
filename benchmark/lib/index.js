@@ -77,7 +77,7 @@ export const runMatrix = async (name, json, matrix, checks, options) => {
     if (options.cache) {
       fullConfig.cache = options.cache;
     } else if (process.env.BENCH_USE_CACHE) {
-      fullConfig.cache = new DiskCache('/tmp/ffbenchcache-5');
+      fullConfig.cache = new DiskCache('/tmp/ffbenchcache-7');
     }
 
     if (options.kv) {
