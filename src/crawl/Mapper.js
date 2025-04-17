@@ -60,6 +60,8 @@ export const Mapper = class {
   }
 
   async run(urls, options) {
+    this._roots = urls;
+
     urls = urls.map(norm);
     // console.log('run urls==>', urls);
 
@@ -114,14 +116,14 @@ export const Mapper = class {
   }
 
   async visit(url, pq) {
-    console.log('VISIT', url);
+    // console.log('VISIT', url);
     this.logger.debug(`${this} Visiting ${url}`);
     const doc = await this.fetcher.first(url);
     // console.log('VISIT GOT:' + doc);
     this.logger.debug(`${this} Got doc: ${doc}`);
 
     for (const found of doc.links) {
-      console.log('visit found', found.url, 'on', url); 
+      // console.log('visit found', found.url, 'on', url); 
 
       if (!check(found.url, url)) {
         continue;
@@ -288,7 +290,10 @@ export const Mapper = class {
     // console.log('paths', paths);
 
     if (!urls) {
-      urls = Object.keys(this._urls).filter(it => Boolean(this._urls[it].to?.length));
+      urls = (
+        this._roots ||
+        Object.keys(this._urls).filter(it => Boolean(this._urls[it].to?.length))
+      );
     }
 
     if (!depths) {

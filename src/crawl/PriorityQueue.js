@@ -14,6 +14,10 @@ export const PriorityQueue = class {
     this.score = scoreFn;
   }
 
+  toString() {
+    return `[${this.constructor.name}]`;
+  }
+
   get empty() {
     return this.list.length == 0;
   }
@@ -119,6 +123,7 @@ export const PriorityQueue = class {
 
     // console.log('pq prompt', prompt);
 
+    this.logger.debug(`${this} Calling AI to get ${remaining} items from list of ${this.list.length}`);
     const gen = this.ai.stream(prompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
       if (this.list.filter(it => it.url == delta.url).length) {

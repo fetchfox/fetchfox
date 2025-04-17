@@ -27,7 +27,12 @@ export const Finder = class {
 
     const score = (url) => {
       const distances = patterns.map(it => this.mapper.distance(url, it));
-      return -Math.min(...distances);
+      const d = Math.min(...distances);
+
+      // TODO: smarter expected value search
+      if (d == 0) return -2;
+
+      return -d;
     }
 
     const matches = (url) => {
@@ -83,12 +88,13 @@ export const Finder = class {
       pq.sort();
 
       for (let i = 0; i < pq.list.length && i < 50; i++) {
+        const item = pq.list[i];
       // for (const item of pq.list) {
         console.log('pq item:', item.score, item.url);
       }
 
       const links = await pq.shiftMany(
-        16,
+        64,
         -5,
         `Find urls matching any of these URL patterns:
 ${patterns.join('\n')}
@@ -107,7 +113,7 @@ ${this.mapper.layoutString()}
             return;
           }
 
-          this.logger.debug(`${this} Fetch ${link.url}`);
+          this.logger.debug(`${this} Fetch ${link.url}, score=${score(link.url)}`);
           const doc = await this.fetcher.first(link.url);
           this.logger.debug(`${this} Got ${doc}`);
 
