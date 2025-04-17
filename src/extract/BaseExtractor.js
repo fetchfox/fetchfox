@@ -254,10 +254,12 @@ export const BaseExtractor = class {
     }
   }
 
-  async one(target, questions, options) {
+  async first(target, questions, options) {
     options = {...options, stream: false };
-    const all = await this.all(target, questions, options);
-    return all?.length ? all[0] : null;
+    const gen = this.stream(target, questions, options);
+    for await (const item of gen) {
+      return item;
+    }
   }
 
   async *stream(target, questions, options) {

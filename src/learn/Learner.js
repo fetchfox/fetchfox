@@ -20,7 +20,7 @@ export const Learner = class {
   }
 
   async learn({ url, prompt, ...rest }, cb) {
-    this.logger.info(`${this} X Learn about url=${url} prompt=${prompt}`);
+    this.logger.info(`${this} Learn about url=${url} prompt=${prompt}`);
 
     url = new URL(url).toString();
 
@@ -34,7 +34,7 @@ export const Learner = class {
       cb && cb({ facts, delta });
     }
 
-    await Promise.allSettled([
+    await Promise.all([
       this.analyzeLinks(
         { docs, prompt, ...rest },
         (fact) => update({ ...fact, type: 'link' }),
@@ -61,6 +61,10 @@ export const Learner = class {
     this.logger.debug(`${this} Analyzing items`);
     const gen = this.ai.stream(itemsPrompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
+      console.log('ITEM delta initial', delta);
+      delta.example._htmlUrl = docs[0].htmlUrl;
+      delta.example._screenshotUrl = docs[0].screenshotUrl;
+      delta.example._sourceUrl = docs[0].url;
       console.log('ITEM delta', delta);
       results.push(delta);
       cb && cb(delta);
