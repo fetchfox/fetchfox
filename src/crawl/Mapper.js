@@ -112,7 +112,7 @@ export const Mapper = class {
     const doc = await this.fetcher.first(url);
     this.logger.debug(`${this} Got doc: ${doc}`);
 
-    for (const found of doc.links) {
+    for (const found of (doc?.links || [])) {
       if (!check(found.url, url)) {
         continue;
       }
