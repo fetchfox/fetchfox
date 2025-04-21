@@ -40,13 +40,14 @@ export const Item = class {
   async finish() {}
 
   clean(val) {
-    val = '' + val;
-    val = val.trim();
-    if (/^[0-9,]+$/.test(val)) {
-      val = val.replace(/,/g, '');
-    }
-    if (val == 'not found' || val == '(not found)') {
-      val = '';
+    if (typeof val == 'string') {
+      val = val.trim();
+      if (/^[0-9,]+$/.test(val)) {
+        val = val.replace(/,/g, '');
+      }
+      if (val == 'not found' || val == '(not found)') {
+        val = '';
+      }
     }
     return val;
   }
