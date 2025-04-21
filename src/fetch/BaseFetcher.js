@@ -18,9 +18,9 @@ export const BaseFetcher = class {
     this.usage = { goto: 0 };
 
     this.q = new PQueue({
-      concurrency: options?.concurrency || 64,
-      intervalCap: options?.intervalCap || 4,
-      interval: options?.interval || 250,
+      concurrency: options?.concurrency || 4,
+      intervalCap: options?.intervalCap || 1,
+      interval: options?.interval || 1000,
     });
 
     this.s3 = options?.s3;
@@ -226,7 +226,7 @@ export const BaseFetcher = class {
               if (process.env.STRICT_ERRORS) {
                 throw e;
               } else {
-                this.logger.error(`${this} Caught error while getting documents, ignoring: ${e} ${e.stack}`);
+                this.logger.error(`${this} Caught error while getting documents, ignoring: ${e}`);
               }
             } finally {
               this.logger.debug(`${this} Closing docs channel`);

@@ -28,13 +28,13 @@ Example of a valid response with a single item:
 
 Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
->>>> HTML text from innerHTML of the page:
+>>> HTML text from innerHTML of the page:
 {{body}}
 
->>>> The URL of the website:
+>>> The URL of the website:
 {{url}}
 
->>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS:
+>>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS, and follow schema requests:
 {{questions}}
 
 {{extraRules}}

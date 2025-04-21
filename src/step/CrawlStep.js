@@ -1,5 +1,6 @@
 import { logger } from  '../log/logger.js';
 import { BaseStep } from './BaseStep.js';
+import { Document } from '../document/Document.js';
 import { clip } from '../util.js';
 
 export const CrawlStep = class extends BaseStep {
@@ -42,7 +43,13 @@ export const CrawlStep = class extends BaseStep {
           continue;
         }
 
-        const done = cb(output);
+        let result = {};
+        if (typeof item == 'object' && !item instanceof Document) {
+          result = { ...item };
+        }
+        result = { ...result, ...output };
+
+        const done = cb(result);
         if (done) break;
       }
     } catch (e) {

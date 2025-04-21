@@ -34,7 +34,15 @@ export const PatternCrawler = class extends BaseCrawler {
     const mapper = new Mapper(this);
     const mapPromise = mapper.run(
       urls,
-      { maxIterations: 4, hint: mapperHint, onIteration });
+      { maxIterations: 4, hint: mapperHint, onIteration })
+      .catch((e) => {
+        throw e;
+
+        // if (process.env.STRICT_ERRORS) {
+        //   throw e;
+        // }
+        // this.logger.error(`${this} Mapper got error, ignoring: ${e} ${e.stack}`);
+      });
 
     // Run finder concurrently with mapper
     const urlsChan = createChannel();
@@ -45,11 +53,13 @@ export const PatternCrawler = class extends BaseCrawler {
       this.logger.info(`${chalk.green('\u{25CF}')} Found url (${found.length}): ${url}`);
       urlsChan.send({ url });
     }
-    const finder = new Finder(mapper, this);
+    const finder = new Finder(mapper, { ...this });
     const findPromise = finder
       .run(
         patterns,
-        { maxIterations: 10, onFind })
+        {
+          maxIterations: options?.maxIterations || 5,
+          onFind })
       .then(() => urlsChan.end())
       .catch((e) => {
         urlsChan.end();

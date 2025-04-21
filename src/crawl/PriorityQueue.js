@@ -115,10 +115,13 @@ export const PriorityQueue = class {
     const remaining = num - results.length;
     const context = {
       num: remaining,
-      urls: shuffle(this.list.map(it => it.url)).join('\n') || '(no urls available)',
+      // TODO: urls seem to be higher tokens? investigate...
+      urls: shuffle(this.list.map(it => it.url)).slice(0, 1000).join('\n') || '(no urls available)',
       goal,
     };
     const { prompt } = await prompts.pqShift.renderCapped(context, 'urls', this.ai);
+
+    // console.log('prompt', prompt);
 
     this.logger.debug(`${this} Calling AI to get ${remaining} items from list of ${this.list.length}`);
     const gen = this.ai.stream(prompt, { format: 'jsonl' });

@@ -337,11 +337,11 @@ export const Mapper = class {
     const layout = this.layoutString(urls);
     const context = {
       layout,
-      examples: this.examplesString(5),
+      // examples: (this.examplesString(5)).substring(0, 10000),
       hint,
     };
     const { prompt } = await prompts.urlPatterns.renderCapped(
-      context, 'examples', this.ai);
+      context, 'layout', this.ai);
 
     let patterns = [...this.patterns];
     const gen = this.ai.stream(prompt, { format: 'jsonl' });

@@ -21,7 +21,6 @@ The current URL is:
 Find links matching the user query, which is:
 {{query}}
 
-
 Follow these important rules:
 - The entire array should be JSONL, with a single object per link
 - Do not wrap the response in an array, return individual dictionaries only per-line.
@@ -30,6 +29,12 @@ Follow these important rules:
 - Respect user filter requests, if any
 - Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
 - Return ONLY full, absolute URLs
+
+Important information about only URLs on the page:
+- ONLY include URLs you see on the page
+- If there are no results, simply return nothing
+- Do NOT invent URLs you do not see, do NOT guess at urls that might texist
+- Only return URLs you find, formatted as full absolute URLs
 
 `);
 
@@ -160,7 +165,8 @@ Respond ONLY in JSONL, with one valid JSON object per line, your response will b
 `);
 
 export const urlPatterns = new Template(
-  ['layout', 'examples', 'hint'],
+  // ['layout', 'examples', 'hint'],
+  ['layout', 'hint'],
   `Given the following site layout, return a list of URL matchers.
 
 The site layout shows the parent URL and the sub URLs it links to, with indentation indicating the depth.
@@ -173,11 +179,6 @@ You should return URL matchers as JSONL, with each JSON object having three fiel
 
 The layout is below:
 {{layout}}
-
-A few examples of existing pattern matches:
-{{examples}}
-
-Consider these examples when deciding if any existing patterns need to be deleted.
 
 Existing layout and patterns: 
 - This layout already includes some patterns. Focus on returning new patterns.
@@ -223,6 +224,11 @@ Hint from the user:
 
 Your response will be machine parsed using JSON.parse(), splitting on '\n'. Therefore, respond ONLY with valid JSONL
 `);
+
+// A few examples of existing pattern matches:
+// {{examples}}
+
+// Consider these examples when deciding if any existing patterns need to be deleted.
 
 export const pqShift = new Template(
   ['num', 'urls', 'goal'],

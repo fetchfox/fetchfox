@@ -444,11 +444,11 @@ ${this.hint}` : '',
     const learned = options?.learned || this.learned || [];
 
     if (this.commands?.length && !learned.length) {
-      throw new Error('must learn before execute');
+      this.logger.warn(`${this} There are ${this.commands.length} commands, but didn't learn how to do them`);
     }
 
-    if (this.commands.length == 0) {
-      this.logger.debug(`${this} No actions, just a simple URL goto`);
+    if (learned.length == 0) {
+      this.logger.debug(`${this} No learned actions, just goto URL`);
       const ctx = {};
       try {
         await fetcher.start(ctx);

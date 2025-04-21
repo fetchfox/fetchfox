@@ -11,7 +11,12 @@ describe('crawl rvtrader.com/listing/*', async function() {
 
   const wf = await fox
     .init('https://www.rvtrader.com/listing/*')
-    .crawl()
+    .crawl({
+      maxIterations: 50,
+      suggestions: [
+        'https://www.rvtrader.com/research/about/sitemap',
+      ]
+    })
     .limit(limit)
     .plan();
 
