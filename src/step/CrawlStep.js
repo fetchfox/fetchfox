@@ -40,7 +40,7 @@ export const CrawlStep = class extends BaseStep {
     try {
       for await (const output of crawler.run(url, this.query, options)) {
         const url = output._url || output.url;
-        if (url) {
+        if (!url) {
           cursor.ctx.logger.error(`No URL found for item ${item}: ${clip(JSON.stringify(output), 1000)}`);
           continue;
         }
