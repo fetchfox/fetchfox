@@ -1,7 +1,7 @@
 import { Template } from '../template/Template.js';
 
 export const scrapeOnce = new Template(
-  ['extraRules', 'questions', 'url', 'body'],
+  ['extraRules', 'questions', 'schema', 'url', 'body'],
   `You are a web scraping extraction program. You will receive webpage content including HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar.
 
 If you're unable to answer a question fill in the value "(not found)", but make your best guess. Prefer to give an answer if one seems plausible.
@@ -36,6 +36,9 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 
 >>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS, and follow schema requests:
 {{questions}}
+
+>>> Follow this JSON schema (ie. json-schema.org):
+{{schema}}
 
 {{extraRules}}
 `);
@@ -234,5 +237,13 @@ You will be given a JSON object with keys and values. The values are instruction
 
 >>> The input item is:
 {{item}}
+
+Respond ONLY in JSON, your response will be machine parsed using JSON.parse()`);
+
+export const questionsToSchema = new Template(
+  ['questions'],
+  `Give a JSON schema (ie. json-schema.org) for the following set of questions.
+
+{{questions}}
 
 Respond ONLY in JSON, your response will be machine parsed using JSON.parse()`);

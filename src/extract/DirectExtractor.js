@@ -7,10 +7,16 @@ export const DirectExtractor = class extends BaseExtractor {
   constructor(options) {
     super(options);
     this.kv = options?.kv || getKV();
+    this._schemas = {};
   }
 
   async *_run(doc, questions, options) {
-    this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
+    this.logger.info(`${this} Extracting from ${doc} in ${this}: `);
+
+    const schema = await this.schema(questions);
+    if (options?.onArtifact) {
+      options.onArtifact({ type: 'schema', data: { schema } });
+    }
 
     const extraRules = modeRules(options?.mode || 'auto');
 
@@ -30,6 +36,7 @@ export const DirectExtractor = class extends BaseExtractor {
     const context = {
       url: doc.url,
       questions: JSON.stringify(fullQuestions, null, 2),
+      schema: JSON.stringify(schema, null, 2),
       body: doc.html,
       extraRules,
     };
@@ -57,6 +64,19 @@ export const DirectExtractor = class extends BaseExtractor {
       this.logger.error(`${this} Got error while extracting: ${e}`);
       throw e;
     }
+  }
+
+  async schema(questions) {
+    const ser = JSON.stringify(questions, null, 2);
+    if (!this._schemas[ser]) {
+      const context = { questions: ser };
+      const { prompt } = await prompts.questionsToSchema.renderCapped(
+        context, 'questions', this.ai.advanced);
+      const answer = await this.ai.advanced.ask(prompt, { format: 'json' });
+      this._schemas[ser] = answer.partial;
+      this.logger.debug(`${this} Established this schema: ${JSON.stringify(answer.partial)}`);
+    }
+    return this._schemas[ser];
   }
 }
 

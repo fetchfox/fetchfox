@@ -542,17 +542,36 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   }
 
   logger.debug(`Getting HTML from ${page.url()}`);
-  const html = await page.evaluate(() => {
-    document.querySelectorAll('*').forEach(el => {
-      if (el.shadowRoot) {
-        const shadow = document.createElement('shadow');
-        shadow.innerHTML = el.shadowRoot.innerHTML;
-        el.appendChild(shadow);
-      }
-    });
 
-    return document.documentElement.outerHTML;
-  });
+  let html;
+  let err;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      html = await page.evaluate(() => {
+        document.querySelectorAll('*').forEach(el => {
+          if (el.shadowRoot) {
+            const shadow = document.createElement('shadow');
+            shadow.innerHTML = el.shadowRoot.innerHTML;
+            el.appendChild(shadow);
+          }
+        });
+
+        return document.documentElement.outerHTML;
+      });
+      err = null;
+      break;
+
+    } catch (e) {
+      err = e;
+      logger.warn(`Error while trying to get HTML from ${page.url()} on attempt=${attempt + 1}: ${e}`);
+      await new Promise(ok => setTimeout(ok, 1000 * 2 * (attempt + 1)));
+    }
+  }
+
+  if (err) {
+    throw err;
+  }
 
   return { html };
 }
