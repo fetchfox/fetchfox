@@ -124,15 +124,8 @@ export const OpenAI = class extends BaseAI {
       completion = await openai.chat.completions.create(args, aiOptions);
       if (canStream) {
         this.logger.debug(`${this} Stream the completion`);
-        // if (this.signal?.aborted) {
-        //   return;
-        // }
 
         for await (const chunk of completion) {
-          // if (this.signal?.aborted) {
-          //   break;
-          // }
-
           yield Promise.resolve(chunk);
         }
       } else {
