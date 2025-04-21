@@ -35,13 +35,19 @@ export const CrawlStep = class extends BaseStep {
     };
 
     const url = item.getUrl ? item.getUrl() : (item.url || item._url);
+    const seen = {};
 
     try {
       for await (const output of crawler.run(url, this.query, options)) {
-        if (!output._url && !output.url) {
+        const url = output._url || output.url;
+        if (url) {
           cursor.ctx.logger.error(`No URL found for item ${item}: ${clip(JSON.stringify(output), 1000)}`);
           continue;
         }
+        if (seen[url]) {
+          continue;
+        }
+        seen[url] = true;
 
         let result = {};
         if (typeof item == 'object' && !item instanceof Document) {
