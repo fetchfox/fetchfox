@@ -4,6 +4,7 @@ import { Item } from '../item/Item.js';
 import { BaseExtractor } from './BaseExtractor.js';
 import { DirectExtractor } from './DirectExtractor.js';
 import { SelectorTransformer } from '../transform/index.js';
+import { TextOnlyTransformer } from '../transform/index.js';
 import * as prompts from './prompts.js';
 import { getKV } from '../kv/index.js';
 
@@ -18,7 +19,7 @@ export const TransformExtractor = class extends BaseExtractor {
   async *_run(doc, questions, options) {
     this.logger.info(`${this} Extracting from ${doc} in ${this}: ${JSON.stringify(questions)}`);
 
-    const transformer = new SelectorTransformer(questions, this);
+    const transformer = new TextOnlyTransformer();
     const r = await transformer.transform(doc.html, doc.url);
 
     if (this.signal?.aborted) {

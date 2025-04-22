@@ -1,10 +1,12 @@
 import { Template } from '../template/Template.js';
 
 const sharedCssTips = `Common mistakes - Keep in mind these points about CSS selectors:
-* :contains('text') is NOT a real CSS selector. Do NOT use this selector, ever. There is no way in CSS to match the text of an element. Do not try to do it
+
+* :contains('text') is NOT a real CSS selector. Do NOT use this selector, ever. There is no way in CSS to match the text of an element. Do not try to do it.
+* Your answer MUST NOT INCLUDE :contains anywhere in it
 * For attribute selectors, use ~= for substring match, like this:
 
-  // Corect: Do this
+  // Correct: Do this
   [attr~='search string']
 
 Do NOT use exact match, which will exclude nodes:
@@ -134,10 +136,10 @@ ${sharedCssTips}
 Respond ONLY in JSON. Your response will be machine parsed using JSON.parse()`);
 
 export const selectors = new Template(
-  ['html', 'template'],
+  ['html', 'template', 'existing'],
   `You are part of a scraping program. You are given some HTML and an item template. The item template shows the data being scraped.
 
-Give the CSS selectors that will select each data element.
+Give the CSS selectors that will include and capute the targetted data, possibly a superset (as explained below).
 
 Return a dictionary mapping the keys in the template to CSS selectors that select that data.
 
@@ -147,14 +149,22 @@ Return a dictionary mapping the keys in the template to CSS selectors that selec
 >>> The template for the data to extract is:
 {{template}}
 
+{{existing}}
+
 Guidelines:
 * Try to give selectors close together in the DOM
 * If a field cannot be extracted, return null instead of a selector
 * Do NOT invent selectors
-
-${sharedCssTips}
+* Do NOT use :nth-child selectors, they are unstable
+* Do NOT use :contains selectors, they do not work
+* Generally your selectors should not be many levels deep and should not overly depend on the DOM structure
 
 "_reasoning" key:
-* Before all other keys, give a "_reasoning" field that is 50 words explaining your approach
+* Before all other keys, give a "_reasoning" field that is 200-300 words explaining your approach
+* Describe the following:
+  * Explain how you will avoid :contains, :nth-child
+  * Explain how you will avoid overly long selectors
+  * Explain any overlappign selectors you may use for multiple elements
+  * Explain how you you will avoid any selectors that work, but are unstable?
 
 Respond ONLY in JSON. Your response will be machine parsed using JSON.parse()`);

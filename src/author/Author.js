@@ -185,9 +185,10 @@ export const Author = class {
           }
 
           this.logger.debug(`${this} Returning script: ${script} with code=${script.codes.join('\n\n')}`);
-          lockers--;
           ok({ script, output });
+
         } finally {
+          lockers--;
           this.logger.debug(`${this} Release lock on ${key} (count=${lockers})`);
           done();
         }
