@@ -16,9 +16,8 @@ export const BaseTransformer = class {
 
   async transform(html, ...args) {
     this.logger.debug(`${this} Transforming ${html.length} bytes of html`);
-    const t = await this._transform(html, args);
-    const reduced = Array.isArray(t) ? t.join('') : t;
-    this.logger.debug(`${this} Transformed ${html.length} -> ${reduced?.length} bytes`);
-    return t;
+    const out = await this._transform(html, args);
+    this.logger.debug(`${this} Transformed ${html.length} -> ${out.html.length} bytes`);
+    return out;
   }
 }

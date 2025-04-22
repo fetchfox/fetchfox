@@ -39,10 +39,13 @@ export const TransformExtractor = class extends BaseExtractor {
       return;
     }
 
-    const { htmls, selector, meta } = r;
+    const { html, selector } = r;
     if (options.onArtifact) {
-      options.onArtifact({ type: 'selector', data: { selector, meta } });
+      options.onArtifact({ type: 'selector', data: { selector } });
     }
+
+    // TODO: re-introduce chunking?
+    const htmls = [html];
 
     this.logger.debug(`${this} Running on ${htmls.length} html chunks`);
 

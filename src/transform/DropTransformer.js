@@ -55,6 +55,6 @@ export const DropTransformer = class extends BaseTransformer {
     }
     const root = parse(html);
     const dropHtml = process(root).toString();
-    return dropHtml;
+    return { html: dropHtml };
   }
 }

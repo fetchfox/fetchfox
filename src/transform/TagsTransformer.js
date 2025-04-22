@@ -40,6 +40,6 @@ export const TagsTransformer = class extends BaseTransformer {
 
     prune(root);
 
-    return root.toString();
+    return { html: root.toString() };
   }
 }

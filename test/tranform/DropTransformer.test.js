@@ -13,7 +13,7 @@ describe('DropTransformer', function() {
       html += `<div>${i}</div>\n`;
     }
     html += '</main>';
-    const dHtml = await dt.transform(html);
+    const { html: dHtml } = await dt.transform(html);
     const $ = cheerio.load(dHtml);
     assert.ok($('div').length < 20);
   });
@@ -29,7 +29,7 @@ describe('DropTransformer', function() {
       }
     }
     html += '</main>';
-    const dHtml = await dt.transform(html);
+    const { html: dHtml } = await dt.transform(html);
     const $ = cheerio.load(dHtml);
     assert.ok($('div.a').length < 20, 'clip a');
     assert.ok($('div.b').length < 20, 'clip b');
@@ -61,7 +61,7 @@ describe('DropTransformer', function() {
 
     html += '</main>';
 
-    const dHtml = await dt.transform(html);
+    const { html: dHtml } = await dt.transform(html);
     const $ = cheerio.load(dHtml);
     assert.ok($('.a').length < 20);
     assert.ok($('.b').length < 20);
@@ -79,7 +79,7 @@ describe('DropTransformer', function() {
 <div><u><p>one</p></u></div>
 </main>
 `;
-    const dHtml = await dt.transform(html);
+    const { html: dHtml } = await dt.transform(html);
     const $ = cheerio.load(dHtml);
     assert.equal($('main > *').length, 5);
   });
