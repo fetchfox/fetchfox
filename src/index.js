@@ -7,6 +7,8 @@ export * from './transform/index.js';
 export * from './cache/index.js';
 export * from './item/Item.js';
 
+export * from './template/Template.js';
+
 export { Logger } from './log/logger.js';
 
 export { getAI } from './ai/index.js';
