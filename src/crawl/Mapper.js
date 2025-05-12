@@ -30,7 +30,9 @@ export const Mapper = class {
   }
 
   async getCache(vals) {
-    if (!this.cache) return;
+    if (!this.cache) {
+      return;
+    }
 
     const key = 'mapper-' + shortObjHash(vals);
     this.logger.debug(`${this} Check for cached map ${key}`);
@@ -63,6 +65,8 @@ export const Mapper = class {
     this._roots = urls;
 
     urls = urls.map(norm);
+
+    console.log('urls', urls);
 
     this.logger.info(`${this} Mapper start on these urls: ${urls.join(', ')}`);
 
@@ -97,6 +101,8 @@ export const Mapper = class {
             promises.push(this.visit(link.url, pq));
           }
         });
+
+      console.log('links', links);
 
       this.logger.debug(`${this} Wait for ${promises.length} visits to finish`);
       await Promise.allSettled(promises);

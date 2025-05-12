@@ -51,7 +51,7 @@ export const Learner = class {
 
   async analyzeItems({ docs, prompt }, cb) {
     const urls = joinDocsUrl(docs);
-    const htmls = joinDocsHtml(docs, 'selectHtml');
+    const htmls = joinDocsHtml(docs, 'linksHtml');
     const context = { urls, prompt, htmls };
     const { prompt: itemsPrompt } = await prompts
       .availableItems
@@ -62,6 +62,11 @@ export const Learner = class {
     const gen = this.ai.stream(itemsPrompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
       console.log('ITEM delta initial', delta);
+
+      if (delta._meta) {
+        continue
+      }
+
       delta.example._htmlUrl = docs[0].htmlUrl;
       delta.example._screenshotUrl = docs[0].screenshotUrl;
       delta.example._sourceUrl = docs[0].url;
@@ -122,6 +127,11 @@ export const Learner = class {
     this.logger.debug(`${this} Analyzing links`);
     const gen = this.ai.stream(linkPrompt, { format: 'jsonl' });
     for await (const { delta } of gen) {
+      console.log('links got delta:', delta);
+      if (delta._meta) {
+        continue
+      }
+
       delta.pattern = cleanPattern(delta.pattern);
       console.log('found ->', delta);
       results.push(delta);

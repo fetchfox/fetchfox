@@ -8,9 +8,9 @@ Your response will be ONLY a "url" field of matching items.
 
 Example of valid output:
 
-{ "url": "https://www.exampel.com/category/page-1" }
-{ "url": "https://www.exampel.com/category/page-5" }
-{ "url": "https://www.exampel.com/category/page-13" }
+{ "url": "https://..." }
+{ "url": "https://..." }
+{ "url": "https://..." }
 
 You are looking for URLs in the page body below:
 {{body}}
@@ -28,13 +28,13 @@ Follow these important rules:
 - Generally avoid links with no link text.
 - Respect user filter requests, if any
 - Often, but not always, the links you match will follow a similar pattern. If you notice that a handful match a similar pattern, the rest likely will too.
-- Return ONLY full, absolute URLs
+- Return ONLY full, valid absolute URLs
 
 Important information about only URLs on the page:
 - ONLY include URLs you see on the page
 - If there are no results, simply return nothing
 - Do NOT invent URLs you do not see, do NOT guess at urls that might texist
-- Only return URLs you find, formatted as full absolute URLs
+- Only return URLs you find, formatted as full valid absolute URLs
 
 `);
 
@@ -254,4 +254,32 @@ Tips:
 - Think about which urls are likely to list many many links going to the patterns
 
 Your response will be machine parsed using JSON.parse(), splitting on '\n'. Therefore, respond ONLY with valid JSONL
+`);
+
+export const pattern2 = new Template(
+  ['urls', 'pattern', 'limit', 'outcomes'],
+  `Given a list of candidate URLs, return {{limit}} URLs most likely to contain links to a particular target pattern.
+
+To assist with your task, here are some recent outcomes from crawls. The json objects show the number of new hits for that URL and the number of repeat hits that were already found when we visited it. URLs that are similar to ones with many new hits are good candidates. Especially follow-on pages for ones that had results.
+
+Do NOT GIVE RESULTS FROM RECENT HISTORY. You may give SIMILAR types of URLS, but absolutely do not give repeats as they are already visited.
+
+>>> The recent history visit data is:
+{{outcomes}}
+
+>>> The list of candiate URLs is:
+{{urls}}
+
+>>> The target pattern is:
+{{pattern}}
+
+>>> Return at most this many results:
+{{limit}}
+
+Tips:
+* Remember, you are looking for pages that LINK TO the pattern. This may or may NOT be pages that match the pattern. Use your best judgement.
+* If you see pagination results that are SIMILAR TO previous good hits, prioritize those. (ie. urls with page=... in them)
+* Do NOT invent URLs. You can give fewer than {{limit}} results if there are not enough good candidates.
+
+Return only URLs, line by line, no explanation. Your response will be machine parsed, splitting on \n and then feeding into new URL() in Javascript
 `);

@@ -25,16 +25,26 @@ export const PatternCrawler = class extends BaseCrawler {
     const mapperHint = `The user is crawling for URLs that fit these patterns: ${patterns.join('\n')}. Try to map out areas of the site that will help find these patterns.`;
 
     const rootUrl = new URL(patterns[0]).origin;
-    const urls = [rootUrl, ...suggestions].map(norm).filter(Boolean);
+
+    console.log('patterns', patterns);
+
+    const urls = [...suggestions, rootUrl].map(norm).filter(Boolean);
+
+    console.log('urls', urls);
 
     // Start mapper
     const onIteration = async (i) => {
       this.logger.debug(`${this} Layout on iteration ${i}:\n${mapper.layoutString(urls)}`);
     }
+
+    // TODO: IMPORTANT: Give Mapper high fetch priority
+
+    console.log('Run mapper');
+
     const mapper = new Mapper(this);
     const mapPromise = mapper.run(
       urls,
-      { maxIterations: 4, hint: mapperHint, onIteration })
+      { maxIterations: 2, hint: mapperHint, onIteration })
       .catch((e) => {
         throw e;
 
@@ -44,11 +54,20 @@ export const PatternCrawler = class extends BaseCrawler {
         // this.logger.error(`${this} Mapper got error, ignoring: ${e} ${e.stack}`);
       });
 
+    await mapPromise;
+    console.log(mapper.layoutString());
+
+    console.log('Done running mapper');
+
+    // throw 'STOP mapper';
+
     // Run finder concurrently with mapper
     const urlsChan = createChannel();
 
     const found = [];
     const onFind = async (url) => {
+      console.log('found->', url);
+
       found.push(url);
       this.logger.info(`${chalk.green('\u{25CF}')} Found url (${found.length}): ${url}`);
       urlsChan.send({ url });
@@ -58,8 +77,10 @@ export const PatternCrawler = class extends BaseCrawler {
       .run(
         patterns,
         {
+          suggestions,
           maxIterations: options?.maxIterations || 5,
-          onFind })
+          onFind,
+        })
       .then(() => urlsChan.end())
       .catch((e) => {
         urlsChan.end();

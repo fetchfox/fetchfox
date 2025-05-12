@@ -1,7 +1,9 @@
 import chalk from 'chalk';
 import { logger } from '../log/logger.js';
+import { transform, TagsTransformer, LinksTransformer, PrettyTransformer } from '../transform/index.js';
 import { BaseCrawler } from './BaseCrawler.js';
 import { PatternCrawler } from './PatternCrawler.js';
+import { PatternCrawler2 } from './PatternCrawler2.js';
 import { gather } from './prompts.js';
 import { createChannel } from '../util.js';
 
@@ -41,8 +43,18 @@ export const Crawler = class extends BaseCrawler {
     if (patterns) {
       this.logger.debug(`${this} Using pattern crawler for patterns=${patterns.join(', ')}`);
 
+      // const pc = new PatternCrawler2(this);
       const pc = new PatternCrawler(this);
-      const gen = pc.run(patterns, options);
+
+      // const gen = pc.run(patterns);
+      // for await (const r of gen) {
+      //   yield Promise.resolve(r);
+      // }
+      // return;
+
+      const suggestions = options?.suggestions || [];
+      suggestions.push(url);
+      const gen = pc.run(patterns, { ...options, suggestions });
       for await (const r of gen) {
         yield Promise.resolve(r);
       }
@@ -181,10 +193,19 @@ export const Crawler = class extends BaseCrawler {
     // maybe make getAI() async and put it there.
     await this.ai.init();
 
+    const out = await transform(
+      doc.html,
+      [
+        new TagsTransformer(),
+        new LinksTransformer(),
+        new PrettyTransformer(),
+      ]);
+    const body = out.html;
+
     const context = {
       query,
       url: doc.url,
-      body: doc.html,
+      body,
     };
     const prompts = await gather.renderMulti(context, 'body', this.ai);
 

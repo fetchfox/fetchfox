@@ -24,4 +24,22 @@ describe('Document', function() {
     }
   });
 
+  it('should find ul li a @fast', async () => {
+    // const url = 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/jw5t8249rs/https-www-cos-com-en-usd-women-new-arrivals-html'
+    const url = 'https://www.cos.com/en_usd/women/new-arrivals.html';
+
+    const f = getFetcher('playwright', {
+      cdp: process.env.CDP_URL,
+      headless: true,
+      cache: testCache(),
+    });
+    const doc = await f.first(url);
+    console.log('doc.html', doc.html);
+
+    for (const link of doc.links) {
+      console.log('link', link.url);
+    }
+
+  });
+
 });

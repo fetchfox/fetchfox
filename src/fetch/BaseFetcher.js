@@ -15,11 +15,11 @@ export const BaseFetcher = class {
     this.ai = options?.ai || getAI();
     this.kv = options?.kv || getKV();
     this.queue = [];
-    this.usage = { goto: 0 };
+    this.usage = { goto: 0, bytes: 0 };
 
     this.q = new PQueue({
-      concurrency: options?.concurrency || 4,
-      intervalCap: options?.intervalCap || 1,
+      concurrency: options?.concurrency || 32,
+      intervalCap: options?.intervalCap || 4,
       interval: options?.interval || 1000,
     });
 
@@ -46,6 +46,7 @@ export const BaseFetcher = class {
         return doc;
       }
     } catch (e) {
+      this.logger.trace('.');
       this.logger.error(`${this} Error getting cache ${target}: ${e}`);
     }
   }
@@ -62,7 +63,7 @@ export const BaseFetcher = class {
   }
 
   async *fetch(target, options) {
-    this.logger.info(`${this} Fetch ${target} with ${JSON.stringify(options)}`);
+    this.logger.info(`${this} Fetch ${target}`);
 
     const toInstructions = (target) => {
       let instr;
@@ -87,6 +88,7 @@ export const BaseFetcher = class {
             cache: this.cache,
             signal: this.signal,
             timeout: this.timeout,
+            wait: options?.wait ?? this.wait,
             hint: options?.hint,
           });
       }

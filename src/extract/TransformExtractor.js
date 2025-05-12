@@ -22,6 +22,8 @@ export const TransformExtractor = class extends BaseExtractor {
     const transformer = new TextOnlyTransformer();
     const r = await transformer.transform(doc.html, doc.url);
 
+    console.log('r.html', r.html);
+
     if (this.signal?.aborted) {
       return;
     }

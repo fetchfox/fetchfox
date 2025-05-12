@@ -5,7 +5,6 @@ import { Timer } from '../log/timer.js';
 import { parseAnswer, sleep, getModelData } from './util.js';
 import { shortObjHash } from '../util.js';
 
-
 export const BaseAI = class {
   constructor(options) {
     const apiKeyEnvVariable = this.constructor.apiKeyEnvVariable;

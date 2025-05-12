@@ -16,7 +16,7 @@ const transformWhitelist = [
   'bidspotter',
   'dmaar',
   'epam',
-  'rvtrader',
+  // 'rvtrader',
 ];
 
 export const ExtractStep = class extends BaseStep {
@@ -121,7 +121,8 @@ export const ExtractStep = class extends BaseStep {
           maxPages: this.maxPages,
           hint: this.hint,
           fetchOptions: {
-            priority: index,
+            // Randomize priority a bit...
+            priority: Math.round(10 * index * Math.random()),
             hint: this.hint,
           },
           onArtifact: (art) => {

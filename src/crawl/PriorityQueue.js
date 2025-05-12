@@ -89,16 +89,20 @@ export const PriorityQueue = class {
     this.sort();
 
     const onLink = options?.onLink ? options?.onLink : () => {};
-
     const results = [];
 
     const pushLink = (link) => {
+      if (!link.url) {
+        this.logger.debug(`${this} Drop no URL link: ${JSON.stringify(link)}`);
+        return;
+      }
       results.push(link);
       onLink(link);
     }
 
     // TODO: config max deterministic
     while (results.length < Math.ceil(num * .5) && this.top?.score > cutoff) {
+      // console.log('pushing item with score:', this.top.score, this.top.url);
       pushLink(this.list.shift());
     }
 

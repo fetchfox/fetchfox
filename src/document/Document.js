@@ -3,7 +3,6 @@ import { logger } from '../log/logger.js';
 import { parse } from 'node-html-parser';
 import TurndownService from 'turndown';
 
-
 export const Document = class {
   constructor() {}
 
@@ -60,7 +59,7 @@ export const Document = class {
   get text() {
     if (!this._text) {
       const root = parse(this._html);
-      this._text = trim(root.text);
+      this._text = root.textContent.replaceAll(/\n[ \n\t]+/g, '\n');
     }
 
     return this._text;
@@ -71,7 +70,7 @@ export const Document = class {
       const root = parse(this._html);
 
       const visit = (node) => {
-        if (node.nodeType == 3) { // TEXT_NODE
+        if (node.nodeType == 3) {
           return node.rawText;
         }
 
@@ -135,18 +134,26 @@ export const Document = class {
   get links() {
     if (!this._links) {
       const root = parse(this._html);
+
       const links = [];
       const seen = {};
       for (const a of root.querySelectorAll('a')) {
         const href = a.getAttribute('href');
         if (!href) continue;
+
+        // console.log('href', href);
         let url;
         try {
           url = new URL(href, this.url);
         } catch (e) {
-          logger.debug(`${this} Invalid href ${href}, skip:  ${e}`)
+          logger.debug(`${this} Invalid href ${href}, skip: ${e}`);
+          continue;
         }
+
+        // console.log('href to url', url);
         const u = url.toString();
+        // console.log('href to u', u);
+
         if (seen[u]) continue;
         seen[u] = true;
         links.push({
@@ -269,6 +276,7 @@ export const Document = class {
     });
     this.htmlUrl = presignedUrl.replace(/\?.*$/, '');
     logger.debug(`${this} Uploaded HTML to ${this.htmlUrl}`);
+    // console.log(`${this} Uploaded HTML to ${this.htmlUrl}`);
     return this.htmlUrl;
   }
 }

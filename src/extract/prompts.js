@@ -1,7 +1,8 @@
 import { Template } from '../template/Template.js';
 
 export const scrapeOnce = new Template(
-  ['extraRules', 'questions', 'schema', 'url', 'body'],
+  // ['extraRules', 'questions', 'schema', 'url', 'body'],
+  ['extraRules', 'questions', 'url', 'body'],
   `You are a web scraping extraction program. You will receive webpage content including HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar.
 
 If you're unable to answer a question fill in the value "(not found)", but make your best guess. Prefer to give an answer if one seems plausible.
@@ -37,11 +38,16 @@ Below is the user prompts. Prompt directive lines are preceded by  >>>>
 >>> Below is the questions dictionary for each item(s). KEEP THE SAME KEYS, and follow schema requests:
 {{questions}}
 
->>> Follow this JSON schema (ie. json-schema.org):
-{{schema}}
+Guidance on respecting keys and values:
+- Consider BOTH the key name AND the string in the dictionary
+- Typically, the key name will be a high level overview, and the string may give extra details
+- If the key contains guidance, instructions, filters, restrictons, MAKE SURE TO FOLLOW THOSE
 
 {{extraRules}}
 `);
+
+// >>> Follow this JSON schema (ie. json-schema.org):
+// {{schema}}
 
 export const scrapeSingleShort = new Template(
   ['questions', 'url', 'body'],
@@ -186,6 +192,14 @@ Follow these important rules:
 - Pay attention to user format specifications
 - Generally avoid returning results with many (not found) fields
 - For URL, always include the FULL ABSOLUTE URL
+
+Guidance on respecting keys and values:
+- Consider BOTH the key name AND the string in the dictionary
+- Typically, the key name will be a high level overview, and the string may give extra details
+- If the key contains guidance, instructions, filters, restrictons, MAKE SURE TO FOLLOW THOSE
+
+>>> With that in mind, here is the dictionary again:
+{{questions}}
 
 {{extraRules}}
 `);

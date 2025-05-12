@@ -1,3 +1,4 @@
+import { logger } from '../log/logger.js';
 import { Timer } from '../log/timer.js';
 
 export const Template = class {
@@ -40,7 +41,11 @@ export const Template = class {
 
   async renderMulti(context, flexField, ai, options) {
     if (!context[flexField]) {
-      throw new Error(`could not find flex field ${flexField} in context`);
+      if (process.env.STRICT_ERRORS) {
+        throw new Error(`could not find flex field ${flexField} in context`);
+      }
+      logger.warn(`Missing flex field in context: ${flexField}`);
+      context[flexField] ||= '';
     }
 
     const copy = { ...context };
@@ -52,14 +57,18 @@ export const Template = class {
       if (done) {
         break;
       }
-      copy[flexField] = copy[flexField].substr(bytesUsed);
+      copy[flexField] = (copy[flexField] || '').substr(bytesUsed);
     }
     return prompts;
   }
 
   async renderCapped(context, flexField, ai, options) {
     if (!context[flexField]) {
-      throw new Error(`could not find flex field ${flexField} in context`);
+      if (process.env.STRICT_ERRORS) {
+        throw new Error(`could not find flex field ${flexField} in context`);
+      }
+      logger.warn(`Missing flex field in context: ${flexField}`);
+      context[flexField] ||= '';
     }
 
     await ai.init();

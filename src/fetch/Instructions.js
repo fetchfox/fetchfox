@@ -35,6 +35,7 @@ export const Instructions = class {
       null,
       { cache: this.cache, signal: this.signal });
     this.timeout = options?.timeout || options?.fetcher?.timeout || 60000;
+    this.wait = options?.wait;
 
     this.limit = options?.limit;
     this.hint = options?.hint;
@@ -654,7 +655,7 @@ ${this.hint}` : '',
 
   async current(fetcher, ctx) {
     const doc = await pTimeout(
-      fetcher.current(ctx,),
+      fetcher.current(ctx, { wait: this.wait }),
       { milliseconds: this.timeout });
     this.logger.debug(`${this} Got document: ${doc}`);
     return doc;

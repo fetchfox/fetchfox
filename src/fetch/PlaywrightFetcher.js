@@ -37,6 +37,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     this.logger = options?.logger || defaultLogger;
     this.kv = options?.kv || getKV();
     this.shouldScreenshot = Boolean(this.s3); // TODO: separate option for this?
+
+    this.pool = [];
   }
 
   cacheOptions() {
@@ -81,6 +83,10 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   }
 
   async start(ctx) {
+    this.ctxId ||= 1;
+
+    ctx.id = this.ctxId++;
+
     this._ctxLastTouch(ctx);
     const timer = ctx.timer || new Timer();
 
@@ -106,9 +112,45 @@ export const PlaywrightFetcher = class extends BaseFetcher {
 
     if (!ctx.page) {
       ctx.page = await ctx.browser.newPage();
+
+      ctx.usage = { bytes: 0 };
+
+      await ctx.page.route('**/*', (route) => {
+        const req = route.request();
+        // if (['script', 'image', 'stylesheet', 'font'].includes(req.resourceType())) { 
+        if (['image', 'stylesheet', 'font'].includes(req.resourceType())) { 
+          // console.log(`Blocking image: ${req.url()}`);
+          route.abort();
+        } else {
+          route.continue();
+        }
+      });
+
+      ctx.page.on('response', async (resp) => {
+        try {
+          const buf = await resp.body();
+          this.usage.bytes += buf.length;
+          ctx.usage.bytes += buf.length;
+
+          // const mb = ctx.usage.bytes / 1e6;
+          // if (mb > 5) {
+          //   console.log(`Over 5MB for ${ctx.page.url()}: ${mb.toFixed(3)}`);
+          // }
+          // this.logger.debug(`${this} Recorded body of ${(buf.length / 1e6).toFixed(3)} MB for total of ${(this.usage.bytes / 1e6).toFixed(3)} MB`);
+        } catch (e) {
+          // no-op
+        }
+      });
     }
 
     try {
+      // ctx.page = await this.newPage();
+      // const browser = ctx.browser;
+      // ctx.page = await browser.newPage();
+      // console.log('===> Page.GOTO', ctx.id, url);
+      // await ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout });
+      // console.log('goto done', ctx.id);
+
       const { aborted } = await abortable(
         this.signal,
         ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: this.loadTimeout }));
@@ -117,11 +159,11 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         return;
       }
     } catch (e) {
-      this.logger.warn(`${this} Goto gave error, but continuing anyways: ${e}`);
+      this.logger.warn(`${this} Goto gave error ctx id=${ctx.id}, but continuing anyways: ${e}`);
     }
   }
 
-  async current(ctx) {
+  async current(ctx, options) {
     if (this.signal?.aborted) return;
 
     // No last touch, this is read-only
@@ -131,7 +173,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     try {
       const result = await abortable(
         this.signal,
-        this._docFromPage(ctx, ctx.timer));
+        this._docFromPage(ctx, { timer: ctx.timer, wait: options.wait }));
       aborted = result.aborted;
       doc = result.result;
     } catch (e) {
@@ -151,17 +193,27 @@ export const PlaywrightFetcher = class extends BaseFetcher {
   async finish(ctx) {
     this._ctxLastTouch(ctx);
 
-    if (!ctx.browser) {
-      return;
-    }
-
     if (ctx.promise) {
       await pTimeout(ctx.promise, { milliseconds: this.timeout });
     }
 
-    this.logger.debug(`${this} Closing browser`);
-    await ctx.browser.close();
-    delete ctx.browser;
+    if (ctx.page) {
+      // console.log('CLOSE page', ctx.id);
+      await ctx.page.close();
+      // await ctx.browser.close();
+
+      // const browser = ctx.page.context().browser();
+      // const contexts = browser.contexts();
+      // const pages = await Promise.all(contexts.map(ctx => ctx.pages()));
+      // const count = pages.flat().length;
+      // this.logger.debug(`${this} Browser has ${count} pages open after closing`);
+      // if (count == 0) {
+      //   this.pool = this.pool.filter(it => it != browser);
+      //   await browser.close();
+      //   this.logger.debug(`${this} Closed browser, now have ${this.pool.length} open`);
+      // }
+
+    }
   }
 
   async act(ctx, action, seen) {
@@ -342,8 +394,8 @@ export const PlaywrightFetcher = class extends BaseFetcher {
     return { ok: true };
   }
 
-  async _docFromPage(ctx, timer) {
-    timer ||= new Timer();
+  async _docFromPage(ctx, options) {
+    const timer = options?.timer || new Timer();
 
     let html;
     let status;
@@ -355,7 +407,7 @@ export const PlaywrightFetcher = class extends BaseFetcher {
         getHtmlFromSuccess(
           ctx,
           {
-            loadWait: this.loadWait,
+            loadWait: options?.wait ?? this.loadWait,
             pullIframes: this.pullIframes,
             logger: this.logger,
             signal: this.signal,
@@ -450,15 +502,7 @@ const getHtmlFromSuccess = async ({ page, lastTouch }, { loadWait, pullIframes, 
   // const wait = Math.max(1, loadWait - diff);
   let wait = loadWait;
 
-  if (page.url().includes('https://www.finefettle.com/')) {
-    wait = 15 * 1000;
-    logger.debug(`Extra wait for finefettle.com: ${wait}`);
-  }
-
-  if (page.url().includes('https://www.onthebeach.co.uk/')) {
-    wait = 20 * 1000;
-    logger.debug(`Extra wait for www.onthebeach.co.uk: ${wait}`);
-  }
+  // console.log('waiting:', wait)
 
   logger.debug(`Load waiting ${(wait / 1000).toFixed(1)} sec based on loadWait=${loadWait}, touch diff=${diff}`);
   await new Promise(ok => setTimeout(ok, wait));

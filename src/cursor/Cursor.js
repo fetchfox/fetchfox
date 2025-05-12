@@ -62,10 +62,11 @@ export const Cursor = class {
     while (this.logs.length > this.numLogs) {
       this.logs.shift();
     }
-    const msec = new Date().getTime() - this.lastLogPublish;
-    if (msec > 2000) {
-      this.cb({ ...this.out() });
-    }
+
+    // const msec = new Date().getTime() - this.lastLogPublish;
+    // if (msec > 2000) {
+    //   this.cb({ ...this.out() });
+    // }
   }
 
   handleArtifact(artifact, stepIndex) {

@@ -1,5 +1,14 @@
 import { Template } from '../template/Template.js';
 
+const metaRecordPrompt = `# _meta result
+
+Before giving any real results, give a _meta JSON object, which has this structure:
+
+- "_meta": this field has a true value, to enable filtering it
+- "mainContent": Describe the main content of the page in 10-20 words
+- "likeleyScrapingGoal": Describe the likely scraping goal on this page, taking into acoun the main content of the page, and the user prompt (if it exists)
+`;
+
 export const availableItems = new Template(
   ['urls', 'htmls', 'prompt'],
   `You are part of a web scraping program, and you are analyzing a set of pages for available data to scrape. Your goal is to see what information on the page could be turned into structured data. The pages are expected to be similar.
@@ -9,6 +18,7 @@ You should return a list of JSON objects in JSONL format, where each object has 
 Additionally, focus on items relevant to the user prompt.
 
 - "item": 1-5 word description of the item that is available to scrape
+- "noun": 1-3 words that are a noun that fit in the blank: Extract _____
 - "example": A JSON example of this item FROM THIS PAGE. If the data is not available on this page, return "(not found)" in your result. Do NOT nest arrays or dictionaries. Do NOT include any data that is not available on this page
 - "template": A dictionary showing the template of this item. Do NOT nest arrays or dictionaries. All values must be strings. Must exactly match the example
 - "perPage": Either "single" if there is one of these item per page, or "multiple" if there is multiple of these items per page
@@ -18,12 +28,13 @@ Examples of valid output:
 {"item": "book", "example": {"title": "1984", "author": "George Orwell", "rating": 4.5, "url": "https://example.com/page" }, "template": { "title": "Title of the book", "author": "Author of the book", "rating": "Rating out of 5 for the book", "url" : "URL of the book details. Full absolute URL" } }
 {"item": "comment", "example": {"username": "Bob", "points": 120, "timestamp": "Jan 1, 2025 12:45pm", "text": "...", "url": "https://example.com/page"}, "template": { "username": "Username of the commenter", "points": "Number of points the comment received", "timestamp": "Time that the comment was posted", "text": "Text content of the review", "url": "URL of the comment permalink. Full absolute URL" } }
 
-
 URLs of the pages:
 {{urls}}
 
 HTML samples of the page:
 {{htmls}}
+
+${metaRecordPrompt}
 
 Focus on item relevant the user prompt below. However, do not be overly restricted. If there are items somewhat related, feel free to suggest those also. Give the most relevant suggestions first.
 
@@ -48,6 +59,7 @@ Combined item data:
 - You may have 0, 1, 2, or more of these, as appropriate. For example a article submission on reddit might have "url_article", "url_comment_thread", and "url_submitter" for the various associated URLs
 - All URLs should be full, absolute URLs
 - Do NOT give the same URL as the current page. Do NOT include it if the only URL you can think of is the current page.
+- Try to include at least one of these when possible. They are useful for extracting more data.
 
 Missing data:
 - If data is not available, do not include it. Do not suggest items that are not available, and give "(not found)" if you notice your mistake too late
@@ -99,6 +111,7 @@ Example of valid output:
   "pattern": "https://example.com/author/:name"
 }
 
+${metaRecordPrompt}
 
 Below are all the links for this page:
 {{links}}
@@ -120,6 +133,10 @@ Remember:
 * Focus on content, not navigation or interaction links
 * Avoid duplicates
 * Typically you should generate 2-4 results
+
+Focus on content:
+* Generally, focus on content that is a likely target for scraping
+
 `);
 
 

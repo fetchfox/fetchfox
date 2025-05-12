@@ -49,6 +49,24 @@ describe('extract rvtrader.com', async function() {
         mileage: '4,000',
       }],
     },
+
+    {
+      name: 'live 3',
+      url: 'https://www.rvtrader.com/listing/2024-Tiffin+Motorhomes-PHAETON+37+BH-5035801213',
+      // url: 'https://ffcloud.s3.us-west-2.amazonaws.com/fetchfox-docs/epz4keju9r/https-www-rvtrader-com-listing-2023-Escape-Trailer-Industries-ESCAPE-5-0-5035899563',
+      expected: [{
+        model_name: 'PHAETON 37 BH',
+        price: '$548,000',
+        year: 2024,
+        condition: 'Used',
+        location: 'Forsyth, GA',
+        contact: 'Private Seller',
+        class: 'Class A',
+        make: 'Tiffin Motorhomes',
+        model: 'PHAETON 37 BH',
+        mileage: '503'
+      }],
+    },
   ];
 
   const questions = {
@@ -57,7 +75,7 @@ describe('extract rvtrader.com', async function() {
     "year": "What is the manufacturing year of this RV?",
     "condition": "What is the condition of this RV?",
     "location": "Where is this RV located?",
-    "contact": "Who is the Contact of the RV? 'Private Party' or 'Dealer'?",
+    "contact": "Who is the Contact of the RV? 'Private Seller' or 'Dealer'?",
     "class": "What is the Class of the RV?",
     "make": "What is the Make of the RV?",
     "model": "What is the Model of the RV?",
@@ -71,7 +89,7 @@ describe('extract rvtrader.com', async function() {
         .extract({
           questions,
           mode: 'single',
-          view: 'html',
+          view: 'text',
           maxPages: 1,
         })
         .plan();
